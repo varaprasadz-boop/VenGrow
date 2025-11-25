@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Heart, MapPin, Bed, Bath, Maximize, CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,17 +41,17 @@ export default function PropertyCard({
   onClick,
 }: PropertyCardProps) {
   const [isFavorited, setIsFavorited] = useState(false);
+  const [, setLocation] = useLocation();
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsFavorited(!isFavorited);
     onFavoriteClick?.(id);
-    console.log(`Property ${id} ${!isFavorited ? 'added to' : 'removed from'} favorites`);
   };
 
   const handleCardClick = () => {
     onClick?.(id);
-    console.log(`Property ${id} clicked`);
+    setLocation(`/property/${id}`);
   };
 
   const formatPrice = (amount: number) => {

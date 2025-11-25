@@ -29,11 +29,9 @@ export default function Header({ isLoggedIn = false, userType = "buyer" }: Heade
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
-          <Link href="/">
-            <a className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1 -ml-2" data-testid="link-home">
-              <Building2 className="h-6 w-6 text-primary" />
-              <span className="font-serif font-bold text-xl hidden sm:inline">PropConnect</span>
-            </a>
+          <Link href="/" className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1 -ml-2" data-testid="link-home">
+            <Building2 className="h-6 w-6 text-primary" />
+            <span className="font-serif font-bold text-xl hidden sm:inline">PropConnect</span>
           </Link>
 
           {/* Desktop Search */}
