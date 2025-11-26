@@ -1,6 +1,5 @@
 import { Link } from "wouter";
-import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from "lucide-react";
-import vengrowLogo from "@assets/vengrow-logo.png";
+import { Building2, Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -12,7 +11,8 @@ export default function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <img src={vengrowLogo} alt="VenGrow" className="h-12 w-auto" />
+              <Building2 className="h-6 w-6 text-primary" />
+              <span className="font-serif font-bold text-xl">VenGrow</span>
             </div>
             <p className="text-sm text-muted-foreground">
               India's trusted verified property marketplace. Find your dream property with verified sellers and transparent pricing.
