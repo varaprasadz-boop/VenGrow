@@ -12,7 +12,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <img src={vengrowLogo} alt="VenGrow" className="h-8 w-auto" />
+              <img src={vengrowLogo} alt="VenGrow" className="h-12 w-auto" />
             </div>
             <p className="text-sm text-muted-foreground">
               India's trusted verified property marketplace. Find your dream property with verified sellers and transparent pricing.

@@ -31,7 +31,7 @@ export default function Header({ isLoggedIn = false, userType = "buyer" }: Heade
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1 -ml-2" data-testid="link-home">
-            <img src={vengrowLogo} alt="VenGrow" className="h-8 w-auto" />
+            <img src={vengrowLogo} alt="VenGrow" className="h-12 w-auto" />
           </Link>
 
           {/* Desktop Search */}
