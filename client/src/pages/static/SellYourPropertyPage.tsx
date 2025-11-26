@@ -99,7 +99,7 @@ export default function SellYourPropertyPage() {
                 Ready to Sell Your Property?
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Join 50,000+ sellers who trust PropConnect
+                Join 50,000+ sellers who trust VenGrow
               </p>
               <Button size="lg" data-testid="button-start-listing">
                 List Your Property Now

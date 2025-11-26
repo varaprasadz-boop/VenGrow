@@ -1,4 +1,17 @@
-# Design Guidelines - Real Estate Marketplace MVP
+# Design Guidelines - VenGrow Real Estate Marketplace MVP
+
+## Brand Identity
+
+**Brand Name:** VenGrow - Verified Property Market  
+**Color Scheme:**
+- **Primary:** Dark Green (#0F6B4A / HSL 158 64% 26%) - Trust, growth, verification
+- **Secondary:** Neutral grays for backgrounds and cards
+- **Accent:** Gold/Yellow (from logo horse) for premium features
+- **Success:** Green variants for verification badges
+- **Destructive:** Red for warnings and deletions
+
+**Logo:** House with checkmark + "VenGrow" text + Gold horse icon  
+**Tagline:** "Verified Property Market"
 
 ## Design Approach: Reference-Based (Airbnb + Linear + Indian Real Estate)
 

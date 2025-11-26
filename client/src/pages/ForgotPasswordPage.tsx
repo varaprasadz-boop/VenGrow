@@ -24,7 +24,7 @@ export default function ForgotPasswordPage() {
           <Link href="/">
             <a className="inline-flex items-center gap-2 mb-2">
               <Building2 className="h-8 w-8 text-primary" />
-              <span className="font-serif font-bold text-2xl">PropConnect</span>
+              <span className="font-serif font-bold text-2xl">VenGrow</span>
             </a>
           </Link>
           <p className="text-muted-foreground">Reset your password</p>

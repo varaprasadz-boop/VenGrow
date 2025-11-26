@@ -55,7 +55,7 @@ export default function AboutPage() {
               India's Trusted Real Estate Marketplace
             </h1>
             <p className="text-lg text-muted-foreground">
-              PropConnect is revolutionizing the Indian real estate market by connecting property buyers with verified sellers through a transparent, technology-driven platform.
+              VenGrow is revolutionizing the Indian real estate market by connecting property buyers with verified sellers through a transparent, technology-driven platform.
             </p>
           </div>
         </section>
@@ -145,7 +145,7 @@ export default function AboutPage() {
               Join Us in Transforming Real Estate
             </h2>
             <p className="text-lg mb-8 opacity-90">
-              Whether you're buying or selling, PropConnect is here to help you succeed
+              Whether you're buying or selling, VenGrow is here to help you succeed
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a href="/register">

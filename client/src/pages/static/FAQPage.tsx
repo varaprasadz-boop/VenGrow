@@ -17,7 +17,7 @@ export default function FAQPage() {
       category: "For Buyers",
       questions: [
         {
-          q: "How do I search for properties on PropConnect?",
+          q: "How do I search for properties on VenGrow?",
           a: "You can search for properties using our search bar on the homepage. Filter by location, property type, price range, BHK configuration, and more. You can also save your search criteria to get notifications when new matching properties are listed.",
         },
         {
@@ -30,7 +30,7 @@ export default function FAQPage() {
         },
         {
           q: "Is there any fee for buyers?",
-          a: "No, PropConnect is completely free for buyers. You can browse unlimited properties, save favorites, and contact sellers without any charges.",
+          a: "No, VenGrow is completely free for buyers. You can browse unlimited properties, save favorites, and contact sellers without any charges.",
         },
         {
           q: "Can I schedule property visits?",
@@ -120,7 +120,7 @@ export default function FAQPage() {
               Frequently Asked Questions
             </h1>
             <p className="text-lg text-muted-foreground">
-              Find answers to common questions about PropConnect
+              Find answers to common questions about VenGrow
             </p>
           </div>
         </section>

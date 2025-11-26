@@ -28,7 +28,7 @@ export default function TermsPage() {
               <section>
                 <h2 className="font-serif font-bold text-2xl mb-4">1. Acceptance of Terms</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  By accessing and using PropConnect ("Service"), you accept and agree to be bound by the terms and provisions of this agreement. If you do not agree to these terms, please do not use our Service.
+                  By accessing and using VenGrow ("Service"), you accept and agree to be bound by the terms and provisions of this agreement. If you do not agree to these terms, please do not use our Service.
                 </p>
               </section>
 
@@ -36,7 +36,7 @@ export default function TermsPage() {
                 <h2 className="font-serif font-bold text-2xl mb-4">2. Use of Service</h2>
                 <h3 className="font-semibold text-lg mb-3">2.1 Eligibility</h3>
                 <p className="text-muted-foreground leading-relaxed mb-4">
-                  You must be at least 18 years old to use our Service. By using PropConnect, you represent and warrant that you meet this age requirement.
+                  You must be at least 18 years old to use our Service. By using VenGrow, you represent and warrant that you meet this age requirement.
                 </p>
                 <h3 className="font-semibold text-lg mb-3">2.2 Account Registration</h3>
                 <p className="text-muted-foreground leading-relaxed mb-4">
@@ -60,7 +60,7 @@ export default function TermsPage() {
                 </p>
                 <h3 className="font-semibold text-lg mb-3">3.2 Verification</h3>
                 <p className="text-muted-foreground leading-relaxed mb-4">
-                  PropConnect reserves the right to verify property listings and seller information. We may remove listings that do not meet our standards or violate these terms.
+                  VenGrow reserves the right to verify property listings and seller information. We may remove listings that do not meet our standards or violate these terms.
                 </p>
                 <h3 className="font-semibold text-lg mb-3">3.3 Listing Duration</h3>
                 <p className="text-muted-foreground leading-relaxed">
@@ -87,31 +87,31 @@ export default function TermsPage() {
               <section>
                 <h2 className="font-serif font-bold text-2xl mb-4">5. Intellectual Property</h2>
                 <p className="text-muted-foreground leading-relaxed mb-4">
-                  All content on PropConnect, including text, graphics, logos, and software, is the property of PropConnect or its licensors and is protected by copyright and trademark laws.
+                  All content on VenGrow, including text, graphics, logos, and software, is the property of VenGrow or its licensors and is protected by copyright and trademark laws.
                 </p>
                 <p className="text-muted-foreground leading-relaxed">
-                  By uploading content to PropConnect, you grant us a non-exclusive, worldwide, royalty-free license to use, display, and distribute your content on our platform.
+                  By uploading content to VenGrow, you grant us a non-exclusive, worldwide, royalty-free license to use, display, and distribute your content on our platform.
                 </p>
               </section>
 
               <section>
                 <h2 className="font-serif font-bold text-2xl mb-4">6. Privacy</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Your use of PropConnect is also governed by our Privacy Policy. Please review our Privacy Policy to understand how we collect, use, and protect your information.
+                  Your use of VenGrow is also governed by our Privacy Policy. Please review our Privacy Policy to understand how we collect, use, and protect your information.
                 </p>
               </section>
 
               <section>
                 <h2 className="font-serif font-bold text-2xl mb-4">7. Disclaimer of Warranties</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  PropConnect is provided "as is" without warranties of any kind, either express or implied. We do not guarantee the accuracy, completeness, or reliability of property listings or user-generated content.
+                  VenGrow is provided "as is" without warranties of any kind, either express or implied. We do not guarantee the accuracy, completeness, or reliability of property listings or user-generated content.
                 </p>
               </section>
 
               <section>
                 <h2 className="font-serif font-bold text-2xl mb-4">8. Limitation of Liability</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  PropConnect shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the Service.
+                  VenGrow shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the Service.
                 </p>
               </section>
 

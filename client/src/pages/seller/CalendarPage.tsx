@@ -19,7 +19,7 @@ export default function CalendarPage() {
       title: "Document Verification",
       time: "02:00 PM",
       type: "admin",
-      client: "PropConnect Team",
+      client: "VenGrow Team",
     },
     {
       id: "3",

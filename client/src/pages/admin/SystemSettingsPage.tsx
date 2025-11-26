@@ -12,7 +12,7 @@ import { Settings, Save } from "lucide-react";
 
 export default function SystemSettingsPage() {
   const [settings, setSettings] = useState({
-    siteName: "PropConnect",
+    siteName: "VenGrow",
     siteTagline: "Find Your Dream Property",
     contactEmail: "support@propconnect.com",
     contactPhone: "+91 98765 43210",

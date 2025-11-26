@@ -51,7 +51,7 @@ export default function SellerTypePage() {
           <Link href="/">
             <a className="inline-flex items-center gap-2 mb-4">
               <Building2 className="h-8 w-8 text-primary" />
-              <span className="font-serif font-bold text-2xl">PropConnect</span>
+              <span className="font-serif font-bold text-2xl">VenGrow</span>
             </a>
           </Link>
           <h1 className="font-serif font-bold text-3xl sm:text-4xl mb-3">

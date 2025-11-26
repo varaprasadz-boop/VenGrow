@@ -10,7 +10,7 @@ export default function SMSTemplatesPage() {
     {
       id: "1",
       name: "Property Inquiry Confirmation",
-      content: "Hi {name}, Thank you for your interest in {property}. We'll contact you soon. - PropConnect",
+      content: "Hi {name}, Thank you for your interest in {property}. We'll contact you soon. - VenGrow",
       category: "Buyer",
       active: true,
       usageCount: 1234,

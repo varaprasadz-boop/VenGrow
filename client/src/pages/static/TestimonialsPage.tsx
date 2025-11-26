@@ -12,7 +12,7 @@ export default function TestimonialsPage() {
       role: "Home Buyer",
       location: "Mumbai",
       rating: 5,
-      comment: "PropConnect made my home buying journey incredibly smooth. The platform is user-friendly and the sellers are verified which gave me confidence. Found my dream apartment within 2 weeks!",
+      comment: "VenGrow made my home buying journey incredibly smooth. The platform is user-friendly and the sellers are verified which gave me confidence. Found my dream apartment within 2 weeks!",
     },
     {
       id: "2",
@@ -20,7 +20,7 @@ export default function TestimonialsPage() {
       role: "Property Seller",
       location: "Bangalore",
       rating: 5,
-      comment: "As a real estate broker, I've tried many platforms. PropConnect stands out with its professional approach and quality leads. Sold 5 properties in just 2 months!",
+      comment: "As a real estate broker, I've tried many platforms. VenGrow stands out with its professional approach and quality leads. Sold 5 properties in just 2 months!",
     },
     {
       id: "3",
@@ -28,7 +28,7 @@ export default function TestimonialsPage() {
       role: "First-time Buyer",
       location: "Delhi",
       rating: 5,
-      comment: "Being a first-time buyer, I was nervous about the process. PropConnect's support team guided me every step of the way. Highly recommended!",
+      comment: "Being a first-time buyer, I was nervous about the process. VenGrow's support team guided me every step of the way. Highly recommended!",
     },
     {
       id: "4",
@@ -36,7 +36,7 @@ export default function TestimonialsPage() {
       role: "Real Estate Investor",
       location: "Hyderabad",
       rating: 5,
-      comment: "The analytics and market insights on PropConnect helped me make informed investment decisions. The ROI calculator is particularly useful!",
+      comment: "The analytics and market insights on VenGrow helped me make informed investment decisions. The ROI calculator is particularly useful!",
     },
     {
       id: "5",

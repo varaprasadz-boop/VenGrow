@@ -25,7 +25,7 @@ export default function RefundPolicyPage() {
                 Money-Back Guarantee
               </h2>
               <p className="text-muted-foreground mb-6">
-                At PropConnect, we stand behind the quality of our service. We offer
+                At VenGrow, we stand behind the quality of our service. We offer
                 a 7-day money-back guarantee for all our packages.
               </p>
 

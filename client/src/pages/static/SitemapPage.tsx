@@ -70,7 +70,7 @@ export default function SitemapPage() {
           <div className="text-center mb-12">
             <h1 className="font-serif font-bold text-4xl mb-4">Sitemap</h1>
             <p className="text-lg text-muted-foreground">
-              Quick navigation to all pages on PropConnect
+              Quick navigation to all pages on VenGrow
             </p>
           </div>
 

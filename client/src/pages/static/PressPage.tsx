@@ -8,21 +8,21 @@ export default function PressPage() {
   const pressReleases = [
     {
       id: "1",
-      title: "PropConnect Raises $10M Series A to Expand Across India",
+      title: "VenGrow Raises $10M Series A to Expand Across India",
       date: "Nov 15, 2025",
       excerpt:
         "Leading real estate marketplace secures funding to accelerate growth in tier-2 and tier-3 cities.",
     },
     {
       id: "2",
-      title: "PropConnect Launches AI-Powered Property Recommendations",
+      title: "VenGrow Launches AI-Powered Property Recommendations",
       date: "Oct 28, 2025",
       excerpt:
         "New feature uses machine learning to match buyers with their ideal properties.",
     },
     {
       id: "3",
-      title: "PropConnect Surpasses 100,000 Active Listings Milestone",
+      title: "VenGrow Surpasses 100,000 Active Listings Milestone",
       date: "Sep 20, 2025",
       excerpt:
         "Platform growth continues with 3x increase in user engagement year-over-year.",
@@ -48,7 +48,7 @@ export default function PressPage() {
               Press & Media
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Latest news, updates, and media resources from PropConnect
+              Latest news, updates, and media resources from VenGrow
             </p>
             <Button size="lg" data-testid="button-contact">
               Contact Press Team

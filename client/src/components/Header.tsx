@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Menu, Search, Heart, User, Building2, Home } from "lucide-react";
+import { Menu, Search, Heart, User, Home } from "lucide-react";
+import vengrowLogo from "@assets/vengrow-logo.png";
 import {
   Sheet,
   SheetContent,
@@ -30,8 +31,7 @@ export default function Header({ isLoggedIn = false, userType = "buyer" }: Heade
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1 -ml-2" data-testid="link-home">
-            <Building2 className="h-6 w-6 text-primary" />
-            <span className="font-serif font-bold text-xl hidden sm:inline">PropConnect</span>
+            <img src={vengrowLogo} alt="VenGrow" className="h-8 w-auto" />
           </Link>
 
           {/* Desktop Search */}

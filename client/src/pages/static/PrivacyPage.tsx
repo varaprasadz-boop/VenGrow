@@ -28,7 +28,7 @@ export default function PrivacyPage() {
               <section>
                 <h2 className="font-serif font-bold text-2xl mb-4">1. Introduction</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  PropConnect ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our real estate marketplace platform.
+                  VenGrow ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our real estate marketplace platform.
                 </p>
               </section>
 

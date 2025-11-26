@@ -17,7 +17,7 @@ export default function EmailTemplatesPage() {
     {
       id: "welcome",
       name: "Welcome Email",
-      subject: "Welcome to PropConnect",
+      subject: "Welcome to VenGrow",
       category: "User",
       status: "active",
     },
@@ -160,7 +160,7 @@ export default function EmailTemplatesPage() {
                         rows={15}
                         defaultValue={`Dear {{user_name}},
 
-Welcome to PropConnect! We're excited to have you on board.
+Welcome to VenGrow! We're excited to have you on board.
 
 Your account has been successfully created and you can now start exploring thousands of properties across India.
 
@@ -173,7 +173,7 @@ Getting Started:
 If you need any assistance, our support team is here to help.
 
 Best regards,
-PropConnect Team`}
+VenGrow Team`}
                         data-testid="textarea-body"
                         className="font-mono text-sm"
                       />

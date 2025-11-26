@@ -1,8 +1,8 @@
-# PropConnect - Real Estate Marketplace India
+# VenGrow - Real Estate Marketplace India
 
 ## Overview
 
-PropConnect is a real estate marketplace platform designed for the Indian market, connecting property buyers, sellers, and brokers. The application facilitates property listings, searches, inquiries, and transactions with features like verified sellers, package-based listing subscriptions, and role-based dashboards.
+VenGrow is a real estate marketplace platform designed for the Indian market, connecting property buyers, sellers, and brokers. The application facilitates property listings, searches, inquiries, and transactions with features like verified sellers, package-based listing subscriptions, and role-based dashboards.
 
 The platform follows a modern full-stack architecture with React/TypeScript on the frontend, Express.js for the backend API, and PostgreSQL (via Neon serverless) for data persistence. The design system is built on shadcn/ui components with Tailwind CSS, drawing inspiration from Airbnb's property cards, Linear's clean interfaces, and popular Indian real estate platforms like 99acres and MagicBricks.
 

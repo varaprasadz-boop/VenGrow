@@ -25,7 +25,7 @@ export default function DownloadAppPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div>
                 <h1 className="font-serif font-bold text-4xl md:text-5xl mb-6">
-                  Download PropConnect Mobile App
+                  Download VenGrow Mobile App
                 </h1>
                 <p className="text-lg text-muted-foreground mb-8">
                   Find your dream property anytime, anywhere with our mobile app

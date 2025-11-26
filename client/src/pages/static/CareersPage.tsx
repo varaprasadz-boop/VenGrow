@@ -88,7 +88,7 @@ export default function CareersPage() {
         <div className="py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="font-serif font-bold text-3xl text-center mb-12">
-              Why Join PropConnect?
+              Why Join VenGrow?
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {benefits.map((benefit, index) => (

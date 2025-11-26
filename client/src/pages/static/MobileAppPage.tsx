@@ -45,7 +45,7 @@ export default function MobileAppPage() {
                   Download Our Mobile App
                 </h1>
                 <p className="text-xl text-muted-foreground mb-8">
-                  Search, compare, and buy properties on the go with PropConnect
+                  Search, compare, and buy properties on the go with VenGrow
                   mobile app
                 </p>
                 <div className="flex flex-wrap gap-4">
@@ -100,7 +100,7 @@ export default function MobileAppPage() {
                 Start Your Property Search Today
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Join 500,000+ users already using PropConnect app
+                Join 500,000+ users already using VenGrow app
               </p>
               <div className="flex justify-center gap-4">
                 <Button size="lg">Download Now</Button>

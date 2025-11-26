@@ -1,5 +1,6 @@
 import { Link } from "wouter";
-import { Building2, Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from "lucide-react";
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from "lucide-react";
+import vengrowLogo from "@assets/vengrow-logo.png";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -11,11 +12,10 @@ export default function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Building2 className="h-6 w-6 text-primary" />
-              <span className="font-serif font-bold text-xl">PropConnect</span>
+              <img src={vengrowLogo} alt="VenGrow" className="h-8 w-auto" />
             </div>
             <p className="text-sm text-muted-foreground">
-              India's trusted real estate marketplace. Find your dream property with verified sellers and transparent pricing.
+              India's trusted verified property marketplace. Find your dream property with verified sellers and transparent pricing.
             </p>
             <div className="flex gap-3">
               <a href="#" className="hover-elevate active-elevate-2 p-2 rounded-md" data-testid="link-facebook">
@@ -109,7 +109,7 @@ export default function Footer() {
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">
                 <Mail className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <span>support@propconnect.in</span>
+                <span>support@vengrow.in</span>
               </li>
               <li className="flex items-start gap-2">
                 <Phone className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -125,7 +125,7 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="pt-8 border-t flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-          <p>© {currentYear} PropConnect. All rights reserved.</p>
+          <p>© {currentYear} VenGrow. All rights reserved.</p>
           <div className="flex gap-6">
             <Link href="/privacy">
               <a className="hover:text-foreground transition-colors" data-testid="link-privacy">

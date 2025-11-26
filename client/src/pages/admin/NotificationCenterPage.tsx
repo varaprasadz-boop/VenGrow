@@ -39,7 +39,7 @@ export default function NotificationCenterPage() {
       id: "4",
       type: "email",
       recipient: "priya@example.com",
-      subject: "Welcome to PropConnect",
+      subject: "Welcome to VenGrow",
       sentAt: "Nov 23, 2025, 02:30 PM",
       status: "failed",
     },

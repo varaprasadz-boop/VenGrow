@@ -27,7 +27,7 @@ export default function HelpCenterPage() {
     {
       icon: Home,
       title: "Getting Started",
-      description: "Learn the basics of using PropConnect",
+      description: "Learn the basics of using VenGrow",
       articles: 12,
     },
     {

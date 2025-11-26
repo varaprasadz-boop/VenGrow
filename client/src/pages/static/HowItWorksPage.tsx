@@ -101,7 +101,7 @@ export default function HowItWorksPage() {
               Simple, Transparent, Effective
             </h1>
             <p className="text-lg text-muted-foreground">
-              Whether you're buying or selling, PropConnect makes real estate transactions easy and secure
+              Whether you're buying or selling, VenGrow makes real estate transactions easy and secure
             </p>
           </div>
         </section>
@@ -191,7 +191,7 @@ export default function HowItWorksPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="font-serif font-bold text-3xl mb-4">
-                Why Choose PropConnect?
+                Why Choose VenGrow?
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 We provide the tools and support you need for successful real estate transactions
@@ -225,7 +225,7 @@ export default function HowItWorksPage() {
               Ready to Get Started?
             </h2>
             <p className="text-lg mb-8 opacity-90">
-              Join thousands of satisfied users on PropConnect today
+              Join thousands of satisfied users on VenGrow today
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a href="/register">

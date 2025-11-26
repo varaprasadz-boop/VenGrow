@@ -37,7 +37,7 @@ export default function WebsiteSettingsPage() {
                   <Label htmlFor="site-title">Site Title</Label>
                   <Input
                     id="site-title"
-                    defaultValue="PropConnect - Your Real Estate Partner"
+                    defaultValue="VenGrow - Your Real Estate Partner"
                     data-testid="input-site-title"
                   />
                 </div>

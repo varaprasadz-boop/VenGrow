@@ -156,7 +156,7 @@ export default function PackagesPage() {
               Ready to Start Listing?
             </h2>
             <p className="text-lg text-muted-foreground mb-8">
-              Join thousands of successful sellers on PropConnect
+              Join thousands of successful sellers on VenGrow
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" data-testid="button-get-started">

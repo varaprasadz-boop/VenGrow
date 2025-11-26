@@ -55,7 +55,7 @@ export default function PartnerProgramPage() {
         <div className="bg-gradient-to-br from-primary/5 to-primary/10 py-20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="font-serif font-bold text-4xl md:text-5xl mb-6">
-              Partner with PropConnect
+              Partner with VenGrow
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
               Join India's fastest-growing real estate platform
