@@ -39,29 +39,37 @@ export function validatePassword(password: string): { valid: boolean; message?: 
   return { valid: true };
 }
 
-const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL || "superadmin@vengrow.com";
-const SUPERADMIN_DEFAULT_PASSWORD = "Pa$$word@11";
+const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL;
+const SUPERADMIN_PASSWORD_HASH = process.env.SUPERADMIN_PASSWORD_HASH;
 
-let superadminPasswordHash: string | null = null;
+let cachedPasswordHash: string | null = null;
 
-export async function getSuperadminCredentials(): Promise<{ email: string; passwordHash: string }> {
-  if (!superadminPasswordHash) {
-    const envHash = process.env.SUPERADMIN_PASSWORD_HASH;
-    if (envHash) {
-      superadminPasswordHash = envHash;
-    } else {
-      superadminPasswordHash = await hashPassword(SUPERADMIN_DEFAULT_PASSWORD);
-    }
+function checkSuperadminConfiguration(): boolean {
+  if (!SUPERADMIN_EMAIL || !SUPERADMIN_PASSWORD_HASH) {
+    console.warn("WARNING: SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD_HASH must be set in environment variables");
+    return false;
+  }
+  return true;
+}
+
+export async function getSuperadminCredentials(): Promise<{ email: string; passwordHash: string } | null> {
+  if (!checkSuperadminConfiguration()) {
+    return null;
   }
   
   return {
-    email: SUPERADMIN_EMAIL,
-    passwordHash: superadminPasswordHash,
+    email: SUPERADMIN_EMAIL!,
+    passwordHash: SUPERADMIN_PASSWORD_HASH!,
   };
 }
 
 export async function verifySuperadminCredentials(email: string, password: string): Promise<boolean> {
   const credentials = await getSuperadminCredentials();
+  
+  if (!credentials) {
+    console.error("Superadmin credentials not configured");
+    return false;
+  }
   
   if (email.toLowerCase() !== credentials.email.toLowerCase()) {
     return false;

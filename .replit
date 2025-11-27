@@ -49,4 +49,4 @@ integrations = ["javascript_log_in_with_replit:1.0.0", "javascript_object_storag
 
 [userenv.shared]
 SUPERADMIN_EMAIL = "superadmin@vengrow.com"
-SUPERADMIN_PASSWORD_HASH = "$2b$10$HQ3GVV/4dKxj8bUQ3E1.DOJFGVZGmPVGKjPQz7Mh3j5mKLaM7pF2i"
+SUPERADMIN_PASSWORD_HASH = "$2b$10$E3DKjmAkB1/QCUU3eEXW6O.xkKS1cc.5qnCYN/CpkGLsbGr8r.K2a"
