@@ -478,12 +478,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create property
-  app.post("/api/properties", async (req: Request, res: Response) => {
+  app.post("/api/properties", async (req: any, res: Response) => {
     try {
-      const property = await storage.createProperty(req.body);
-      res.status(201).json(property);
+      // Get current user ID
+      let userId = null;
+      if ((req.session as any)?.localUser?.id) {
+        userId = (req.session as any).localUser.id;
+      } else if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+      
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+      
+      // Get seller profile
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile) {
+        return res.status(400).json({ success: false, message: "Seller profile required. Please complete seller registration." });
+      }
+      
+      // Check subscription limits
+      const canCreate = await storage.canSellerCreateListing(sellerProfile.id);
+      if (!canCreate) {
+        return res.status(403).json({ 
+          success: false, 
+          message: "Listing limit reached. Please upgrade your package to create more listings.",
+          code: "LISTING_LIMIT_REACHED"
+        });
+      }
+      
+      // Create property with seller ID
+      const propertyData = {
+        ...req.body,
+        sellerId: sellerProfile.id,
+        status: "draft" as const,
+        workflowStatus: "draft" as const,
+      };
+      
+      const property = await storage.createProperty(propertyData);
+      
+      // Increment listings used count
+      await storage.incrementSubscriptionListingUsage(sellerProfile.id);
+      
+      res.status(201).json({ success: true, property });
     } catch (error) {
-      res.status(500).json({ error: "Failed to create property" });
+      console.error("Error creating property:", error);
+      res.status(500).json({ success: false, message: "Failed to create property" });
     }
   });
 
