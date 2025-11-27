@@ -6,7 +6,7 @@ import { SiGoogle } from "react-icons/si";
 
 export default function RegisterPage() {
   const handleGoogleSignup = () => {
-    window.location.href = "/api/auth/google";
+    window.location.href = "/api/login";
   };
 
   const benefits = [

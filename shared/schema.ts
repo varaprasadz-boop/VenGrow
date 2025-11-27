@@ -1,7 +1,17 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, decimal, jsonb, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, decimal, jsonb, pgEnum, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
 
 export const userRoleEnum = pgEnum("user_role", ["buyer", "seller", "admin"]);
 export const sellerTypeEnum = pgEnum("seller_type", ["individual", "broker", "builder"]);
@@ -15,12 +25,12 @@ export const notificationTypeEnum = pgEnum("notification_type", ["inquiry", "mes
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: text("email").notNull().unique(),
-  name: text("name").notNull(),
+  email: text("email").unique(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  profileImageUrl: text("profile_image_url"),
   phone: text("phone"),
-  avatar: text("avatar"),
   role: userRoleEnum("role").notNull().default("buyer"),
-  googleId: text("google_id").unique(),
   isActive: boolean("is_active").notNull().default(true),
   isEmailVerified: boolean("is_email_verified").notNull().default(false),
   isPhoneVerified: boolean("is_phone_verified").notNull().default(false),
@@ -293,6 +303,14 @@ export const insertUserSchema = createInsertSchema(users).omit({
   updatedAt: true,
   lastLoginAt: true,
 });
+
+export type UpsertUser = {
+  id: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  profileImageUrl?: string | null;
+};
 
 export const insertSellerProfileSchema = createInsertSchema(sellerProfiles).omit({
   id: true,
