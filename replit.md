@@ -88,16 +88,51 @@ Preferred communication style: Simple, everyday language.
 
 ### Authentication & Authorization
 
-**Current Implementation:**
-- Basic user schema with username and password fields
-- Session management infrastructure ready (connect-pg-simple for PostgreSQL sessions)
-- User types defined in UI (buyer, seller, admin) for role-based features
+**Multi-Role Authentication:**
+- Dual authentication system: Google OAuth + email/password for regular users
+- Separate admin authentication at /admin/login with dedicated session management
+- Superadmin credentials configured via environment variables (SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD_HASH)
+- No hardcoded credentials - server fails gracefully if env vars not configured
+- Password hashing using bcrypt with configurable salt rounds
 
-**Security Considerations:**
-- Password storage requires hashing implementation (bcrypt/argon2)
-- Session cookies with HTTP-only flags
-- CSRF protection for state-changing operations
-- Input validation with Zod schemas
+**Intent-Based Registration:**
+- Registration flow begins with intent selection (Buyer vs Seller)
+- Buyer flow: Simple signup with name, email, phone (10-digit Indian mobile validation)
+- Seller flow: Package selection first, then registration with seller type (owner/broker/builder)
+
+**Session Management:**
+- Express-session with PostgreSQL store (connect-pg-simple)
+- Separate session namespaces for regular users (req.session.user) and admins (req.session.adminUser)
+- HTTP-only session cookies with secure flag in production
+
+**Role-Based Access Control:**
+- Three user types: buyer, seller, admin
+- ProtectedRoute component for client-side route protection
+- Role-specific sidebars and navigation (AppSidebar.tsx)
+
+### Property Approval Workflow
+
+**Workflow States:**
+- draft: Initial state, property being created/edited
+- submitted: Seller submitted for admin review
+- under_review: Admin is reviewing the property
+- approved: Admin approved, ready to go live
+- live: Property is published and visible to buyers
+- needs_reapproval: Property was edited after approval, requires re-review
+- rejected: Admin rejected with feedback
+
+**Approval Flow:**
+1. Seller creates property (status: draft)
+2. Seller submits for review (status: submitted)
+3. Admin reviews in moderation queue
+4. Admin approves (status: approved → live) or rejects (status: rejected with notes)
+5. If seller edits an approved/live property, it goes to needs_reapproval
+6. Changes stored in pendingChanges field until re-approved
+
+**API Endpoints:**
+- POST /api/properties/:id/submit - Submit property for review
+- PUT /api/admin/properties/:id/status - Admin approve/reject with notes
+- GET /api/admin/properties/pending - Get all properties pending review
 
 ### Design System & Theming
 
