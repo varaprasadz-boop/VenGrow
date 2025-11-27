@@ -1,10 +1,25 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { seedDatabase } from "./seed";
 import { insertPropertySchema, insertInquirySchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+
+const connectedClients = new Map<string, Set<WebSocket>>();
+
+function broadcastToUser(userId: string, message: any) {
+  const userSockets = connectedClients.get(userId);
+  if (userSockets) {
+    const messageStr = JSON.stringify(message);
+    userSockets.forEach(ws => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(messageStr);
+      }
+    });
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
@@ -14,7 +29,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AUTHENTICATION ROUTES
   // ============================================
   
-  // Get current authenticated user
+  // Get current authenticated user (alias for frontend compatibility)
+  app.get("/api/auth/me", async (req: any, res: Response) => {
+    try {
+      if (!req.isAuthenticated || !req.isAuthenticated() || !req.user?.claims?.sub) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+  
+  // Get current authenticated user (protected)
   app.get("/api/auth/user", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user.claims.sub;
@@ -506,6 +539,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get notifications for current user
+  app.get("/api/notifications/:userId", async (req: Request, res: Response) => {
+    try {
+      const notifications = await storage.getNotifications(req.params.userId);
+      res.json(notifications);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get notifications" });
+    }
+  });
+
+  // Mark notification as read (PATCH version)
+  app.patch("/api/notifications/:id/read", async (req: Request, res: Response) => {
+    try {
+      await storage.markNotificationAsRead(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  // Delete notification
+  app.delete("/api/notifications/:id", async (req: Request, res: Response) => {
+    try {
+      await storage.deleteNotification(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete notification" });
+    }
+  });
+
+  // Mark all notifications as read for current user
+  app.post("/api/notifications/mark-all-read", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      await storage.markAllNotificationsAsRead(userId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to mark notifications as read" });
+    }
+  });
+
   // ============================================
   // PAYMENT ROUTES
   // ============================================
@@ -513,10 +587,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Check Razorpay configuration status
   app.get("/api/razorpay/status", async (req: Request, res: Response) => {
     try {
-      const { isRazorpayConfigured, getKeyId } = await import("./razorpay");
+      const { isRazorpayConfigured, getKeyId, isDummyMode } = await import("./razorpay");
       res.json({
         configured: isRazorpayConfigured(),
-        keyId: isRazorpayConfigured() ? getKeyId() : null,
+        keyId: getKeyId(),
+        dummyMode: isDummyMode(),
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to check Razorpay status" });
@@ -878,6 +953,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // ============================================
+  // WEBSOCKET SERVER FOR REAL-TIME CHAT
+  // ============================================
+  
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  wss.on('connection', (ws: WebSocket) => {
+    let userId: string | null = null;
+    
+    ws.on('message', async (data: Buffer) => {
+      try {
+        const message = JSON.parse(data.toString());
+        
+        switch (message.type) {
+          case 'auth':
+            userId = message.userId;
+            if (userId) {
+              if (!connectedClients.has(userId)) {
+                connectedClients.set(userId, new Set());
+              }
+              connectedClients.get(userId)!.add(ws);
+              ws.send(JSON.stringify({ type: 'auth_success', userId }));
+            }
+            break;
+            
+          case 'chat_message':
+            if (!userId) {
+              ws.send(JSON.stringify({ type: 'error', message: 'Not authenticated' }));
+              return;
+            }
+            
+            const { threadId, content, attachments } = message;
+            
+            const chatMessage = await storage.sendChatMessage({
+              threadId,
+              senderId: userId,
+              content,
+              attachments,
+            });
+            
+            const thread = await storage.getChatThread(threadId);
+            if (thread) {
+              const recipientId = thread.buyerId === userId ? thread.sellerId : thread.buyerId;
+              
+              const outgoingMessage = {
+                type: 'new_message',
+                message: chatMessage,
+                threadId,
+              };
+              
+              broadcastToUser(userId, outgoingMessage);
+              broadcastToUser(recipientId, outgoingMessage);
+              
+              await storage.createNotification({
+                userId: recipientId,
+                type: 'message',
+                title: 'New Message',
+                message: content.substring(0, 100),
+                data: { threadId, senderId: userId },
+              });
+            }
+            break;
+            
+          case 'mark_read':
+            if (!userId) return;
+            await storage.markMessagesAsRead(message.threadId, userId);
+            ws.send(JSON.stringify({ type: 'messages_read', threadId: message.threadId }));
+            break;
+            
+          case 'typing':
+            if (!userId) return;
+            const typingThread = await storage.getChatThread(message.threadId);
+            if (typingThread) {
+              const recipientId = typingThread.buyerId === userId ? typingThread.sellerId : typingThread.buyerId;
+              broadcastToUser(recipientId, {
+                type: 'user_typing',
+                threadId: message.threadId,
+                userId,
+                isTyping: message.isTyping,
+              });
+            }
+            break;
+            
+          case 'ping':
+            ws.send(JSON.stringify({ type: 'pong' }));
+            break;
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+        ws.send(JSON.stringify({ type: 'error', message: 'Failed to process message' }));
+      }
+    });
+    
+    ws.on('close', () => {
+      if (userId) {
+        const userSockets = connectedClients.get(userId);
+        if (userSockets) {
+          userSockets.delete(ws);
+          if (userSockets.size === 0) {
+            connectedClients.delete(userId);
+          }
+        }
+      }
+    });
+    
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+  });
 
   return httpServer;
 }

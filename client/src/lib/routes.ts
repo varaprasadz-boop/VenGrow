@@ -94,6 +94,9 @@ export const buyerRoutes: RouteConfig[] = [
   { path: "/settings", component: lazy(() => import("@/pages/buyer/SettingsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Settings" },
   { path: "/buyer/settings", component: lazy(() => import("@/pages/buyer/SettingsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Settings" },
   
+  // Map View
+  { path: "/map", component: lazy(() => import("@/pages/buyer/PropertyMapPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Map View" },
+  
   // Property Comparison & Search
   { path: "/compare", component: lazy(() => import("@/pages/buyer/ComparePropertiesPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Compare" },
   { path: "/buyer/compare", component: lazy(() => import("@/pages/buyer/PropertyComparePage")), requireAuth: true, roles: ["buyer", "admin"], title: "Compare" },

@@ -1,9 +1,25 @@
+import { useQuery } from "@tanstack/react-query";
+import { useParams } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
-import { MapPin, TrendingUp, Train, ShoppingBag, GraduationCap, Hospital } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import PropertyMap from "@/components/PropertyMap";
+import type { Property, User } from "@shared/schema";
+import { Train, ShoppingBag, GraduationCap, Hospital } from "lucide-react";
 
 export default function PropertyLocationAnalysisPage() {
+  const { id } = useParams<{ id: string }>();
+
+  const { data: currentUser } = useQuery<User>({
+    queryKey: ["/api/auth/me"],
+  });
+
+  const { data: property, isLoading } = useQuery<Property>({
+    queryKey: ["/api/properties", id],
+    enabled: !!id,
+  });
+
   const locationScore = 8.5;
 
   const amenities = [
@@ -13,22 +29,30 @@ export default function PropertyLocationAnalysisPage() {
     { icon: Hospital, name: "Healthcare", distance: "1.5km", score: 7 },
   ];
 
+  const isLoggedIn = !!currentUser;
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="buyer" />
+      <Header
+        isLoggedIn={isLoggedIn}
+        userType={currentUser?.role as "buyer" | "seller" | "admin" | undefined}
+      />
 
       <main className="flex-1">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
-            <h1 className="font-serif font-bold text-3xl mb-2">
-              Location Analysis
-            </h1>
-            <p className="text-muted-foreground">
-              Luxury 3BHK Apartment • Bandra West, Mumbai
-            </p>
+            <h1 className="font-serif font-bold text-3xl mb-2">Location Analysis</h1>
+            {isLoading ? (
+              <Skeleton className="h-5 w-64" />
+            ) : property ? (
+              <p className="text-muted-foreground">
+                {property.title} • {property.locality}, {property.city}
+              </p>
+            ) : (
+              <p className="text-muted-foreground">Property details not available</p>
+            )}
           </div>
 
-          {/* Overall Score */}
           <Card className="p-8 mb-8 bg-gradient-to-br from-primary/5 to-primary/10">
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">Location Score</p>
@@ -39,15 +63,29 @@ export default function PropertyLocationAnalysisPage() {
             </div>
           </Card>
 
-          {/* Map */}
           <Card className="p-6 mb-8">
-            <h3 className="font-semibold text-lg mb-6">Nearby Amenities</h3>
-            <div className="h-96 bg-muted rounded-lg flex items-center justify-center mb-6">
-              <span className="text-muted-foreground">Interactive Map</span>
-            </div>
+            <h3 className="font-semibold text-lg mb-6">Property Location</h3>
+            {isLoading ? (
+              <Skeleton className="h-96 w-full rounded-lg" />
+            ) : property ? (
+              <PropertyMap
+                properties={[property]}
+                height="24rem"
+                zoom={15}
+                singleProperty={true}
+                center={
+                  property.latitude && property.longitude
+                    ? [parseFloat(String(property.latitude)), parseFloat(String(property.longitude))]
+                    : [19.076, 72.8777]
+                }
+              />
+            ) : (
+              <div className="h-96 bg-muted rounded-lg flex items-center justify-center">
+                <span className="text-muted-foreground">Map not available</span>
+              </div>
+            )}
           </Card>
 
-          {/* Amenities Breakdown */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {amenities.map((amenity, index) => (
               <Card key={index} className="p-6">
@@ -57,13 +95,9 @@ export default function PropertyLocationAnalysisPage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold">{amenity.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {amenity.distance} away
-                    </p>
+                    <p className="text-sm text-muted-foreground">{amenity.distance} away</p>
                   </div>
-                  <div className="text-2xl font-bold text-primary">
-                    {amenity.score}/10
-                  </div>
+                  <div className="text-2xl font-bold text-primary">{amenity.score}/10</div>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div

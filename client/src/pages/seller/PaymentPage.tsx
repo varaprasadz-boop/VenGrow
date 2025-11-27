@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Building2, Shield, CreditCard, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Building2, Shield, CreditCard, CheckCircle, AlertCircle, Loader2, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Package, User } from "@shared/schema";
@@ -22,6 +23,8 @@ export default function PaymentPage() {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  const [dummyPaymentProgress, setDummyPaymentProgress] = useState(0);
+  const [dummyPaymentStep, setDummyPaymentStep] = useState("");
 
   const urlParams = new URLSearchParams(window.location.search);
   const packageId = urlParams.get("package");
@@ -34,7 +37,7 @@ export default function PaymentPage() {
     queryKey: ["/api/packages"],
   });
 
-  const { data: razorpayStatus, isLoading: statusLoading } = useQuery<{ configured: boolean; keyId: string | null }>({
+  const { data: razorpayStatus, isLoading: statusLoading } = useQuery<{ configured: boolean; keyId: string; dummyMode: boolean }>({
     queryKey: ["/api/razorpay/status"],
   });
 
@@ -71,10 +74,46 @@ export default function PaymentPage() {
     },
   });
 
+  const simulateDummyPayment = async (orderData: any, paymentId: string) => {
+    const steps = [
+      { progress: 20, message: "Initializing payment gateway..." },
+      { progress: 40, message: "Connecting to bank..." },
+      { progress: 60, message: "Processing transaction..." },
+      { progress: 80, message: "Verifying payment..." },
+      { progress: 100, message: "Payment confirmed!" },
+    ];
+
+    for (const step of steps) {
+      setDummyPaymentProgress(step.progress);
+      setDummyPaymentStep(step.message);
+      await new Promise(resolve => setTimeout(resolve, 600));
+    }
+
+    const dummyPaymentId = `pay_dummy_${Date.now()}`;
+    const dummySignature = `sig_dummy_${Date.now()}`;
+
+    const verifyResult = await verifyPaymentMutation.mutateAsync({
+      razorpay_order_id: orderData.orderId,
+      razorpay_payment_id: dummyPaymentId,
+      razorpay_signature: dummySignature,
+      paymentId: paymentId,
+    });
+
+    if (verifyResult.success) {
+      toast({
+        title: "Payment Successful!",
+        description: "Your subscription is now active. (Demo Mode)",
+      });
+      setTimeout(() => setLocation("/seller/dashboard"), 1000);
+    }
+  };
+
   const handlePayment = async () => {
     if (!selectedPackage || !user || !razorpayStatus?.keyId) return;
 
     setIsProcessing(true);
+    setDummyPaymentProgress(0);
+    setDummyPaymentStep("");
 
     try {
       const gstAmount = Math.round(selectedPackage.price * 0.18);
@@ -85,6 +124,11 @@ export default function PaymentPage() {
         amount: totalAmount,
         userId: user.id,
       });
+
+      if (razorpayStatus.dummyMode) {
+        await simulateDummyPayment(orderData, orderData.paymentId);
+        return;
+      }
 
       const options = {
         key: razorpayStatus.keyId,
@@ -206,6 +250,48 @@ export default function PaymentPage() {
   const gstAmount = Math.round(selectedPackage.price * 0.18);
   const totalAmount = selectedPackage.price + gstAmount;
 
+  if (isProcessing && razorpayStatus?.dummyMode && dummyPaymentProgress > 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+        <Card className="p-8 text-center max-w-md w-full">
+          <div className="mb-6">
+            <div className="relative w-24 h-24 mx-auto mb-4">
+              <div className="absolute inset-0 rounded-full border-4 border-muted" />
+              <div 
+                className="absolute inset-0 rounded-full border-4 border-primary transition-all duration-300"
+                style={{ 
+                  clipPath: `polygon(50% 50%, 50% 0%, ${50 + 50 * Math.sin(dummyPaymentProgress * 3.6 * Math.PI / 180)}% ${50 - 50 * Math.cos(dummyPaymentProgress * 3.6 * Math.PI / 180)}%, 50% 50%)`,
+                }}
+              />
+              {dummyPaymentProgress === 100 ? (
+                <CheckCircle className="absolute inset-0 m-auto h-12 w-12 text-primary" />
+              ) : (
+                <CreditCard className="absolute inset-0 m-auto h-10 w-10 text-muted-foreground animate-pulse" />
+              )}
+            </div>
+            <Sparkles className="h-6 w-6 text-primary mx-auto mb-2" />
+          </div>
+          <h2 className="font-serif font-bold text-2xl mb-2">
+            {dummyPaymentProgress === 100 ? "Payment Complete!" : "Processing Payment"}
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            {dummyPaymentStep}
+          </p>
+          <Progress value={dummyPaymentProgress} className="mb-4" />
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Shield className="h-4 w-4" />
+            <span>Demo Mode - No actual charges</span>
+          </div>
+          {razorpayStatus?.dummyMode && (
+            <Badge variant="outline" className="mt-4">
+              Simulated Payment
+            </Badge>
+          )}
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-4xl">
@@ -220,8 +306,13 @@ export default function PaymentPage() {
             Complete Your Payment
           </h1>
           <p className="text-muted-foreground">
-            Secure payment powered by Razorpay
+            {razorpayStatus?.dummyMode 
+              ? "Demo mode - Payments are simulated" 
+              : "Secure payment powered by Razorpay"}
           </p>
+          {razorpayStatus?.dummyMode && (
+            <Badge variant="secondary" className="mt-2">Demo Mode</Badge>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
