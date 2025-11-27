@@ -693,6 +693,72 @@ export class DatabaseStorage implements IStorage {
       .where(eq(propertyApprovalRequests.propertyId, propertyId))
       .orderBy(desc(propertyApprovalRequests.submittedAt));
   }
+
+  // Subscription Management Methods
+  async getActiveSubscriptionWithPackage(sellerId: string): Promise<{ subscription: SellerSubscription; package: Package } | undefined> {
+    const sub = await this.getActiveSubscription(sellerId);
+    if (!sub) return undefined;
+    
+    const pkg = await this.getPackage(sub.packageId);
+    if (!pkg) return undefined;
+    
+    return { subscription: sub, package: pkg };
+  }
+
+  async updateSubscription(id: string, data: Partial<{ listingsUsed: number; featuredUsed: number; isActive: boolean }>): Promise<SellerSubscription | undefined> {
+    const [updated] = await db.update(sellerSubscriptions)
+      .set(data)
+      .where(eq(sellerSubscriptions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async incrementSubscriptionListingUsage(subscriptionId: string): Promise<void> {
+    await db.update(sellerSubscriptions)
+      .set({ listingsUsed: sql`${sellerSubscriptions.listingsUsed} + 1` })
+      .where(eq(sellerSubscriptions.id, subscriptionId));
+  }
+
+  async decrementSubscriptionListingUsage(subscriptionId: string): Promise<void> {
+    await db.update(sellerSubscriptions)
+      .set({ listingsUsed: sql`GREATEST(${sellerSubscriptions.listingsUsed} - 1, 0)` })
+      .where(eq(sellerSubscriptions.id, subscriptionId));
+  }
+
+  async canSellerCreateListing(sellerId: string): Promise<{ canCreate: boolean; reason?: string; remainingListings?: number }> {
+    const subWithPkg = await this.getActiveSubscriptionWithPackage(sellerId);
+    
+    if (!subWithPkg) {
+      return { canCreate: false, reason: "No active subscription. Please purchase a package to list properties." };
+    }
+    
+    const { subscription, package: pkg } = subWithPkg;
+    
+    // Check if subscription has expired
+    if (new Date() > new Date(subscription.endDate)) {
+      return { canCreate: false, reason: "Your subscription has expired. Please renew to continue listing properties." };
+    }
+    
+    // Check listing limit
+    const remaining = pkg.listingLimit - subscription.listingsUsed;
+    if (remaining <= 0) {
+      return { canCreate: false, reason: "You have reached your listing limit. Please upgrade your package for more listings." };
+    }
+    
+    return { canCreate: true, remainingListings: remaining };
+  }
+
+  async getSellerSubscriptions(sellerId: string): Promise<SellerSubscription[]> {
+    return db.select().from(sellerSubscriptions)
+      .where(eq(sellerSubscriptions.sellerId, sellerId))
+      .orderBy(desc(sellerSubscriptions.createdAt));
+  }
+
+  async deactivateSubscription(id: string): Promise<void> {
+    await db.update(sellerSubscriptions)
+      .set({ isActive: false })
+      .where(eq(sellerSubscriptions.id, id));
+  }
 }
 
 export const storage = new DatabaseStorage();

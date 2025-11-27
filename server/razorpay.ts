@@ -24,7 +24,7 @@ export function getRazorpay(): Razorpay {
 }
 
 export function isRazorpayConfigured(): boolean {
-  return true;
+  return !DUMMY_MODE;
 }
 
 export function isDummyMode(): boolean {

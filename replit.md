@@ -134,6 +134,32 @@ Preferred communication style: Simple, everyday language.
 - PUT /api/admin/properties/:id/status - Admin approve/reject with notes
 - GET /api/admin/properties/pending - Get all properties pending review
 
+### Package & Subscription System
+
+**Package Tiers:**
+- Free: 1 listing, 365 days, ₹0
+- Basic: 3 listings, 30 days, ₹999
+- Premium: 10 listings, 60 days, ₹2,499 (includes featured listings)
+- Enterprise: 50 listings, 90 days, ₹9,999 (includes premium support)
+
+**Subscription Management:**
+- Sellers must have an active subscription to create property listings
+- Subscription tracks listingsUsed vs listingLimit
+- Automatic check before property creation via canSellerCreateListing
+- Subscription history available for seller accounts
+
+**Payment Integration:**
+- Razorpay integration ready (requires RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET)
+- Dummy payment gateway for development/testing when Razorpay not configured
+- Test card for dummy payments: 4111-1111-1111-1111 (any future expiry, any CVV)
+- Payment creates subscription and seller profile automatically
+
+**Subscription API Endpoints:**
+- GET /api/subscriptions/current - Get seller's active subscription with package details
+- GET /api/subscriptions/can-create-listing - Check if seller can create more listings
+- GET /api/subscriptions/history - Get subscription history
+- POST /api/payments/dummy - Process dummy payment (test mode)
+
 ### Design System & Theming
 
 **Color System:**

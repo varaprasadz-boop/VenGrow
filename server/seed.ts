@@ -26,7 +26,18 @@ export async function seedDatabase() {
     console.log("Cleared existing data...");
 
     // Seed packages first
-    const [basicPkg, premiumPkg, enterprisePkg] = await db.insert(packages).values([
+    const [freePkg, basicPkg, premiumPkg, enterprisePkg] = await db.insert(packages).values([
+      {
+        name: "Free",
+        description: "Get started with basic features",
+        price: 0,
+        duration: 365,
+        listingLimit: 1,
+        featuredListings: 0,
+        features: ["1 Property Listing", "365 Days Validity", "Basic Support"],
+        isPopular: false,
+        isActive: true,
+      },
       {
         name: "Basic",
         description: "Perfect for individual property owners",

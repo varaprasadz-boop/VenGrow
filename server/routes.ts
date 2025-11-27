@@ -1174,6 +1174,255 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================
+  // DUMMY PAYMENT GATEWAY (For Testing)
+  // ============================================
+  
+  // Dummy payment - accepts test card 4111-1111-1111-1111
+  app.post("/api/payments/dummy", async (req: any, res: Response) => {
+    try {
+      const { cardNumber, expiryMonth, expiryYear, cvv, packageId, userId } = req.body;
+      
+      if (!packageId || !userId) {
+        return res.status(400).json({ success: false, message: "Package ID and User ID are required" });
+      }
+      
+      // Get user info
+      let currentUserId = userId;
+      if ((req.session as any)?.localUser?.id) {
+        currentUserId = (req.session as any).localUser.id;
+      } else if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+        currentUserId = req.user.claims.sub;
+      }
+      
+      // Get package details
+      const pkg = await storage.getPackage(packageId);
+      if (!pkg) {
+        return res.status(404).json({ success: false, message: "Package not found" });
+      }
+      
+      // Test card validation
+      const cleanCardNumber = cardNumber?.replace(/\s|-/g, "") || "";
+      const validTestCards = ["4111111111111111", "5555555555554444", "378282246310005"];
+      
+      // Simulate processing delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Check if using test card
+      if (!validTestCards.includes(cleanCardNumber)) {
+        // Create failed payment record
+        await storage.createPayment({
+          userId: currentUserId,
+          packageId,
+          amount: pkg.price,
+          currency: "INR",
+          status: "failed",
+          paymentMethod: "dummy_card",
+          description: `Package purchase: ${pkg.name} (Invalid test card)`,
+          metadata: { cardLast4: cleanCardNumber.slice(-4), error: "Invalid test card" },
+        });
+        
+        return res.status(400).json({ 
+          success: false, 
+          message: "Invalid card. For testing, use: 4111-1111-1111-1111" 
+        });
+      }
+      
+      // Validate expiry (basic check)
+      const currentDate = new Date();
+      const expYear = parseInt(expiryYear);
+      const expMonth = parseInt(expiryMonth);
+      if (expYear < currentDate.getFullYear() || (expYear === currentDate.getFullYear() && expMonth < currentDate.getMonth() + 1)) {
+        return res.status(400).json({ success: false, message: "Card has expired" });
+      }
+      
+      // CVV validation
+      if (!cvv || cvv.length < 3) {
+        return res.status(400).json({ success: false, message: "Invalid CVV" });
+      }
+      
+      // Get seller profile or create one if it doesn't exist
+      let sellerProfile = await storage.getSellerProfileByUserId(currentUserId);
+      if (!sellerProfile) {
+        // Auto-create a basic seller profile for the user
+        const user = await storage.getUser(currentUserId);
+        if (!user) {
+          return res.status(400).json({ success: false, message: "User not found. Please log in again." });
+        }
+        
+        sellerProfile = await storage.createSellerProfile({
+          userId: currentUserId,
+          companyName: user.firstName && user.lastName 
+            ? `${user.firstName} ${user.lastName}` 
+            : user.username || "New Seller",
+          sellerType: "individual",
+          phone: user.phone || "",
+          isVerified: false,
+        });
+      }
+      
+      // Deactivate any existing subscriptions
+      const existingSub = await storage.getActiveSubscription(sellerProfile.id);
+      if (existingSub) {
+        await storage.deactivateSubscription(existingSub.id);
+      }
+      
+      // Calculate end date based on package duration
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + pkg.duration);
+      
+      // Create subscription
+      const subscription = await storage.createSubscription(sellerProfile.id, packageId, endDate);
+      
+      // Create successful payment record
+      const payment = await storage.createPayment({
+        userId: currentUserId,
+        packageId,
+        subscriptionId: subscription.id,
+        amount: pkg.price,
+        currency: "INR",
+        status: "completed",
+        paymentMethod: "dummy_card",
+        description: `Package purchase: ${pkg.name}`,
+        metadata: { 
+          cardLast4: cleanCardNumber.slice(-4),
+          dummyTransactionId: `DUMMY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` 
+        },
+      });
+      
+      // Create notification for user
+      await storage.createNotification({
+        userId: currentUserId,
+        type: "payment",
+        title: "Payment Successful",
+        message: `Your ${pkg.name} package has been activated. You can now list up to ${pkg.listingLimit} properties.`,
+        data: { packageId, subscriptionId: subscription.id, paymentId: payment.id },
+      });
+      
+      res.json({
+        success: true,
+        message: "Payment successful! Your package has been activated.",
+        payment,
+        subscription,
+        package: pkg,
+      });
+    } catch (error) {
+      console.error("Dummy payment error:", error);
+      res.status(500).json({ success: false, message: "Payment processing failed. Please try again." });
+    }
+  });
+
+  // ============================================
+  // SUBSCRIPTION ROUTES
+  // ============================================
+  
+  // Get current seller's subscription with package details
+  app.get("/api/subscriptions/current", async (req: any, res: Response) => {
+    try {
+      let userId = null;
+      if ((req.session as any)?.localUser?.id) {
+        userId = (req.session as any).localUser.id;
+      } else if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+      
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+      
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile) {
+        return res.json({ success: true, subscription: null, package: null });
+      }
+      
+      const result = await storage.getActiveSubscriptionWithPackage(sellerProfile.id);
+      
+      if (!result) {
+        return res.json({ success: true, subscription: null, package: null });
+      }
+      
+      res.json({ 
+        success: true, 
+        subscription: result.subscription, 
+        package: result.package,
+        usage: {
+          listingsUsed: result.subscription.listingsUsed,
+          listingLimit: result.package.listingLimit,
+          remainingListings: result.package.listingLimit - result.subscription.listingsUsed,
+          featuredUsed: result.subscription.featuredUsed,
+          featuredLimit: result.package.featuredListings,
+        }
+      });
+    } catch (error) {
+      console.error("Error getting subscription:", error);
+      res.status(500).json({ success: false, message: "Failed to get subscription" });
+    }
+  });
+  
+  // Check if seller can create a new listing
+  app.get("/api/subscriptions/can-create-listing", async (req: any, res: Response) => {
+    try {
+      let userId = null;
+      if ((req.session as any)?.localUser?.id) {
+        userId = (req.session as any).localUser.id;
+      } else if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+      
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+      
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile) {
+        return res.json({ 
+          canCreate: false, 
+          reason: "Please complete your seller profile first." 
+        });
+      }
+      
+      const result = await storage.canSellerCreateListing(sellerProfile.id);
+      res.json(result);
+    } catch (error) {
+      console.error("Error checking listing limit:", error);
+      res.status(500).json({ success: false, message: "Failed to check listing limit" });
+    }
+  });
+  
+  // Get seller's subscription history
+  app.get("/api/subscriptions/history", async (req: any, res: Response) => {
+    try {
+      let userId = null;
+      if ((req.session as any)?.localUser?.id) {
+        userId = (req.session as any).localUser.id;
+      } else if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+      
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+      
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile) {
+        return res.json({ success: true, subscriptions: [] });
+      }
+      
+      const subscriptions = await storage.getSellerSubscriptions(sellerProfile.id);
+      
+      // Enhance with package details
+      const enhanced = await Promise.all(subscriptions.map(async (sub) => {
+        const pkg = await storage.getPackage(sub.packageId);
+        return { ...sub, package: pkg };
+      }));
+      
+      res.json({ success: true, subscriptions: enhanced });
+    } catch (error) {
+      console.error("Error getting subscription history:", error);
+      res.status(500).json({ success: false, message: "Failed to get subscription history" });
+    }
+  });
+
+  // ============================================
   // REVIEW ROUTES
   // ============================================
   
