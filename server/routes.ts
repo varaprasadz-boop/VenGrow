@@ -509,6 +509,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================
   // PAYMENT ROUTES
   // ============================================
+
+  // Check Razorpay configuration status
+  app.get("/api/razorpay/status", async (req: Request, res: Response) => {
+    try {
+      const { isRazorpayConfigured, getKeyId } = await import("./razorpay");
+      res.json({
+        configured: isRazorpayConfigured(),
+        keyId: isRazorpayConfigured() ? getKeyId() : null,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check Razorpay status" });
+    }
+  });
+
+  // Create Razorpay order
+  app.post("/api/razorpay/orders", async (req: Request, res: Response) => {
+    try {
+      const { isRazorpayConfigured, createOrder, getKeyId } = await import("./razorpay");
+      
+      if (!isRazorpayConfigured()) {
+        return res.status(503).json({ error: "Razorpay is not configured" });
+      }
+
+      const { packageId, amount, userId, notes } = req.body;
+      
+      if (!packageId || !amount || !userId) {
+        return res.status(400).json({ error: "Missing required fields: packageId, amount, userId" });
+      }
+
+      const receipt = `order_${Date.now()}_${userId.slice(0, 8)}`;
+      
+      const order = await createOrder({
+        amount,
+        currency: "INR",
+        receipt,
+        notes: {
+          packageId,
+          userId,
+          ...notes,
+        },
+      });
+
+      const payment = await storage.createPayment({
+        userId,
+        amount,
+        currency: "INR",
+        razorpayOrderId: order.id,
+        status: "pending",
+        description: `Package purchase: ${packageId}`,
+        packageId,
+        metadata: { notes },
+      });
+
+      res.json({
+        orderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        keyId: getKeyId(),
+        paymentId: payment.id,
+      });
+    } catch (error: any) {
+      console.error("Razorpay order error:", error);
+      res.status(500).json({ error: error.message || "Failed to create Razorpay order" });
+    }
+  });
+
+  // Verify Razorpay payment
+  app.post("/api/razorpay/verify", async (req: Request, res: Response) => {
+    try {
+      const { verifyPaymentSignature } = await import("./razorpay");
+      
+      const {
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+        paymentId,
+      } = req.body;
+
+      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !paymentId) {
+        return res.status(400).json({ error: "Missing required verification fields" });
+      }
+
+      const isValid = verifyPaymentSignature({
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+      });
+
+      if (!isValid) {
+        await storage.updatePayment(paymentId, {
+          status: "failed",
+          razorpayPaymentId: razorpay_payment_id,
+        });
+        return res.status(400).json({ error: "Payment verification failed" });
+      }
+
+      const payment = await storage.updatePayment(paymentId, {
+        status: "completed",
+        razorpayPaymentId: razorpay_payment_id,
+        razorpaySignature: razorpay_signature,
+      });
+
+      res.json({
+        success: true,
+        payment,
+      });
+    } catch (error: any) {
+      console.error("Payment verification error:", error);
+      res.status(500).json({ error: error.message || "Payment verification failed" });
+    }
+  });
   
   // Get all payments (admin)
   app.get("/api/payments", async (req: Request, res: Response) => {
