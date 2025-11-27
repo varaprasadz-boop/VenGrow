@@ -1,8 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Heart,
   MessageSquare,
@@ -12,101 +15,86 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  Bell,
 } from "lucide-react";
 import PropertyCard from "@/components/PropertyCard";
-import heroImage from '@assets/generated_images/luxury_indian_apartment_building.png';
-import apartmentImage from '@assets/generated_images/modern_apartment_interior_india.png';
+import { useAuth } from "@/hooks/useAuth";
+import { formatDistanceToNow } from "date-fns";
+import type { Property, Inquiry, SavedSearch } from "@shared/schema";
+
+interface DashboardStats {
+  favoritesCount: number;
+  inquiriesCount: number;
+  viewedCount: number;
+  savedSearchesCount: number;
+  pendingInquiries: number;
+}
+
+interface InquiryWithProperty extends Inquiry {
+  property?: {
+    title: string;
+  };
+  seller?: {
+    businessName?: string;
+    firstName?: string;
+  };
+}
 
 export default function BuyerDashboardPage() {
+  const { user } = useAuth();
+
+  const { data: dashboardStats, isLoading: statsLoading } = useQuery<DashboardStats>({
+    queryKey: ["/api/me/dashboard"],
+    enabled: !!user,
+  });
+
+  const { data: favorites = [], isLoading: favoritesLoading } = useQuery<Property[]>({
+    queryKey: ["/api/me/favorites"],
+    enabled: !!user,
+  });
+
+  const { data: inquiries = [], isLoading: inquiriesLoading } = useQuery<InquiryWithProperty[]>({
+    queryKey: ["/api/me/inquiries"],
+    enabled: !!user,
+  });
+
+  const { data: savedSearches = [], isLoading: searchesLoading } = useQuery<SavedSearch[]>({
+    queryKey: ["/api/me/saved-searches"],
+    enabled: !!user,
+  });
+
   const stats = [
     {
       label: "Favorites",
-      value: "12",
+      value: dashboardStats?.favoritesCount || favorites.length,
       icon: Heart,
-      change: "+2 this week",
+      change: `${favorites.length} saved`,
       trend: "up",
+      link: "/buyer/favorites",
     },
     {
       label: "Active Inquiries",
-      value: "5",
+      value: dashboardStats?.inquiriesCount || inquiries.length,
       icon: MessageSquare,
-      change: "2 pending replies",
+      change: `${inquiries.filter(i => i.status === "pending").length} pending`,
       trend: "neutral",
+      link: "/buyer/inquiries",
     },
     {
       label: "Properties Viewed",
-      value: "34",
+      value: dashboardStats?.viewedCount || 0,
       icon: Eye,
-      change: "+8 this week",
+      change: "Last 30 days",
       trend: "up",
+      link: "/buyer/recently-viewed",
     },
     {
       label: "Saved Searches",
-      value: "3",
+      value: dashboardStats?.savedSearchesCount || savedSearches.length,
       icon: TrendingUp,
       change: "All active",
       trend: "neutral",
-    },
-  ];
-
-  const recentInquiries = [
-    {
-      id: "1",
-      property: "Luxury 3BHK Apartment in Bandra West",
-      seller: "Prestige Estates",
-      status: "pending",
-      date: "2 hours ago",
-    },
-    {
-      id: "2",
-      property: "Spacious 2BHK Flat in Koramangala",
-      seller: "John Smith",
-      status: "replied",
-      date: "1 day ago",
-    },
-    {
-      id: "3",
-      property: "Beautiful Villa in Whitefield",
-      seller: "Real Estate Pro",
-      status: "closed",
-      date: "3 days ago",
-    },
-  ];
-
-  const savedSearches = [
-    { id: "1", name: "3BHK in Mumbai under ₹1 Cr", results: 45, newResults: 3 },
-    { id: "2", name: "Villas in Bangalore", results: 23, newResults: 0 },
-    { id: "3", name: "Commercial in Gurgaon", results: 12, newResults: 1 },
-  ];
-
-  const recentlyViewed = [
-    {
-      id: "1",
-      title: "Luxury 3BHK Apartment in Prime Location",
-      price: 8500000,
-      location: "Bandra West, Mumbai",
-      imageUrl: heroImage,
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 1450,
-      propertyType: "Apartment",
-      isVerified: true,
-      sellerType: "Builder" as const,
-      transactionType: "Sale" as const,
-    },
-    {
-      id: "2",
-      title: "Spacious 2BHK Flat with Modern Amenities",
-      price: 45000,
-      location: "Koramangala, Bangalore",
-      imageUrl: apartmentImage,
-      bedrooms: 2,
-      bathrooms: 2,
-      area: 1200,
-      propertyType: "Apartment",
-      isVerified: true,
-      sellerType: "Individual" as const,
-      transactionType: "Rent" as const,
+      link: "/buyer/saved-searches",
     },
   ];
 
@@ -136,141 +124,231 @@ export default function BuyerDashboardPage() {
     }
   };
 
+  const formatPropertyForCard = (property: Property) => ({
+    id: property.id,
+    title: property.title,
+    price: property.price,
+    location: `${property.locality || ''}, ${property.city}`.replace(/^, /, ''),
+    imageUrl: (property as any).images?.[0] || '/placeholder-property.jpg',
+    bedrooms: property.bedrooms || 0,
+    bathrooms: property.bathrooms || 0,
+    area: property.area,
+    propertyType: property.propertyType,
+    isFeatured: property.isFeatured || false,
+    isVerified: property.isVerified || false,
+    sellerType: "Individual" as const,
+    transactionType: (property.transactionType === "sale" ? "Sale" : "Rent") as "Sale" | "Rent",
+  });
+
+  const recentInquiries = inquiries.slice(0, 3);
+  const recentFavorites = favorites.slice(0, 2);
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="buyer" />
+      <Header isLoggedIn={!!user} userType="buyer" />
 
       <main className="flex-1 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Welcome Section */}
           <div className="mb-8">
             <h1 className="font-serif font-bold text-3xl mb-2">
-              Welcome back, John!
+              Welcome back{user?.firstName ? `, ${user.firstName}` : ''}!
             </h1>
             <p className="text-muted-foreground">
               Here's what's happening with your property search
             </p>
           </div>
 
-          {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => (
-              <Card key={index} className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="p-3 rounded-lg bg-primary/10">
-                    <stat.icon className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold font-serif mb-1">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-                  <p className="text-xs text-muted-foreground">{stat.change}</p>
-                </div>
-              </Card>
-            ))}
+            {statsLoading ? (
+              [1, 2, 3, 4].map((i) => (
+                <Card key={i} className="p-6">
+                  <Skeleton className="h-12 w-12 rounded-lg mb-3" />
+                  <Skeleton className="h-8 w-16 mb-1" />
+                  <Skeleton className="h-4 w-24" />
+                </Card>
+              ))
+            ) : (
+              stats.map((stat, index) => (
+                <Link key={index} href={stat.link}>
+                  <Card className="p-6 hover-elevate active-elevate-2 cursor-pointer">
+                    <div className="flex items-start justify-between mb-3 gap-4">
+                      <div className="p-3 rounded-lg bg-primary/10">
+                        <stat.icon className="h-6 w-6 text-primary" />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold font-serif mb-1">{stat.value}</p>
+                      <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
+                      <p className="text-xs text-muted-foreground">{stat.change}</p>
+                    </div>
+                  </Card>
+                </Link>
+              ))
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Column */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Recent Inquiries */}
               <Card className="p-6">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-6 gap-4">
                   <h2 className="font-semibold text-xl">Recent Inquiries</h2>
-                  <Button variant="ghost" size="sm" data-testid="button-view-all-inquiries">
-                    View All
-                  </Button>
+                  <Link href="/buyer/inquiries">
+                    <Button variant="ghost" size="sm" data-testid="button-view-all-inquiries">
+                      View All
+                    </Button>
+                  </Link>
                 </div>
-                <div className="space-y-4">
-                  {recentInquiries.map((inquiry) => (
-                    <div
-                      key={inquiry.id}
-                      className="flex items-start gap-4 p-4 rounded-lg hover-elevate active-elevate-2 border"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium mb-1 truncate">
-                          {inquiry.property}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {inquiry.seller}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{inquiry.date}</p>
+                {inquiriesLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="p-4 rounded-lg border">
+                        <Skeleton className="h-5 w-3/4 mb-2" />
+                        <Skeleton className="h-4 w-1/2 mb-2" />
+                        <Skeleton className="h-3 w-1/4" />
                       </div>
-                      <Badge
-                        className={`${getStatusColor(inquiry.status)} flex items-center gap-1`}
+                    ))}
+                  </div>
+                ) : recentInquiries.length > 0 ? (
+                  <div className="space-y-4">
+                    {recentInquiries.map((inquiry) => (
+                      <div
+                        key={inquiry.id}
+                        className="flex items-start gap-4 p-4 rounded-lg hover-elevate active-elevate-2 border"
                       >
-                        {getStatusIcon(inquiry.status)}
-                        {inquiry.status}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium mb-1 truncate">
+                            {inquiry.property?.title || "Property Inquiry"}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {inquiry.seller?.businessName || inquiry.seller?.firstName || "Seller"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                        <Badge
+                          className={`${getStatusColor(inquiry.status)} flex items-center gap-1`}
+                        >
+                          {getStatusIcon(inquiry.status)}
+                          {inquiry.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No inquiries yet</p>
+                    <Link href="/properties">
+                      <Button variant="ghost" className="mt-2">Browse Properties</Button>
+                    </Link>
+                  </div>
+                )}
               </Card>
 
-              {/* Recently Viewed */}
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="font-semibold text-xl">Recently Viewed</h2>
-                  <Button variant="ghost" size="sm" data-testid="button-view-history">
-                    View History
-                  </Button>
+                <div className="flex items-center justify-between mb-6 gap-4">
+                  <h2 className="font-semibold text-xl">Saved Properties</h2>
+                  <Link href="/buyer/favorites">
+                    <Button variant="ghost" size="sm" data-testid="button-view-history">
+                      View All
+                    </Button>
+                  </Link>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {recentlyViewed.map((property) => (
-                    <PropertyCard key={property.id} {...property} />
-                  ))}
-                </div>
+                {favoritesLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="space-y-3">
+                        <Skeleton className="h-48 w-full rounded-lg" />
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                      </div>
+                    ))}
+                  </div>
+                ) : recentFavorites.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {recentFavorites.map((property) => (
+                      <PropertyCard key={property.id} {...formatPropertyForCard(property)} />
+                    ))}
+                  </div>
+                ) : (
+                  <Card className="p-8 text-center text-muted-foreground">
+                    <Heart className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No saved properties yet</p>
+                    <Link href="/properties">
+                      <Button variant="ghost" className="mt-2">Start Browsing</Button>
+                    </Link>
+                  </Card>
+                )}
               </div>
             </div>
 
-            {/* Sidebar */}
             <div className="space-y-6">
-              {/* Saved Searches */}
               <Card className="p-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4 gap-4">
                   <h3 className="font-semibold">Saved Searches</h3>
-                  <Button variant="ghost" size="sm" data-testid="button-manage-searches">
-                    Manage
-                  </Button>
+                  <Link href="/buyer/saved-searches">
+                    <Button variant="ghost" size="sm" data-testid="button-manage-searches">
+                      Manage
+                    </Button>
+                  </Link>
                 </div>
-                <div className="space-y-3">
-                  {savedSearches.map((search) => (
-                    <div
-                      key={search.id}
-                      className="p-3 rounded-lg border hover-elevate active-elevate-2 cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <h4 className="text-sm font-medium flex-1">{search.name}</h4>
-                        {search.newResults > 0 && (
-                          <Badge variant="default" className="ml-2">
-                            {search.newResults} new
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {search.results} properties
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                {searchesLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                    ))}
+                  </div>
+                ) : savedSearches.length > 0 ? (
+                  <div className="space-y-3">
+                    {savedSearches.slice(0, 3).map((search) => (
+                      <Link key={search.id} href={`/properties?search=${search.id}`}>
+                        <div className="p-3 rounded-lg border hover-elevate active-elevate-2 cursor-pointer">
+                          <div className="flex items-start justify-between mb-2 gap-2">
+                            <h4 className="text-sm font-medium flex-1">{search.name}</h4>
+                            {search.alertEnabled && (
+                              <Badge variant="secondary" className="ml-2">
+                                <Bell className="h-3 w-3 mr-1" />
+                                Active
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Created {formatDistanceToNow(new Date(search.createdAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No saved searches</p>
+                  </div>
+                )}
               </Card>
 
-              {/* Quick Actions */}
               <Card className="p-6">
                 <h3 className="font-semibold mb-4">Quick Actions</h3>
                 <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start" data-testid="button-browse-properties">
-                    <Home className="h-4 w-4 mr-2" />
-                    Browse Properties
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" data-testid="button-view-favorites">
-                    <Heart className="h-4 w-4 mr-2" />
-                    View Favorites
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" data-testid="button-create-alert">
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Create Alert
-                  </Button>
+                  <Link href="/properties">
+                    <Button variant="outline" className="w-full justify-start" data-testid="button-browse-properties">
+                      <Home className="h-4 w-4 mr-2" />
+                      Browse Properties
+                    </Button>
+                  </Link>
+                  <Link href="/buyer/favorites">
+                    <Button variant="outline" className="w-full justify-start" data-testid="button-view-favorites">
+                      <Heart className="h-4 w-4 mr-2" />
+                      View Favorites
+                    </Button>
+                  </Link>
+                  <Link href="/buyer/property-alerts">
+                    <Button variant="outline" className="w-full justify-start" data-testid="button-create-alert">
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Create Alert
+                    </Button>
+                  </Link>
                 </div>
               </Card>
             </div>

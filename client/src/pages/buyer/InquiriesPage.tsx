@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   MessageSquare,
   Clock,
@@ -12,71 +15,43 @@ import {
   XCircle,
   Eye,
   Send,
+  ArrowLeft,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { formatDistanceToNow } from "date-fns";
+import type { Inquiry } from "@shared/schema";
+
+interface InquiryWithProperty extends Inquiry {
+  property?: {
+    id: string;
+    title: string;
+    city: string;
+    locality?: string;
+    price: number;
+    transactionType: string;
+  };
+  seller?: {
+    businessName?: string;
+    firstName?: string;
+    lastName?: string;
+  };
+}
 
 export default function InquiriesPage() {
   const [selectedTab, setSelectedTab] = useState("all");
+  const { user } = useAuth();
 
-  const inquiries = [
-    {
-      id: "INQ-001",
-      property: {
-        title: "Luxury 3BHK Apartment in Prime Location",
-        location: "Bandra West, Mumbai",
-        price: "₹85 L",
-      },
-      seller: "Prestige Estates",
-      status: "pending",
-      date: "2 hours ago",
-      message: "I'm interested in this property. Can we schedule a site visit?",
-      responses: 0,
-    },
-    {
-      id: "INQ-002",
-      property: {
-        title: "Spacious 2BHK Flat with Modern Amenities",
-        location: "Koramangala, Bangalore",
-        price: "₹45,000/mo",
-      },
-      seller: "John Smith",
-      status: "replied",
-      date: "1 day ago",
-      message: "Is this property available for immediate possession?",
-      responses: 2,
-    },
-    {
-      id: "INQ-003",
-      property: {
-        title: "Beautiful Independent Villa with Garden",
-        location: "Whitefield, Bangalore",
-        price: "₹1.25 Cr",
-      },
-      seller: "Real Estate Pro",
-      status: "closed",
-      date: "3 days ago",
-      message: "What are the payment terms for this villa?",
-      responses: 4,
-    },
-    {
-      id: "INQ-004",
-      property: {
-        title: "Modern Commercial Office Space",
-        location: "Cyber City, Gurgaon",
-        price: "₹1.5 Cr",
-      },
-      seller: "Elite Properties",
-      status: "replied",
-      date: "5 days ago",
-      message: "Can you provide more details about the parking facilities?",
-      responses: 1,
-    },
-  ];
+  const { data: inquiries = [], isLoading } = useQuery<InquiryWithProperty[]>({
+    queryKey: ["/api/me/inquiries"],
+    enabled: !!user,
+  });
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "pending":
         return <Clock className="h-4 w-4" />;
       case "replied":
+      case "responded":
         return <CheckCircle className="h-4 w-4" />;
       case "closed":
         return <XCircle className="h-4 w-4" />;
@@ -90,6 +65,7 @@ export default function InquiriesPage() {
       case "pending":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500";
       case "replied":
+      case "responded":
         return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500";
       case "closed":
         return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-500";
@@ -105,13 +81,30 @@ export default function InquiriesPage() {
 
   const filteredInquiries = filterInquiries();
 
+  const formatPrice = (price: number, transactionType: string) => {
+    if (transactionType === "Rent") {
+      return `₹${(price / 1000).toFixed(0)}K/mo`;
+    }
+    if (price >= 10000000) {
+      return `₹${(price / 10000000).toFixed(2)} Cr`;
+    }
+    return `₹${(price / 100000).toFixed(2)} L`;
+  };
+
+  const getSellerName = (inquiry: InquiryWithProperty) => {
+    if (inquiry.seller?.businessName) return inquiry.seller.businessName;
+    if (inquiry.seller?.firstName) {
+      return `${inquiry.seller.firstName} ${inquiry.seller.lastName || ''}`.trim();
+    }
+    return "Seller";
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="buyer" />
+      <Header isLoggedIn={!!user} userType="buyer" />
 
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 rounded-lg bg-primary/10">
@@ -120,13 +113,12 @@ export default function InquiriesPage() {
               <div>
                 <h1 className="font-serif font-bold text-3xl">My Inquiries</h1>
                 <p className="text-muted-foreground">
-                  Track all your property inquiries
+                  {isLoading ? "Loading..." : "Track all your property inquiries"}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Tabs */}
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
             <TabsList className="mb-6">
               <TabsTrigger value="all" data-testid="tab-all">
@@ -144,85 +136,85 @@ export default function InquiriesPage() {
             </TabsList>
 
             <TabsContent value={selectedTab} className="mt-0">
-              <div className="space-y-4">
-                {filteredInquiries.map((inquiry) => (
-                  <Card key={inquiry.id} className="p-6 hover-elevate active-elevate-2">
-                    <div className="flex flex-col md:flex-row md:items-start gap-6">
-                      {/* Content */}
-                      <div className="flex-1 space-y-4">
-                        {/* Header */}
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-semibold text-lg">
-                                {inquiry.property.title}
-                              </h3>
-                              <Badge className={getStatusColor(inquiry.status)}>
-                                {getStatusIcon(inquiry.status)}
-                                <span className="ml-1">{inquiry.status}</span>
-                              </Badge>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i} className="p-6">
+                      <div className="flex flex-col gap-4">
+                        <Skeleton className="h-6 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-16 w-full" />
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : filteredInquiries.length > 0 ? (
+                <div className="space-y-4">
+                  {filteredInquiries.map((inquiry) => (
+                    <Card key={inquiry.id} className="p-6 hover-elevate active-elevate-2">
+                      <div className="flex flex-col md:flex-row md:items-start gap-6">
+                        <div className="flex-1 space-y-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <h3 className="font-semibold text-lg">
+                                  {inquiry.property?.title || "Property Inquiry"}
+                                </h3>
+                                <Badge className={getStatusColor(inquiry.status)}>
+                                  {getStatusIcon(inquiry.status)}
+                                  <span className="ml-1">{inquiry.status}</span>
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-1">
+                                {inquiry.property?.locality}, {inquiry.property?.city}
+                              </p>
+                              <p className="text-sm font-medium text-primary">
+                                {inquiry.property && formatPrice(inquiry.property.price, inquiry.property.transactionType)}
+                              </p>
                             </div>
-                            <p className="text-sm text-muted-foreground mb-1">
-                              {inquiry.property.location}
-                            </p>
-                            <p className="text-sm font-medium text-primary">
-                              {inquiry.property.price}
-                            </p>
+                            <div className="text-right">
+                              <p className="text-xs text-muted-foreground mb-1">
+                                Inquiry ID
+                              </p>
+                              <p className="text-sm font-medium">INQ-{inquiry.id.slice(0, 6).toUpperCase()}</p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground mb-1">
-                              Inquiry ID
+
+                          <div className="bg-muted/50 rounded-lg p-4">
+                            <p className="text-sm text-muted-foreground mb-2">
+                              Your message:
                             </p>
-                            <p className="text-sm font-medium">{inquiry.id}</p>
+                            <p className="text-sm">{inquiry.message}</p>
                           </div>
-                        </div>
 
-                        {/* Message */}
-                        <div className="bg-muted/50 rounded-lg p-4">
-                          <p className="text-sm text-muted-foreground mb-2">
-                            Your message:
-                          </p>
-                          <p className="text-sm">{inquiry.message}</p>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="flex items-center justify-between pt-2">
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span>To: {inquiry.seller}</span>
+                          <div className="flex flex-wrap items-center gap-4 pt-2 text-sm text-muted-foreground">
+                            <span>To: {getSellerName(inquiry)}</span>
                             <span>•</span>
-                            <span>{inquiry.date}</span>
-                            {inquiry.responses > 0 && (
-                              <>
-                                <span>•</span>
-                                <span className="flex items-center gap-1">
-                                  <MessageSquare className="h-3 w-3" />
-                                  {inquiry.responses} {inquiry.responses === 1 ? "reply" : "replies"}
-                                </span>
-                              </>
-                            )}
+                            <span>{formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true })}</span>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Actions */}
-                      <div className="flex md:flex-col gap-2">
-                        <Button variant="outline" size="sm" className="flex-1 md:flex-none" data-testid={`button-view-${inquiry.id}`}>
-                          <Eye className="h-4 w-4 md:mr-2" />
-                          <span className="hidden md:inline">View</span>
-                        </Button>
-                        {inquiry.status !== "closed" && (
-                          <Button size="sm" className="flex-1 md:flex-none" data-testid={`button-reply-${inquiry.id}`}>
-                            <Send className="h-4 w-4 md:mr-2" />
-                            <span className="hidden md:inline">Reply</span>
-                          </Button>
-                        )}
+                        <div className="flex md:flex-col gap-2">
+                          <Link href={`/properties/${inquiry.propertyId}`}>
+                            <Button variant="outline" size="sm" className="flex-1 md:flex-none" data-testid={`button-view-${inquiry.id}`}>
+                              <Eye className="h-4 w-4 md:mr-2" />
+                              <span className="hidden md:inline">View</span>
+                            </Button>
+                          </Link>
+                          {inquiry.status !== "closed" && (
+                            <Link href={`/buyer/chat?inquiry=${inquiry.id}`}>
+                              <Button size="sm" className="flex-1 md:flex-none" data-testid={`button-reply-${inquiry.id}`}>
+                                <Send className="h-4 w-4 md:mr-2" />
+                                <span className="hidden md:inline">Reply</span>
+                              </Button>
+                            </Link>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-
-              {filteredInquiries.length === 0 && (
+                    </Card>
+                  ))}
+                </div>
+              ) : (
                 <div className="text-center py-16">
                   <MessageSquare className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="font-semibold text-xl mb-2">
@@ -234,7 +226,12 @@ export default function InquiriesPage() {
                       : `No ${selectedTab} inquiries`}
                   </p>
                   {selectedTab === "all" && (
-                    <Button>Browse Properties</Button>
+                    <Link href="/properties">
+                      <Button data-testid="button-browse-properties">
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Browse Properties
+                      </Button>
+                    </Link>
                   )}
                 </div>
               )}

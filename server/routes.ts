@@ -250,6 +250,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // FAVORITES ROUTES
   // ============================================
   
+  // Get current user's favorites (authenticated)
+  app.get("/api/me/favorites", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const properties = await storage.getFavoriteProperties(userId);
+      res.json(properties);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get favorites" });
+    }
+  });
+
   // Get user's favorites
   app.get("/api/users/:userId/favorites", async (req: Request, res: Response) => {
     try {
@@ -297,6 +308,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // INQUIRY ROUTES
   // ============================================
   
+  // Get current user's inquiries (authenticated)
+  app.get("/api/me/inquiries", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const inquiries = await storage.getInquiriesByBuyer(userId);
+      res.json(inquiries);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get inquiries" });
+    }
+  });
+
   // Get buyer's inquiries
   app.get("/api/users/:userId/inquiries", async (req: Request, res: Response) => {
     try {
@@ -621,6 +643,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       res.status(500).json({ error: "Failed to get dashboard stats" });
+    }
+  });
+
+  // Get current user's dashboard stats (authenticated)
+  app.get("/api/me/dashboard", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const role = user?.role || 'buyer';
+      const stats = await storage.getDashboardStats(role, userId);
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get dashboard stats" });
+    }
+  });
+
+  // Get current user's saved searches (authenticated)
+  app.get("/api/me/saved-searches", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const searches = await storage.getSavedSearches(userId);
+      res.json(searches);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get saved searches" });
+    }
+  });
+
+  // ============================================
+  // SELLER AUTHENTICATED ROUTES
+  // ============================================
+  
+  // Get current seller's profile
+  app.get("/api/me/seller-profile", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profile = await storage.getSellerProfileByUserId(userId);
+      res.json(profile);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get seller profile" });
+    }
+  });
+
+  // Get current seller's properties
+  app.get("/api/me/properties", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json([]);
+      }
+      const properties = await storage.getPropertiesBySeller(profile.id);
+      res.json(properties);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get properties" });
+    }
+  });
+
+  // Get current seller's inquiries
+  app.get("/api/me/seller-inquiries", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json([]);
+      }
+      const inquiries = await storage.getInquiriesBySeller(profile.id);
+      res.json(inquiries);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get inquiries" });
+    }
+  });
+
+  // Get current seller's subscription
+  app.get("/api/me/subscription", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json(null);
+      }
+      const subscription = await storage.getActiveSubscription(profile.id);
+      res.json(subscription);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get subscription" });
+    }
+  });
+
+  // Get current user's payments
+  app.get("/api/me/payments", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const payments = await storage.getPayments(userId);
+      res.json(payments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get payments" });
     }
   });
 

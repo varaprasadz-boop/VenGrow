@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search,
   Phone,
@@ -23,53 +25,37 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { format } from "date-fns";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { Inquiry, Property, User } from "@shared/schema";
+
+interface InquiryWithDetails extends Inquiry {
+  property?: Property;
+  buyer?: User;
+}
 
 export default function InquiriesPage() {
   const [selectedTab, setSelectedTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
 
-  const inquiries = [
-    {
-      id: "INQ-001",
-      buyer: "Rahul Sharma",
-      email: "rahul@example.com",
-      phone: "+91 98765 43210",
-      property: "Luxury 3BHK Apartment in Prime Location",
-      message: "I'm interested in this property. Can we schedule a visit this weekend?",
-      date: "Nov 24, 2025, 10:30 AM",
-      status: "new",
+  const { data: inquiries = [], isLoading } = useQuery<InquiryWithDetails[]>({
+    queryKey: ["/api/me/seller-inquiries"],
+  });
+
+  const updateInquiryMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Inquiry> }) => {
+      return apiRequest("PATCH", `/api/inquiries/${id}`, data);
     },
-    {
-      id: "INQ-002",
-      buyer: "Priya Patel",
-      email: "priya@example.com",
-      phone: "+91 98123 45678",
-      property: "Spacious 2BHK Flat with Modern Amenities",
-      message: "What's the final price? Is there room for negotiation?",
-      date: "Nov 23, 2025, 03:45 PM",
-      status: "responded",
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/me/seller-inquiries"] });
+      toast({ title: "Inquiry updated successfully" });
     },
-    {
-      id: "INQ-003",
-      buyer: "Amit Kumar",
-      email: "amit@example.com",
-      phone: "+91 97654 32109",
-      property: "Commercial Office Space in IT Park",
-      message: "Is the property still available? I'd like to know more details.",
-      date: "Nov 22, 2025, 11:20 AM",
-      status: "new",
+    onError: () => {
+      toast({ title: "Failed to update inquiry", variant: "destructive" });
     },
-    {
-      id: "INQ-004",
-      buyer: "Sarah Johnson",
-      email: "sarah@example.com",
-      phone: "+91 96543 21098",
-      property: "Luxury 3BHK Apartment in Prime Location",
-      message: "Not interested anymore, found another property.",
-      date: "Nov 21, 2025, 09:15 AM",
-      status: "closed",
-    },
-  ];
+  });
 
   const filterInquiries = () => {
     let filtered = inquiries;
@@ -79,8 +65,9 @@ export default function InquiriesPage() {
     if (searchQuery) {
       filtered = filtered.filter(
         (i) =>
-          i.buyer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          i.property.toLowerCase().includes(searchQuery.toLowerCase())
+          (i.buyer?.firstName?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+          (i.buyer?.lastName?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+          (i.property?.title?.toLowerCase() || "").includes(searchQuery.toLowerCase())
       );
     }
     return filtered;
@@ -90,20 +77,28 @@ export default function InquiriesPage() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { className: string; label: string }> = {
-      new: {
+      pending: {
         className: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-500",
-        label: "New",
+        label: "Pending",
       },
-      responded: {
+      replied: {
         className: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500",
-        label: "Responded",
+        label: "Replied",
       },
       closed: {
         className: "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-500",
         label: "Closed",
       },
     };
-    return variants[status] || variants.new;
+    return variants[status] || variants.pending;
+  };
+
+  const handleMarkReplied = (id: string) => {
+    updateInquiryMutation.mutate({ id, data: { status: "replied" } });
+  };
+
+  const handleCloseInquiry = (id: string) => {
+    updateInquiryMutation.mutate({ id, data: { status: "closed" } });
   };
 
   return (
@@ -112,7 +107,6 @@ export default function InquiriesPage() {
 
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
           <div className="mb-8">
             <h1 className="font-serif font-bold text-3xl mb-2">
               Buyer Inquiries
@@ -122,7 +116,6 @@ export default function InquiriesPage() {
             </p>
           </div>
 
-          {/* Search */}
           <div className="mb-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -136,17 +129,16 @@ export default function InquiriesPage() {
             </div>
           </div>
 
-          {/* Tabs */}
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
             <TabsList className="mb-6">
               <TabsTrigger value="all" data-testid="tab-all">
                 All ({inquiries.length})
               </TabsTrigger>
-              <TabsTrigger value="new" data-testid="tab-new">
-                New ({inquiries.filter((i) => i.status === "new").length})
+              <TabsTrigger value="pending" data-testid="tab-pending">
+                Pending ({inquiries.filter((i) => i.status === "pending").length})
               </TabsTrigger>
-              <TabsTrigger value="responded" data-testid="tab-responded">
-                Responded ({inquiries.filter((i) => i.status === "responded").length})
+              <TabsTrigger value="replied" data-testid="tab-replied">
+                Replied ({inquiries.filter((i) => i.status === "replied").length})
               </TabsTrigger>
               <TabsTrigger value="closed" data-testid="tab-closed">
                 Closed ({inquiries.filter((i) => i.status === "closed").length})
@@ -154,106 +146,133 @@ export default function InquiriesPage() {
             </TabsList>
 
             <TabsContent value={selectedTab} className="mt-0">
-              <div className="space-y-4">
-                {filteredInquiries.map((inquiry) => {
-                  const statusInfo = getStatusBadge(inquiry.status);
-                  return (
-                    <Card key={inquiry.id} className="p-6">
-                      <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-                        {/* Inquiry Info */}
-                        <div className="flex-1 space-y-4">
-                          <div className="flex items-start gap-4">
-                            <Avatar>
-                              <AvatarFallback>
-                                {inquiry.buyer.substring(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                              <div className="flex items-center flex-wrap gap-3 mb-2">
-                                <h3 className="font-semibold text-lg">
-                                  {inquiry.buyer}
-                                </h3>
-                                <Badge className={statusInfo.className}>
-                                  {statusInfo.label}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-muted-foreground mb-2">
-                                {inquiry.property}
-                              </p>
-                              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-4 w-4" />
-                                  {inquiry.date}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Mail className="h-4 w-4" />
-                                  {inquiry.email}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Phone className="h-4 w-4" />
-                                  {inquiry.phone}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Message */}
-                          <div className="p-4 bg-muted/50 rounded-lg">
-                            <p className="text-sm">{inquiry.message}</p>
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex lg:flex-col gap-2">
-                          <Button
-                            size="sm"
-                            className="flex-1 lg:flex-none"
-                            data-testid={`button-call-${inquiry.id}`}
-                          >
-                            <Phone className="h-4 w-4 lg:mr-2" />
-                            <span className="hidden lg:inline">Call</span>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 lg:flex-none"
-                            data-testid={`button-chat-${inquiry.id}`}
-                          >
-                            <MessageSquare className="h-4 w-4 lg:mr-2" />
-                            <span className="hidden lg:inline">Chat</span>
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 lg:flex-none"
-                                data-testid={`button-more-${inquiry.id}`}
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {inquiry.status === "new" && (
-                                <DropdownMenuItem>
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  Mark as Responded
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem>
-                                <X className="h-4 w-4 mr-2" />
-                                Close Inquiry
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i} className="p-6">
+                      <div className="flex gap-4">
+                        <Skeleton className="h-12 w-12 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-5 w-48" />
+                          <Skeleton className="h-4 w-64" />
+                          <Skeleton className="h-4 w-32" />
                         </div>
                       </div>
                     </Card>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredInquiries.map((inquiry) => {
+                    const statusInfo = getStatusBadge(inquiry.status);
+                    const buyerName = inquiry.buyer
+                      ? `${inquiry.buyer.firstName || ""} ${inquiry.buyer.lastName || ""}`.trim() || "Anonymous"
+                      : "Anonymous";
+                    
+                    return (
+                      <Card key={inquiry.id} className="p-6">
+                        <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                          <div className="flex-1 space-y-4">
+                            <div className="flex items-start gap-4">
+                              <Avatar>
+                                <AvatarFallback>
+                                  {buyerName.substring(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <div className="flex items-center flex-wrap gap-3 mb-2">
+                                  <h3 className="font-semibold text-lg">
+                                    {buyerName}
+                                  </h3>
+                                  <Badge className={statusInfo.className}>
+                                    {statusInfo.label}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  {inquiry.property?.title || "Property"}
+                                </p>
+                                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-4 w-4" />
+                                    {format(new Date(inquiry.createdAt), "MMM d, yyyy, h:mm a")}
+                                  </span>
+                                  {inquiry.buyer?.email && (
+                                    <span className="flex items-center gap-1">
+                                      <Mail className="h-4 w-4" />
+                                      {inquiry.buyer.email}
+                                    </span>
+                                  )}
+                                  {inquiry.buyerPhone && (
+                                    <span className="flex items-center gap-1">
+                                      <Phone className="h-4 w-4" />
+                                      {inquiry.buyerPhone}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
 
-              {filteredInquiries.length === 0 && (
+                            <div className="p-4 bg-muted/50 rounded-lg">
+                              <p className="text-sm">{inquiry.message || "No message provided"}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex lg:flex-col gap-2">
+                            {inquiry.buyerPhone && (
+                              <Button
+                                size="sm"
+                                className="flex-1 lg:flex-none"
+                                data-testid={`button-call-${inquiry.id}`}
+                                onClick={() => window.open(`tel:${inquiry.buyerPhone}`, "_self")}
+                              >
+                                <Phone className="h-4 w-4 lg:mr-2" />
+                                <span className="hidden lg:inline">Call</span>
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 lg:flex-none"
+                              data-testid={`button-chat-${inquiry.id}`}
+                            >
+                              <MessageSquare className="h-4 w-4 lg:mr-2" />
+                              <span className="hidden lg:inline">Chat</span>
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 lg:flex-none"
+                                  data-testid={`button-more-${inquiry.id}`}
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {inquiry.status === "pending" && (
+                                  <DropdownMenuItem onClick={() => handleMarkReplied(inquiry.id)}>
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Mark as Replied
+                                  </DropdownMenuItem>
+                                )}
+                                {inquiry.status !== "closed" && (
+                                  <DropdownMenuItem onClick={() => handleCloseInquiry(inquiry.id)}>
+                                    <X className="h-4 w-4 mr-2" />
+                                    Close Inquiry
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+
+              {!isLoading && filteredInquiries.length === 0 && (
                 <div className="text-center py-16">
                   <MessageSquare className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="font-semibold text-xl mb-2">
@@ -262,6 +281,8 @@ export default function InquiriesPage() {
                   <p className="text-muted-foreground">
                     {searchQuery
                       ? "Try a different search term"
+                      : selectedTab === "all"
+                      ? "You haven't received any inquiries yet"
                       : `No ${selectedTab} inquiries`}
                   </p>
                 </div>

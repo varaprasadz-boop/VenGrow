@@ -1,8 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building,
   Eye,
@@ -13,251 +16,346 @@ import {
   Calendar,
 } from "lucide-react";
 import PropertyCard from "@/components/PropertyCard";
-import heroImage from '@assets/generated_images/luxury_indian_apartment_building.png';
-import apartmentImage from '@assets/generated_images/modern_apartment_interior_india.png';
+import { useAuth } from "@/hooks/useAuth";
+import { formatDistanceToNow, differenceInDays } from "date-fns";
+import type { Property, Inquiry, SellerProfile, SellerSubscription, Package } from "@shared/schema";
+
+interface InquiryWithBuyer extends Inquiry {
+  buyer?: {
+    firstName?: string;
+    lastName?: string;
+  };
+  property?: {
+    title: string;
+  };
+}
 
 export default function SellerDashboardPage() {
+  const { user } = useAuth();
+
+  const { data: sellerProfile, isLoading: profileLoading } = useQuery<SellerProfile>({
+    queryKey: ["/api/me/seller-profile"],
+    enabled: !!user,
+  });
+
+  const { data: properties = [], isLoading: propertiesLoading } = useQuery<Property[]>({
+    queryKey: ["/api/me/properties"],
+    enabled: !!user,
+  });
+
+  const { data: inquiries = [], isLoading: inquiriesLoading } = useQuery<InquiryWithBuyer[]>({
+    queryKey: ["/api/me/seller-inquiries"],
+    enabled: !!user,
+  });
+
+  const { data: subscription, isLoading: subscriptionLoading } = useQuery<SellerSubscription & { package?: Package }>({
+    queryKey: ["/api/me/subscription"],
+    enabled: !!user,
+  });
+
+  const totalViews = properties.reduce((sum, p) => sum + (p.viewCount || 0), 0);
+  const totalFavorites = properties.reduce((sum, p) => sum + (p.favoriteCount || 0), 0);
+  const activeListings = properties.filter(p => p.status === "active").length;
+  const pendingInquiries = inquiries.filter(i => i.status === "pending").length;
+
   const stats = [
     {
       label: "Active Listings",
-      value: "8",
+      value: activeListings.toString(),
       icon: Building,
-      change: "2 of 20 used",
-      packageInfo: "Premium Package",
+      change: subscription ? `${activeListings} of ${subscription.package?.listingLimit || 5} used` : "No subscription",
+      packageInfo: subscription?.package?.name || "Basic",
+      link: "/seller/listings",
     },
     {
       label: "Total Views",
-      value: "1,234",
+      value: totalViews.toLocaleString(),
       icon: Eye,
-      change: "+156 this week",
+      change: "All time",
       trend: "up",
+      link: "/seller/analytics",
     },
     {
       label: "Favorites",
-      value: "89",
+      value: totalFavorites.toString(),
       icon: Heart,
-      change: "+12 this week",
+      change: "Properties saved",
       trend: "up",
+      link: "/seller/analytics",
     },
     {
       label: "Inquiries",
-      value: "45",
+      value: inquiries.length.toString(),
       icon: MessageSquare,
-      change: "8 pending replies",
+      change: `${pendingInquiries} pending`,
       trend: "neutral",
+      link: "/seller/inquiries",
     },
   ];
 
-  const recentInquiries = [
-    {
-      id: "1",
-      property: "Luxury 3BHK Apartment in Bandra West",
-      buyer: "Rahul Sharma",
-      time: "2 hours ago",
-      status: "new",
-    },
-    {
-      id: "2",
-      property: "Spacious 2BHK Flat in Koramangala",
-      buyer: "Priya Patel",
-      time: "5 hours ago",
-      status: "replied",
-    },
-    {
-      id: "3",
-      property: "Beautiful Villa in Whitefield",
-      buyer: "Amit Kumar",
-      time: "1 day ago",
-      status: "new",
-    },
-  ];
+  const recentInquiries = inquiries.slice(0, 3);
+  const recentListings = properties.slice(0, 2);
 
-  const myListings = [
-    {
-      id: "1",
-      title: "Luxury 3BHK Apartment in Prime Location",
-      price: 8500000,
-      location: "Bandra West, Mumbai",
-      imageUrl: heroImage,
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 1450,
-      propertyType: "Apartment",
-      isFeatured: true,
-      isVerified: true,
-      sellerType: "Builder" as const,
-      transactionType: "Sale" as const,
-      views: 345,
-      favorites: 28,
-      status: "active",
-    },
-    {
-      id: "2",
-      title: "Spacious 2BHK Flat with Modern Amenities",
-      price: 45000,
-      location: "Koramangala, Bangalore",
-      imageUrl: apartmentImage,
-      bedrooms: 2,
-      bathrooms: 2,
-      area: 1200,
-      propertyType: "Apartment",
-      isVerified: true,
-      sellerType: "Individual" as const,
-      transactionType: "Rent" as const,
-      views: 234,
-      favorites: 15,
-      status: "active",
-    },
-  ];
+  const formatPropertyForCard = (property: Property) => ({
+    id: property.id,
+    title: property.title,
+    price: property.price,
+    location: `${property.locality || ''}, ${property.city}`.replace(/^, /, ''),
+    imageUrl: (property as any).images?.[0] || '/placeholder-property.jpg',
+    bedrooms: property.bedrooms || 0,
+    bathrooms: property.bathrooms || 0,
+    area: property.area,
+    propertyType: property.propertyType,
+    isFeatured: property.isFeatured || false,
+    isVerified: property.isVerified || false,
+    sellerType: (sellerProfile?.sellerType || "individual") as "Individual" | "Broker" | "Builder",
+    transactionType: (property.transactionType === "sale" ? "Sale" : "Rent") as "Sale" | "Rent",
+  });
+
+  const getBuyerName = (inquiry: InquiryWithBuyer) => {
+    if (inquiry.buyer?.firstName) {
+      return `${inquiry.buyer.firstName} ${inquiry.buyer.lastName || ''}`.trim();
+    }
+    return "Buyer";
+  };
+
+  const renewalDays = subscription?.endDate 
+    ? differenceInDays(new Date(subscription.endDate), new Date())
+    : 0;
+
+  const isLoading = profileLoading || propertiesLoading || inquiriesLoading || subscriptionLoading;
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+      <Header isLoggedIn={!!user} userType="seller" />
 
       <main className="flex-1 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Welcome Section */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>
               <h1 className="font-serif font-bold text-3xl mb-2">
-                Welcome back, Prestige Estates!
+                Welcome back{sellerProfile?.companyName ? `, ${sellerProfile.companyName}` : user?.firstName ? `, ${user.firstName}` : ''}!
               </h1>
               <p className="text-muted-foreground">
                 Here's an overview of your property listings
               </p>
             </div>
-            <Button size="lg" data-testid="button-create-listing">
-              <Plus className="h-5 w-5 mr-2" />
-              Create New Listing
-            </Button>
+            <Link href="/seller/listings/create/step1">
+              <Button size="lg" data-testid="button-create-listing">
+                <Plus className="h-5 w-5 mr-2" />
+                Create New Listing
+              </Button>
+            </Link>
           </div>
 
-          {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => (
-              <Card key={index} className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="p-3 rounded-lg bg-primary/10">
-                    <stat.icon className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
+            {isLoading ? (
+              [1, 2, 3, 4].map((i) => (
+                <Card key={i} className="p-6">
+                  <Skeleton className="h-12 w-12 rounded-lg mb-3" />
+                  <Skeleton className="h-8 w-16 mb-1" />
+                  <Skeleton className="h-4 w-24" />
+                </Card>
+              ))
+            ) : (
+              stats.map((stat, index) => (
+                <Link key={index} href={stat.link}>
+                  <Card className="p-6 hover-elevate active-elevate-2 cursor-pointer">
+                    <div className="flex items-start justify-between mb-3 gap-4">
+                      <div className="p-3 rounded-lg bg-primary/10">
+                        <stat.icon className="h-6 w-6 text-primary" />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold font-serif mb-1">{stat.value}</p>
+                      <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {stat.packageInfo || stat.change}
+                      </p>
+                    </div>
+                  </Card>
+                </Link>
+              ))
+            )}
+          </div>
+
+          {subscription && (
+            <Card className="p-6 mb-8 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <p className="text-3xl font-bold font-serif mb-1">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {stat.packageInfo || stat.change}
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <Badge variant="default">{subscription.package?.name || "Package"}</Badge>
+                    <Badge variant="outline">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {renewalDays > 0 ? `Renews in ${renewalDays} days` : "Expired"}
+                    </Badge>
+                  </div>
+                  <h3 className="font-semibold text-lg mb-1">
+                    ₹{(subscription.package?.price || 0).toLocaleString()}/month • {subscription.package?.listingLimit || 5} Listings
+                    {subscription.package?.features?.includes("featured_badge") && " • Featured Badge"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {activeListings} of {subscription.package?.listingLimit || 5} listings used
+                    {subscription.package?.listingLimit && activeListings < subscription.package.listingLimit && " • Upgrade for unlimited listings"}
                   </p>
                 </div>
-              </Card>
-            ))}
-          </div>
-
-          {/* Current Package */}
-          <Card className="p-6 mb-8 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="default">Premium Package</Badge>
-                  <Badge variant="outline">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    Renews in 23 days
-                  </Badge>
+                <div className="flex flex-wrap gap-3">
+                  <Link href="/seller/subscription">
+                    <Button variant="outline" data-testid="button-manage-package">
+                      Manage Package
+                    </Button>
+                  </Link>
+                  <Link href="/seller/packages">
+                    <Button data-testid="button-upgrade">
+                      Upgrade Plan
+                    </Button>
+                  </Link>
                 </div>
-                <h3 className="font-semibold text-lg mb-1">
-                  ₹2,999/month • 20 Listings • Featured Badge
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  8 of 20 listings used • Upgrade for unlimited listings
-                </p>
               </div>
-              <div className="flex gap-3">
-                <Button variant="outline" data-testid="button-manage-package">
-                  Manage Package
-                </Button>
-                <Button data-testid="button-upgrade">
-                  Upgrade Plan
-                </Button>
+            </Card>
+          )}
+
+          {!subscription && !subscriptionLoading && (
+            <Card className="p-6 mb-8 bg-gradient-to-r from-yellow-500/5 to-orange-500/10 border-yellow-500/20">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">No Active Subscription</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Choose a package to start listing your properties
+                  </p>
+                </div>
+                <Link href="/seller/packages">
+                  <Button data-testid="button-choose-package">
+                    Choose Package
+                  </Button>
+                </Link>
               </div>
-            </div>
-          </Card>
+            </Card>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Column */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Recent Inquiries */}
               <Card className="p-6">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-6 gap-4">
                   <h2 className="font-semibold text-xl">Recent Inquiries</h2>
-                  <Button variant="ghost" size="sm" data-testid="button-view-all-inquiries">
-                    View All
-                  </Button>
+                  <Link href="/seller/inquiries">
+                    <Button variant="ghost" size="sm" data-testid="button-view-all-inquiries">
+                      View All
+                    </Button>
+                  </Link>
                 </div>
-                <div className="space-y-4">
-                  {recentInquiries.map((inquiry) => (
-                    <div
-                      key={inquiry.id}
-                      className="flex items-start gap-4 p-4 rounded-lg hover-elevate active-elevate-2 border"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium truncate">
-                            {inquiry.buyer}
-                          </h3>
-                          {inquiry.status === "new" && (
-                            <Badge variant="default" className="flex-shrink-0">New</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-1">
-                          {inquiry.property}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{inquiry.time}</p>
+                {inquiriesLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="p-4 rounded-lg border">
+                        <Skeleton className="h-5 w-3/4 mb-2" />
+                        <Skeleton className="h-4 w-1/2 mb-2" />
+                        <Skeleton className="h-3 w-1/4" />
                       </div>
-                      <Button size="sm" variant="outline" data-testid={`button-reply-${inquiry.id}`}>
-                        Reply
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : recentInquiries.length > 0 ? (
+                  <div className="space-y-4">
+                    {recentInquiries.map((inquiry) => (
+                      <div
+                        key={inquiry.id}
+                        className="flex items-start gap-4 p-4 rounded-lg hover-elevate active-elevate-2 border"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <h3 className="font-medium truncate">
+                              {getBuyerName(inquiry)}
+                            </h3>
+                            {inquiry.status === "pending" && (
+                              <Badge variant="default" className="flex-shrink-0">New</Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-1">
+                            {inquiry.property?.title || "Property Inquiry"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                        <Link href={`/seller/inquiries/${inquiry.id}`}>
+                          <Button size="sm" variant="outline" data-testid={`button-reply-${inquiry.id}`}>
+                            Reply
+                          </Button>
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No inquiries yet</p>
+                    <p className="text-sm mt-1">Inquiries will appear here when buyers contact you</p>
+                  </div>
+                )}
               </Card>
 
-              {/* My Listings */}
               <div>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-6 gap-4">
                   <h2 className="font-semibold text-xl">My Listings</h2>
-                  <Button variant="ghost" size="sm" data-testid="button-manage-listings">
-                    Manage All
-                  </Button>
+                  <Link href="/seller/listings">
+                    <Button variant="ghost" size="sm" data-testid="button-manage-listings">
+                      Manage All
+                    </Button>
+                  </Link>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {myListings.map((property) => (
-                    <PropertyCard key={property.id} {...property} />
-                  ))}
-                </div>
+                {propertiesLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="space-y-3">
+                        <Skeleton className="h-48 w-full rounded-lg" />
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                      </div>
+                    ))}
+                  </div>
+                ) : recentListings.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {recentListings.map((property) => (
+                      <PropertyCard key={property.id} {...formatPropertyForCard(property)} />
+                    ))}
+                  </div>
+                ) : (
+                  <Card className="p-8 text-center text-muted-foreground">
+                    <Building className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No listings yet</p>
+                    <Link href="/seller/listings/create/step1">
+                      <Button variant="ghost" className="mt-2">Create Your First Listing</Button>
+                    </Link>
+                  </Card>
+                )}
               </div>
             </div>
 
-            {/* Sidebar */}
             <div className="space-y-6">
-              {/* Quick Actions */}
               <Card className="p-6">
                 <h3 className="font-semibold mb-4">Quick Actions</h3>
                 <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start" data-testid="button-create-new">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Listing
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" data-testid="button-view-analytics">
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    View Analytics
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" data-testid="button-view-inquiries">
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    View Inquiries
-                  </Button>
+                  <Link href="/seller/listings/create/step1">
+                    <Button variant="outline" className="w-full justify-start" data-testid="button-create-new">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Listing
+                    </Button>
+                  </Link>
+                  <Link href="/seller/analytics">
+                    <Button variant="outline" className="w-full justify-start" data-testid="button-view-analytics">
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      View Analytics
+                    </Button>
+                  </Link>
+                  <Link href="/seller/inquiries">
+                    <Button variant="outline" className="w-full justify-start" data-testid="button-view-inquiries">
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      View Inquiries
+                    </Button>
+                  </Link>
                 </div>
               </Card>
 
-              {/* Performance Tips */}
               <Card className="p-6">
                 <h3 className="font-semibold mb-4">Performance Tips</h3>
                 <div className="space-y-4 text-sm">

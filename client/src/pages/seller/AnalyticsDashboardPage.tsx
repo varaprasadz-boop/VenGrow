@@ -1,7 +1,9 @@
+import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Eye,
@@ -10,72 +12,74 @@ import {
   TrendingUp,
   Calendar,
   Download,
+  Building,
 } from "lucide-react";
+import { Link } from "wouter";
+import type { Property } from "@shared/schema";
+
+interface DashboardStats {
+  totalListings: number;
+  totalInquiries: number;
+  totalViews: number;
+  totalFavorites?: number;
+}
 
 export default function AnalyticsDashboardPage() {
+  const { data: dashboardStats, isLoading: statsLoading } = useQuery<DashboardStats>({
+    queryKey: ["/api/me/dashboard"],
+  });
+
+  const { data: properties = [], isLoading: propertiesLoading } = useQuery<Property[]>({
+    queryKey: ["/api/me/properties"],
+  });
+
+  const isLoading = statsLoading || propertiesLoading;
+
+  const totalViews = properties.reduce((sum, p) => sum + (p.viewCount || 0), 0);
+  const totalFavorites = properties.reduce((sum, p) => sum + (p.favoriteCount || 0), 0);
+  const totalInquiries = properties.reduce((sum, p) => sum + (p.inquiryCount || 0), 0);
+  const engagementRate = totalViews > 0 ? ((totalFavorites + totalInquiries) / totalViews * 100).toFixed(1) : "0.0";
+
   const stats = [
     {
       label: "Total Views",
-      value: "12,345",
-      change: "+23% vs last month",
+      value: totalViews.toLocaleString(),
+      change: "All-time views on your listings",
       icon: Eye,
     },
     {
       label: "Favorites",
-      value: "456",
-      change: "+18% vs last month",
+      value: totalFavorites.toLocaleString(),
+      change: "Properties saved by buyers",
       icon: Heart,
     },
     {
       label: "Inquiries",
-      value: "89",
-      change: "+35% vs last month",
+      value: totalInquiries.toLocaleString(),
+      change: "Total buyer inquiries",
       icon: MessageSquare,
     },
     {
       label: "Engagement Rate",
-      value: "7.2%",
-      change: "+1.5% vs last month",
+      value: `${engagementRate}%`,
+      change: "(Favorites + Inquiries) / Views",
       icon: TrendingUp,
     },
   ];
 
-  const topProperties = [
-    {
-      id: "1",
-      title: "Luxury 3BHK Apartment",
-      views: 2345,
-      favorites: 128,
-      inquiries: 45,
-      engagementRate: "9.5%",
-    },
-    {
-      id: "2",
-      title: "Commercial Office Space",
-      views: 1987,
-      favorites: 89,
-      inquiries: 32,
-      engagementRate: "8.2%",
-    },
-    {
-      id: "3",
-      title: "2BHK Flat in Koramangala",
-      views: 1654,
-      favorites: 76,
-      inquiries: 28,
-      engagementRate: "7.8%",
-    },
-  ];
-
-  const weeklyData = [
-    { day: "Mon", views: 234, favorites: 12, inquiries: 5 },
-    { day: "Tue", views: 345, favorites: 18, inquiries: 8 },
-    { day: "Wed", views: 289, favorites: 15, inquiries: 6 },
-    { day: "Thu", views: 412, favorites: 22, inquiries: 11 },
-    { day: "Fri", views: 378, favorites: 19, inquiries: 9 },
-    { day: "Sat", views: 456, favorites: 25, inquiries: 13 },
-    { day: "Sun", views: 398, favorites: 21, inquiries: 10 },
-  ];
+  const topProperties = [...properties]
+    .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+    .slice(0, 5)
+    .map((p) => ({
+      id: p.id,
+      title: p.title,
+      views: p.viewCount || 0,
+      favorites: p.favoriteCount || 0,
+      inquiries: p.inquiryCount || 0,
+      engagementRate: p.viewCount && p.viewCount > 0
+        ? `${(((p.favoriteCount || 0) + (p.inquiryCount || 0)) / p.viewCount * 100).toFixed(1)}%`
+        : "0.0%",
+    }));
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -95,7 +99,7 @@ export default function AnalyticsDashboardPage() {
             <div className="flex gap-3">
               <Button variant="outline" data-testid="button-date-range">
                 <Calendar className="h-4 w-4 mr-2" />
-                Last 30 Days
+                All Time
               </Button>
               <Button data-testid="button-export">
                 <Download className="h-4 w-4 mr-2" />
@@ -104,23 +108,34 @@ export default function AnalyticsDashboardPage() {
             </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => (
-              <Card key={index} className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="p-3 rounded-lg bg-primary/10">
-                    <stat.icon className="h-6 w-6 text-primary" />
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i} className="p-6">
+                  <Skeleton className="h-10 w-10 rounded-lg mb-4" />
+                  <Skeleton className="h-8 w-24 mb-2" />
+                  <Skeleton className="h-4 w-32" />
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {stats.map((stat, index) => (
+                <Card key={index} className="p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="p-3 rounded-lg bg-primary/10">
+                      <stat.icon className="h-6 w-6 text-primary" />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold font-serif mb-1">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-                  <p className="text-xs text-green-600">{stat.change}</p>
-                </div>
-              </Card>
-            ))}
-          </div>
+                  <div>
+                    <p className="text-3xl font-bold font-serif mb-1">{stat.value}</p>
+                    <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
+                    <p className="text-xs text-muted-foreground">{stat.change}</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
 
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList>
@@ -130,67 +145,100 @@ export default function AnalyticsDashboardPage() {
               <TabsTrigger value="properties" data-testid="tab-properties">
                 By Property
               </TabsTrigger>
-              <TabsTrigger value="demographics" data-testid="tab-demographics">
-                Demographics
-              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Weekly Trend */}
                 <Card className="p-6">
-                  <h3 className="font-semibold text-lg mb-6">Weekly Trend</h3>
-                  <div className="space-y-4">
-                    {weeklyData.map((item, index) => (
-                      <div key={index}>
-                        <div className="flex items-center justify-between mb-2 text-sm">
-                          <span className="font-medium">{item.day}</span>
-                          <div className="flex gap-4 text-xs">
-                            <span className="text-muted-foreground">
-                              {item.views} views
-                            </span>
-                            <span className="text-muted-foreground">
-                              {item.inquiries} inquiries
-                            </span>
+                  <h3 className="font-semibold text-lg mb-6">Property Performance</h3>
+                  {isLoading ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-12 w-full" />
+                      ))}
+                    </div>
+                  ) : properties.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Building className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-muted-foreground mb-4">No properties yet</p>
+                      <Link href="/seller/listings/new">
+                        <Button>Create Your First Listing</Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {topProperties.slice(0, 5).map((property, index) => (
+                        <div key={property.id}>
+                          <div className="flex items-center justify-between mb-2 text-sm">
+                            <span className="font-medium truncate max-w-[200px]">{property.title}</span>
+                            <div className="flex gap-4 text-xs">
+                              <span className="text-muted-foreground">{property.views} views</span>
+                              <span className="text-muted-foreground">{property.inquiries} inquiries</span>
+                            </div>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary rounded-full"
+                              style={{ 
+                                width: `${Math.min(100, totalViews > 0 ? (property.views / totalViews * 100) : 0)}%` 
+                              }}
+                            />
                           </div>
                         </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full"
-                            style={{ width: `${(item.views / 500) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </Card>
 
-                {/* Traffic Sources */}
                 <Card className="p-6">
-                  <h3 className="font-semibold text-lg mb-6">Traffic Sources</h3>
-                  <div className="space-y-4">
-                    {[
-                      { source: "Direct Search", percentage: 45, count: "5,555" },
-                      { source: "Featured Listings", percentage: 30, count: "3,703" },
-                      { source: "Saved Searches", percentage: 15, count: "1,851" },
-                      { source: "Social Media", percentage: 10, count: "1,234" },
-                    ].map((item, index) => (
-                      <div key={index}>
-                        <div className="flex items-center justify-between mb-2 text-sm">
-                          <span className="font-medium">{item.source}</span>
-                          <span className="text-muted-foreground">
-                            {item.count} ({item.percentage}%)
-                          </span>
+                  <h3 className="font-semibold text-lg mb-6">Engagement Breakdown</h3>
+                  {isLoading ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-12 w-full" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {[
+                        { 
+                          source: "Property Views", 
+                          percentage: 100, 
+                          count: totalViews.toLocaleString() 
+                        },
+                        { 
+                          source: "Favorites Received", 
+                          percentage: totalViews > 0 ? Math.round(totalFavorites / totalViews * 100) : 0, 
+                          count: totalFavorites.toLocaleString() 
+                        },
+                        { 
+                          source: "Inquiries Received", 
+                          percentage: totalViews > 0 ? Math.round(totalInquiries / totalViews * 100) : 0, 
+                          count: totalInquiries.toLocaleString() 
+                        },
+                        { 
+                          source: "Active Listings", 
+                          percentage: 100, 
+                          count: properties.filter(p => p.status === "active").length.toString() 
+                        },
+                      ].map((item, index) => (
+                        <div key={index}>
+                          <div className="flex items-center justify-between mb-2 text-sm">
+                            <span className="font-medium">{item.source}</span>
+                            <span className="text-muted-foreground">
+                              {item.count} {item.percentage > 0 && item.percentage < 100 && `(${item.percentage}%)`}
+                            </span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary rounded-full"
+                              style={{ width: `${Math.min(100, item.percentage)}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full"
-                            style={{ width: `${item.percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </Card>
               </div>
             </TabsContent>
@@ -198,59 +246,71 @@ export default function AnalyticsDashboardPage() {
             <TabsContent value="properties">
               <Card className="p-6">
                 <h3 className="font-semibold text-lg mb-6">
-                  Top Performing Properties
+                  Property Performance Details
                 </h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-3 text-sm font-semibold">
-                          Property
-                        </th>
-                        <th className="text-center p-3 text-sm font-semibold">
-                          Views
-                        </th>
-                        <th className="text-center p-3 text-sm font-semibold">
-                          Favorites
-                        </th>
-                        <th className="text-center p-3 text-sm font-semibold">
-                          Inquiries
-                        </th>
-                        <th className="text-center p-3 text-sm font-semibold">
-                          Engagement
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topProperties.map((property, index) => (
-                        <tr key={property.id} className="border-b last:border-0">
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg font-bold text-primary">
-                                #{index + 1}
-                              </span>
-                              <span className="font-medium">{property.title}</span>
-                            </div>
-                          </td>
-                          <td className="p-3 text-center">{property.views}</td>
-                          <td className="p-3 text-center">{property.favorites}</td>
-                          <td className="p-3 text-center">{property.inquiries}</td>
-                          <td className="p-3 text-center text-primary font-semibold">
-                            {property.engagementRate}
-                          </td>
+                {isLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <Skeleton key={i} className="h-12 w-full" />
+                    ))}
+                  </div>
+                ) : properties.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Building className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground mb-4">No properties to analyze</p>
+                    <Link href="/seller/listings/new">
+                      <Button>Create Your First Listing</Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3 text-sm font-semibold">
+                            Property
+                          </th>
+                          <th className="text-center p-3 text-sm font-semibold">
+                            Views
+                          </th>
+                          <th className="text-center p-3 text-sm font-semibold">
+                            Favorites
+                          </th>
+                          <th className="text-center p-3 text-sm font-semibold">
+                            Inquiries
+                          </th>
+                          <th className="text-center p-3 text-sm font-semibold">
+                            Engagement
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="demographics">
-              <Card className="p-6">
-                <p className="text-center text-muted-foreground py-16">
-                  Demographic analytics coming soon
-                </p>
+                      </thead>
+                      <tbody>
+                        {topProperties.map((property, index) => (
+                          <tr key={property.id} className="border-b last:border-0">
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg font-bold text-primary">
+                                  #{index + 1}
+                                </span>
+                                <Link href={`/properties/${property.id}`}>
+                                  <span className="font-medium hover:text-primary cursor-pointer">
+                                    {property.title}
+                                  </span>
+                                </Link>
+                              </div>
+                            </td>
+                            <td className="p-3 text-center">{property.views}</td>
+                            <td className="p-3 text-center">{property.favorites}</td>
+                            <td className="p-3 text-center">{property.inquiries}</td>
+                            <td className="p-3 text-center text-primary font-semibold">
+                              {property.engagementRate}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </Card>
             </TabsContent>
           </Tabs>

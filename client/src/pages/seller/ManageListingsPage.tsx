@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
@@ -6,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Plus,
   Search,
@@ -17,6 +20,7 @@ import {
   MoreVertical,
   Pause,
   Play,
+  Building,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -24,65 +28,48 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import type { Property } from "@shared/schema";
 
 export default function ManageListingsPage() {
   const [selectedTab, setSelectedTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  const listings = [
-    {
-      id: "1",
-      title: "Luxury 3BHK Apartment in Prime Location",
-      location: "Bandra West, Mumbai",
-      price: "₹85 L",
-      type: "Apartment",
-      status: "active",
-      views: 345,
-      favorites: 28,
-      inquiries: 12,
-      createdDate: "Oct 15, 2025",
-      expiryDate: "Dec 15, 2025",
+  const { data: listings = [], isLoading } = useQuery<Property[]>({
+    queryKey: ["/api/me/properties"],
+    enabled: !!user,
+  });
+
+  const updatePropertyMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Property> }) => {
+      return apiRequest("PATCH", `/api/properties/${id}`, data);
     },
-    {
-      id: "2",
-      title: "Spacious 2BHK Flat with Modern Amenities",
-      location: "Koramangala, Bangalore",
-      price: "₹45,000/mo",
-      type: "Apartment",
-      status: "active",
-      views: 234,
-      favorites: 15,
-      inquiries: 8,
-      createdDate: "Oct 20, 2025",
-      expiryDate: "Dec 20, 2025",
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/me/properties"] });
+      toast({ title: "Listing updated successfully" });
     },
-    {
-      id: "3",
-      title: "Commercial Office Space in IT Park",
-      location: "Cyber City, Gurgaon",
-      price: "₹1.5 Cr",
-      type: "Commercial",
-      status: "paused",
-      views: 156,
-      favorites: 8,
-      inquiries: 3,
-      createdDate: "Sep 10, 2025",
-      expiryDate: "Nov 10, 2025",
+    onError: () => {
+      toast({ title: "Failed to update listing", variant: "destructive" });
     },
-    {
-      id: "4",
-      title: "Beautiful Villa with Garden",
-      location: "Whitefield, Bangalore",
-      price: "₹1.25 Cr",
-      type: "Villa",
-      status: "expired",
-      views: 567,
-      favorites: 42,
-      inquiries: 18,
-      createdDate: "Aug 1, 2025",
-      expiryDate: "Oct 1, 2025",
+  });
+
+  const deletePropertyMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/properties/${id}`);
     },
-  ];
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/me/properties"] });
+      toast({ title: "Listing deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete listing", variant: "destructive" });
+    },
+  });
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { className: string; label: string }> = {
@@ -90,13 +77,29 @@ export default function ManageListingsPage() {
         className: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500",
         label: "Active",
       },
-      paused: {
-        className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500",
-        label: "Paused",
+      draft: {
+        className: "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-500",
+        label: "Draft",
+      },
+      pending: {
+        className: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-500",
+        label: "Pending",
       },
       expired: {
-        className: "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-500",
+        className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500",
         label: "Expired",
+      },
+      rejected: {
+        className: "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-500",
+        label: "Rejected",
+      },
+      sold: {
+        className: "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-500",
+        label: "Sold",
+      },
+      rented: {
+        className: "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-500",
+        label: "Rented",
       },
     };
     return variants[status] || variants.active;
@@ -105,13 +108,18 @@ export default function ManageListingsPage() {
   const filterListings = () => {
     let filtered = listings;
     if (selectedTab !== "all") {
-      filtered = filtered.filter((l) => l.status === selectedTab);
+      if (selectedTab === "sold") {
+        filtered = filtered.filter((l) => l.status === "sold" || l.status === "rented");
+      } else {
+        filtered = filtered.filter((l) => l.status === selectedTab);
+      }
     }
     if (searchQuery) {
       filtered = filtered.filter(
         (l) =>
           l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          l.location.toLowerCase().includes(searchQuery.toLowerCase())
+          l.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (l.locality && l.locality.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
     return filtered;
@@ -119,13 +127,36 @@ export default function ManageListingsPage() {
 
   const filteredListings = filterListings();
 
+  const formatPrice = (price: number, transactionType: string) => {
+    if (transactionType === "rent") {
+      return `₹${(price / 1000).toFixed(0)}K/mo`;
+    }
+    if (price >= 10000000) {
+      return `₹${(price / 10000000).toFixed(2)} Cr`;
+    }
+    return `₹${(price / 100000).toFixed(2)} L`;
+  };
+
+  const handleMarkSold = (id: string) => {
+    updatePropertyMutation.mutate({ id, data: { status: "sold" } });
+  };
+
+  const handleReactivate = (id: string) => {
+    updatePropertyMutation.mutate({ id, data: { status: "active" } });
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this listing?")) {
+      deletePropertyMutation.mutate(id);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+      <Header isLoggedIn={!!user} userType="seller" />
 
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>
               <h1 className="font-serif font-bold text-3xl mb-2">
@@ -135,13 +166,14 @@ export default function ManageListingsPage() {
                 View and manage all your property listings
               </p>
             </div>
-            <Button size="lg" data-testid="button-create-listing">
-              <Plus className="h-5 w-5 mr-2" />
-              Create New Listing
-            </Button>
+            <Link href="/seller/listings/create/step1">
+              <Button size="lg" data-testid="button-create-listing">
+                <Plus className="h-5 w-5 mr-2" />
+                Create New Listing
+              </Button>
+            </Link>
           </div>
 
-          {/* Search & Filters */}
           <div className="mb-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -155,7 +187,6 @@ export default function ManageListingsPage() {
             </div>
           </div>
 
-          {/* Tabs */}
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
             <TabsList className="mb-6">
               <TabsTrigger value="all" data-testid="tab-all">
@@ -164,139 +195,170 @@ export default function ManageListingsPage() {
               <TabsTrigger value="active" data-testid="tab-active">
                 Active ({listings.filter((l) => l.status === "active").length})
               </TabsTrigger>
-              <TabsTrigger value="paused" data-testid="tab-paused">
-                Paused ({listings.filter((l) => l.status === "paused").length})
+              <TabsTrigger value="pending" data-testid="tab-pending">
+                Pending ({listings.filter((l) => l.status === "pending").length})
               </TabsTrigger>
-              <TabsTrigger value="expired" data-testid="tab-expired">
-                Expired ({listings.filter((l) => l.status === "expired").length})
+              <TabsTrigger value="sold" data-testid="tab-sold">
+                Sold ({listings.filter((l) => l.status === "sold" || l.status === "rented").length})
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value={selectedTab} className="mt-0">
-              <div className="space-y-4">
-                {filteredListings.map((listing) => {
-                  const statusInfo = getStatusBadge(listing.status);
-                  return (
-                    <Card key={listing.id} className="p-6">
-                      <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-                        {/* Main Info */}
-                        <div className="flex-1 space-y-4">
-                          <div>
-                            <div className="flex items-start gap-3 mb-2">
-                              <h3 className="font-semibold text-lg flex-1">
-                                {listing.title}
-                              </h3>
-                              <Badge className={statusInfo.className}>
-                                {statusInfo.label}
-                              </Badge>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                              <span>{listing.location}</span>
-                              <span>•</span>
-                              <span>{listing.type}</span>
-                              <span>•</span>
-                              <span className="font-medium text-primary">
-                                {listing.price}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Stats */}
-                          <div className="flex flex-wrap items-center gap-6 text-sm">
-                            <div className="flex items-center gap-2">
-                              <Eye className="h-4 w-4 text-muted-foreground" />
-                              <span>{listing.views} views</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Heart className="h-4 w-4 text-muted-foreground" />
-                              <span>{listing.favorites} favorites</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                              <span>{listing.inquiries} inquiries</span>
-                            </div>
-                          </div>
-
-                          {/* Dates */}
-                          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                            <span>Created: {listing.createdDate}</span>
-                            <span>•</span>
-                            <span>Expires: {listing.expiryDate}</span>
-                          </div>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i} className="p-6">
+                      <div className="flex flex-col gap-4">
+                        <Skeleton className="h-6 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                        <div className="flex gap-4">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-4 w-24" />
                         </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : filteredListings.length > 0 ? (
+                <div className="space-y-4">
+                  {filteredListings.map((listing) => {
+                    const statusInfo = getStatusBadge(listing.status);
+                    return (
+                      <Card key={listing.id} className="p-6">
+                        <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                          <div className="flex-1 space-y-4">
+                            <div>
+                              <div className="flex flex-wrap items-start gap-3 mb-2">
+                                <h3 className="font-semibold text-lg flex-1">
+                                  {listing.title}
+                                </h3>
+                                <Badge className={statusInfo.className}>
+                                  {statusInfo.label}
+                                </Badge>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                                <span>{listing.locality}, {listing.city}</span>
+                                <span>•</span>
+                                <span>{listing.propertyType}</span>
+                                <span>•</span>
+                                <span className="font-medium text-primary">
+                                  {formatPrice(listing.price, listing.transactionType)}
+                                </span>
+                              </div>
+                            </div>
 
-                        {/* Actions */}
-                        <div className="flex lg:flex-col gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 lg:flex-none"
-                            data-testid={`button-view-${listing.id}`}
-                          >
-                            <Eye className="h-4 w-4 lg:mr-2" />
-                            <span className="hidden lg:inline">View</span>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 lg:flex-none"
-                            data-testid={`button-edit-${listing.id}`}
-                          >
-                            <Edit className="h-4 w-4 lg:mr-2" />
-                            <span className="hidden lg:inline">Edit</span>
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+                            <div className="flex flex-wrap items-center gap-6 text-sm">
+                              <div className="flex items-center gap-2">
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                                <span>{listing.viewCount || 0} views</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Heart className="h-4 w-4 text-muted-foreground" />
+                                <span>{listing.favoriteCount || 0} favorites</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                <span>{listing.inquiryCount || 0} inquiries</span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                              <span>Created: {format(new Date(listing.createdAt), 'MMM d, yyyy')}</span>
+                              <span>•</span>
+                              <span>Updated: {format(new Date(listing.updatedAt), 'MMM d, yyyy')}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex lg:flex-col gap-2">
+                            <Link href={`/properties/${listing.id}`}>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="flex-1 lg:flex-none"
-                                data-testid={`button-more-${listing.id}`}
+                                data-testid={`button-view-${listing.id}`}
                               >
-                                <MoreVertical className="h-4 w-4" />
+                                <Eye className="h-4 w-4 lg:mr-2" />
+                                <span className="hidden lg:inline">View</span>
                               </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {listing.status === "active" && (
-                                <DropdownMenuItem>
-                                  <Pause className="h-4 w-4 mr-2" />
-                                  Pause Listing
+                            </Link>
+                            <Link href={`/seller/listings/edit/${listing.id}`}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 lg:flex-none"
+                                data-testid={`button-edit-${listing.id}`}
+                              >
+                                <Edit className="h-4 w-4 lg:mr-2" />
+                                <span className="hidden lg:inline">Edit</span>
+                              </Button>
+                            </Link>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 lg:flex-none"
+                                  data-testid={`button-more-${listing.id}`}
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {listing.status === "active" && (
+                                  <DropdownMenuItem onClick={() => handleMarkSold(listing.id)}>
+                                    <Pause className="h-4 w-4 mr-2" />
+                                    Mark as Sold
+                                  </DropdownMenuItem>
+                                )}
+                                {(listing.status === "sold" || listing.status === "rented" || listing.status === "expired") && (
+                                  <DropdownMenuItem onClick={() => handleReactivate(listing.id)}>
+                                    <Play className="h-4 w-4 mr-2" />
+                                    Reactivate Listing
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={() => handleDelete(listing.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete Listing
                                 </DropdownMenuItem>
-                              )}
-                              {listing.status === "paused" && (
-                                <DropdownMenuItem>
-                                  <Play className="h-4 w-4 mr-2" />
-                                  Resume Listing
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem className="text-destructive">
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete Listing
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-
-              {filteredListings.length === 0 && (
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
                 <div className="text-center py-16">
-                  <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="font-semibold text-xl mb-2">
-                    No listings found
-                  </h3>
-                  <p className="text-muted-foreground mb-6">
-                    {searchQuery
-                      ? "Try a different search term"
-                      : selectedTab === "all"
-                      ? "Create your first listing to get started"
-                      : `No ${selectedTab} listings`}
-                  </p>
-                  {selectedTab === "all" && !searchQuery && (
-                    <Button>Create New Listing</Button>
+                  {searchQuery ? (
+                    <>
+                      <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="font-semibold text-xl mb-2">
+                        No listings found
+                      </h3>
+                      <p className="text-muted-foreground mb-6">
+                        Try a different search term
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Building className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="font-semibold text-xl mb-2">
+                        {selectedTab === "all" ? "No listings yet" : `No ${selectedTab} listings`}
+                      </h3>
+                      <p className="text-muted-foreground mb-6">
+                        {selectedTab === "all" ? "Create your first listing to get started" : ""}
+                      </p>
+                      {selectedTab === "all" && (
+                        <Link href="/seller/listings/create/step1">
+                          <Button data-testid="button-create-first">Create New Listing</Button>
+                        </Link>
+                      )}
+                    </>
                   )}
                 </div>
               )}

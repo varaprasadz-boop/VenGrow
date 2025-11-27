@@ -1,96 +1,77 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PropertyCard from "@/components/PropertyCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, Trash2, Share2 } from "lucide-react";
-import heroImage from '@assets/generated_images/luxury_indian_apartment_building.png';
-import apartmentImage from '@assets/generated_images/modern_apartment_interior_india.png';
-import villaImage from '@assets/generated_images/independent_villa_with_garden.png';
-import commercialImage from '@assets/generated_images/commercial_office_building_india.png';
+import { Skeleton } from "@/components/ui/skeleton";
+import { Heart, Trash2, Share2, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { Property } from "@shared/schema";
 
 export default function FavoritesPage() {
   const [selectedTab, setSelectedTab] = useState("all");
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  const favorites = [
-    {
-      id: "1",
-      title: "Luxury 3BHK Apartment in Prime Location",
-      price: 8500000,
-      location: "Bandra West, Mumbai",
-      imageUrl: heroImage,
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 1450,
-      propertyType: "Apartment",
-      isFeatured: true,
-      isVerified: true,
-      sellerType: "Builder" as const,
-      transactionType: "Sale" as const,
-      savedDate: "2 days ago",
-    },
-    {
-      id: "2",
-      title: "Spacious 2BHK Flat with Modern Amenities",
-      price: 45000,
-      location: "Koramangala, Bangalore",
-      imageUrl: apartmentImage,
-      bedrooms: 2,
-      bathrooms: 2,
-      area: 1200,
-      propertyType: "Apartment",
-      isVerified: true,
-      sellerType: "Individual" as const,
-      transactionType: "Rent" as const,
-      savedDate: "1 week ago",
-    },
-    {
-      id: "3",
-      title: "Beautiful Independent Villa with Garden",
-      price: 12500000,
-      location: "Whitefield, Bangalore",
-      imageUrl: villaImage,
-      bedrooms: 4,
-      bathrooms: 3,
-      area: 2800,
-      propertyType: "Villa",
-      isVerified: true,
-      sellerType: "Broker" as const,
-      transactionType: "Sale" as const,
-      savedDate: "3 days ago",
-    },
-    {
-      id: "4",
-      title: "Modern Commercial Office Space",
-      price: 15000000,
-      location: "Cyber City, Gurgaon",
-      imageUrl: commercialImage,
-      area: 3500,
-      propertyType: "Commercial",
-      isVerified: true,
-      sellerType: "Builder" as const,
-      transactionType: "Sale" as const,
-      savedDate: "5 days ago",
-    },
-  ];
+  const { data: favorites = [], isLoading } = useQuery<Property[]>({
+    queryKey: ["/api/me/favorites"],
+    enabled: !!user,
+  });
 
-  const filterByTab = (properties: typeof favorites) => {
+  const clearAllMutation = useMutation({
+    mutationFn: async () => {
+      for (const property of favorites) {
+        await apiRequest("DELETE", "/api/favorites", { 
+          userId: user?.id, 
+          propertyId: property.id 
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/me/favorites"] });
+      toast({ title: "All favorites cleared" });
+    },
+    onError: () => {
+      toast({ title: "Failed to clear favorites", variant: "destructive" });
+    },
+  });
+
+  const filterByTab = (properties: Property[]) => {
     if (selectedTab === "all") return properties;
-    if (selectedTab === "sale") return properties.filter(p => p.transactionType === "Sale");
-    if (selectedTab === "rent") return properties.filter(p => p.transactionType === "Rent");
+    if (selectedTab === "sale") return properties.filter(p => p.transactionType === "sale");
+    if (selectedTab === "rent") return properties.filter(p => p.transactionType === "rent");
     return properties;
   };
 
   const filteredProperties = filterByTab(favorites);
 
+  const formatPropertyForCard = (property: Property) => ({
+    id: property.id,
+    title: property.title,
+    price: property.price,
+    location: `${property.locality || ''}, ${property.city}`.replace(/^, /, ''),
+    imageUrl: (property as any).images?.[0] || '/placeholder-property.jpg',
+    bedrooms: property.bedrooms || 0,
+    bathrooms: property.bathrooms || 0,
+    area: property.area,
+    propertyType: property.propertyType,
+    isFeatured: property.isFeatured || false,
+    isVerified: property.isVerified || false,
+    sellerType: "Individual" as const,
+    transactionType: (property.transactionType === "sale" ? "Sale" : "Rent") as "Sale" | "Rent",
+  });
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="buyer" />
+      <Header isLoggedIn={!!user} userType="buyer" />
 
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 rounded-lg bg-primary/10">
@@ -99,24 +80,23 @@ export default function FavoritesPage() {
               <div>
                 <h1 className="font-serif font-bold text-3xl">My Favorites</h1>
                 <p className="text-muted-foreground">
-                  {favorites.length} saved properties
+                  {isLoading ? "Loading..." : `${favorites.length} saved properties`}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Tabs */}
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="mb-8">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
               <TabsList>
                 <TabsTrigger value="all" data-testid="tab-all">
                   All ({favorites.length})
                 </TabsTrigger>
                 <TabsTrigger value="sale" data-testid="tab-sale">
-                  For Sale ({favorites.filter(p => p.transactionType === "Sale").length})
+                  For Sale ({favorites.filter(p => p.transactionType === "sale").length})
                 </TabsTrigger>
                 <TabsTrigger value="rent" data-testid="tab-rent">
-                  For Rent ({favorites.filter(p => p.transactionType === "Rent").length})
+                  For Rent ({favorites.filter(p => p.transactionType === "rent").length})
                 </TabsTrigger>
               </TabsList>
 
@@ -125,64 +105,53 @@ export default function FavoritesPage() {
                   <Share2 className="h-4 w-4 mr-2" />
                   Share List
                 </Button>
-                <Button variant="outline" size="sm" data-testid="button-clear-favorites">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  data-testid="button-clear-favorites"
+                  onClick={() => clearAllMutation.mutate()}
+                  disabled={favorites.length === 0 || clearAllMutation.isPending}
+                >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Clear All
                 </Button>
               </div>
             </div>
 
-            <TabsContent value="all" className="mt-0">
-              {filteredProperties.length > 0 ? (
+            <TabsContent value={selectedTab} className="mt-0">
+              {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="space-y-3">
+                      <Skeleton className="h-48 w-full rounded-lg" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              ) : filteredProperties.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredProperties.map((property) => (
-                    <PropertyCard key={property.id} {...property} />
+                    <PropertyCard key={property.id} {...formatPropertyForCard(property)} />
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-16">
                   <Heart className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="font-semibold text-xl mb-2">No favorites yet</h3>
+                  <h3 className="font-semibold text-xl mb-2">
+                    {selectedTab === "all" ? "No favorites yet" : `No ${selectedTab === "sale" ? "sale" : "rental"} properties saved`}
+                  </h3>
                   <p className="text-muted-foreground mb-6">
-                    Start adding properties to your favorites to see them here
+                    {selectedTab === "all" 
+                      ? "Start adding properties to your favorites to see them here"
+                      : `You haven't saved any ${selectedTab === "sale" ? "sale" : "rental"} properties yet`}
                   </p>
-                  <Button>Browse Properties</Button>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="sale" className="mt-0">
-              {filteredProperties.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredProperties.map((property) => (
-                    <PropertyCard key={property.id} {...property} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-16">
-                  <Heart className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="font-semibold text-xl mb-2">No properties for sale</h3>
-                  <p className="text-muted-foreground">
-                    You haven't saved any properties for sale yet
-                  </p>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="rent" className="mt-0">
-              {filteredProperties.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredProperties.map((property) => (
-                    <PropertyCard key={property.id} {...property} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-16">
-                  <Heart className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="font-semibold text-xl mb-2">No rental properties</h3>
-                  <p className="text-muted-foreground">
-                    You haven't saved any rental properties yet
-                  </p>
+                  <Link href="/properties">
+                    <Button data-testid="button-browse-properties">
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Browse Properties
+                    </Button>
+                  </Link>
                 </div>
               )}
             </TabsContent>
