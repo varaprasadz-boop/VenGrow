@@ -510,6 +510,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PAYMENT ROUTES
   // ============================================
   
+  // Get all payments (admin)
+  app.get("/api/payments", async (req: Request, res: Response) => {
+    try {
+      const payments = await storage.getAllPayments();
+      res.json(payments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get payments" });
+    }
+  });
+
   // Get user's payments
   app.get("/api/users/:userId/payments", async (req: Request, res: Response) => {
     try {
@@ -738,6 +748,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(payments);
     } catch (error) {
       res.status(500).json({ error: "Failed to get payments" });
+    }
+  });
+
+  // Get current seller's reviews
+  app.get("/api/me/reviews", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json([]);
+      }
+      const reviews = await storage.getReviewsBySeller(profile.id);
+      res.json(reviews);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get reviews" });
     }
   });
 

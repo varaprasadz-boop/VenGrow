@@ -48,11 +48,9 @@ export default function SellerTypePage() {
       <div className="w-full max-w-6xl">
         {/* Logo */}
         <div className="text-center mb-12">
-          <Link href="/">
-            <a className="inline-flex items-center gap-2 mb-4">
-              <Building2 className="h-8 w-8 text-primary" />
-              <span className="font-serif font-bold text-2xl">VenGrow</span>
-            </a>
+          <Link href="/" className="inline-flex items-center gap-2 mb-4">
+            <Building2 className="h-8 w-8 text-primary" />
+            <span className="font-serif font-bold text-2xl">VenGrow</span>
           </Link>
           <h1 className="font-serif font-bold text-3xl sm:text-4xl mb-3">
             Choose Your Seller Type
@@ -105,10 +103,8 @@ export default function SellerTypePage() {
 
         {/* Back Link */}
         <div className="text-center mt-8">
-          <Link href="/login">
-            <a className="text-sm text-muted-foreground hover:text-foreground">
-              Already have an account? Login
-            </a>
+          <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground">
+            Already have an account? Login
           </Link>
         </div>
       </div>
