@@ -10,6 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import {
   Plus,
   Search,
   Eye,
@@ -21,12 +26,19 @@ import {
   Pause,
   Play,
   Building,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  RefreshCw,
+  Send,
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -40,9 +52,25 @@ export default function ManageListingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: listings = [], isLoading } = useQuery<Property[]>({
+  const { data: listings = [], isLoading, refetch } = useQuery<Property[]>({
     queryKey: ["/api/me/properties"],
     enabled: !!user,
+  });
+
+  const submitForReviewMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("POST", `/api/properties/${id}/submit-for-review`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/me/properties"] });
+      toast({ 
+        title: "Submitted for Review",
+        description: "Your property has been submitted for admin approval."
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to submit for review", variant: "destructive" });
+    },
   });
 
   const updatePropertyMutation = useMutation({
@@ -71,47 +99,80 @@ export default function ManageListingsPage() {
     },
   });
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { className: string; label: string }> = {
-      active: {
-        className: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500",
-        label: "Active",
-      },
+  const getWorkflowStatusBadge = (property: Property) => {
+    const workflowStatus = property.workflowStatus || "draft";
+    const status = property.status;
+    
+    const variants: Record<string, { className: string; label: string; icon: any }> = {
       draft: {
-        className: "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-500",
+        className: "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400",
         label: "Draft",
+        icon: Edit,
       },
-      pending: {
-        className: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-500",
-        label: "Pending",
-      },
-      expired: {
+      submitted: {
         className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500",
-        label: "Expired",
+        label: "Submitted",
+        icon: Clock,
+      },
+      under_review: {
+        className: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-500",
+        label: "Under Review",
+        icon: Clock,
+      },
+      approved: {
+        className: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500",
+        label: "Approved",
+        icon: CheckCircle,
+      },
+      live: {
+        className: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500",
+        label: "Live",
+        icon: CheckCircle,
+      },
+      needs_reapproval: {
+        className: "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-500",
+        label: "Needs Re-approval",
+        icon: RefreshCw,
       },
       rejected: {
         className: "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-500",
         label: "Rejected",
+        icon: XCircle,
       },
       sold: {
         className: "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-500",
         label: "Sold",
+        icon: CheckCircle,
       },
       rented: {
         className: "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-500",
         label: "Rented",
+        icon: CheckCircle,
       },
     };
-    return variants[status] || variants.active;
+
+    if (status === "sold" || status === "rented") {
+      return variants[status];
+    }
+    
+    return variants[workflowStatus] || variants.draft;
   };
 
   const filterListings = () => {
     let filtered = listings;
     if (selectedTab !== "all") {
-      if (selectedTab === "sold") {
+      if (selectedTab === "pending") {
+        filtered = filtered.filter((l) => 
+          l.workflowStatus === "submitted" || l.workflowStatus === "under_review" || l.workflowStatus === "needs_reapproval"
+        );
+      } else if (selectedTab === "live") {
+        filtered = filtered.filter((l) => l.workflowStatus === "live" || l.workflowStatus === "approved");
+      } else if (selectedTab === "draft") {
+        filtered = filtered.filter((l) => l.workflowStatus === "draft" || !l.workflowStatus);
+      } else if (selectedTab === "rejected") {
+        filtered = filtered.filter((l) => l.workflowStatus === "rejected");
+      } else if (selectedTab === "sold") {
         filtered = filtered.filter((l) => l.status === "sold" || l.status === "rented");
-      } else {
-        filtered = filtered.filter((l) => l.status === selectedTab);
       }
     }
     if (searchQuery) {
@@ -137,6 +198,10 @@ export default function ManageListingsPage() {
     return `₹${(price / 100000).toFixed(2)} L`;
   };
 
+  const handleSubmitForReview = (id: string) => {
+    submitForReviewMutation.mutate(id);
+  };
+
   const handleMarkSold = (id: string) => {
     updatePropertyMutation.mutate({ id, data: { status: "sold" } });
   };
@@ -150,6 +215,14 @@ export default function ManageListingsPage() {
       deletePropertyMutation.mutate(id);
     }
   };
+
+  const pendingCount = listings.filter((l) => 
+    l.workflowStatus === "submitted" || l.workflowStatus === "under_review" || l.workflowStatus === "needs_reapproval"
+  ).length;
+  const liveCount = listings.filter((l) => l.workflowStatus === "live" || l.workflowStatus === "approved").length;
+  const draftCount = listings.filter((l) => l.workflowStatus === "draft" || !l.workflowStatus).length;
+  const rejectedCount = listings.filter((l) => l.workflowStatus === "rejected").length;
+  const soldCount = listings.filter((l) => l.status === "sold" || l.status === "rented").length;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -174,6 +247,14 @@ export default function ManageListingsPage() {
             </Link>
           </div>
 
+          <Alert className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Property Approval Required</AlertTitle>
+            <AlertDescription>
+              All properties must be approved by admin before they go live. After making changes to an approved property, you'll need to submit it for re-approval.
+            </AlertDescription>
+          </Alert>
+
           <div className="mb-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -188,18 +269,28 @@ export default function ManageListingsPage() {
           </div>
 
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-            <TabsList className="mb-6">
+            <TabsList className="mb-6 flex flex-wrap gap-1">
               <TabsTrigger value="all" data-testid="tab-all">
                 All ({listings.length})
               </TabsTrigger>
-              <TabsTrigger value="active" data-testid="tab-active">
-                Active ({listings.filter((l) => l.status === "active").length})
+              <TabsTrigger value="live" data-testid="tab-live">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Live ({liveCount})
               </TabsTrigger>
               <TabsTrigger value="pending" data-testid="tab-pending">
-                Pending ({listings.filter((l) => l.status === "pending").length})
+                <Clock className="h-3 w-3 mr-1" />
+                Pending ({pendingCount})
+              </TabsTrigger>
+              <TabsTrigger value="draft" data-testid="tab-draft">
+                <Edit className="h-3 w-3 mr-1" />
+                Draft ({draftCount})
+              </TabsTrigger>
+              <TabsTrigger value="rejected" data-testid="tab-rejected">
+                <XCircle className="h-3 w-3 mr-1" />
+                Rejected ({rejectedCount})
               </TabsTrigger>
               <TabsTrigger value="sold" data-testid="tab-sold">
-                Sold ({listings.filter((l) => l.status === "sold" || l.status === "rented").length})
+                Sold ({soldCount})
               </TabsTrigger>
             </TabsList>
 
@@ -223,9 +314,15 @@ export default function ManageListingsPage() {
               ) : filteredListings.length > 0 ? (
                 <div className="space-y-4">
                   {filteredListings.map((listing) => {
-                    const statusInfo = getStatusBadge(listing.status);
+                    const statusInfo = getWorkflowStatusBadge(listing);
+                    const StatusIcon = statusInfo.icon;
+                    const canSubmitForReview = listing.workflowStatus === "draft" || 
+                      listing.workflowStatus === "rejected" || 
+                      !listing.workflowStatus;
+                    const isLive = listing.workflowStatus === "live" || listing.workflowStatus === "approved";
+
                     return (
-                      <Card key={listing.id} className="p-6">
+                      <Card key={listing.id} className="p-6" data-testid={`card-listing-${listing.id}`}>
                         <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                           <div className="flex-1 space-y-4">
                             <div>
@@ -234,6 +331,7 @@ export default function ManageListingsPage() {
                                   {listing.title}
                                 </h3>
                                 <Badge className={statusInfo.className}>
+                                  <StatusIcon className="h-3 w-3 mr-1" />
                                   {statusInfo.label}
                                 </Badge>
                               </div>
@@ -247,6 +345,14 @@ export default function ManageListingsPage() {
                                 </span>
                               </div>
                             </div>
+
+                            {listing.workflowStatus === "rejected" && listing.rejectionReason && (
+                              <div className="p-3 bg-destructive/5 border border-destructive/20 rounded-lg">
+                                <p className="text-sm text-destructive">
+                                  <strong>Rejection Reason:</strong> {listing.rejectionReason}
+                                </p>
+                              </div>
+                            )}
 
                             <div className="flex flex-wrap items-center gap-6 text-sm">
                               <div className="flex items-center gap-2">
@@ -267,15 +373,35 @@ export default function ManageListingsPage() {
                               <span>Created: {format(new Date(listing.createdAt), 'MMM d, yyyy')}</span>
                               <span>•</span>
                               <span>Updated: {format(new Date(listing.updatedAt), 'MMM d, yyyy')}</span>
+                              {listing.approvedAt && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-green-600 dark:text-green-400">
+                                    Approved: {format(new Date(listing.approvedAt), 'MMM d, yyyy')}
+                                  </span>
+                                </>
+                              )}
                             </div>
                           </div>
 
                           <div className="flex lg:flex-col gap-2">
-                            <Link href={`/properties/${listing.id}`}>
+                            {canSubmitForReview && (
+                              <Button
+                                size="sm"
+                                className="flex-1 lg:flex-none"
+                                data-testid={`button-submit-${listing.id}`}
+                                onClick={() => handleSubmitForReview(listing.id)}
+                                disabled={submitForReviewMutation.isPending}
+                              >
+                                <Send className="h-4 w-4 lg:mr-2" />
+                                <span className="hidden lg:inline">Submit for Review</span>
+                              </Button>
+                            )}
+                            <Link href={`/property/${listing.id}`}>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 lg:flex-none"
+                                className="flex-1 lg:flex-none w-full"
                                 data-testid={`button-view-${listing.id}`}
                               >
                                 <Eye className="h-4 w-4 lg:mr-2" />
@@ -286,7 +412,7 @@ export default function ManageListingsPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 lg:flex-none"
+                                className="flex-1 lg:flex-none w-full"
                                 data-testid={`button-edit-${listing.id}`}
                               >
                                 <Edit className="h-4 w-4 lg:mr-2" />
@@ -305,18 +431,19 @@ export default function ManageListingsPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {listing.status === "active" && (
+                                {isLive && (
                                   <DropdownMenuItem onClick={() => handleMarkSold(listing.id)}>
                                     <Pause className="h-4 w-4 mr-2" />
                                     Mark as Sold
                                   </DropdownMenuItem>
                                 )}
-                                {(listing.status === "sold" || listing.status === "rented" || listing.status === "expired") && (
+                                {(listing.status === "sold" || listing.status === "rented") && (
                                   <DropdownMenuItem onClick={() => handleReactivate(listing.id)}>
                                     <Play className="h-4 w-4 mr-2" />
                                     Reactivate Listing
                                   </DropdownMenuItem>
                                 )}
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem 
                                   className="text-destructive"
                                   onClick={() => handleDelete(listing.id)}
