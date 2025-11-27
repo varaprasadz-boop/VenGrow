@@ -511,6 +511,209 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================
+  // PROPERTY APPROVAL WORKFLOW ROUTES
+  // ============================================
+  
+  // Submit property for approval
+  app.post("/api/properties/:id/submit-for-approval", async (req: any, res: Response) => {
+    try {
+      const propertyId = req.params.id;
+      
+      // Get current user ID
+      let userId = null;
+      if ((req.session as any)?.localUser?.id) {
+        userId = (req.session as any).localUser.id;
+      } else if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+      
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+      
+      // Get the property
+      const property = await storage.getProperty(propertyId);
+      if (!property) {
+        return res.status(404).json({ success: false, message: "Property not found" });
+      }
+      
+      // Check if user owns this property (through seller profile)
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile || sellerProfile.id !== property.sellerId) {
+        return res.status(403).json({ success: false, message: "You can only submit your own properties" });
+      }
+      
+      // Update property workflow status to submitted
+      await storage.updateProperty(propertyId, {
+        workflowStatus: "submitted",
+      });
+      
+      // Create approval request
+      const approvalRequest = await storage.createPropertyApprovalRequest({
+        propertyId,
+        sellerId: sellerProfile.id,
+        submittedBy: userId,
+        requestType: property.workflowStatus === "needs_reapproval" ? "edit" : "new",
+        status: "pending",
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "Property submitted for approval",
+        approvalRequest 
+      });
+    } catch (error) {
+      console.error("Error submitting property for approval:", error);
+      res.status(500).json({ success: false, message: "Failed to submit property for approval" });
+    }
+  });
+  
+  // Admin: Get pending property approvals
+  app.get("/api/admin/property-approvals", async (req: any, res: Response) => {
+    try {
+      // Check admin session
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser?.isSuperAdmin) {
+        return res.status(403).json({ success: false, message: "Admin access required" });
+      }
+      
+      const { status, requestType, limit, offset } = req.query;
+      
+      const approvals = await storage.getPropertyApprovalRequests({
+        status: status as string,
+        requestType: requestType as string,
+        limit: limit ? parseInt(limit as string) : 50,
+        offset: offset ? parseInt(offset as string) : 0,
+      });
+      
+      // Enhance with property and seller details
+      const enhancedApprovals = await Promise.all(
+        approvals.map(async (approval) => {
+          const property = await storage.getProperty(approval.propertyId);
+          const sellerProfile = await storage.getSellerProfile(approval.sellerId);
+          const submitter = await storage.getUser(approval.submittedBy);
+          return {
+            ...approval,
+            property,
+            sellerProfile,
+            submitter: submitter ? { 
+              id: submitter.id, 
+              firstName: submitter.firstName, 
+              lastName: submitter.lastName, 
+              email: submitter.email 
+            } : null,
+          };
+        })
+      );
+      
+      res.json({ success: true, approvals: enhancedApprovals });
+    } catch (error) {
+      console.error("Error getting property approvals:", error);
+      res.status(500).json({ success: false, message: "Failed to get property approvals" });
+    }
+  });
+  
+  // Admin: Approve property
+  app.post("/api/admin/property-approvals/:id/approve", async (req: any, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser?.isSuperAdmin) {
+        return res.status(403).json({ success: false, message: "Admin access required" });
+      }
+      
+      const approvalId = req.params.id;
+      const { notes } = req.body;
+      
+      // Get the approval request
+      const approval = await storage.getPropertyApprovalRequest(approvalId);
+      if (!approval) {
+        return res.status(404).json({ success: false, message: "Approval request not found" });
+      }
+      
+      // Update approval request
+      await storage.updatePropertyApprovalRequest(approvalId, {
+        status: "approved",
+        approverId: "superadmin",
+        decisionReason: notes,
+        decidedAt: new Date(),
+      });
+      
+      // Update property to live status
+      await storage.updateProperty(approval.propertyId, {
+        workflowStatus: "live",
+        status: "active",
+        approvedAt: new Date(),
+        approvedBy: "superadmin",
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "Property approved and now live" 
+      });
+    } catch (error) {
+      console.error("Error approving property:", error);
+      res.status(500).json({ success: false, message: "Failed to approve property" });
+    }
+  });
+  
+  // Admin: Reject property
+  app.post("/api/admin/property-approvals/:id/reject", async (req: any, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser?.isSuperAdmin) {
+        return res.status(403).json({ success: false, message: "Admin access required" });
+      }
+      
+      const approvalId = req.params.id;
+      const { reason } = req.body;
+      
+      if (!reason) {
+        return res.status(400).json({ success: false, message: "Rejection reason is required" });
+      }
+      
+      // Get the approval request
+      const approval = await storage.getPropertyApprovalRequest(approvalId);
+      if (!approval) {
+        return res.status(404).json({ success: false, message: "Approval request not found" });
+      }
+      
+      // Update approval request
+      await storage.updatePropertyApprovalRequest(approvalId, {
+        status: "rejected",
+        approverId: "superadmin",
+        decisionReason: reason,
+        decidedAt: new Date(),
+      });
+      
+      // Update property status
+      await storage.updateProperty(approval.propertyId, {
+        workflowStatus: "rejected",
+        status: "draft",
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "Property rejected" 
+      });
+    } catch (error) {
+      console.error("Error rejecting property:", error);
+      res.status(500).json({ success: false, message: "Failed to reject property" });
+    }
+  });
+  
+  // Get property approval history
+  app.get("/api/properties/:id/approval-history", async (req: any, res: Response) => {
+    try {
+      const propertyId = req.params.id;
+      const history = await storage.getPropertyApprovalHistory(propertyId);
+      res.json({ success: true, history });
+    } catch (error) {
+      console.error("Error getting approval history:", error);
+      res.status(500).json({ success: false, message: "Failed to get approval history" });
+    }
+  });
+
+  // ============================================
   // FAVORITES ROUTES
   // ============================================
   

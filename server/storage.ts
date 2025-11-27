@@ -16,7 +16,8 @@ import {
   users, sellerProfiles, packages, properties, propertyImages, propertyDocuments,
   inquiries, favorites, savedSearches, propertyViews,
   chatThreads, chatMessages, notifications, payments, reviews,
-  adminApprovals, auditLogs, systemSettings, sellerSubscriptions, propertyAlerts
+  adminApprovals, auditLogs, systemSettings, sellerSubscriptions, propertyAlerts,
+  propertyApprovalRequests
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, like, or, sql, gte, lte, inArray } from "drizzle-orm";
@@ -613,6 +614,84 @@ export class DatabaseStorage implements IStorage {
     }
     
     return stats;
+  }
+
+  // Property Approval Request Methods
+  async createPropertyApprovalRequest(data: {
+    propertyId: string;
+    sellerId: string;
+    submittedBy: string;
+    requestType: string;
+    status: string;
+    changesSnapshot?: Record<string, unknown>;
+  }): Promise<any> {
+    const [created] = await db.insert(propertyApprovalRequests).values({
+      propertyId: data.propertyId,
+      sellerId: data.sellerId,
+      submittedBy: data.submittedBy,
+      requestType: data.requestType,
+      status: data.status as any,
+      changesSnapshot: data.changesSnapshot,
+    }).returning();
+    return created;
+  }
+
+  async getPropertyApprovalRequest(id: string): Promise<any | undefined> {
+    const [request] = await db.select().from(propertyApprovalRequests).where(eq(propertyApprovalRequests.id, id));
+    return request;
+  }
+
+  async getPropertyApprovalRequests(filters: {
+    status?: string;
+    requestType?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<any[]> {
+    const conditions: any[] = [];
+    
+    if (filters.status) {
+      conditions.push(eq(propertyApprovalRequests.status, filters.status as any));
+    }
+    if (filters.requestType) {
+      conditions.push(eq(propertyApprovalRequests.requestType, filters.requestType));
+    }
+    
+    let query = db.select().from(propertyApprovalRequests);
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    return query
+      .orderBy(desc(propertyApprovalRequests.submittedAt))
+      .limit(filters.limit || 50)
+      .offset(filters.offset || 0);
+  }
+
+  async updatePropertyApprovalRequest(id: string, data: {
+    status?: string;
+    approverId?: string;
+    decisionReason?: string;
+    decidedAt?: Date;
+  }): Promise<any | undefined> {
+    const updateData: any = {};
+    if (data.status) updateData.status = data.status;
+    if (data.approverId) updateData.approverId = data.approverId;
+    if (data.decisionReason) updateData.decisionReason = data.decisionReason;
+    if (data.decidedAt) updateData.decidedAt = data.decidedAt;
+    
+    const [updated] = await db.update(propertyApprovalRequests)
+      .set(updateData)
+      .where(eq(propertyApprovalRequests.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getPropertyApprovalHistory(propertyId: string): Promise<any[]> {
+    return db.select()
+      .from(propertyApprovalRequests)
+      .where(eq(propertyApprovalRequests.propertyId, propertyId))
+      .orderBy(desc(propertyApprovalRequests.submittedAt));
   }
 }
 
