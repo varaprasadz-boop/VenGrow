@@ -13,6 +13,7 @@ export const publicRoutes: RouteConfig[] = [
   // Auth Pages
   { path: "/login", component: lazy(() => import("@/pages/LoginPage")), title: "Login" },
   { path: "/register", component: lazy(() => import("@/pages/RegisterPage")), title: "Register" },
+  { path: "/admin/login", component: lazy(() => import("@/pages/AdminLoginPage")), title: "Admin Login" },
   { path: "/forgot-password", component: lazy(() => import("@/pages/ForgotPasswordPage")), title: "Forgot Password" },
   { path: "/reset-password", component: lazy(() => import("@/pages/ResetPasswordPage")), title: "Reset Password" },
   { path: "/verify-email", component: lazy(() => import("@/pages/EmailVerificationPage")), title: "Verify Email" },

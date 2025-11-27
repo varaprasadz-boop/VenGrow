@@ -21,11 +21,24 @@ import {
 import { db } from "./db";
 import { eq, desc, and, like, or, sql, gte, lte, inArray } from "drizzle-orm";
 
+export interface CreateUserWithPassword {
+  email: string;
+  passwordHash: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  intent?: string;
+  role?: string;
+  authProvider?: string;
+}
+
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  createUserWithPassword(data: CreateUserWithPassword): Promise<User>;
   updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
+  updateUserLastLogin(id: string): Promise<void>;
   upsertUser(user: UpsertUser): Promise<User>;
   getAllUsers(filters?: { role?: string; isActive?: boolean }): Promise<User[]>;
   
@@ -172,6 +185,24 @@ export class DatabaseStorage implements IStorage {
       query = query.where(eq(users.isActive, filters.isActive)) as any;
     }
     return query.orderBy(desc(users.createdAt));
+  }
+
+  async createUserWithPassword(data: CreateUserWithPassword): Promise<User> {
+    const [user] = await db.insert(users).values({
+      email: data.email,
+      passwordHash: data.passwordHash,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone,
+      intent: data.intent as any,
+      role: (data.role || "buyer") as any,
+      authProvider: (data.authProvider || "local") as any,
+    }).returning();
+    return user;
+  }
+
+  async updateUserLastLogin(id: string): Promise<void> {
+    await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, id));
   }
 
   async getSellerProfile(id: string): Promise<SellerProfile | undefined> {

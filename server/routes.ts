@@ -6,6 +6,7 @@ import { seedDatabase } from "./seed";
 import { insertPropertySchema, insertInquirySchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { verifySuperadminCredentials, hashPassword, verifyPassword, validateEmail, validatePhone } from "./auth-utils";
 
 const connectedClients = new Map<string, Set<WebSocket>>();
 
@@ -32,15 +33,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current authenticated user (alias for frontend compatibility)
   app.get("/api/auth/me", async (req: any, res: Response) => {
     try {
-      if (!req.isAuthenticated || !req.isAuthenticated() || !req.user?.claims?.sub) {
-        return res.status(401).json({ message: "Not authenticated" });
+      // Check for local user session first
+      const localUser = (req.session as any)?.localUser;
+      if (localUser?.id) {
+        const user = await storage.getUser(localUser.id);
+        if (user) {
+          return res.json(user);
+        }
       }
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
+      
+      // Check for admin session
+      const adminUser = (req.session as any)?.adminUser;
+      if (adminUser?.isSuperAdmin) {
+        return res.json({
+          id: "superadmin",
+          email: adminUser.email,
+          firstName: "Super",
+          lastName: "Admin",
+          role: "admin",
+          isSuperAdmin: true,
+        });
       }
-      res.json(user);
+      
+      // Check for Google OAuth session
+      if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+        const userId = req.user.claims.sub;
+        const user = await storage.getUser(userId);
+        if (user) {
+          return res.json(user);
+        }
+      }
+      
+      return res.status(401).json({ message: "Not authenticated" });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -56,6 +80,213 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // ============================================
+  // SUPER ADMIN AUTHENTICATION
+  // ============================================
+
+  // Super Admin Login
+  app.post("/api/admin/login", async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+      
+      const isValid = await verifySuperadminCredentials(email, password);
+      
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      // Set admin session
+      (req.session as any).adminUser = {
+        email,
+        role: "admin",
+        isSuperAdmin: true,
+        loginAt: new Date().toISOString(),
+      };
+      
+      res.json({
+        success: true,
+        user: {
+          email,
+          role: "admin",
+          firstName: "Super",
+          lastName: "Admin",
+          isSuperAdmin: true,
+        },
+      });
+    } catch (error) {
+      console.error("Admin login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Super Admin Logout
+  app.post("/api/admin/logout", async (req: Request, res: Response) => {
+    try {
+      (req.session as any).adminUser = null;
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Logout failed" });
+    }
+  });
+
+  // Get Super Admin Session
+  app.get("/api/admin/me", async (req: Request, res: Response) => {
+    const adminUser = (req.session as any)?.adminUser;
+    
+    if (!adminUser) {
+      return res.status(401).json({ message: "Not authenticated as admin" });
+    }
+    
+    res.json({
+      email: adminUser.email,
+      role: "admin",
+      firstName: "Super",
+      lastName: "Admin",
+      isSuperAdmin: true,
+    });
+  });
+
+  // Middleware to check if user is super admin
+  const isSuperAdmin = (req: Request, res: Response, next: Function) => {
+    const adminUser = (req.session as any)?.adminUser;
+    
+    if (!adminUser || !adminUser.isSuperAdmin) {
+      return res.status(403).json({ message: "Access denied. Super admin required." });
+    }
+    
+    next();
+  };
+
+  // ============================================
+  // USER REGISTRATION WITH EMAIL/PASSWORD
+  // ============================================
+
+  // Register new user with email/password
+  app.post("/api/auth/register", async (req: Request, res: Response) => {
+    try {
+      const { email, password, firstName, lastName, phone, intent } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+      
+      if (!validateEmail(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+      
+      if (phone && !validatePhone(phone)) {
+        return res.status(400).json({ message: "Invalid phone number. Must be 10 digits starting with 6-9" });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({ message: "User with this email already exists" });
+      }
+      
+      // Hash password
+      const passwordHash = await hashPassword(password);
+      
+      // Create user
+      const user = await storage.createUserWithPassword({
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        phone,
+        intent,
+        role: intent === "seller" ? "seller" : "buyer",
+        authProvider: "local",
+      });
+      
+      // Set session
+      (req.session as any).localUser = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        loginAt: new Date().toISOString(),
+      };
+      
+      res.status(201).json({
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          intent: user.intent,
+        },
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  // Login with email/password
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+      
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user || !user.passwordHash) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      const isValid = await verifyPassword(password, user.passwordHash);
+      
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      // Update last login
+      await storage.updateUserLastLogin(user.id);
+      
+      // Set session
+      (req.session as any).localUser = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        loginAt: new Date().toISOString(),
+      };
+      
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          profileImageUrl: user.profileImageUrl,
+        },
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Logout for email/password users
+  app.post("/api/auth/logout", async (req: Request, res: Response) => {
+    try {
+      (req.session as any).localUser = null;
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Logout failed" });
     }
   });
 
