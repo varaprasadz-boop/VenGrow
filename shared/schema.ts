@@ -22,6 +22,10 @@ export const inquiryStatusEnum = pgEnum("inquiry_status", ["pending", "replied",
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "completed", "failed", "refunded"]);
 export const verificationStatusEnum = pgEnum("verification_status", ["pending", "verified", "rejected"]);
 export const notificationTypeEnum = pgEnum("notification_type", ["inquiry", "message", "payment", "listing", "system", "alert"]);
+export const authProviderEnum = pgEnum("auth_provider", ["google", "local", "admin"]);
+export const userIntentEnum = pgEnum("user_intent", ["buyer", "seller"]);
+export const workflowStatusEnum = pgEnum("workflow_status", ["draft", "submitted", "under_review", "approved", "live", "needs_reapproval", "rejected"]);
+export const approvalStatusEnum = pgEnum("approval_status", ["pending", "approved", "rejected"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -30,6 +34,9 @@ export const users = pgTable("users", {
   lastName: text("last_name"),
   profileImageUrl: text("profile_image_url"),
   phone: text("phone"),
+  passwordHash: text("password_hash"),
+  authProvider: authProviderEnum("auth_provider").default("google"),
+  intent: userIntentEnum("intent"),
   role: userRoleEnum("role").notNull().default("buyer"),
   isActive: boolean("is_active").notNull().default(true),
   isEmailVerified: boolean("is_email_verified").notNull().default(false),
@@ -120,6 +127,7 @@ export const properties = pgTable("properties", {
   highlights: jsonb("highlights").$type<string[]>(),
   nearbyPlaces: jsonb("nearby_places").$type<{ type: string; name: string; distance: string }[]>(),
   status: listingStatusEnum("status").notNull().default("draft"),
+  workflowStatus: workflowStatusEnum("workflow_status").notNull().default("draft"),
   isVerified: boolean("is_verified").notNull().default(false),
   isFeatured: boolean("is_featured").notNull().default(false),
   viewCount: integer("view_count").notNull().default(0),
@@ -127,6 +135,9 @@ export const properties = pgTable("properties", {
   favoriteCount: integer("favorite_count").notNull().default(0),
   publishedAt: timestamp("published_at"),
   expiresAt: timestamp("expires_at"),
+  approvedAt: timestamp("approved_at"),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  pendingChanges: jsonb("pending_changes").$type<Record<string, unknown>>(),
   rejectionReason: text("rejection_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -299,6 +310,20 @@ export const propertyAlerts = pgTable("property_alerts", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const propertyApprovalRequests = pgTable("property_approval_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  propertyId: varchar("property_id").notNull().references(() => properties.id),
+  sellerId: varchar("seller_id").notNull().references(() => sellerProfiles.id),
+  submittedBy: varchar("submitted_by").notNull().references(() => users.id),
+  approverId: varchar("approver_id").references(() => users.id),
+  status: approvalStatusEnum("status").notNull().default("pending"),
+  requestType: text("request_type").notNull().default("new"),
+  decisionReason: text("decision_reason"),
+  changesSnapshot: jsonb("changes_snapshot").$type<Record<string, unknown>>(),
+  submittedAt: timestamp("submitted_at").notNull().defaultNow(),
+  decidedAt: timestamp("decided_at"),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -414,3 +439,4 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export type SystemSetting = typeof systemSettings.$inferSelect;
 export type SellerSubscription = typeof sellerSubscriptions.$inferSelect;
 export type PropertyAlert = typeof propertyAlerts.$inferSelect;
+export type PropertyApprovalRequest = typeof propertyApprovalRequests.$inferSelect;
