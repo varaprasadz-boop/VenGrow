@@ -38,31 +38,23 @@ export default function Footer() {
             <h3 className="font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/about">
-                  <a className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-about">
-                    About Us
-                  </a>
+                <Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-about">
+                  About Us
                 </Link>
               </li>
               <li>
-                <Link href="/how-it-works">
-                  <a className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-how-it-works">
-                    How It Works
-                  </a>
+                <Link href="/how-it-works" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-how-it-works">
+                  How It Works
                 </Link>
               </li>
               <li>
-                <Link href="/pricing">
-                  <a className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-pricing">
-                    Pricing
-                  </a>
+                <Link href="/pricing" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-pricing">
+                  Pricing
                 </Link>
               </li>
               <li>
-                <Link href="/faq">
-                  <a className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-faq">
-                    FAQ
-                  </a>
+                <Link href="/faq" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-faq">
+                  FAQ
                 </Link>
               </li>
             </ul>
@@ -73,31 +65,23 @@ export default function Footer() {
             <h3 className="font-semibold mb-4">For Sellers</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/seller/register">
-                  <a className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-seller-register">
-                    Become a Seller
-                  </a>
+                <Link href="/seller/type" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-seller-register">
+                  Become a Seller
                 </Link>
               </li>
               <li>
-                <Link href="/packages">
-                  <a className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-packages">
-                    View Packages
-                  </a>
+                <Link href="/packages" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-packages">
+                  View Packages
                 </Link>
               </li>
               <li>
-                <Link href="/seller/guide">
-                  <a className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-seller-guide">
-                    Seller Guide
-                  </a>
+                <Link href="/sell-faster-guide" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-seller-guide">
+                  Seller Guide
                 </Link>
               </li>
               <li>
-                <Link href="/contact">
-                  <a className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-contact-support">
-                    Contact Support
-                  </a>
+                <Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-contact-support">
+                  Contact Support
                 </Link>
               </li>
             </ul>
@@ -127,20 +111,14 @@ export default function Footer() {
         <div className="pt-8 border-t flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
           <p>© {currentYear} VenGrow. All rights reserved.</p>
           <div className="flex gap-6">
-            <Link href="/privacy">
-              <a className="hover:text-foreground transition-colors" data-testid="link-privacy">
-                Privacy Policy
-              </a>
+            <Link href="/privacy" className="hover:text-foreground transition-colors" data-testid="link-privacy">
+              Privacy Policy
             </Link>
-            <Link href="/terms">
-              <a className="hover:text-foreground transition-colors" data-testid="link-terms">
-                Terms of Service
-              </a>
+            <Link href="/terms" className="hover:text-foreground transition-colors" data-testid="link-terms">
+              Terms of Service
             </Link>
-            <Link href="/refund">
-              <a className="hover:text-foreground transition-colors" data-testid="link-refund">
-                Refund Policy
-              </a>
+            <Link href="/refund" className="hover:text-foreground transition-colors" data-testid="link-refund">
+              Refund Policy
             </Link>
           </div>
         </div>
