@@ -1,9 +1,10 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
+import { ObjectUploader } from "@/components/ObjectUploader";
 
 const LocationPicker = lazy(() => import("@/components/LocationPicker"));
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { UploadResult } from "@uppy/core";
 import {
   Select,
   SelectContent,
@@ -933,53 +935,88 @@ export default function CreatePropertyPage() {
               </p>
 
               <div className="space-y-6">
-                <div
-                  className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-12 text-center cursor-pointer hover-elevate active-elevate-2"
-                  data-testid="button-upload-photos"
-                >
+                <div className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/25 rounded-lg p-12 text-center">
                   <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
                     <Upload className="h-8 w-8 text-primary" />
                   </div>
-                  <h3 className="font-semibold mb-2">Click to upload photos</h3>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    or drag and drop
-                  </p>
-                  <p className="text-xs text-muted-foreground">
+                  <h3 className="font-semibold mb-2">Upload Property Photos</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
                     PNG, JPG up to 10MB each (max 20 photos)
                   </p>
+                  <ObjectUploader
+                    maxNumberOfFiles={20}
+                    maxFileSize={10485760}
+                    allowedFileTypes={["image/*"]}
+                    onGetUploadParameters={async () => {
+                      const response = await apiRequest("POST", "/api/objects/upload");
+                      const data = await response.json();
+                      return {
+                        method: "PUT" as const,
+                        url: data.uploadURL,
+                      };
+                    }}
+                    onComplete={(result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+                      if (result.successful && result.successful.length > 0) {
+                        const newPhotos = result.successful.map((file, index) => ({
+                          url: file.uploadURL || "",
+                          caption: "",
+                          isPrimary: formData.photos.length === 0 && index === 0,
+                        }));
+                        updateField("photos", [...formData.photos, ...newPhotos] as unknown as string[]);
+                        toast({
+                          title: "Photos uploaded",
+                          description: `Successfully uploaded ${result.successful.length} photo(s)`,
+                        });
+                      }
+                      if (result.failed && result.failed.length > 0) {
+                        toast({
+                          title: "Some uploads failed",
+                          description: `${result.failed.length} photo(s) failed to upload`,
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    buttonVariant="default"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Select Photos
+                  </ObjectUploader>
                 </div>
 
                 {formData.photos.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {formData.photos.map((photo, index) => (
-                      <div
-                        key={index}
-                        className="relative aspect-square rounded-lg border overflow-hidden group"
-                      >
-                        <img
-                          src={photo.url}
-                          alt={photo.caption || `Photo ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => {
-                            const updated = formData.photos.filter((_, i) => i !== index);
-                            updateField("photos", updated as unknown as string[]);
-                          }}
-                          data-testid={`button-remove-photo-${index}`}
+                  <div>
+                    <h3 className="font-semibold mb-3">Uploaded Photos ({formData.photos.length})</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {formData.photos.map((photo, index) => (
+                        <div
+                          key={index}
+                          className="relative aspect-square rounded-lg border overflow-hidden group"
                         >
-                          <X className="h-4 w-4" />
-                        </Button>
-                        {index === 0 && (
-                          <div className="absolute bottom-2 left-2">
-                            <Badge>Cover Photo</Badge>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                          <img
+                            src={photo.url}
+                            alt={photo.caption || `Photo ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => {
+                              const updated = formData.photos.filter((_, i) => i !== index);
+                              updateField("photos", updated as unknown as string[]);
+                            }}
+                            data-testid={`button-remove-photo-${index}`}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          {index === 0 && (
+                            <div className="absolute bottom-2 left-2">
+                              <Badge>Cover Photo</Badge>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -991,10 +1028,6 @@ export default function CreatePropertyPage() {
                     Good lighting and multiple angles help attract more buyers.
                   </AlertDescription>
                 </Alert>
-
-                <p className="text-sm text-muted-foreground text-center">
-                  Photo upload will be available soon. You can add photos after creating the listing.
-                </p>
               </div>
             </Card>
           )}

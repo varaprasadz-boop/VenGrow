@@ -1680,6 +1680,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================
+  // OBJECT STORAGE / FILE UPLOAD ROUTES
+  // ============================================
+
+  // Get presigned URL for file upload
+  app.post("/api/objects/upload", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  // Serve private objects (property photos)
+  app.get("/objects/:objectPath(*)", async (req: any, res: Response) => {
+    try {
+      const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error: any) {
+      console.error("Error serving object:", error);
+      if (error?.name === "ObjectNotFoundError") {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
+  // Serve public objects
+  app.get("/public-objects/:filePath(*)", async (req: any, res: Response) => {
+    try {
+      const { ObjectStorageService } = await import("./objectStorage");
+      const filePath = req.params.filePath;
+      const objectStorageService = new ObjectStorageService();
+      const file = await objectStorageService.searchPublicObject(filePath);
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      objectStorageService.downloadObject(file, res);
+    } catch (error) {
+      console.error("Error searching for public object:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update property photos after upload (set ACL policy)
+  app.post("/api/properties/:id/photos", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { ObjectStorageService } = await import("./objectStorage");
+      const userId = req.user.claims.sub;
+      const propertyId = req.params.id;
+      const { photoURLs } = req.body;
+
+      if (!Array.isArray(photoURLs)) {
+        return res.status(400).json({ error: "photoURLs must be an array" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const normalizedPaths: string[] = [];
+
+      for (const url of photoURLs) {
+        try {
+          const normalizedPath = await objectStorageService.trySetObjectEntityAclPolicy(url, {
+            owner: userId,
+            visibility: "public",
+          });
+          normalizedPaths.push(normalizedPath);
+        } catch (e) {
+          console.error("Error setting ACL for photo:", e);
+          normalizedPaths.push(url);
+        }
+      }
+
+      // Update property with photo paths
+      const property = await storage.getProperty(propertyId);
+      if (!property) {
+        return res.status(404).json({ error: "Property not found" });
+      }
+
+      // Merge existing images with new ones
+      const existingImages = await storage.getPropertyImages(propertyId);
+      const newImages = normalizedPaths.map((url, index) => ({
+        propertyId,
+        url,
+        isPrimary: existingImages.length === 0 && index === 0,
+        displayOrder: existingImages.length + index,
+      }));
+
+      // Add images to storage
+      for (const image of newImages) {
+        await storage.addPropertyImage(image.propertyId, image.url, image.isPrimary);
+      }
+
+      res.json({ success: true, photos: normalizedPaths });
+    } catch (error) {
+      console.error("Error updating property photos:", error);
+      res.status(500).json({ error: "Failed to update property photos" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // ============================================

@@ -186,6 +186,32 @@ Preferred communication style: Simple, everyday language.
 - Accordion animations for collapsible content
 - Toast notifications for user feedback
 
+### Interactive Maps
+
+**Map View Feature:**
+- PropertyMapView component using Leaflet with OpenStreetMap tiles
+- Three-way view toggle on ListingsPage: grid, list, and map views
+- Interactive property markers with popups showing property details
+- Custom marker styling with featured property highlighting
+- Auto-fit bounds to display all property markers
+- Map shows property count indicator at bottom
+
+**Map Integration:**
+- react-leaflet for React integration with Leaflet
+- Properties with lat/lng coordinates are displayed on the map
+- Map popup includes property image, price, details, and link to full listing
+- Mobile-responsive map container with minimum height
+
+### Seller Dashboard Components
+
+**ApprovalStatusTracker:**
+- Visual progress tracker for property workflow status
+- Shows pending properties with workflow step progress bar
+- Displays rejected properties with rejection reasons
+- Action buttons for continuing edits or resubmitting rejected properties
+- Dark mode compatible color tokens for status badges
+- Integrated into SellerDashboardPage
+
 ### Routing & Navigation
 
 **Client-Side Routing:**

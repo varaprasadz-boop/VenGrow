@@ -3,9 +3,10 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import FilterSidebar from "@/components/FilterSidebar";
 import PropertyCard from "@/components/PropertyCard";
+import PropertyMapView from "@/components/PropertyMapView";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Filter, Grid3x3, List } from "lucide-react";
+import { Filter, Grid3x3, List, Map } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -21,7 +22,7 @@ import plotImage from '@assets/generated_images/residential_plot_ready_construct
 import kitchenImage from '@assets/generated_images/modern_kitchen_interior_apartment.png';
 
 export default function ListingsPage() {
-  const [viewType, setViewType] = useState<"grid" | "list">("grid");
+  const [viewType, setViewType] = useState<"grid" | "list" | "map">("grid");
   const [sortBy, setSortBy] = useState("newest");
 
   // TODO: Remove mock data
@@ -40,6 +41,8 @@ export default function ListingsPage() {
       isVerified: true,
       sellerType: "Builder" as const,
       transactionType: "Sale" as const,
+      lat: 19.0596,
+      lng: 72.8295,
     },
     {
       id: "2",
@@ -54,6 +57,8 @@ export default function ListingsPage() {
       isVerified: true,
       sellerType: "Individual" as const,
       transactionType: "Rent" as const,
+      lat: 12.9352,
+      lng: 77.6245,
     },
     {
       id: "3",
@@ -68,6 +73,8 @@ export default function ListingsPage() {
       isVerified: true,
       sellerType: "Broker" as const,
       transactionType: "Sale" as const,
+      lat: 12.9698,
+      lng: 77.7500,
     },
     {
       id: "4",
@@ -80,6 +87,8 @@ export default function ListingsPage() {
       isVerified: true,
       sellerType: "Builder" as const,
       transactionType: "Sale" as const,
+      lat: 28.4947,
+      lng: 77.0889,
     },
     {
       id: "5",
@@ -92,6 +101,8 @@ export default function ListingsPage() {
       isVerified: false,
       sellerType: "Individual" as const,
       transactionType: "Sale" as const,
+      lat: 12.8456,
+      lng: 77.6603,
     },
     {
       id: "6",
@@ -107,6 +118,8 @@ export default function ListingsPage() {
       isVerified: true,
       sellerType: "Broker" as const,
       transactionType: "Rent" as const,
+      lat: 19.1176,
+      lng: 72.9060,
     },
   ];
 
@@ -156,6 +169,15 @@ export default function ListingsPage() {
                     >
                       <List className="h-4 w-4" />
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-8 w-8 ${viewType === 'map' ? 'bg-accent' : ''}`}
+                      onClick={() => setViewType('map')}
+                      data-testid="button-view-map"
+                    >
+                      <Map className="h-4 w-4" />
+                    </Button>
                   </div>
 
                   {/* Sort */}
@@ -188,27 +210,36 @@ export default function ListingsPage() {
                 </div>
               </div>
 
-              {/* Properties Grid */}
-              <div className={
-                viewType === 'grid' 
-                  ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-                  : "space-y-4"
-              }>
-                {properties.map((property) => (
-                  <PropertyCard key={property.id} {...property} />
-                ))}
-              </div>
+              {/* Properties Display */}
+              {viewType === 'map' ? (
+                <PropertyMapView 
+                  properties={properties} 
+                  className="h-[600px]" 
+                />
+              ) : (
+                <>
+                  <div className={
+                    viewType === 'grid' 
+                      ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                      : "space-y-4"
+                  }>
+                    {properties.map((property) => (
+                      <PropertyCard key={property.id} {...property} />
+                    ))}
+                  </div>
 
-              {/* Pagination */}
-              <div className="flex justify-center pt-8">
-                <div className="flex gap-2">
-                  <Button variant="outline" disabled>Previous</Button>
-                  <Button variant="default">1</Button>
-                  <Button variant="outline">2</Button>
-                  <Button variant="outline">3</Button>
-                  <Button variant="outline">Next</Button>
-                </div>
-              </div>
+                  {/* Pagination */}
+                  <div className="flex justify-center pt-8">
+                    <div className="flex gap-2">
+                      <Button variant="outline" disabled>Previous</Button>
+                      <Button variant="default">1</Button>
+                      <Button variant="outline">2</Button>
+                      <Button variant="outline">3</Button>
+                      <Button variant="outline">Next</Button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -15,13 +15,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { NotificationBell } from "@/components/NotificationBell";
 
 interface HeaderProps {
   isLoggedIn?: boolean;
   userType?: "buyer" | "seller" | "admin";
+  userId?: string;
 }
 
-export default function Header({ isLoggedIn = false, userType = "buyer" }: HeaderProps) {
+export default function Header({ isLoggedIn = false, userType = "buyer", userId }: HeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false);
 
   return (
@@ -72,6 +74,7 @@ export default function Header({ isLoggedIn = false, userType = "buyer" }: Heade
                     <Button data-testid="button-create-listing">Create Listing</Button>
                   </Link>
                 )}
+                {userId && <NotificationBell userId={userId} />}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" data-testid="button-user-menu">

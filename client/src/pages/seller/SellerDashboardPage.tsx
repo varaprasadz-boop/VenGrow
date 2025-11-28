@@ -16,6 +16,7 @@ import {
   Calendar,
 } from "lucide-react";
 import PropertyCard from "@/components/PropertyCard";
+import { ApprovalStatusTracker } from "@/components/ApprovalStatusTracker";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow, differenceInDays } from "date-fns";
 import type { Property, Inquiry, SellerProfile, SellerSubscription, Package } from "@shared/schema";
@@ -232,6 +233,11 @@ export default function SellerDashboardPage() {
               </div>
             </Card>
           )}
+
+          <ApprovalStatusTracker 
+            properties={properties} 
+            isLoading={propertiesLoading} 
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
