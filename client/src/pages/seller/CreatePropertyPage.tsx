@@ -169,25 +169,41 @@ export default function CreatePropertyPage() {
     verifiedInfo: false,
   });
 
-  const { data: canCreateData, isLoading: checkingLimit } = useQuery({
+  const { data: canCreateData, isLoading: checkingLimit } = useQuery<{
+    canCreate: boolean;
+    reason?: string;
+  }>({
     queryKey: ["/api/subscriptions/can-create-listing"],
   });
 
-  const { data: subscriptionData, isLoading: loadingSubscription } = useQuery({
+  const { data: subscriptionData, isLoading: loadingSubscription } = useQuery<{
+    subscription?: { id: string; listingsUsed: number };
+    package?: { name: string; listingLimit: number };
+  }>({
     queryKey: ["/api/subscriptions/current"],
   });
 
-  const { data: authData } = useQuery({
+  const { data: authData } = useQuery<{
+    user?: {
+      id: string;
+      firstName?: string;
+      lastName?: string;
+      username?: string;
+      email?: string;
+      phone?: string;
+    };
+  }>({
     queryKey: ["/api/auth/me"],
   });
 
   useEffect(() => {
-    if (authData?.user) {
+    const user = authData?.user;
+    if (user) {
       setFormData(prev => ({
         ...prev,
-        contactName: `${authData.user.firstName || ""} ${authData.user.lastName || ""}`.trim() || authData.user.username || "",
-        contactPhone: authData.user.phone || "",
-        contactEmail: authData.user.email || "",
+        contactName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username || "",
+        contactPhone: user.phone || "",
+        contactEmail: user.email || "",
       }));
     }
   }, [authData]);
