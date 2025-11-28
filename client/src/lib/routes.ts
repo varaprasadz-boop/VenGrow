@@ -246,6 +246,9 @@ export const sellerRoutes: RouteConfig[] = [
   
   // Inquiries & Leads
   { path: "/seller/inquiries", component: lazy(() => import("@/pages/seller/InquiriesPage")), requireAuth: true, roles: ["seller", "admin"], title: "Inquiries" },
+  { path: "/seller/inquiries/form", component: lazy(() => import("@/pages/seller/FormInquiriesPage")), requireAuth: true, roles: ["seller", "admin"], title: "Form Submissions" },
+  { path: "/seller/inquiries/chat", component: lazy(() => import("@/pages/seller/ChatInquiriesPage")), requireAuth: true, roles: ["seller", "admin"], title: "Chat Inquiries" },
+  { path: "/seller/inquiries/call", component: lazy(() => import("@/pages/seller/CallInquiriesPage")), requireAuth: true, roles: ["seller", "admin"], title: "Call Requests" },
   { path: "/seller/leads", component: lazy(() => import("@/pages/seller/LeadManagementPage")), requireAuth: true, roles: ["seller", "admin"], title: "Lead Management" },
   { path: "/seller/lead-pipeline", component: lazy(() => import("@/pages/seller/LeadPipelinePage")), requireAuth: true, roles: ["seller", "admin"], title: "Lead Pipeline" },
   { path: "/seller/lead-score", component: lazy(() => import("@/pages/seller/LeadScorePage")), requireAuth: true, roles: ["seller", "admin"], title: "Lead Scoring" },
@@ -265,6 +268,8 @@ export const sellerRoutes: RouteConfig[] = [
   { path: "/seller/packages", component: lazy(() => import("@/pages/seller/PackageSelectionPage")), requireAuth: true, roles: ["seller", "admin"], title: "Select Package" },
   { path: "/seller/subscription", component: lazy(() => import("@/pages/seller/SubscriptionPage")), requireAuth: true, roles: ["seller", "admin"], title: "Subscription" },
   { path: "/seller/subscription-history", component: lazy(() => import("@/pages/seller/SubscriptionHistoryPage")), requireAuth: true, roles: ["seller", "admin"], title: "Subscription History" },
+  { path: "/seller/invoices", component: lazy(() => import("@/pages/seller/InvoicesPage")), requireAuth: true, roles: ["seller", "admin"], title: "My Invoices" },
+  { path: "/seller/payments", component: lazy(() => import("@/pages/seller/PaymentsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Payment History" },
   { path: "/seller/payment", component: lazy(() => import("@/pages/seller/PaymentPage")), requireAuth: true, roles: ["seller", "admin"], title: "Payment" },
   { path: "/seller/payment-methods", component: lazy(() => import("@/pages/seller/PaymentMethodsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Payment Methods" },
   { path: "/seller/payment-success", component: lazy(() => import("@/pages/seller/PaymentSuccessPage")), requireAuth: true, roles: ["seller", "admin"], title: "Payment Success" },
@@ -306,12 +311,39 @@ export const adminRoutes: RouteConfig[] = [
   { path: "/admin/whitelist", component: lazy(() => import("@/pages/admin/WhitelistManagementPage")), requireAuth: true, roles: ["admin"], title: "Whitelist" },
   
   // Seller Management
+  { path: "/admin/sellers", component: lazy(() => import("@/pages/admin/SellerListPage")), requireAuth: true, roles: ["admin"], title: "Seller List" },
   { path: "/admin/seller-approvals", component: lazy(() => import("@/pages/admin/SellerApprovalsPage")), requireAuth: true, roles: ["admin"], title: "Seller Approvals" },
+  { path: "/admin/verifications", component: lazy(() => import("@/pages/admin/VerificationsPage")), requireAuth: true, roles: ["admin"], title: "Verification Requests" },
+  { path: "/admin/buyers", component: lazy(() => import("@/pages/admin/BuyerListPage")), requireAuth: true, roles: ["admin"], title: "Buyer Accounts" },
   
   // Listing Management
+  { path: "/admin/listing-moderation", component: lazy(() => import("@/pages/admin/ListingModerationPage")), requireAuth: true, roles: ["admin"], title: "Listing Moderation" },
   { path: "/admin/listings", component: lazy(() => import("@/pages/admin/ListingModerationPage")), requireAuth: true, roles: ["admin"], title: "Listing Moderation" },
+  { path: "/admin/properties", component: lazy(() => import("@/pages/admin/PropertiesPage")), requireAuth: true, roles: ["admin"], title: "All Properties" },
+  { path: "/admin/featured", component: lazy(() => import("@/pages/admin/FeaturedListingsPage")), requireAuth: true, roles: ["admin"], title: "Featured Properties" },
   { path: "/admin/featured-listings", component: lazy(() => import("@/pages/admin/FeaturedListingsPage")), requireAuth: true, roles: ["admin"], title: "Featured Listings" },
+  { path: "/admin/pending-properties", component: lazy(() => import("@/pages/admin/PendingPropertiesPage")), requireAuth: true, roles: ["admin"], title: "Pending Properties" },
+  { path: "/admin/rejected-properties", component: lazy(() => import("@/pages/admin/RejectedPropertiesPage")), requireAuth: true, roles: ["admin"], title: "Rejected Properties" },
+  { path: "/admin/review-queue", component: lazy(() => import("@/pages/admin/ReviewQueuePage")), requireAuth: true, roles: ["admin"], title: "Review Queue" },
   { path: "/admin/bulk-actions", component: lazy(() => import("@/pages/admin/BulkActionsPage")), requireAuth: true, roles: ["admin"], title: "Bulk Actions" },
+  
+  // Inquiries Management  
+  { path: "/admin/inquiries", component: lazy(() => import("@/pages/admin/InquiriesPage")), requireAuth: true, roles: ["admin"], title: "All Inquiries" },
+  { path: "/admin/inquiries/form", component: lazy(() => import("@/pages/admin/FormInquiriesPage")), requireAuth: true, roles: ["admin"], title: "Form Submissions" },
+  { path: "/admin/inquiries/chat", component: lazy(() => import("@/pages/admin/ChatInquiriesPage")), requireAuth: true, roles: ["admin"], title: "Chat Inquiries" },
+  { path: "/admin/inquiries/call", component: lazy(() => import("@/pages/admin/CallInquiriesPage")), requireAuth: true, roles: ["admin"], title: "Call Requests" },
+  
+  // Invoices & Billing
+  { path: "/admin/packages", component: lazy(() => import("@/pages/admin/PackagesPage")), requireAuth: true, roles: ["admin"], title: "Packages" },
+  { path: "/admin/invoices", component: lazy(() => import("@/pages/admin/InvoicesPage")), requireAuth: true, roles: ["admin"], title: "Invoices" },
+  { path: "/admin/invoice-settings", component: lazy(() => import("@/pages/admin/InvoiceSettingsPage")), requireAuth: true, roles: ["admin"], title: "Invoice Settings" },
+  
+  // Platform Settings
+  { path: "/admin/settings/maps", component: lazy(() => import("@/pages/admin/MapSettingsPage")), requireAuth: true, roles: ["admin"], title: "Map Settings" },
+  { path: "/admin/settings/smtp", component: lazy(() => import("@/pages/admin/SMTPSettingsPage")), requireAuth: true, roles: ["admin"], title: "SMTP Settings" },
+  { path: "/admin/settings/razorpay", component: lazy(() => import("@/pages/admin/RazorpaySettingsPage")), requireAuth: true, roles: ["admin"], title: "Payment Gateway" },
+  { path: "/admin/settings/analytics", component: lazy(() => import("@/pages/admin/AnalyticsSettingsPage")), requireAuth: true, roles: ["admin"], title: "Analytics Settings" },
+  { path: "/admin/settings/social", component: lazy(() => import("@/pages/admin/SocialSettingsPage")), requireAuth: true, roles: ["admin"], title: "Social Links" },
   
   // Content Management
   { path: "/admin/content", component: lazy(() => import("@/pages/admin/ContentModerationPage")), requireAuth: true, roles: ["admin"], title: "Content Moderation" },

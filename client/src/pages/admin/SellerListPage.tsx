@@ -1,0 +1,360 @@
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Building,
+  Search,
+  Filter,
+  Download,
+  Eye,
+  Calendar,
+  MessageSquare,
+  CheckCircle,
+  Clock,
+  XCircle,
+  RefreshCw,
+  AlertCircle,
+} from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
+import { useState } from "react";
+
+interface SellerWithStats {
+  id: string;
+  userId: string;
+  companyName: string | null;
+  sellerType: string;
+  verificationStatus: string;
+  totalListings: number;
+  liveAt: string | null;
+  createdAt: string;
+  user?: {
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+    phone: string | null;
+  };
+  livePropertiesCount: number;
+  totalInquiries: number;
+}
+
+export default function SellerListPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+
+  const { data: sellers = [], isLoading, isError, refetch } = useQuery<SellerWithStats[]>({
+    queryKey: ["/api/admin/sellers/stats"],
+  });
+
+  const filteredSellers = sellers.filter(seller => {
+    const matchesSearch = 
+      (seller.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
+      (seller.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
+      (seller.user?.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
+      (seller.user?.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
+
+    const matchesStatus = statusFilter === "all" || seller.verificationStatus === statusFilter;
+    const matchesType = typeFilter === "all" || seller.sellerType === typeFilter;
+
+    return matchesSearch && matchesStatus && matchesType;
+  });
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "verified":
+        return (
+          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Verified
+          </Badge>
+        );
+      case "pending":
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        );
+      case "rejected":
+        return (
+          <Badge className="bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-500">
+            <XCircle className="h-3 w-3 mr-1" />
+            Rejected
+          </Badge>
+        );
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const getSellerName = (seller: SellerWithStats) => {
+    if (seller.companyName) return seller.companyName;
+    if (seller.user?.firstName || seller.user?.lastName) {
+      return `${seller.user.firstName || ''} ${seller.user.lastName || ''}`.trim();
+    }
+    return seller.user?.email || "Unknown Seller";
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header isLoggedIn={true} userType="admin" />
+        <main className="flex-1 bg-muted/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Skeleton className="h-10 w-64 mb-2" />
+            <Skeleton className="h-6 w-96 mb-8" />
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header isLoggedIn={true} userType="admin" />
+        <main className="flex-1 bg-muted/30 flex items-center justify-center">
+          <div className="text-center p-8">
+            <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
+            <h2 className="text-xl font-semibold mb-2">Failed to Load Sellers</h2>
+            <p className="text-muted-foreground mb-4">
+              There was an error loading the seller data.
+            </p>
+            <Button onClick={() => refetch()} data-testid="button-retry">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  const stats = {
+    total: sellers.length,
+    verified: sellers.filter(s => s.verificationStatus === "verified").length,
+    pending: sellers.filter(s => s.verificationStatus === "pending").length,
+    rejected: sellers.filter(s => s.verificationStatus === "rejected").length,
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header isLoggedIn={true} userType="admin" />
+
+      <main className="flex-1 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+            <div>
+              <h1 className="font-serif font-bold text-3xl mb-2">
+                Seller Management
+              </h1>
+              <p className="text-muted-foreground">
+                View and manage all registered sellers with their statistics
+              </p>
+            </div>
+            <Button variant="outline" data-testid="button-export">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Building className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.total}</p>
+                  <p className="text-sm text-muted-foreground">Total Sellers</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.verified}</p>
+                  <p className="text-sm text-muted-foreground">Verified</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/20">
+                  <Clock className="h-5 w-5 text-yellow-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.pending}</p>
+                  <p className="text-sm text-muted-foreground">Pending</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/20">
+                  <XCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.rejected}</p>
+                  <p className="text-sm text-muted-foreground">Rejected</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          <Card className="p-6">
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, company, or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-search"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]" data-testid="select-status">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="verified">Verified</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[180px]" data-testid="select-type">
+                  <SelectValue placeholder="Seller Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="individual">Individual</SelectItem>
+                  <SelectItem value="broker">Broker</SelectItem>
+                  <SelectItem value="builder">Builder</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Seller</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        Live Since
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Building className="h-4 w-4" />
+                        Properties Live
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <MessageSquare className="h-4 w-4" />
+                        Total Enquiries
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSellers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        No sellers found matching your criteria
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredSellers.map((seller) => (
+                      <TableRow key={seller.id} data-testid={`row-seller-${seller.id}`}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{getSellerName(seller)}</p>
+                            <p className="text-sm text-muted-foreground">{seller.user?.email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {seller.sellerType}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(seller.verificationStatus)}</TableCell>
+                        <TableCell className="text-center">
+                          {seller.liveAt ? (
+                            <div>
+                              <p className="font-medium">{format(new Date(seller.liveAt), "MMM d, yyyy")}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(new Date(seller.liveAt), { addSuffix: true })}
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="font-semibold text-primary">{seller.livePropertiesCount}</span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="font-semibold">{seller.totalInquiries}</span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Link href={`/admin/seller/${seller.id}`}>
+                            <Button variant="ghost" size="sm" data-testid={`button-view-${seller.id}`}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
