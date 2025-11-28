@@ -15,6 +15,10 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
+localPort = 34703
+externalPort = 3001
+
+[[ports]]
 localPort = 37885
 externalPort = 3000
 
@@ -57,4 +61,4 @@ integrations = ["javascript_log_in_with_replit:1.0.0", "javascript_object_storag
 
 [userenv.shared]
 SUPERADMIN_EMAIL = "superadmin@vengrow.com"
-SUPERADMIN_PASSWORD_HASH = "$2b$10$pCDNV6hNOKO1VixY9uLQa.8J8McriEj5QZZWvZTpmo94.9EtLWTN."
+SUPERADMIN_PASSWORD_HASH = "$2b$10$N1sHD/nd9YwsI7z.2E0RE.gs6kZCUz2.8nwAVsbpqTEkCu3O02fki"
