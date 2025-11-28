@@ -120,6 +120,17 @@ export interface IStorage {
   createSubscription(sellerId: string, packageId: string, endDate: Date): Promise<SellerSubscription>;
   
   getDashboardStats(role: string, userId?: string): Promise<Record<string, number>>;
+  
+  getAllInvoices(): Promise<any[]>;
+  getInvoice(id: string): Promise<any | undefined>;
+  
+  getEmailTemplates(): Promise<any[]>;
+  getEmailTemplate(id: string): Promise<any | undefined>;
+  createEmailTemplate(data: any): Promise<any>;
+  updateEmailTemplate(id: string, data: any): Promise<any | undefined>;
+  deleteEmailTemplate(id: string): Promise<boolean>;
+  
+  getAllInquiries(filters?: { source?: string; status?: string }): Promise<Inquiry[]>;
 }
 
 export interface PropertyFilters {
@@ -758,6 +769,106 @@ export class DatabaseStorage implements IStorage {
     await db.update(sellerSubscriptions)
       .set({ isActive: false })
       .where(eq(sellerSubscriptions.id, id));
+  }
+
+  // Invoice Methods
+  async getAllInvoices(): Promise<any[]> {
+    const allPayments = await db.select().from(payments).orderBy(desc(payments.createdAt));
+    return allPayments.map((payment) => ({
+      id: payment.id,
+      invoiceNumber: `VG-INV-${payment.id.slice(0, 8).toUpperCase()}`,
+      sellerId: payment.userId,
+      packageId: payment.packageId,
+      amount: payment.amount,
+      status: payment.status,
+      paymentMethod: payment.paymentMethod,
+      transactionId: payment.razorpayPaymentId,
+      createdAt: payment.createdAt,
+    }));
+  }
+
+  async getInvoice(id: string): Promise<any | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    if (!payment) return undefined;
+    
+    const user = await this.getUser(payment.userId);
+    const pkg = payment.packageId ? await this.getPackage(payment.packageId) : null;
+    
+    return {
+      id: payment.id,
+      invoiceNumber: `VG-INV-${payment.id.slice(0, 8).toUpperCase()}`,
+      sellerId: payment.userId,
+      seller: user,
+      packageId: payment.packageId,
+      package: pkg,
+      amount: payment.amount,
+      status: payment.status,
+      paymentMethod: payment.paymentMethod,
+      transactionId: payment.razorpayPaymentId,
+      createdAt: payment.createdAt,
+    };
+  }
+
+  // Email Template Methods (using system settings for now)
+  async getEmailTemplates(): Promise<any[]> {
+    const setting = await this.getSystemSetting("email_templates");
+    return (setting?.value as any[]) || [];
+  }
+
+  async getEmailTemplate(id: string): Promise<any | undefined> {
+    const templates = await this.getEmailTemplates();
+    return templates.find((t: any) => t.id === id);
+  }
+
+  async createEmailTemplate(data: any): Promise<any> {
+    const templates = await this.getEmailTemplates();
+    const newTemplate = {
+      ...data,
+      id: `template_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    templates.push(newTemplate);
+    await this.setSystemSetting("email_templates", templates);
+    return newTemplate;
+  }
+
+  async updateEmailTemplate(id: string, data: any): Promise<any | undefined> {
+    const templates = await this.getEmailTemplates();
+    const index = templates.findIndex((t: any) => t.id === id);
+    if (index === -1) return undefined;
+    
+    templates[index] = { ...templates[index], ...data, updatedAt: new Date().toISOString() };
+    await this.setSystemSetting("email_templates", templates);
+    return templates[index];
+  }
+
+  async deleteEmailTemplate(id: string): Promise<boolean> {
+    const templates = await this.getEmailTemplates();
+    const filtered = templates.filter((t: any) => t.id !== id);
+    if (filtered.length === templates.length) return false;
+    
+    await this.setSystemSetting("email_templates", filtered);
+    return true;
+  }
+
+  // Get All Inquiries with filters
+  async getAllInquiries(filters?: { source?: string; status?: string }): Promise<Inquiry[]> {
+    const conditions: any[] = [];
+    
+    if (filters?.source) {
+      conditions.push(eq(inquiries.sourceType, filters.source as any));
+    }
+    if (filters?.status) {
+      conditions.push(eq(inquiries.status, filters.status as any));
+    }
+    
+    let query = db.select().from(inquiries);
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    return query.orderBy(desc(inquiries.createdAt));
   }
 }
 

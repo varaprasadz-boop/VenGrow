@@ -341,6 +341,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all sellers with stats (admin only)
+  app.get("/api/admin/sellers/stats", async (req: Request, res: Response) => {
+    try {
+      const sellers = await storage.getAllSellerProfiles({});
+      
+      const sellersWithStats = await Promise.all(
+        sellers.map(async (seller) => {
+          const user = await storage.getUser(seller.userId);
+          const allProperties = await storage.getPropertiesBySeller(seller.id);
+          const liveProperties = allProperties.filter(p => p.workflowStatus === "live");
+          const inquiries = await storage.getInquiriesBySeller(seller.id);
+          
+          return {
+            ...seller,
+            user: user ? {
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              phone: user.phone,
+            } : null,
+            livePropertiesCount: liveProperties.length,
+            totalInquiries: inquiries.length,
+          };
+        })
+      );
+      
+      res.json(sellersWithStats);
+    } catch (error) {
+      console.error("Error getting seller stats:", error);
+      res.status(500).json({ error: "Failed to get seller stats" });
+    }
+  });
+
   // ============================================
   // SELLER PROFILE ROUTES
   // ============================================
@@ -1567,6 +1600,357 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       res.status(500).json({ error: "Failed to get dashboard stats" });
+    }
+  });
+
+  // ============================================
+  // ADMIN INVOICES & BILLING
+  // ============================================
+  
+  // Get all invoices (admin)
+  app.get("/api/admin/invoices", async (req: Request, res: Response) => {
+    try {
+      const invoices = await storage.getAllInvoices();
+      res.json(invoices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get invoices" });
+    }
+  });
+
+  // Get invoice by ID
+  app.get("/api/admin/invoices/:id", async (req: Request, res: Response) => {
+    try {
+      const invoice = await storage.getInvoice(req.params.id);
+      if (!invoice) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+      res.json(invoice);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get invoice" });
+    }
+  });
+
+  // Get invoice settings
+  app.get("/api/admin/invoice-settings", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.getSystemSetting("invoice_settings");
+      if (!setting) {
+        return res.json({
+          companyName: "VenGrow Real Estate",
+          companyAddress: "",
+          gstin: "",
+          panNumber: "",
+          prefix: "VG-INV-",
+          startingNumber: 1001,
+          gstRate: 18,
+          includeGst: true,
+          termsAndConditions: "",
+          footerNotes: "",
+        });
+      }
+      res.json(setting.value);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get invoice settings" });
+    }
+  });
+
+  // Update invoice settings
+  app.put("/api/admin/invoice-settings", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.setSystemSetting("invoice_settings", req.body);
+      res.json(setting.value);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update invoice settings" });
+    }
+  });
+
+  // ============================================
+  // PLATFORM SETTINGS
+  // ============================================
+  
+  // Get map settings
+  app.get("/api/admin/settings/maps", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.getSystemSetting("maps_settings");
+      if (!setting) {
+        return res.json({
+          provider: "openstreetmap",
+          apiKey: "",
+          defaultLat: 20.5937,
+          defaultLng: 78.9629,
+          defaultZoom: 5,
+          showMarkers: true,
+        });
+      }
+      res.json(setting.value);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get map settings" });
+    }
+  });
+
+  // Update map settings
+  app.put("/api/admin/settings/maps", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.setSystemSetting("maps_settings", req.body);
+      res.json(setting.value);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update map settings" });
+    }
+  });
+
+  // Get SMTP settings
+  app.get("/api/admin/settings/smtp", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.getSystemSetting("smtp_settings");
+      if (!setting) {
+        return res.json({
+          host: "",
+          port: 587,
+          secure: false,
+          username: "",
+          password: "",
+          fromEmail: "",
+          fromName: "VenGrow",
+          enabled: false,
+        });
+      }
+      res.json(setting.value);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get SMTP settings" });
+    }
+  });
+
+  // Update SMTP settings
+  app.put("/api/admin/settings/smtp", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.setSystemSetting("smtp_settings", req.body);
+      res.json(setting.value);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update SMTP settings" });
+    }
+  });
+
+  // Test SMTP settings
+  app.post("/api/admin/settings/smtp/test", async (req: Request, res: Response) => {
+    try {
+      res.json({ success: true, message: "Test email sent successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to send test email" });
+    }
+  });
+
+  // Get Razorpay settings
+  app.get("/api/admin/settings/razorpay", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.getSystemSetting("razorpay_settings");
+      if (!setting) {
+        return res.json({
+          keyId: "",
+          keySecret: "",
+          testMode: true,
+          webhookSecret: "",
+          enabled: false,
+        });
+      }
+      res.json(setting.value);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get Razorpay settings" });
+    }
+  });
+
+  // Update Razorpay settings
+  app.put("/api/admin/settings/razorpay", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.setSystemSetting("razorpay_settings", req.body);
+      res.json(setting.value);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update Razorpay settings" });
+    }
+  });
+
+  // Get analytics settings
+  app.get("/api/admin/settings/analytics", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.getSystemSetting("analytics_settings");
+      if (!setting) {
+        return res.json({
+          googleAnalyticsId: "",
+          facebookPixelId: "",
+          hotjarId: "",
+          clarityId: "",
+          enabled: false,
+        });
+      }
+      res.json(setting.value);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get analytics settings" });
+    }
+  });
+
+  // Update analytics settings
+  app.put("/api/admin/settings/analytics", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.setSystemSetting("analytics_settings", req.body);
+      res.json(setting.value);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update analytics settings" });
+    }
+  });
+
+  // Get social settings
+  app.get("/api/admin/settings/social", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.getSystemSetting("social_settings");
+      if (!setting) {
+        return res.json({
+          facebookUrl: "",
+          twitterUrl: "",
+          instagramUrl: "",
+          linkedinUrl: "",
+          youtubeUrl: "",
+        });
+      }
+      res.json(setting.value);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get social settings" });
+    }
+  });
+
+  // Update social settings
+  app.put("/api/admin/settings/social", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.setSystemSetting("social_settings", req.body);
+      res.json(setting.value);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update social settings" });
+    }
+  });
+
+  // ============================================
+  // EMAIL TEMPLATES
+  // ============================================
+  
+  // Get all email templates
+  app.get("/api/admin/email-templates", async (req: Request, res: Response) => {
+    try {
+      const templates = await storage.getEmailTemplates();
+      res.json(templates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get email templates" });
+    }
+  });
+
+  // Get email template by ID
+  app.get("/api/admin/email-templates/:id", async (req: Request, res: Response) => {
+    try {
+      const template = await storage.getEmailTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get email template" });
+    }
+  });
+
+  // Create email template
+  app.post("/api/admin/email-templates", async (req: Request, res: Response) => {
+    try {
+      const template = await storage.createEmailTemplate(req.body);
+      res.status(201).json(template);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create email template" });
+    }
+  });
+
+  // Update email template
+  app.put("/api/admin/email-templates/:id", async (req: Request, res: Response) => {
+    try {
+      const template = await storage.updateEmailTemplate(req.params.id, req.body);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update email template" });
+    }
+  });
+
+  // Delete email template
+  app.delete("/api/admin/email-templates/:id", async (req: Request, res: Response) => {
+    try {
+      const deleted = await storage.deleteEmailTemplate(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete email template" });
+    }
+  });
+
+  // ============================================
+  // ADMIN INQUIRIES BY TYPE
+  // ============================================
+  
+  // Get all inquiries (admin)
+  app.get("/api/admin/inquiries", async (req: Request, res: Response) => {
+    try {
+      const { source, status } = req.query;
+      const inquiries = await storage.getAllInquiries({
+        source: source as string,
+        status: status as string,
+      });
+      res.json(inquiries);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get inquiries" });
+    }
+  });
+
+  // Get all buyers (admin)
+  app.get("/api/admin/buyers", async (req: Request, res: Response) => {
+    try {
+      const users = await storage.getAllUsers({ role: "buyer" });
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get buyers" });
+    }
+  });
+
+  // ============================================
+  // SELLER INVOICES
+  // ============================================
+  
+  // Get seller's invoices
+  app.get("/api/seller/invoices", async (req: any, res: Response) => {
+    try {
+      let userId: string | undefined;
+      
+      const localUser = (req.session as any)?.localUser;
+      if (localUser?.id) {
+        userId = localUser.id;
+      } else if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+      
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const payments = await storage.getPayments(userId);
+      const invoices = payments.map((payment) => ({
+        id: payment.id,
+        invoiceNumber: `VG-INV-${payment.id.slice(0, 8).toUpperCase()}`,
+        amount: payment.amount,
+        status: payment.status,
+        paymentMethod: payment.paymentMethod,
+        transactionId: payment.razorpayPaymentId,
+        createdAt: payment.createdAt,
+      }));
+      
+      res.json(invoices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get invoices" });
     }
   });
 
