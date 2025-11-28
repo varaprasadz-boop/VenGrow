@@ -2,8 +2,8 @@ import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, Users, Building2, Package, CreditCard, MessageSquare, 
   Bell, Settings, Shield, FileText, BarChart3, HelpCircle, LogOut,
-  ChevronDown, UserCog, ListChecks, AlertTriangle, Globe, Mail,
-  Database, Activity, Megaphone, Flag
+  ChevronDown, UserCog, ListChecks, Globe, Mail, Clock, Star,
+  Database, Activity, Megaphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -40,40 +40,39 @@ const mainNavItems = [
 
 const userManagementItems = [
   { title: "All Users", href: "/admin/users", icon: Users },
-  { title: "Buyers", href: "/admin/users/buyers", icon: Users },
-  { title: "Sellers", href: "/admin/users/sellers", icon: Users },
-  { title: "Seller Approvals", href: "/admin/approvals/sellers", icon: UserCog },
-  { title: "KYC Verification", href: "/admin/kyc-verification", icon: Shield },
-  { title: "Suspended Users", href: "/admin/users/suspended", icon: AlertTriangle },
+  { title: "Buyers", href: "/admin/buyers", icon: Users },
+  { title: "Sellers", href: "/admin/sellers", icon: Users },
+  { title: "Seller Approvals", href: "/admin/seller-approvals", icon: UserCog },
+  { title: "Verification Requests", href: "/admin/verifications", icon: Shield },
 ];
 
 const propertyManagementItems = [
   { title: "All Properties", href: "/admin/properties", icon: Building2 },
-  { title: "Pending Review", href: "/admin/properties/pending", icon: ListChecks },
-  { title: "Reported Properties", href: "/admin/properties/reported", icon: Flag },
-  { title: "Featured Properties", href: "/admin/properties/featured", icon: Building2 },
+  { title: "Property Approvals", href: "/admin/listing-moderation", icon: ListChecks },
+  { title: "Pending Properties", href: "/admin/pending-properties", icon: Clock },
+  { title: "Featured Properties", href: "/admin/featured", icon: Star },
 ];
 
 const packageItems = [
   { title: "Package Plans", href: "/admin/packages", icon: Package },
   { title: "Transactions", href: "/admin/transactions", icon: CreditCard },
-  { title: "Payment Settings", href: "/admin/payments/settings", icon: CreditCard },
-  { title: "Revenue Report", href: "/admin/revenue", icon: BarChart3 },
+  { title: "Invoices", href: "/admin/invoices", icon: FileText },
+  { title: "Invoice Settings", href: "/admin/invoice-settings", icon: Settings },
 ];
 
 const communicationItems = [
-  { title: "Messages", href: "/admin/messages", icon: MessageSquare },
-  { title: "Notifications", href: "/admin/notifications", icon: Bell },
-  { title: "Email Templates", href: "/admin/emails", icon: Mail },
-  { title: "Announcements", href: "/admin/announcements", icon: Megaphone },
+  { title: "All Inquiries", href: "/admin/inquiries", icon: MessageSquare },
+  { title: "Form Submissions", href: "/admin/inquiries/form", icon: FileText },
+  { title: "Chat Inquiries", href: "/admin/inquiries/chat", icon: MessageSquare },
+  { title: "Email Templates", href: "/admin/email-templates", icon: Mail },
 ];
 
 const systemItems = [
-  { title: "Settings", href: "/admin/settings", icon: Settings },
-  { title: "Content Pages", href: "/admin/pages", icon: FileText },
-  { title: "SEO Settings", href: "/admin/seo", icon: Globe },
-  { title: "Database", href: "/admin/database", icon: Database },
-  { title: "Support", href: "/admin/support", icon: HelpCircle },
+  { title: "General Settings", href: "/admin/settings", icon: Settings },
+  { title: "Map Integration", href: "/admin/settings/maps", icon: Globe },
+  { title: "SMTP Settings", href: "/admin/settings/smtp", icon: Mail },
+  { title: "Payment Gateway", href: "/admin/settings/razorpay", icon: CreditCard },
+  { title: "Audit Logs", href: "/admin/audit-logs", icon: Database },
 ];
 
 function NavSection({ title, items }: { title: string; items: typeof mainNavItems }) {

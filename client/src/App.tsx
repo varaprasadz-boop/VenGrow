@@ -6,6 +6,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { publicRoutes, buyerRoutes, sellerRoutes, adminRoutes, commonAuthRoutes } from "@/lib/routes";
 import { Loader2 } from "lucide-react";
+import AdminLayout from "@/components/layouts/AdminLayout";
+import SellerLayout from "@/components/layouts/SellerLayout";
+import BuyerLayout from "@/components/layouts/BuyerLayout";
 
 const NotFound = lazy(() => import("@/pages/not-found"));
 
@@ -17,31 +20,41 @@ function LoadingSpinner() {
   );
 }
 
+function withLayout(Component: React.ComponentType<any>, Layout: React.ComponentType<{ children: React.ReactNode }>) {
+  return function WrappedComponent(props: any) {
+    return (
+      <Layout>
+        <Component {...props} />
+      </Layout>
+    );
+  };
+}
+
 function Router() {
   return (
     <Suspense fallback={<LoadingSpinner />}>
       <Switch>
-        {/* Public Routes */}
+        {/* Public Routes - No sidebar */}
         {publicRoutes.map((route) => (
           <Route key={route.path} path={route.path} component={route.component as any} />
         ))}
         
-        {/* Buyer Routes */}
+        {/* Buyer Routes - With BuyerLayout sidebar */}
         {buyerRoutes.map((route) => (
-          <Route key={route.path} path={route.path} component={route.component as any} />
+          <Route key={route.path} path={route.path} component={withLayout(route.component as any, BuyerLayout)} />
         ))}
         
-        {/* Seller Routes */}
+        {/* Seller Routes - With SellerLayout sidebar */}
         {sellerRoutes.map((route) => (
-          <Route key={route.path} path={route.path} component={route.component as any} />
+          <Route key={route.path} path={route.path} component={withLayout(route.component as any, SellerLayout)} />
         ))}
         
-        {/* Admin Routes */}
+        {/* Admin Routes - With AdminLayout sidebar */}
         {adminRoutes.map((route) => (
-          <Route key={route.path} path={route.path} component={route.component as any} />
+          <Route key={route.path} path={route.path} component={withLayout(route.component as any, AdminLayout)} />
         ))}
         
-        {/* Common Auth Routes */}
+        {/* Common Auth Routes - No sidebar (login/register pages) */}
         {commonAuthRoutes.map((route) => (
           <Route key={route.path} path={route.path} component={route.component as any} />
         ))}
