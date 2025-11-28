@@ -1270,8 +1270,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Validate expiry (basic check)
       const currentDate = new Date();
-      const expYear = parseInt(expiryYear);
+      let expYear = parseInt(expiryYear);
       const expMonth = parseInt(expiryMonth);
+      
+      // Handle 2-digit years (e.g., "27" -> 2027)
+      if (expYear < 100) {
+        expYear = 2000 + expYear;
+      }
+      
       if (expYear < currentDate.getFullYear() || (expYear === currentDate.getFullYear() && expMonth < currentDate.getMonth() + 1)) {
         return res.status(400).json({ success: false, message: "Card has expired" });
       }
@@ -1294,10 +1300,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: currentUserId,
           companyName: user.firstName && user.lastName 
             ? `${user.firstName} ${user.lastName}` 
-            : user.username || "New Seller",
+            : user.email?.split("@")[0] || "New Seller",
           sellerType: "individual",
-          phone: user.phone || "",
-          isVerified: false,
         });
       }
       

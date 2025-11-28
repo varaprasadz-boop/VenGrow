@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
+
+const LocationPicker = lazy(() => import("@/components/LocationPicker"));
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -618,6 +620,32 @@ export default function CreatePropertyPage() {
                           data-testid="input-pincode"
                         />
                       </div>
+                    </div>
+
+                    <div className="space-y-2 mt-4">
+                      <Label className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Pin Location on Map
+                      </Label>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Pinning your property's exact location helps buyers find it more easily
+                      </p>
+                      <Suspense fallback={
+                        <div className="h-[300px] bg-muted rounded-lg flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                      }>
+                        <LocationPicker
+                          latitude={formData.latitude ? parseFloat(formData.latitude) : undefined}
+                          longitude={formData.longitude ? parseFloat(formData.longitude) : undefined}
+                          onLocationChange={(lat, lng) => {
+                            updateField("latitude", lat.toString());
+                            updateField("longitude", lng.toString());
+                          }}
+                          defaultCity={formData.city || "Mumbai"}
+                          height="300px"
+                        />
+                      </Suspense>
                     </div>
                   </div>
                 </div>
