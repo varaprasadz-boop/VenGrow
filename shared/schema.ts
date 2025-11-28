@@ -19,6 +19,7 @@ export const propertyTypeEnum = pgEnum("property_type", ["apartment", "villa", "
 export const transactionTypeEnum = pgEnum("transaction_type", ["sale", "rent"]);
 export const listingStatusEnum = pgEnum("listing_status", ["draft", "pending", "active", "sold", "rented", "expired", "rejected"]);
 export const inquiryStatusEnum = pgEnum("inquiry_status", ["pending", "replied", "closed"]);
+export const inquirySourceEnum = pgEnum("inquiry_source", ["form", "chat", "call"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "completed", "failed", "refunded"]);
 export const verificationStatusEnum = pgEnum("verification_status", ["pending", "verified", "rejected"]);
 export const notificationTypeEnum = pgEnum("notification_type", ["inquiry", "message", "payment", "listing", "system", "alert"]);
@@ -26,6 +27,8 @@ export const authProviderEnum = pgEnum("auth_provider", ["google", "local", "adm
 export const userIntentEnum = pgEnum("user_intent", ["buyer", "seller"]);
 export const workflowStatusEnum = pgEnum("workflow_status", ["draft", "submitted", "under_review", "approved", "live", "needs_reapproval", "rejected"]);
 export const approvalStatusEnum = pgEnum("approval_status", ["pending", "approved", "rejected"]);
+export const settingsCategoryEnum = pgEnum("settings_category", ["maps", "smtp", "razorpay", "analytics", "social", "general"]);
+export const emailTriggerEnum = pgEnum("email_trigger", ["user_registration", "inquiry_received", "inquiry_response", "property_submitted", "property_approved", "property_rejected", "payment_success", "subscription_expiring", "welcome_seller", "welcome_buyer"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -67,6 +70,7 @@ export const sellerProfiles = pgTable("seller_profiles", {
   totalSold: integer("total_sold").notNull().default(0),
   rating: decimal("rating", { precision: 2, scale: 1 }).default("0"),
   reviewCount: integer("review_count").notNull().default(0),
+  liveAt: timestamp("live_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -170,6 +174,7 @@ export const inquiries = pgTable("inquiries", {
   sellerId: varchar("seller_id").notNull().references(() => sellerProfiles.id),
   message: text("message"),
   status: inquiryStatusEnum("status").notNull().default("pending"),
+  sourceType: inquirySourceEnum("source_type").notNull().default("form"),
   buyerPhone: text("buyer_phone"),
   buyerEmail: text("buyer_email"),
   preferredContactTime: text("preferred_contact_time"),
@@ -324,6 +329,90 @@ export const propertyApprovalRequests = pgTable("property_approval_requests", {
   decidedAt: timestamp("decided_at"),
 });
 
+export const invoiceSettings = pgTable("invoice_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyName: text("company_name").notNull(),
+  companyAddress: text("company_address"),
+  gstin: text("gstin"),
+  pan: text("pan"),
+  logo: text("logo"),
+  footerText: text("footer_text"),
+  bankDetails: jsonb("bank_details").$type<{
+    bankName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    accountHolder?: string;
+  }>(),
+  termsAndConditions: text("terms_and_conditions"),
+  invoicePrefix: text("invoice_prefix").notNull().default("VG"),
+  nextInvoiceNumber: integer("next_invoice_number").notNull().default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const invoices = pgTable("invoices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceNumber: text("invoice_number").notNull().unique(),
+  sellerId: varchar("seller_id").notNull().references(() => sellerProfiles.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  subscriptionId: varchar("subscription_id").references(() => sellerSubscriptions.id),
+  paymentId: varchar("payment_id").references(() => payments.id),
+  packageId: varchar("package_id").references(() => packages.id),
+  subtotal: integer("subtotal").notNull(),
+  gstRate: decimal("gst_rate", { precision: 5, scale: 2 }).notNull().default("18"),
+  gstAmount: integer("gst_amount").notNull(),
+  totalAmount: integer("total_amount").notNull(),
+  companyDetails: jsonb("company_details").$type<{
+    name: string;
+    address?: string;
+    gstin?: string;
+    pan?: string;
+  }>(),
+  sellerDetails: jsonb("seller_details").$type<{
+    name: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    gstin?: string;
+  }>(),
+  packageDetails: jsonb("package_details").$type<{
+    name: string;
+    description?: string;
+    duration: number;
+    listingLimit: number;
+  }>(),
+  pdfUrl: text("pdf_url"),
+  invoiceDate: timestamp("invoice_date").notNull().defaultNow(),
+  dueDate: timestamp("due_date"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const platformSettings = pgTable("platform_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: settingsCategoryEnum("category").notNull(),
+  key: text("key").notNull(),
+  value: text("value"),
+  isEncrypted: boolean("is_encrypted").notNull().default(false),
+  description: text("description"),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const emailTemplates = pgTable("email_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  variables: jsonb("variables").$type<string[]>(),
+  triggerEvent: emailTriggerEnum("trigger_event"),
+  isActive: boolean("is_active").notNull().default(true),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -440,3 +529,38 @@ export type SystemSetting = typeof systemSettings.$inferSelect;
 export type SellerSubscription = typeof sellerSubscriptions.$inferSelect;
 export type PropertyAlert = typeof propertyAlerts.$inferSelect;
 export type PropertyApprovalRequest = typeof propertyApprovalRequests.$inferSelect;
+
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertInvoiceSettingsSchema = createInsertSchema(invoiceSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPlatformSettingSchema = createInsertSchema(platformSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = typeof invoices.$inferSelect;
+
+export type InsertInvoiceSettings = z.infer<typeof insertInvoiceSettingsSchema>;
+export type InvoiceSettings = typeof invoiceSettings.$inferSelect;
+
+export type InsertPlatformSetting = z.infer<typeof insertPlatformSettingSchema>;
+export type PlatformSetting = typeof platformSettings.$inferSelect;
+
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
