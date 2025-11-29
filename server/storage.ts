@@ -15,12 +15,13 @@ import {
   type SellerSubscription, type PropertyAlert,
   type FaqItem, type StaticPage, type Banner, type PlatformSetting,
   type PopularCity, type NavigationLink, type PropertyTypeManaged, type SiteSetting,
+  type EmailTemplate,
   users, sellerProfiles, packages, properties, propertyImages, propertyDocuments,
   inquiries, favorites, savedSearches, propertyViews,
   chatThreads, chatMessages, notifications, payments, reviews,
   adminApprovals, auditLogs, systemSettings, sellerSubscriptions, propertyAlerts,
   propertyApprovalRequests, faqItems, staticPages, banners, platformSettings,
-  popularCities, navigationLinks, propertyTypesManaged, siteSettings
+  popularCities, navigationLinks, propertyTypesManaged, siteSettings, emailTemplates
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, like, or, sql, gte, lte, inArray } from "drizzle-orm";
@@ -138,18 +139,51 @@ export interface IStorage {
   // Content Management
   getFaqItems(): Promise<FaqItem[]>;
   getFaqItemsByCategory(category: string): Promise<FaqItem[]>;
+  getAllFaqItems(): Promise<FaqItem[]>;
+  createFaqItem(data: Omit<FaqItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<FaqItem>;
+  updateFaqItem(id: string, data: Partial<FaqItem>): Promise<FaqItem | undefined>;
+  deleteFaqItem(id: string): Promise<boolean>;
+  
   getStaticPageBySlug(slug: string): Promise<StaticPage | undefined>;
   getStaticPages(): Promise<StaticPage[]>;
+  getAllStaticPages(): Promise<StaticPage[]>;
+  createStaticPage(data: Omit<StaticPage, 'id' | 'createdAt' | 'updatedAt'>): Promise<StaticPage>;
+  updateStaticPage(id: string, data: Partial<StaticPage>): Promise<StaticPage | undefined>;
+  deleteStaticPage(id: string): Promise<boolean>;
+  
   getBanners(position?: string): Promise<Banner[]>;
+  getAllBanners(): Promise<Banner[]>;
+  createBanner(data: Omit<Banner, 'id' | 'createdAt' | 'updatedAt'>): Promise<Banner>;
+  updateBanner(id: string, data: Partial<Banner>): Promise<Banner | undefined>;
+  deleteBanner(id: string): Promise<boolean>;
+  
   getPlatformSettings(category?: string): Promise<PlatformSetting[]>;
   
   // Dynamic Content Management
   getPopularCities(): Promise<PopularCity[]>;
   getPopularCityBySlug(slug: string): Promise<PopularCity | undefined>;
+  getAllPopularCities(): Promise<PopularCity[]>;
+  createPopularCity(data: Omit<PopularCity, 'id' | 'createdAt' | 'updatedAt'>): Promise<PopularCity>;
+  updatePopularCity(id: string, data: Partial<PopularCity>): Promise<PopularCity | undefined>;
+  deletePopularCity(id: string): Promise<boolean>;
+  
   getNavigationLinks(position?: string, section?: string): Promise<NavigationLink[]>;
+  getAllNavigationLinks(): Promise<NavigationLink[]>;
+  createNavigationLink(data: Omit<NavigationLink, 'id' | 'createdAt' | 'updatedAt'>): Promise<NavigationLink>;
+  updateNavigationLink(id: string, data: Partial<NavigationLink>): Promise<NavigationLink | undefined>;
+  deleteNavigationLink(id: string): Promise<boolean>;
+  
   getPropertyTypes(): Promise<PropertyTypeManaged[]>;
+  getAllPropertyTypes(): Promise<PropertyTypeManaged[]>;
+  createPropertyType(data: Omit<PropertyTypeManaged, 'id' | 'createdAt' | 'updatedAt'>): Promise<PropertyTypeManaged>;
+  updatePropertyType(id: string, data: Partial<PropertyTypeManaged>): Promise<PropertyTypeManaged | undefined>;
+  deletePropertyType(id: string): Promise<boolean>;
+  
   getSiteSettings(category?: string): Promise<SiteSetting[]>;
   getSiteSetting(key: string): Promise<SiteSetting | undefined>;
+  createSiteSetting(data: Omit<SiteSetting, 'id' | 'createdAt' | 'updatedAt'>): Promise<SiteSetting>;
+  updateSiteSetting(id: string, data: Partial<SiteSetting>): Promise<SiteSetting | undefined>;
+  deleteSiteSetting(id: string): Promise<boolean>;
 }
 
 export interface PropertyFilters {
@@ -828,45 +862,37 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  // Email Template Methods (using system settings for now)
-  async getEmailTemplates(): Promise<any[]> {
-    const setting = await this.getSystemSetting("email_templates");
-    return (setting?.value as any[]) || [];
+  // Email Template Methods (using emailTemplates database table)
+  async getEmailTemplates(): Promise<EmailTemplate[]> {
+    return db.select().from(emailTemplates).orderBy(emailTemplates.triggerEvent);
   }
 
-  async getEmailTemplate(id: string): Promise<any | undefined> {
-    const templates = await this.getEmailTemplates();
-    return templates.find((t: any) => t.id === id);
+  async getEmailTemplate(id: string): Promise<EmailTemplate | undefined> {
+    const [template] = await db.select().from(emailTemplates).where(eq(emailTemplates.id, id));
+    return template;
   }
 
-  async createEmailTemplate(data: any): Promise<any> {
-    const templates = await this.getEmailTemplates();
-    const newTemplate = {
-      ...data,
-      id: `template_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    };
-    templates.push(newTemplate);
-    await this.setSystemSetting("email_templates", templates);
-    return newTemplate;
+  async getEmailTemplateByTrigger(triggerEvent: string): Promise<EmailTemplate | undefined> {
+    const [template] = await db.select().from(emailTemplates)
+      .where(eq(emailTemplates.triggerEvent, triggerEvent as any));
+    return template;
   }
 
-  async updateEmailTemplate(id: string, data: any): Promise<any | undefined> {
-    const templates = await this.getEmailTemplates();
-    const index = templates.findIndex((t: any) => t.id === id);
-    if (index === -1) return undefined;
-    
-    templates[index] = { ...templates[index], ...data, updatedAt: new Date().toISOString() };
-    await this.setSystemSetting("email_templates", templates);
-    return templates[index];
+  async createEmailTemplate(data: Omit<EmailTemplate, 'id' | 'createdAt' | 'updatedAt'>): Promise<EmailTemplate> {
+    const [template] = await db.insert(emailTemplates).values(data).returning();
+    return template;
+  }
+
+  async updateEmailTemplate(id: string, data: Partial<EmailTemplate>): Promise<EmailTemplate | undefined> {
+    const [template] = await db.update(emailTemplates)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(emailTemplates.id, id))
+      .returning();
+    return template;
   }
 
   async deleteEmailTemplate(id: string): Promise<boolean> {
-    const templates = await this.getEmailTemplates();
-    const filtered = templates.filter((t: any) => t.id !== id);
-    if (filtered.length === templates.length) return false;
-    
-    await this.setSystemSetting("email_templates", filtered);
+    await db.delete(emailTemplates).where(eq(emailTemplates.id, id));
     return true;
   }
 
@@ -986,6 +1012,163 @@ export class DatabaseStorage implements IStorage {
     const [setting] = await db.select().from(siteSettings)
       .where(eq(siteSettings.key, key));
     return setting;
+  }
+
+  // Admin CRUD for FAQ Items
+  async getAllFaqItems(): Promise<FaqItem[]> {
+    return db.select().from(faqItems).orderBy(faqItems.category, faqItems.sortOrder);
+  }
+
+  async createFaqItem(data: Omit<FaqItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<FaqItem> {
+    const [item] = await db.insert(faqItems).values(data).returning();
+    return item;
+  }
+
+  async updateFaqItem(id: string, data: Partial<FaqItem>): Promise<FaqItem | undefined> {
+    const [item] = await db.update(faqItems)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(faqItems.id, id))
+      .returning();
+    return item;
+  }
+
+  async deleteFaqItem(id: string): Promise<boolean> {
+    const result = await db.delete(faqItems).where(eq(faqItems.id, id));
+    return true;
+  }
+
+  // Admin CRUD for Static Pages
+  async getAllStaticPages(): Promise<StaticPage[]> {
+    return db.select().from(staticPages).orderBy(staticPages.title);
+  }
+
+  async createStaticPage(data: Omit<StaticPage, 'id' | 'createdAt' | 'updatedAt'>): Promise<StaticPage> {
+    const [page] = await db.insert(staticPages).values(data).returning();
+    return page;
+  }
+
+  async updateStaticPage(id: string, data: Partial<StaticPage>): Promise<StaticPage | undefined> {
+    const [page] = await db.update(staticPages)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(staticPages.id, id))
+      .returning();
+    return page;
+  }
+
+  async deleteStaticPage(id: string): Promise<boolean> {
+    await db.delete(staticPages).where(eq(staticPages.id, id));
+    return true;
+  }
+
+  // Admin CRUD for Banners
+  async getAllBanners(): Promise<Banner[]> {
+    return db.select().from(banners).orderBy(banners.sortOrder);
+  }
+
+  async createBanner(data: Omit<Banner, 'id' | 'createdAt' | 'updatedAt'>): Promise<Banner> {
+    const [banner] = await db.insert(banners).values(data).returning();
+    return banner;
+  }
+
+  async updateBanner(id: string, data: Partial<Banner>): Promise<Banner | undefined> {
+    const [banner] = await db.update(banners)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(banners.id, id))
+      .returning();
+    return banner;
+  }
+
+  async deleteBanner(id: string): Promise<boolean> {
+    await db.delete(banners).where(eq(banners.id, id));
+    return true;
+  }
+
+  // Admin CRUD for Popular Cities
+  async getAllPopularCities(): Promise<PopularCity[]> {
+    return db.select().from(popularCities).orderBy(popularCities.sortOrder);
+  }
+
+  async createPopularCity(data: Omit<PopularCity, 'id' | 'createdAt' | 'updatedAt'>): Promise<PopularCity> {
+    const [city] = await db.insert(popularCities).values(data).returning();
+    return city;
+  }
+
+  async updatePopularCity(id: string, data: Partial<PopularCity>): Promise<PopularCity | undefined> {
+    const [city] = await db.update(popularCities)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(popularCities.id, id))
+      .returning();
+    return city;
+  }
+
+  async deletePopularCity(id: string): Promise<boolean> {
+    await db.delete(popularCities).where(eq(popularCities.id, id));
+    return true;
+  }
+
+  // Admin CRUD for Navigation Links
+  async getAllNavigationLinks(): Promise<NavigationLink[]> {
+    return db.select().from(navigationLinks).orderBy(navigationLinks.section, navigationLinks.sortOrder);
+  }
+
+  async createNavigationLink(data: Omit<NavigationLink, 'id' | 'createdAt' | 'updatedAt'>): Promise<NavigationLink> {
+    const [link] = await db.insert(navigationLinks).values(data).returning();
+    return link;
+  }
+
+  async updateNavigationLink(id: string, data: Partial<NavigationLink>): Promise<NavigationLink | undefined> {
+    const [link] = await db.update(navigationLinks)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(navigationLinks.id, id))
+      .returning();
+    return link;
+  }
+
+  async deleteNavigationLink(id: string): Promise<boolean> {
+    await db.delete(navigationLinks).where(eq(navigationLinks.id, id));
+    return true;
+  }
+
+  // Admin CRUD for Property Types
+  async getAllPropertyTypes(): Promise<PropertyTypeManaged[]> {
+    return db.select().from(propertyTypesManaged).orderBy(propertyTypesManaged.sortOrder);
+  }
+
+  async createPropertyType(data: Omit<PropertyTypeManaged, 'id' | 'createdAt' | 'updatedAt'>): Promise<PropertyTypeManaged> {
+    const [type] = await db.insert(propertyTypesManaged).values(data).returning();
+    return type;
+  }
+
+  async updatePropertyType(id: string, data: Partial<PropertyTypeManaged>): Promise<PropertyTypeManaged | undefined> {
+    const [type] = await db.update(propertyTypesManaged)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(propertyTypesManaged.id, id))
+      .returning();
+    return type;
+  }
+
+  async deletePropertyType(id: string): Promise<boolean> {
+    await db.delete(propertyTypesManaged).where(eq(propertyTypesManaged.id, id));
+    return true;
+  }
+
+  // Admin CRUD for Site Settings
+  async createSiteSetting(data: Omit<SiteSetting, 'id' | 'createdAt' | 'updatedAt'>): Promise<SiteSetting> {
+    const [setting] = await db.insert(siteSettings).values(data).returning();
+    return setting;
+  }
+
+  async updateSiteSetting(id: string, data: Partial<SiteSetting>): Promise<SiteSetting | undefined> {
+    const [setting] = await db.update(siteSettings)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(siteSettings.id, id))
+      .returning();
+    return setting;
+  }
+
+  async deleteSiteSetting(id: string): Promise<boolean> {
+    await db.delete(siteSettings).where(eq(siteSettings.id, id));
+    return true;
   }
 }
 

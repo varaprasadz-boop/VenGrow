@@ -424,6 +424,243 @@ async function seedEmailTemplates() {
       isActive: true,
       description: "Sent when subscription is about to expire",
     },
+    {
+      name: "Email Verification",
+      subject: "Verify Your Email Address - VenGrow",
+      body: `<h1>Verify Your Email</h1>
+<p>Hi {{firstName}},</p>
+<p>Please verify your email address by clicking the link below:</p>
+<p><a href="{{verificationLink}}" style="background-color: #E86A33; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Verify Email</a></p>
+<p>Or copy this link: {{verificationLink}}</p>
+<p>This link expires in 24 hours.</p>
+<p>If you didn't create an account, you can ignore this email.</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["firstName", "verificationLink"],
+      triggerEvent: "email_verification" as const,
+      isActive: true,
+      description: "Sent when a user needs to verify their email address",
+    },
+    {
+      name: "Password Reset",
+      subject: "Reset Your Password - VenGrow",
+      body: `<h1>Password Reset Request</h1>
+<p>Hi {{firstName}},</p>
+<p>We received a request to reset your password. Click the button below to create a new password:</p>
+<p><a href="{{resetLink}}" style="background-color: #E86A33; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a></p>
+<p>Or copy this link: {{resetLink}}</p>
+<p>This link expires in 1 hour.</p>
+<p>If you didn't request a password reset, please ignore this email or contact support if you have concerns.</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["firstName", "resetLink"],
+      triggerEvent: "password_reset" as const,
+      isActive: true,
+      description: "Sent when a user requests a password reset",
+    },
+    {
+      name: "Password Changed",
+      subject: "Your Password Has Been Changed - VenGrow",
+      body: `<h1>Password Changed Successfully</h1>
+<p>Hi {{firstName}},</p>
+<p>Your VenGrow account password was changed on {{changeDate}} at {{changeTime}}.</p>
+<p>If you made this change, no action is needed.</p>
+<p>If you didn't change your password, please reset it immediately and contact our support team.</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["firstName", "changeDate", "changeTime"],
+      triggerEvent: "password_changed" as const,
+      isActive: true,
+      description: "Sent when a user's password is changed",
+    },
+    {
+      name: "Inquiry Response",
+      subject: "Response to Your Inquiry - {{propertyTitle}}",
+      body: `<h1>Seller Has Responded!</h1>
+<p>Hi {{buyerName}},</p>
+<p>The seller has responded to your inquiry about <strong>{{propertyTitle}}</strong>.</p>
+<h3>Seller's Response:</h3>
+<p>{{response}}</p>
+<p>You can continue the conversation from your dashboard or reply directly to the seller.</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["buyerName", "propertyTitle", "response", "sellerName"],
+      triggerEvent: "inquiry_response" as const,
+      isActive: true,
+      description: "Sent to buyer when seller responds to their inquiry",
+    },
+    {
+      name: "New Message",
+      subject: "New Message from {{senderName}} - VenGrow",
+      body: `<h1>You Have a New Message</h1>
+<p>Hi {{recipientName}},</p>
+<p><strong>{{senderName}}</strong> sent you a message regarding <strong>{{propertyTitle}}</strong>:</p>
+<div style="background-color: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+  <p>{{messagePreview}}</p>
+</div>
+<p><a href="{{chatLink}}" style="background-color: #E86A33; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Conversation</a></p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["recipientName", "senderName", "propertyTitle", "messagePreview", "chatLink"],
+      triggerEvent: "new_message" as const,
+      isActive: true,
+      description: "Sent when a new chat message is received",
+    },
+    {
+      name: "Property Needs Reapproval",
+      subject: "Your Updated Property Needs Reapproval - {{propertyTitle}}",
+      body: `<h1>Reapproval Required</h1>
+<p>Hi {{sellerName}},</p>
+<p>Your property <strong>{{propertyTitle}}</strong> has been updated and needs to be reapproved before it can go live again.</p>
+<p>Our team will review your changes within 24-48 hours.</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["sellerName", "propertyTitle"],
+      triggerEvent: "property_needs_reapproval" as const,
+      isActive: true,
+      description: "Sent when an edited property needs reapproval",
+    },
+    {
+      name: "Property Live",
+      subject: "Your Property is Now Live! - {{propertyTitle}}",
+      body: `<h1>Your Property is Live!</h1>
+<p>Hi {{sellerName}},</p>
+<p>Great news! Your property <strong>{{propertyTitle}}</strong> is now live and visible to buyers on VenGrow.</p>
+<p>View your live listing: <a href="{{propertyLink}}">{{propertyLink}}</a></p>
+<p>Share it on social media to attract more buyers!</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["sellerName", "propertyTitle", "propertyLink"],
+      triggerEvent: "property_live" as const,
+      isActive: true,
+      description: "Sent when a property goes live",
+    },
+    {
+      name: "Seller Approved",
+      subject: "Your Seller Account is Approved! - VenGrow",
+      body: `<h1>Welcome, Verified Seller!</h1>
+<p>Hi {{sellerName}},</p>
+<p>Congratulations! Your seller account has been verified and approved.</p>
+<p>You can now:</p>
+<ul>
+  <li>List properties on VenGrow</li>
+  <li>Receive inquiries from buyers</li>
+  <li>Access your seller dashboard</li>
+</ul>
+<p><a href="{{dashboardLink}}" style="background-color: #E86A33; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Go to Dashboard</a></p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["sellerName", "dashboardLink"],
+      triggerEvent: "seller_approved" as const,
+      isActive: true,
+      description: "Sent when a seller account is approved",
+    },
+    {
+      name: "Seller Rejected",
+      subject: "Action Required - Seller Verification Update",
+      body: `<h1>Verification Update</h1>
+<p>Hi {{sellerName}},</p>
+<p>Your seller verification could not be completed at this time.</p>
+<h3>Reason:</h3>
+<p>{{rejectionReason}}</p>
+<p>Please update your documents and resubmit for verification.</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["sellerName", "rejectionReason"],
+      triggerEvent: "seller_rejected" as const,
+      isActive: true,
+      description: "Sent when seller verification is rejected",
+    },
+    {
+      name: "Seller Verification Pending",
+      subject: "Your Verification is Being Reviewed - VenGrow",
+      body: `<h1>Verification Under Review</h1>
+<p>Hi {{sellerName}},</p>
+<p>Thank you for submitting your documents. Your seller verification is now under review.</p>
+<p>Our team will verify your details within 1-2 business days. You will receive an email once the verification is complete.</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["sellerName"],
+      triggerEvent: "seller_verification_pending" as const,
+      isActive: true,
+      description: "Sent when seller documents are submitted for verification",
+    },
+    {
+      name: "Payment Failed",
+      subject: "Payment Failed - Action Required",
+      body: `<h1>Payment Failed</h1>
+<p>Hi {{sellerName}},</p>
+<p>We were unable to process your payment of ₹{{amount}} for the <strong>{{packageName}}</strong> package.</p>
+<h3>Error Details:</h3>
+<p>{{errorMessage}}</p>
+<p>Please try again with a different payment method or contact your bank if the issue persists.</p>
+<p><a href="{{retryLink}}" style="background-color: #E86A33; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Retry Payment</a></p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["sellerName", "amount", "packageName", "errorMessage", "retryLink"],
+      triggerEvent: "payment_failed" as const,
+      isActive: true,
+      description: "Sent when a payment fails",
+    },
+    {
+      name: "Subscription Activated",
+      subject: "Your {{packageName}} Subscription is Active! - VenGrow",
+      body: `<h1>Subscription Activated!</h1>
+<p>Hi {{sellerName}},</p>
+<p>Your <strong>{{packageName}}</strong> subscription is now active!</p>
+<h3>Subscription Details:</h3>
+<ul>
+  <li>Package: {{packageName}}</li>
+  <li>Listings: {{listingLimit}} properties</li>
+  <li>Valid Until: {{validUntil}}</li>
+</ul>
+<p>Start listing your properties now!</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["sellerName", "packageName", "listingLimit", "validUntil"],
+      triggerEvent: "subscription_activated" as const,
+      isActive: true,
+      description: "Sent when a subscription is activated",
+    },
+    {
+      name: "Subscription Expired",
+      subject: "Your VenGrow Subscription Has Expired",
+      body: `<h1>Subscription Expired</h1>
+<p>Hi {{sellerName}},</p>
+<p>Your <strong>{{packageName}}</strong> subscription has expired.</p>
+<p>Your active listings have been unpublished. Renew your subscription to make them visible again.</p>
+<p><a href="{{renewLink}}" style="background-color: #E86A33; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Renew Now</a></p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["sellerName", "packageName", "renewLink"],
+      triggerEvent: "subscription_expired" as const,
+      isActive: true,
+      description: "Sent when a subscription expires",
+    },
+    {
+      name: "Account Deactivated",
+      subject: "Your VenGrow Account Has Been Deactivated",
+      body: `<h1>Account Deactivated</h1>
+<p>Hi {{firstName}},</p>
+<p>Your VenGrow account has been deactivated.</p>
+<p>If you believe this was done in error, please contact our support team.</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["firstName"],
+      triggerEvent: "account_deactivated" as const,
+      isActive: true,
+      description: "Sent when an account is deactivated",
+    },
+    {
+      name: "Account Reactivated",
+      subject: "Welcome Back! Your VenGrow Account is Active",
+      body: `<h1>Welcome Back!</h1>
+<p>Hi {{firstName}},</p>
+<p>Your VenGrow account has been reactivated. You can now login and access all features.</p>
+<p><a href="{{loginLink}}" style="background-color: #E86A33; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Login Now</a></p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["firstName", "loginLink"],
+      triggerEvent: "account_reactivated" as const,
+      isActive: true,
+      description: "Sent when an account is reactivated",
+    },
+    {
+      name: "Admin Notification",
+      subject: "{{notificationTitle}} - VenGrow Admin",
+      body: `<h1>{{notificationTitle}}</h1>
+<p>{{notificationBody}}</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["notificationTitle", "notificationBody"],
+      triggerEvent: "admin_notification" as const,
+      isActive: true,
+      description: "Generic admin notification template",
+    },
   ];
 
   await db.insert(emailTemplates).values(templateData);

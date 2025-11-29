@@ -2347,6 +2347,378 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================
+  // ADMIN CONTENT MANAGEMENT API ROUTES
+  // ============================================
+
+  // Admin middleware to check if user is super admin
+  const isAdminAuthenticated = (req: any, res: Response, next: any) => {
+    const adminUser = req.session?.adminUser;
+    if (!adminUser?.isSuperAdmin) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    next();
+  };
+
+  // --- Popular Cities Admin CRUD ---
+  app.get("/api/admin/popular-cities", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const cities = await storage.getAllPopularCities();
+      res.json(cities);
+    } catch (error) {
+      console.error("Error fetching all cities:", error);
+      res.status(500).json({ message: "Failed to fetch cities" });
+    }
+  });
+
+  app.post("/api/admin/popular-cities", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const city = await storage.createPopularCity(req.body);
+      res.status(201).json(city);
+    } catch (error) {
+      console.error("Error creating city:", error);
+      res.status(500).json({ message: "Failed to create city" });
+    }
+  });
+
+  app.put("/api/admin/popular-cities/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const city = await storage.updatePopularCity(req.params.id, req.body);
+      if (!city) return res.status(404).json({ message: "City not found" });
+      res.json(city);
+    } catch (error) {
+      console.error("Error updating city:", error);
+      res.status(500).json({ message: "Failed to update city" });
+    }
+  });
+
+  app.delete("/api/admin/popular-cities/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deletePopularCity(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting city:", error);
+      res.status(500).json({ message: "Failed to delete city" });
+    }
+  });
+
+  // --- Navigation Links Admin CRUD ---
+  app.get("/api/admin/navigation-links", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const links = await storage.getAllNavigationLinks();
+      res.json(links);
+    } catch (error) {
+      console.error("Error fetching navigation links:", error);
+      res.status(500).json({ message: "Failed to fetch links" });
+    }
+  });
+
+  app.post("/api/admin/navigation-links", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const link = await storage.createNavigationLink(req.body);
+      res.status(201).json(link);
+    } catch (error) {
+      console.error("Error creating link:", error);
+      res.status(500).json({ message: "Failed to create link" });
+    }
+  });
+
+  app.put("/api/admin/navigation-links/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const link = await storage.updateNavigationLink(req.params.id, req.body);
+      if (!link) return res.status(404).json({ message: "Link not found" });
+      res.json(link);
+    } catch (error) {
+      console.error("Error updating link:", error);
+      res.status(500).json({ message: "Failed to update link" });
+    }
+  });
+
+  app.delete("/api/admin/navigation-links/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteNavigationLink(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting link:", error);
+      res.status(500).json({ message: "Failed to delete link" });
+    }
+  });
+
+  // --- Property Types Admin CRUD ---
+  app.get("/api/admin/property-types", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const types = await storage.getAllPropertyTypes();
+      res.json(types);
+    } catch (error) {
+      console.error("Error fetching property types:", error);
+      res.status(500).json({ message: "Failed to fetch types" });
+    }
+  });
+
+  app.post("/api/admin/property-types", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const type = await storage.createPropertyType(req.body);
+      res.status(201).json(type);
+    } catch (error) {
+      console.error("Error creating property type:", error);
+      res.status(500).json({ message: "Failed to create type" });
+    }
+  });
+
+  app.put("/api/admin/property-types/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const type = await storage.updatePropertyType(req.params.id, req.body);
+      if (!type) return res.status(404).json({ message: "Type not found" });
+      res.json(type);
+    } catch (error) {
+      console.error("Error updating property type:", error);
+      res.status(500).json({ message: "Failed to update type" });
+    }
+  });
+
+  app.delete("/api/admin/property-types/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deletePropertyType(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting property type:", error);
+      res.status(500).json({ message: "Failed to delete type" });
+    }
+  });
+
+  // --- Site Settings Admin CRUD ---
+  app.get("/api/admin/site-settings", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const settings = await storage.getSiteSettings(category);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching site settings:", error);
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  app.post("/api/admin/site-settings", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.createSiteSetting(req.body);
+      res.status(201).json(setting);
+    } catch (error) {
+      console.error("Error creating site setting:", error);
+      res.status(500).json({ message: "Failed to create setting" });
+    }
+  });
+
+  app.put("/api/admin/site-settings/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.updateSiteSetting(req.params.id, req.body);
+      if (!setting) return res.status(404).json({ message: "Setting not found" });
+      res.json(setting);
+    } catch (error) {
+      console.error("Error updating site setting:", error);
+      res.status(500).json({ message: "Failed to update setting" });
+    }
+  });
+
+  app.delete("/api/admin/site-settings/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteSiteSetting(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting site setting:", error);
+      res.status(500).json({ message: "Failed to delete setting" });
+    }
+  });
+
+  // --- FAQ Items Admin CRUD ---
+  app.get("/api/admin/faq-items", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const items = await storage.getAllFaqItems();
+      res.json(items);
+    } catch (error) {
+      console.error("Error fetching FAQ items:", error);
+      res.status(500).json({ message: "Failed to fetch items" });
+    }
+  });
+
+  app.post("/api/admin/faq-items", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const item = await storage.createFaqItem(req.body);
+      res.status(201).json(item);
+    } catch (error) {
+      console.error("Error creating FAQ item:", error);
+      res.status(500).json({ message: "Failed to create item" });
+    }
+  });
+
+  app.put("/api/admin/faq-items/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const item = await storage.updateFaqItem(req.params.id, req.body);
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error) {
+      console.error("Error updating FAQ item:", error);
+      res.status(500).json({ message: "Failed to update item" });
+    }
+  });
+
+  app.delete("/api/admin/faq-items/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteFaqItem(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting FAQ item:", error);
+      res.status(500).json({ message: "Failed to delete item" });
+    }
+  });
+
+  // --- Static Pages Admin CRUD ---
+  app.get("/api/admin/static-pages", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const pages = await storage.getAllStaticPages();
+      res.json(pages);
+    } catch (error) {
+      console.error("Error fetching static pages:", error);
+      res.status(500).json({ message: "Failed to fetch pages" });
+    }
+  });
+
+  app.post("/api/admin/static-pages", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const page = await storage.createStaticPage(req.body);
+      res.status(201).json(page);
+    } catch (error) {
+      console.error("Error creating static page:", error);
+      res.status(500).json({ message: "Failed to create page" });
+    }
+  });
+
+  app.put("/api/admin/static-pages/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const page = await storage.updateStaticPage(req.params.id, req.body);
+      if (!page) return res.status(404).json({ message: "Page not found" });
+      res.json(page);
+    } catch (error) {
+      console.error("Error updating static page:", error);
+      res.status(500).json({ message: "Failed to update page" });
+    }
+  });
+
+  app.delete("/api/admin/static-pages/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteStaticPage(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting static page:", error);
+      res.status(500).json({ message: "Failed to delete page" });
+    }
+  });
+
+  // --- Banners Admin CRUD ---
+  app.get("/api/admin/banners", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const banners = await storage.getAllBanners();
+      res.json(banners);
+    } catch (error) {
+      console.error("Error fetching banners:", error);
+      res.status(500).json({ message: "Failed to fetch banners" });
+    }
+  });
+
+  app.post("/api/admin/banners", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const banner = await storage.createBanner(req.body);
+      res.status(201).json(banner);
+    } catch (error) {
+      console.error("Error creating banner:", error);
+      res.status(500).json({ message: "Failed to create banner" });
+    }
+  });
+
+  app.put("/api/admin/banners/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const banner = await storage.updateBanner(req.params.id, req.body);
+      if (!banner) return res.status(404).json({ message: "Banner not found" });
+      res.json(banner);
+    } catch (error) {
+      console.error("Error updating banner:", error);
+      res.status(500).json({ message: "Failed to update banner" });
+    }
+  });
+
+  app.delete("/api/admin/banners/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteBanner(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting banner:", error);
+      res.status(500).json({ message: "Failed to delete banner" });
+    }
+  });
+
+  // --- Email Templates Public API ---
+  app.get("/api/email-templates", async (req: Request, res: Response) => {
+    try {
+      const templates = await storage.getEmailTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching email templates:", error);
+      res.status(500).json({ message: "Failed to fetch templates" });
+    }
+  });
+
+  // --- Email Templates Admin CRUD ---
+  app.get("/api/admin/email-templates", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const templates = await storage.getEmailTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching email templates:", error);
+      res.status(500).json({ message: "Failed to fetch templates" });
+    }
+  });
+
+  app.get("/api/admin/email-templates/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const template = await storage.getEmailTemplate(req.params.id);
+      if (!template) return res.status(404).json({ message: "Template not found" });
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching email template:", error);
+      res.status(500).json({ message: "Failed to fetch template" });
+    }
+  });
+
+  app.post("/api/admin/email-templates", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const template = await storage.createEmailTemplate(req.body);
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Error creating email template:", error);
+      res.status(500).json({ message: "Failed to create template" });
+    }
+  });
+
+  app.put("/api/admin/email-templates/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const template = await storage.updateEmailTemplate(req.params.id, req.body);
+      if (!template) return res.status(404).json({ message: "Template not found" });
+      res.json(template);
+    } catch (error) {
+      console.error("Error updating email template:", error);
+      res.status(500).json({ message: "Failed to update template" });
+    }
+  });
+
+  app.delete("/api/admin/email-templates/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteEmailTemplate(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting email template:", error);
+      res.status(500).json({ message: "Failed to delete template" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // ============================================

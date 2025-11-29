@@ -28,7 +28,14 @@ export const userIntentEnum = pgEnum("user_intent", ["buyer", "seller"]);
 export const workflowStatusEnum = pgEnum("workflow_status", ["draft", "submitted", "under_review", "approved", "live", "needs_reapproval", "rejected"]);
 export const approvalStatusEnum = pgEnum("approval_status", ["pending", "approved", "rejected"]);
 export const settingsCategoryEnum = pgEnum("settings_category", ["maps", "smtp", "razorpay", "analytics", "social", "general"]);
-export const emailTriggerEnum = pgEnum("email_trigger", ["user_registration", "inquiry_received", "inquiry_response", "property_submitted", "property_approved", "property_rejected", "payment_success", "subscription_expiring", "welcome_seller", "welcome_buyer"]);
+export const emailTriggerEnum = pgEnum("email_trigger", [
+  "welcome_buyer", "welcome_seller", "email_verification", "password_reset", "password_changed",
+  "inquiry_received", "inquiry_response", "new_message", 
+  "property_submitted", "property_approved", "property_rejected", "property_needs_reapproval", "property_live",
+  "seller_approved", "seller_rejected", "seller_verification_pending",
+  "payment_success", "payment_failed", "subscription_activated", "subscription_expiring", "subscription_expired",
+  "account_deactivated", "account_reactivated", "admin_notification"
+]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
