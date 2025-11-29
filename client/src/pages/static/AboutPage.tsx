@@ -1,15 +1,36 @@
+import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Target, Award, TrendingUp } from "lucide-react";
+import { Users, Target, Award, TrendingUp, Loader2 } from "lucide-react";
+
+interface PlatformStats {
+  active_listings: string;
+  registered_users: string;
+  properties_sold: string;
+  verified_sellers: string;
+}
 
 export default function AboutPage() {
+  const { data: statsData, isLoading: statsLoading } = useQuery<PlatformStats>({
+    queryKey: ["/api/platform-stats"],
+  });
+
+  const defaultStats: PlatformStats = {
+    active_listings: "10,000+",
+    registered_users: "50,000+",
+    properties_sold: "5,000+",
+    verified_sellers: "1,000+",
+  };
+
+  const displayStats = statsData || defaultStats;
+
   const stats = [
-    { value: "10,000+", label: "Active Listings" },
-    { value: "50,000+", label: "Registered Users" },
-    { value: "5,000+", label: "Properties Sold" },
-    { value: "1,000+", label: "Verified Sellers" },
+    { value: displayStats.active_listings, label: "Active Listings" },
+    { value: displayStats.registered_users, label: "Registered Users" },
+    { value: displayStats.properties_sold, label: "Properties Sold" },
+    { value: displayStats.verified_sellers, label: "Verified Sellers" },
   ];
 
   const values = [
@@ -47,7 +68,6 @@ export default function AboutPage() {
       <Header />
 
       <main className="flex-1">
-        {/* Hero Section */}
         <section className="py-16 bg-gradient-to-b from-primary/5 to-background">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <Badge className="mb-4">About Us</Badge>
@@ -60,7 +80,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Mission Section */}
         <section className="py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
@@ -74,20 +93,25 @@ export default function AboutPage() {
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-6">
-                {stats.map((stat, index) => (
-                  <Card key={index} className="p-6 text-center">
-                    <p className="text-3xl font-bold font-serif text-primary mb-2">
-                      {stat.value}
-                    </p>
-                    <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  </Card>
-                ))}
+                {statsLoading ? (
+                  <div className="col-span-2 flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  stats.map((stat, index) => (
+                    <Card key={index} className="p-6 text-center" data-testid={`about-stat-${index}`}>
+                      <p className="text-3xl font-bold font-serif text-primary mb-2">
+                        {stat.value}
+                      </p>
+                      <p className="text-sm text-muted-foreground">{stat.label}</p>
+                    </Card>
+                  ))
+                )}
               </div>
             </div>
           </div>
         </section>
 
-        {/* Values Section */}
         <section className="py-16 bg-muted/30">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
@@ -115,7 +139,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Team Section */}
         <section className="py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
@@ -138,7 +161,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* CTA Section */}
         <section className="py-16 bg-primary text-primary-foreground">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="font-serif font-bold text-3xl mb-4">
