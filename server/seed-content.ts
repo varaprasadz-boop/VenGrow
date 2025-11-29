@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { packages, faqItems, staticPages, banners, platformSettings, emailTemplates } from "@shared/schema";
+import { packages, faqItems, staticPages, banners, platformSettings, emailTemplates, popularCities, navigationLinks, propertyTypesManaged, siteSettings } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 async function seedPackages() {
@@ -577,6 +577,441 @@ async function seedBanners() {
   console.log(`Inserted ${bannerData.length} banners`);
 }
 
+async function seedPopularCities() {
+  console.log("Seeding popular cities...");
+  
+  const existingCities = await db.select().from(popularCities);
+  if (existingCities.length > 0) {
+    console.log("Popular cities already exist, skipping...");
+    return;
+  }
+
+  const citiesData = [
+    {
+      name: "Mumbai",
+      slug: "mumbai",
+      state: "Maharashtra",
+      propertyCount: 2500,
+      searchParams: { city: "Mumbai" },
+      sortOrder: 1,
+      isActive: true,
+    },
+    {
+      name: "Bangalore",
+      slug: "bangalore",
+      state: "Karnataka",
+      propertyCount: 2200,
+      searchParams: { city: "Bangalore" },
+      sortOrder: 2,
+      isActive: true,
+    },
+    {
+      name: "Delhi",
+      slug: "delhi",
+      state: "Delhi",
+      propertyCount: 1800,
+      searchParams: { city: "Delhi" },
+      sortOrder: 3,
+      isActive: true,
+    },
+    {
+      name: "Pune",
+      slug: "pune",
+      state: "Maharashtra",
+      propertyCount: 1500,
+      searchParams: { city: "Pune" },
+      sortOrder: 4,
+      isActive: true,
+    },
+    {
+      name: "Hyderabad",
+      slug: "hyderabad",
+      state: "Telangana",
+      propertyCount: 1400,
+      searchParams: { city: "Hyderabad" },
+      sortOrder: 5,
+      isActive: true,
+    },
+    {
+      name: "Chennai",
+      slug: "chennai",
+      state: "Tamil Nadu",
+      propertyCount: 1200,
+      searchParams: { city: "Chennai" },
+      sortOrder: 6,
+      isActive: true,
+    },
+    {
+      name: "Kolkata",
+      slug: "kolkata",
+      state: "West Bengal",
+      propertyCount: 900,
+      searchParams: { city: "Kolkata" },
+      sortOrder: 7,
+      isActive: true,
+    },
+    {
+      name: "Ahmedabad",
+      slug: "ahmedabad",
+      state: "Gujarat",
+      propertyCount: 800,
+      searchParams: { city: "Ahmedabad" },
+      sortOrder: 8,
+      isActive: true,
+    },
+  ];
+
+  await db.insert(popularCities).values(citiesData);
+  console.log(`Inserted ${citiesData.length} popular cities`);
+}
+
+async function seedNavigationLinks() {
+  console.log("Seeding navigation links...");
+  
+  const existingLinks = await db.select().from(navigationLinks);
+  if (existingLinks.length > 0) {
+    console.log("Navigation links already exist, skipping...");
+    return;
+  }
+
+  const linksData = [
+    // Footer - Quick Links
+    {
+      label: "About Us",
+      url: "/about",
+      position: "footer" as const,
+      section: "quick_links" as const,
+      linkType: "internal" as const,
+      sortOrder: 1,
+      isActive: true,
+    },
+    {
+      label: "How It Works",
+      url: "/how-it-works",
+      position: "footer" as const,
+      section: "quick_links" as const,
+      linkType: "internal" as const,
+      sortOrder: 2,
+      isActive: true,
+    },
+    {
+      label: "Pricing",
+      url: "/packages",
+      position: "footer" as const,
+      section: "quick_links" as const,
+      linkType: "internal" as const,
+      sortOrder: 3,
+      isActive: true,
+    },
+    {
+      label: "FAQ",
+      url: "/faq",
+      position: "footer" as const,
+      section: "quick_links" as const,
+      linkType: "internal" as const,
+      sortOrder: 4,
+      isActive: true,
+    },
+    // Footer - For Sellers
+    {
+      label: "Become a Seller",
+      url: "/seller/type",
+      position: "footer" as const,
+      section: "for_sellers" as const,
+      linkType: "internal" as const,
+      sortOrder: 1,
+      isActive: true,
+    },
+    {
+      label: "View Packages",
+      url: "/packages",
+      position: "footer" as const,
+      section: "for_sellers" as const,
+      linkType: "internal" as const,
+      sortOrder: 2,
+      isActive: true,
+    },
+    {
+      label: "Seller Guide",
+      url: "/sell-faster-guide",
+      position: "footer" as const,
+      section: "for_sellers" as const,
+      linkType: "internal" as const,
+      sortOrder: 3,
+      isActive: true,
+    },
+    {
+      label: "Contact Support",
+      url: "/contact",
+      position: "footer" as const,
+      section: "for_sellers" as const,
+      linkType: "internal" as const,
+      sortOrder: 4,
+      isActive: true,
+    },
+    // Footer - Legal
+    {
+      label: "Privacy Policy",
+      url: "/privacy",
+      position: "footer" as const,
+      section: "legal" as const,
+      linkType: "internal" as const,
+      sortOrder: 1,
+      isActive: true,
+    },
+    {
+      label: "Terms of Service",
+      url: "/terms",
+      position: "footer" as const,
+      section: "legal" as const,
+      linkType: "internal" as const,
+      sortOrder: 2,
+      isActive: true,
+    },
+    {
+      label: "Refund Policy",
+      url: "/refund",
+      position: "footer" as const,
+      section: "legal" as const,
+      linkType: "internal" as const,
+      sortOrder: 3,
+      isActive: true,
+    },
+    // Header - Main Navigation
+    {
+      label: "Browse Properties",
+      url: "/listings",
+      position: "header" as const,
+      section: "main" as const,
+      linkType: "internal" as const,
+      sortOrder: 1,
+      isActive: true,
+    },
+    // SEO City Pages
+    {
+      label: "Properties in Mumbai",
+      url: "/properties/mumbai",
+      position: "footer" as const,
+      section: "quick_links" as const,
+      linkType: "search_filter" as const,
+      searchParams: { city: "Mumbai" },
+      sortOrder: 10,
+      isActive: true,
+    },
+    {
+      label: "Properties in Bangalore",
+      url: "/properties/bangalore",
+      position: "footer" as const,
+      section: "quick_links" as const,
+      linkType: "search_filter" as const,
+      searchParams: { city: "Bangalore" },
+      sortOrder: 11,
+      isActive: true,
+    },
+    {
+      label: "Properties in Delhi",
+      url: "/properties/delhi",
+      position: "footer" as const,
+      section: "quick_links" as const,
+      linkType: "search_filter" as const,
+      searchParams: { city: "Delhi" },
+      sortOrder: 12,
+      isActive: true,
+    },
+  ];
+
+  await db.insert(navigationLinks).values(linksData);
+  console.log(`Inserted ${linksData.length} navigation links`);
+}
+
+async function seedPropertyTypesManaged() {
+  console.log("Seeding property types...");
+  
+  const existingTypes = await db.select().from(propertyTypesManaged);
+  if (existingTypes.length > 0) {
+    console.log("Property types already exist, skipping...");
+    return;
+  }
+
+  const typesData = [
+    {
+      name: "All Types",
+      slug: "all",
+      icon: "Building2",
+      description: "Browse all property types",
+      sortOrder: 0,
+      isActive: true,
+    },
+    {
+      name: "Apartment",
+      slug: "apartment",
+      icon: "Building2",
+      description: "Flats and apartments in residential buildings",
+      sortOrder: 1,
+      isActive: true,
+    },
+    {
+      name: "Villa",
+      slug: "villa",
+      icon: "Home",
+      description: "Independent houses and bungalows",
+      sortOrder: 2,
+      isActive: true,
+    },
+    {
+      name: "Plot/Land",
+      slug: "plot",
+      icon: "LandPlot",
+      description: "Residential and agricultural plots",
+      sortOrder: 3,
+      isActive: true,
+    },
+    {
+      name: "Commercial",
+      slug: "commercial",
+      icon: "Building",
+      description: "Offices, shops, and commercial spaces",
+      sortOrder: 4,
+      isActive: true,
+    },
+    {
+      name: "Farmhouse",
+      slug: "farmhouse",
+      icon: "Warehouse",
+      description: "Farm houses and agricultural properties",
+      sortOrder: 5,
+      isActive: true,
+    },
+    {
+      name: "Penthouse",
+      slug: "penthouse",
+      icon: "Castle",
+      description: "Luxury penthouses and duplexes",
+      sortOrder: 6,
+      isActive: true,
+    },
+  ];
+
+  await db.insert(propertyTypesManaged).values(typesData);
+  console.log(`Inserted ${typesData.length} property types`);
+}
+
+async function seedSiteSettings() {
+  console.log("Seeding site settings...");
+  
+  const existingSettings = await db.select().from(siteSettings);
+  if (existingSettings.length > 0) {
+    console.log("Site settings already exist, skipping...");
+    return;
+  }
+
+  const settingsData = [
+    // Brand
+    {
+      key: "site_name",
+      value: "VenGrow",
+      type: "text",
+      category: "brand",
+      label: "Site Name",
+      description: "The name of your website",
+    },
+    {
+      key: "site_tagline",
+      value: "India's Trusted Verified Property Marketplace",
+      type: "text",
+      category: "brand",
+      label: "Site Tagline",
+      description: "A short description that appears below the site name",
+    },
+    {
+      key: "site_description",
+      value: "Find your dream property with verified sellers and transparent pricing.",
+      type: "textarea",
+      category: "brand",
+      label: "Site Description",
+      description: "Used in footer and meta tags",
+    },
+    // Contact
+    {
+      key: "contact_email",
+      value: "support@vengrow.in",
+      type: "email",
+      category: "contact",
+      label: "Support Email",
+      description: "Primary contact email",
+    },
+    {
+      key: "contact_phone",
+      value: "+91 1800-123-4567",
+      type: "text",
+      category: "contact",
+      label: "Support Phone",
+      description: "Primary contact phone number",
+    },
+    {
+      key: "contact_address",
+      value: "Mumbai, Maharashtra, India",
+      type: "textarea",
+      category: "contact",
+      label: "Office Address",
+      description: "Physical office address",
+    },
+    // Social Media
+    {
+      key: "social_facebook",
+      value: "https://facebook.com/vengrow",
+      type: "url",
+      category: "social",
+      label: "Facebook URL",
+      description: "Facebook page URL",
+    },
+    {
+      key: "social_twitter",
+      value: "https://twitter.com/vengrow",
+      type: "url",
+      category: "social",
+      label: "Twitter URL",
+      description: "Twitter/X profile URL",
+    },
+    {
+      key: "social_instagram",
+      value: "https://instagram.com/vengrow",
+      type: "url",
+      category: "social",
+      label: "Instagram URL",
+      description: "Instagram profile URL",
+    },
+    {
+      key: "social_linkedin",
+      value: "https://linkedin.com/company/vengrow",
+      type: "url",
+      category: "social",
+      label: "LinkedIn URL",
+      description: "LinkedIn company page URL",
+    },
+    // SEO
+    {
+      key: "meta_title_suffix",
+      value: " | VenGrow - Property Marketplace",
+      type: "text",
+      category: "seo",
+      label: "Meta Title Suffix",
+      description: "Appended to all page titles",
+    },
+    {
+      key: "default_meta_description",
+      value: "VenGrow is India's trusted verified property marketplace. Browse apartments, villas, plots, and commercial spaces from verified sellers.",
+      type: "textarea",
+      category: "seo",
+      label: "Default Meta Description",
+      description: "Used when page doesn't have a specific description",
+    },
+  ];
+
+  await db.insert(siteSettings).values(settingsData);
+  console.log(`Inserted ${settingsData.length} site settings`);
+}
+
 export async function seedAllContent() {
   console.log("Starting content seeding...\n");
   
@@ -587,6 +1022,10 @@ export async function seedAllContent() {
     await seedEmailTemplates();
     await seedStaticPages();
     await seedBanners();
+    await seedPopularCities();
+    await seedNavigationLinks();
+    await seedPropertyTypesManaged();
+    await seedSiteSettings();
     
     console.log("\nContent seeding completed successfully!");
   } catch (error) {

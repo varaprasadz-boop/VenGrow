@@ -431,6 +431,10 @@ export const staticPages = pgTable("static_pages", {
   content: text("content").notNull(),
   metaTitle: text("meta_title"),
   metaDescription: text("meta_description"),
+  showInHeader: boolean("show_in_header").notNull().default(false),
+  showInFooter: boolean("show_in_footer").notNull().default(false),
+  footerSection: text("footer_section"),
+  sortOrder: integer("sort_order").notNull().default(0),
   isPublished: boolean("is_published").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -449,6 +453,64 @@ export const banners = pgTable("banners", {
   isActive: boolean("is_active").notNull().default(true),
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const popularCities = pgTable("popular_cities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  state: text("state"),
+  imageUrl: text("image_url"),
+  propertyCount: integer("property_count").notNull().default(0),
+  searchParams: jsonb("search_params").$type<Record<string, string>>(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const navPositionEnum = pgEnum("nav_position", ["header", "footer", "both"]);
+export const navSectionEnum = pgEnum("nav_section", ["quick_links", "for_sellers", "legal", "main"]);
+export const linkTypeEnum = pgEnum("link_type", ["internal", "external", "search_filter"]);
+
+export const navigationLinks = pgTable("navigation_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  label: text("label").notNull(),
+  url: text("url").notNull(),
+  position: navPositionEnum("position").notNull().default("footer"),
+  section: navSectionEnum("section").notNull().default("quick_links"),
+  linkType: linkTypeEnum("link_type").notNull().default("internal"),
+  searchParams: jsonb("search_params").$type<Record<string, string>>(),
+  icon: text("icon"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  openInNewTab: boolean("open_in_new_tab").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const propertyTypesManaged = pgTable("property_types_managed", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  icon: text("icon"),
+  description: text("description"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const siteSettings = pgTable("site_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  key: text("key").notNull().unique(),
+  value: text("value"),
+  type: text("type").notNull().default("text"),
+  category: text("category").notNull().default("general"),
+  label: text("label"),
+  description: text("description"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -631,3 +693,39 @@ export type StaticPage = typeof staticPages.$inferSelect;
 
 export type InsertBanner = z.infer<typeof insertBannerSchema>;
 export type Banner = typeof banners.$inferSelect;
+
+export const insertPopularCitySchema = createInsertSchema(popularCities).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertNavigationLinkSchema = createInsertSchema(navigationLinks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPropertyTypeManagedSchema = createInsertSchema(propertyTypesManaged).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPopularCity = z.infer<typeof insertPopularCitySchema>;
+export type PopularCity = typeof popularCities.$inferSelect;
+
+export type InsertNavigationLink = z.infer<typeof insertNavigationLinkSchema>;
+export type NavigationLink = typeof navigationLinks.$inferSelect;
+
+export type InsertPropertyTypeManaged = z.infer<typeof insertPropertyTypeManagedSchema>;
+export type PropertyTypeManaged = typeof propertyTypesManaged.$inferSelect;
+
+export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;
+export type SiteSetting = typeof siteSettings.$inferSelect;
