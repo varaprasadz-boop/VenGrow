@@ -14,11 +14,13 @@ import {
   type AdminApproval, type AuditLog, type SystemSetting,
   type SellerSubscription, type PropertyAlert,
   type FaqItem, type StaticPage, type Banner, type PlatformSetting,
+  type PopularCity, type NavigationLink, type PropertyTypeManaged, type SiteSetting,
   users, sellerProfiles, packages, properties, propertyImages, propertyDocuments,
   inquiries, favorites, savedSearches, propertyViews,
   chatThreads, chatMessages, notifications, payments, reviews,
   adminApprovals, auditLogs, systemSettings, sellerSubscriptions, propertyAlerts,
-  propertyApprovalRequests, faqItems, staticPages, banners, platformSettings
+  propertyApprovalRequests, faqItems, staticPages, banners, platformSettings,
+  popularCities, navigationLinks, propertyTypesManaged, siteSettings
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, like, or, sql, gte, lte, inArray } from "drizzle-orm";
@@ -140,6 +142,14 @@ export interface IStorage {
   getStaticPages(): Promise<StaticPage[]>;
   getBanners(position?: string): Promise<Banner[]>;
   getPlatformSettings(category?: string): Promise<PlatformSetting[]>;
+  
+  // Dynamic Content Management
+  getPopularCities(): Promise<PopularCity[]>;
+  getPopularCityBySlug(slug: string): Promise<PopularCity | undefined>;
+  getNavigationLinks(position?: string, section?: string): Promise<NavigationLink[]>;
+  getPropertyTypes(): Promise<PropertyTypeManaged[]>;
+  getSiteSettings(category?: string): Promise<SiteSetting[]>;
+  getSiteSetting(key: string): Promise<SiteSetting | undefined>;
 }
 
 export interface PropertyFilters {
@@ -927,6 +937,55 @@ export class DatabaseStorage implements IStorage {
         .where(eq(platformSettings.category, category as any));
     }
     return db.select().from(platformSettings);
+  }
+
+  // Dynamic Content Management implementations
+  async getPopularCities(): Promise<PopularCity[]> {
+    return db.select().from(popularCities)
+      .where(eq(popularCities.isActive, true))
+      .orderBy(popularCities.sortOrder);
+  }
+
+  async getPopularCityBySlug(slug: string): Promise<PopularCity | undefined> {
+    const [city] = await db.select().from(popularCities)
+      .where(and(
+        eq(popularCities.slug, slug),
+        eq(popularCities.isActive, true)
+      ));
+    return city;
+  }
+
+  async getNavigationLinks(position?: string, section?: string): Promise<NavigationLink[]> {
+    const conditions = [eq(navigationLinks.isActive, true)];
+    if (position) {
+      conditions.push(eq(navigationLinks.position, position as any));
+    }
+    if (section) {
+      conditions.push(eq(navigationLinks.section, section as any));
+    }
+    return db.select().from(navigationLinks)
+      .where(and(...conditions))
+      .orderBy(navigationLinks.sortOrder);
+  }
+
+  async getPropertyTypes(): Promise<PropertyTypeManaged[]> {
+    return db.select().from(propertyTypesManaged)
+      .where(eq(propertyTypesManaged.isActive, true))
+      .orderBy(propertyTypesManaged.sortOrder);
+  }
+
+  async getSiteSettings(category?: string): Promise<SiteSetting[]> {
+    if (category) {
+      return db.select().from(siteSettings)
+        .where(eq(siteSettings.category, category));
+    }
+    return db.select().from(siteSettings);
+  }
+
+  async getSiteSetting(key: string): Promise<SiteSetting | undefined> {
+    const [setting] = await db.select().from(siteSettings)
+      .where(eq(siteSettings.key, key));
+    return setting;
   }
 }
 

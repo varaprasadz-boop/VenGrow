@@ -2266,6 +2266,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================
+  // DYNAMIC CONTENT API ROUTES
+  // ============================================
+
+  // Get all active popular cities
+  app.get("/api/popular-cities", async (req: Request, res: Response) => {
+    try {
+      const cities = await storage.getPopularCities();
+      res.json(cities);
+    } catch (error) {
+      console.error("Error fetching popular cities:", error);
+      res.status(500).json({ message: "Failed to fetch popular cities" });
+    }
+  });
+
+  // Get popular city by slug (for SEO landing pages)
+  app.get("/api/popular-cities/:slug", async (req: Request, res: Response) => {
+    try {
+      const { slug } = req.params;
+      const city = await storage.getPopularCityBySlug(slug);
+      if (!city) {
+        return res.status(404).json({ message: "City not found" });
+      }
+      res.json(city);
+    } catch (error) {
+      console.error("Error fetching popular city:", error);
+      res.status(500).json({ message: "Failed to fetch city" });
+    }
+  });
+
+  // Get navigation links (filterable by position and section)
+  app.get("/api/navigation-links", async (req: Request, res: Response) => {
+    try {
+      const position = req.query.position as string | undefined;
+      const section = req.query.section as string | undefined;
+      const links = await storage.getNavigationLinks(position, section);
+      res.json(links);
+    } catch (error) {
+      console.error("Error fetching navigation links:", error);
+      res.status(500).json({ message: "Failed to fetch navigation links" });
+    }
+  });
+
+  // Get all active property types
+  app.get("/api/property-types", async (req: Request, res: Response) => {
+    try {
+      const types = await storage.getPropertyTypes();
+      res.json(types);
+    } catch (error) {
+      console.error("Error fetching property types:", error);
+      res.status(500).json({ message: "Failed to fetch property types" });
+    }
+  });
+
+  // Get all site settings (filterable by category)
+  app.get("/api/site-settings", async (req: Request, res: Response) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const settings = await storage.getSiteSettings(category);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching site settings:", error);
+      res.status(500).json({ message: "Failed to fetch site settings" });
+    }
+  });
+
+  // Get a specific site setting by key
+  app.get("/api/site-settings/:key", async (req: Request, res: Response) => {
+    try {
+      const { key } = req.params;
+      const setting = await storage.getSiteSetting(key);
+      if (!setting) {
+        return res.status(404).json({ message: "Setting not found" });
+      }
+      res.json(setting);
+    } catch (error) {
+      console.error("Error fetching site setting:", error);
+      res.status(500).json({ message: "Failed to fetch setting" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // ============================================
