@@ -13,11 +13,12 @@ import {
   type Review, type InsertReview,
   type AdminApproval, type AuditLog, type SystemSetting,
   type SellerSubscription, type PropertyAlert,
+  type FaqItem, type StaticPage, type Banner, type PlatformSetting,
   users, sellerProfiles, packages, properties, propertyImages, propertyDocuments,
   inquiries, favorites, savedSearches, propertyViews,
   chatThreads, chatMessages, notifications, payments, reviews,
   adminApprovals, auditLogs, systemSettings, sellerSubscriptions, propertyAlerts,
-  propertyApprovalRequests
+  propertyApprovalRequests, faqItems, staticPages, banners, platformSettings
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, like, or, sql, gte, lte, inArray } from "drizzle-orm";
@@ -131,6 +132,14 @@ export interface IStorage {
   deleteEmailTemplate(id: string): Promise<boolean>;
   
   getAllInquiries(filters?: { source?: string; status?: string }): Promise<Inquiry[]>;
+  
+  // Content Management
+  getFaqItems(): Promise<FaqItem[]>;
+  getFaqItemsByCategory(category: string): Promise<FaqItem[]>;
+  getStaticPageBySlug(slug: string): Promise<StaticPage | undefined>;
+  getStaticPages(): Promise<StaticPage[]>;
+  getBanners(position?: string): Promise<Banner[]>;
+  getPlatformSettings(category?: string): Promise<PlatformSetting[]>;
 }
 
 export interface PropertyFilters {
@@ -869,6 +878,55 @@ export class DatabaseStorage implements IStorage {
     }
     
     return query.orderBy(desc(inquiries.createdAt));
+  }
+
+  // Content Management Methods
+  async getFaqItems(): Promise<FaqItem[]> {
+    return db.select().from(faqItems)
+      .where(eq(faqItems.isActive, true))
+      .orderBy(faqItems.category, faqItems.sortOrder);
+  }
+
+  async getFaqItemsByCategory(category: string): Promise<FaqItem[]> {
+    return db.select().from(faqItems)
+      .where(and(
+        eq(faqItems.category, category),
+        eq(faqItems.isActive, true)
+      ))
+      .orderBy(faqItems.sortOrder);
+  }
+
+  async getStaticPageBySlug(slug: string): Promise<StaticPage | undefined> {
+    const [page] = await db.select().from(staticPages)
+      .where(and(
+        eq(staticPages.slug, slug),
+        eq(staticPages.isPublished, true)
+      ));
+    return page;
+  }
+
+  async getStaticPages(): Promise<StaticPage[]> {
+    return db.select().from(staticPages)
+      .where(eq(staticPages.isPublished, true))
+      .orderBy(staticPages.title);
+  }
+
+  async getBanners(position?: string): Promise<Banner[]> {
+    const conditions = [eq(banners.isActive, true)];
+    if (position) {
+      conditions.push(eq(banners.position, position));
+    }
+    return db.select().from(banners)
+      .where(and(...conditions))
+      .orderBy(banners.sortOrder);
+  }
+
+  async getPlatformSettings(category?: string): Promise<PlatformSetting[]> {
+    if (category) {
+      return db.select().from(platformSettings)
+        .where(eq(platformSettings.category, category as any));
+    }
+    return db.select().from(platformSettings);
   }
 }
 

@@ -2169,6 +2169,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================
+  // PUBLIC CONTENT ROUTES (FAQ, Static Pages, Banners)
+  // ============================================
+
+  // Get all FAQ items
+  app.get("/api/faq", async (req: Request, res: Response) => {
+    try {
+      const faqItems = await storage.getFaqItems();
+      res.json(faqItems);
+    } catch (error) {
+      console.error("Error fetching FAQ items:", error);
+      res.status(500).json({ message: "Failed to fetch FAQ items" });
+    }
+  });
+
+  // Get FAQ items by category
+  app.get("/api/faq/:category", async (req: Request, res: Response) => {
+    try {
+      const { category } = req.params;
+      const faqItems = await storage.getFaqItemsByCategory(category);
+      res.json(faqItems);
+    } catch (error) {
+      console.error("Error fetching FAQ items:", error);
+      res.status(500).json({ message: "Failed to fetch FAQ items" });
+    }
+  });
+
+  // Get static page by slug
+  app.get("/api/static-pages/:slug", async (req: Request, res: Response) => {
+    try {
+      const { slug } = req.params;
+      const page = await storage.getStaticPageBySlug(slug);
+      if (!page) {
+        return res.status(404).json({ message: "Page not found" });
+      }
+      res.json(page);
+    } catch (error) {
+      console.error("Error fetching static page:", error);
+      res.status(500).json({ message: "Failed to fetch page" });
+    }
+  });
+
+  // Get all static pages (for sitemap/admin)
+  app.get("/api/static-pages", async (req: Request, res: Response) => {
+    try {
+      const pages = await storage.getStaticPages();
+      res.json(pages);
+    } catch (error) {
+      console.error("Error fetching static pages:", error);
+      res.status(500).json({ message: "Failed to fetch pages" });
+    }
+  });
+
+  // Get active banners by position
+  app.get("/api/banners", async (req: Request, res: Response) => {
+    try {
+      const position = req.query.position as string | undefined;
+      const banners = await storage.getBanners(position);
+      res.json(banners);
+    } catch (error) {
+      console.error("Error fetching banners:", error);
+      res.status(500).json({ message: "Failed to fetch banners" });
+    }
+  });
+
+  // Get platform settings (public ones only)
+  app.get("/api/platform-settings", async (req: Request, res: Response) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const settings = await storage.getPlatformSettings(category);
+      // Filter out encrypted settings for public access
+      const publicSettings = settings.filter(s => !s.isEncrypted);
+      res.json(publicSettings);
+    } catch (error) {
+      console.error("Error fetching platform settings:", error);
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  // Get platform stats for homepage
+  app.get("/api/platform-stats", async (req: Request, res: Response) => {
+    try {
+      const settings = await storage.getPlatformSettings("general");
+      const stats = settings
+        .filter(s => s.key.startsWith("stat_"))
+        .reduce((acc, s) => {
+          const key = s.key.replace("stat_", "");
+          acc[key] = s.value;
+          return acc;
+        }, {} as Record<string, string | null>);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching platform stats:", error);
+      res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // ============================================
