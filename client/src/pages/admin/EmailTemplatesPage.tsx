@@ -88,11 +88,8 @@ export default function EmailTemplatesPage() {
 
   const updateTemplateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<EmailTemplate> }) => {
-      const response = await apiRequest(`/api/admin/email-templates/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
-      return response;
+      const response = await apiRequest("PUT", `/api/admin/email-templates/${id}`, data);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/email-templates"] });
