@@ -9,16 +9,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+import type { PopularCity, PropertyTypeManaged } from "@shared/schema";
 
 interface HeroSectionProps {
   backgroundImage: string;
   onSearch?: (params: { location: string; propertyType: string; transactionType: string }) => void;
 }
 
+const fallbackCities = ["Mumbai", "Bangalore", "Delhi", "Pune", "Hyderabad"];
+const fallbackPropertyTypes = [
+  { slug: "all", name: "All Types" },
+  { slug: "apartment", name: "Apartment" },
+  { slug: "villa", name: "Villa" },
+  { slug: "plot", name: "Plot/Land" },
+  { slug: "commercial", name: "Commercial" },
+];
+
 export default function HeroSection({ backgroundImage, onSearch }: HeroSectionProps) {
   const [location, setLocation] = useState("");
   const [propertyType, setPropertyType] = useState("all");
   const [transactionType, setTransactionType] = useState("sale");
+
+  const { data: popularCities = [] } = useQuery<PopularCity[]>({
+    queryKey: ["/api/popular-cities"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: propertyTypes = [] } = useQuery<PropertyTypeManaged[]>({
+    queryKey: ["/api/property-types"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const displayCities = popularCities.length > 0 
+    ? popularCities.slice(0, 5).map(c => c.name) 
+    : fallbackCities;
+
+  const displayPropertyTypes = propertyTypes.length > 0 
+    ? propertyTypes 
+    : fallbackPropertyTypes;
 
   const handleSearch = () => {
     onSearch?.({ location, propertyType, transactionType });
@@ -74,11 +103,11 @@ export default function HeroSection({ backgroundImage, onSearch }: HeroSectionPr
                       <SelectValue placeholder="Property Type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="apartment">Apartment</SelectItem>
-                      <SelectItem value="villa">Villa</SelectItem>
-                      <SelectItem value="plot">Plot/Land</SelectItem>
-                      <SelectItem value="commercial">Commercial</SelectItem>
+                      {displayPropertyTypes.map((type) => (
+                        <SelectItem key={type.slug} value={type.slug}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -112,7 +141,7 @@ export default function HeroSection({ backgroundImage, onSearch }: HeroSectionPr
               {/* Quick Filters */}
               <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
                 <span className="text-sm text-muted-foreground">Popular:</span>
-                {["Mumbai", "Bangalore", "Delhi", "Pune", "Hyderabad"].map((city) => (
+                {displayCities.map((city) => (
                   <Button
                     key={city}
                     variant="outline"

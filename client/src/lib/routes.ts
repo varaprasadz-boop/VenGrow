@@ -24,6 +24,7 @@ export const publicRoutes: RouteConfig[] = [
   // Main Public Pages
   { path: "/", component: lazy(() => import("@/pages/HomePage")), title: "Home" },
   { path: "/listings", component: lazy(() => import("@/pages/ListingsPage")), title: "Properties" },
+  { path: "/properties/:citySlug", component: lazy(() => import("@/pages/CityPropertiesPage")), title: "Properties" },
   { path: "/property/:id", component: lazy(() => import("@/pages/PropertyDetailPage")), title: "Property Details" },
   { path: "/packages", component: lazy(() => import("@/pages/PackagesPage")), title: "Pricing Plans" },
   
