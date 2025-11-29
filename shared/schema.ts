@@ -413,6 +413,46 @@ export const emailTemplates = pgTable("email_templates", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const faqItems = pgTable("faq_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: text("category").notNull(),
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const staticPages = pgTable("static_pages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  isPublished: boolean("is_published").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const banners = pgTable("banners", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  title: text("title"),
+  subtitle: text("subtitle"),
+  ctaText: text("cta_text"),
+  ctaLink: text("cta_link"),
+  imageUrl: text("image_url"),
+  position: text("position").notNull().default("hero"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -564,3 +604,30 @@ export type PlatformSetting = typeof platformSettings.$inferSelect;
 
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
+
+export const insertFaqItemSchema = createInsertSchema(faqItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStaticPageSchema = createInsertSchema(staticPages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertBannerSchema = createInsertSchema(banners).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertFaqItem = z.infer<typeof insertFaqItemSchema>;
+export type FaqItem = typeof faqItems.$inferSelect;
+
+export type InsertStaticPage = z.infer<typeof insertStaticPageSchema>;
+export type StaticPage = typeof staticPages.$inferSelect;
+
+export type InsertBanner = z.infer<typeof insertBannerSchema>;
+export type Banner = typeof banners.$inferSelect;
