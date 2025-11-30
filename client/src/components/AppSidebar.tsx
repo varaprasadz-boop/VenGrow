@@ -63,6 +63,8 @@ import {
   BadgeCheck,
   AlertCircle,
   Share2,
+  Link2,
+  Flag,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -235,9 +237,21 @@ const adminNavigation: NavGroup[] = [
     ],
   },
   {
+    label: "Content Management",
+    items: [
+      { title: "Popular Cities", url: "/admin/popular-cities", icon: MapPin },
+      { title: "Property Types", url: "/admin/property-types", icon: Building },
+      { title: "Navigation Links", url: "/admin/navigation-links", icon: Link2 },
+      { title: "Static Pages", url: "/admin/static-pages", icon: FileText },
+      { title: "FAQ Management", url: "/admin/faqs", icon: HelpCircle },
+      { title: "Banners", url: "/admin/banners", icon: Flag },
+    ],
+  },
+  {
     label: "Platform Settings",
     items: [
       { title: "General Settings", url: "/admin/settings", icon: Settings },
+      { title: "Site Settings", url: "/admin/site-settings", icon: Settings },
       { title: "Map Integration", url: "/admin/settings/maps", icon: MapPin },
       { title: "SMTP Settings", url: "/admin/settings/smtp", icon: Mail },
       { title: "Email Templates", url: "/admin/email-templates", icon: FileText },
