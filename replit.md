@@ -212,6 +212,35 @@ Preferred communication style: Simple, everyday language.
 - Dark mode compatible color tokens for status badges
 - Integrated into SellerDashboardPage
 
+### Admin Content Management System
+
+**Reusable AdminDataTable Component:**
+- Located in client/src/components/admin/AdminDataTable.tsx
+- Modular components: FilterBar, DataTable, PaginationFooter
+- Configurable filters (search, select dropdowns)
+- Sortable columns with row actions
+- Client-side filtering via filterFn callback
+
+**Content Management Pages:**
+All admin content pages use the AdminDataTable system:
+- Popular Cities (/admin/popular-cities) - Manage featured cities with property counts
+- Property Types (/admin/property-types) - CRUD for property type taxonomy
+- Navigation Links (/admin/navigation-links) - Header/footer link management
+- Static Pages (/admin/static-pages) - CMS for legal, about, FAQ pages
+- FAQ Management (/admin/faqs) - Q&A with category organization
+- Banners (/admin/banners) - Promotional banners with scheduling
+- Site Settings (/admin/site-settings) - Key-value config settings
+
+**Schema Field Mappings:**
+- PropertyTypeManaged: name, slug, icon, description, isActive, sortOrder
+- SiteSetting: key, value, type, category, label, description
+- StaticPage: slug, title, content, showInHeader, showInFooter, footerSection, sortOrder
+- Banner: title, description, imageUrl, linkUrl, bannerType, startDate, endDate, isActive
+
+**Sidebar Navigation:**
+- Content Management section in admin sidebar (AppSidebar.tsx)
+- Links to all content management pages
+
 ### Routing & Navigation
 
 **Client-Side Routing:**

@@ -27,12 +27,13 @@ const filters: FilterConfig[] = [
     options: BANNER_TYPES.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))
   },
   {
-    key: "status",
-    label: "Status",
+    key: "scheduleStatus",
+    label: "Schedule Status",
     type: "select",
     options: [
       { value: "active", label: "Active" },
-      { value: "inactive", label: "Inactive" },
+      { value: "upcoming", label: "Upcoming" },
+      { value: "expired", label: "Expired" },
     ]
   }
 ];
@@ -209,11 +210,11 @@ export default function BannersPage() {
     
     const typeMatch = !filters.type || filters.type === "all" || banner.bannerType === filters.type;
     
-    const statusMatch = !filters.status || filters.status === "all" ||
-      (filters.status === "active" && banner.isActive) ||
-      (filters.status === "inactive" && !banner.isActive);
+    const bannerScheduleStatus = getBannerStatus(banner);
+    const scheduleStatusMatch = !filters.scheduleStatus || filters.scheduleStatus === "all" ||
+      filters.scheduleStatus === bannerScheduleStatus;
     
-    return searchMatch && typeMatch && statusMatch;
+    return searchMatch && typeMatch && scheduleStatusMatch;
   };
 
   const isMutating = createMutation.isPending || updateMutation.isPending;

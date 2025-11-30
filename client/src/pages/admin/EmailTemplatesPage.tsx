@@ -105,9 +105,9 @@ export default function EmailTemplatesPage() {
 
   const filteredTemplates = categoryFilter === "all" 
     ? templates 
-    : templates.filter(t => triggerEventCategories[t.triggerEvent] === categoryFilter);
+    : templates.filter(t => t.triggerEvent && triggerEventCategories[t.triggerEvent] === categoryFilter);
 
-  const categories = [...new Set(Object.values(triggerEventCategories))];
+  const categories = Array.from(new Set(Object.values(triggerEventCategories)));
 
   const handleEditChange = (field: keyof EmailTemplate, value: any) => {
     setEditData((prev) => ({ ...prev, [field]: value }));
@@ -260,7 +260,7 @@ export default function EmailTemplatesPage() {
                         </Badge>
                       </div>
                       <Badge variant="outline" className="text-xs">
-                        {triggerEventCategories[template.triggerEvent] || "Other"}
+                        {template.triggerEvent && triggerEventCategories[template.triggerEvent] || "Other"}
                       </Badge>
                     </button>
                   ))}
@@ -281,7 +281,7 @@ export default function EmailTemplatesPage() {
                           {editMode ? editData.name : selectedTemplate.name}
                         </h2>
                         <p className="text-sm text-muted-foreground">
-                          Trigger: {triggerEventLabels[selectedTemplate.triggerEvent] || selectedTemplate.triggerEvent}
+                          Trigger: {selectedTemplate.triggerEvent && triggerEventLabels[selectedTemplate.triggerEvent] || selectedTemplate.triggerEvent}
                         </p>
                       </div>
                     </div>
@@ -471,7 +471,7 @@ export default function EmailTemplatesPage() {
                         <div>
                           <Label>Trigger Event</Label>
                           <p className="text-sm text-muted-foreground mt-1">
-                            {triggerEventLabels[selectedTemplate.triggerEvent] || selectedTemplate.triggerEvent}
+                            {selectedTemplate.triggerEvent && triggerEventLabels[selectedTemplate.triggerEvent] || selectedTemplate.triggerEvent}
                           </p>
                           <Badge variant="outline" className="mt-2">
                             {selectedTemplate.triggerEvent}

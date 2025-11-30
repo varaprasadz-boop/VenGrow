@@ -26,8 +26,8 @@ const filters: FilterConfig[] = [
     options: SETTING_TYPES.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))
   },
   { 
-    key: "group", 
-    label: "Group", 
+    key: "category", 
+    label: "Category", 
     type: "select",
     options: [
       { value: "general", label: "General" },
@@ -189,7 +189,7 @@ export default function SiteSettingsPage() {
       (setting.label || "").toLowerCase().includes(filters.search.toLowerCase());
     
     const typeMatch = !filters.type || filters.type === "all" || setting.type === filters.type;
-    const categoryMatch = !filters.group || filters.group === "all" || setting.category === filters.group;
+    const categoryMatch = !filters.category || filters.category === "all" || setting.category === filters.category;
     
     return searchMatch && typeMatch && categoryMatch;
   };

@@ -349,6 +349,13 @@ export const adminRoutes: RouteConfig[] = [
   // Content Management
   { path: "/admin/content", component: lazy(() => import("@/pages/admin/ContentModerationPage")), requireAuth: true, roles: ["admin"], title: "Content Moderation" },
   { path: "/admin/content-guidelines", component: lazy(() => import("@/pages/admin/ContentGuidelinesPage")), requireAuth: true, roles: ["admin"], title: "Content Guidelines" },
+  { path: "/admin/popular-cities", component: lazy(() => import("@/pages/admin/PopularCitiesPage")), requireAuth: true, roles: ["admin"], title: "Popular Cities" },
+  { path: "/admin/property-types", component: lazy(() => import("@/pages/admin/PropertyTypesPage")), requireAuth: true, roles: ["admin"], title: "Property Types" },
+  { path: "/admin/navigation-links", component: lazy(() => import("@/pages/admin/NavigationLinksPage")), requireAuth: true, roles: ["admin"], title: "Navigation Links" },
+  { path: "/admin/static-pages", component: lazy(() => import("@/pages/admin/StaticPagesPage")), requireAuth: true, roles: ["admin"], title: "Static Pages" },
+  { path: "/admin/faqs", component: lazy(() => import("@/pages/admin/FaqManagementPage")), requireAuth: true, roles: ["admin"], title: "FAQ Management" },
+  { path: "/admin/banners", component: lazy(() => import("@/pages/admin/BannersPage")), requireAuth: true, roles: ["admin"], title: "Banners" },
+  { path: "/admin/site-settings", component: lazy(() => import("@/pages/admin/SiteSettingsPage")), requireAuth: true, roles: ["admin"], title: "Site Settings" },
   
   // Analytics & Reports
   { path: "/admin/analytics", component: lazy(() => import("@/pages/admin/PlatformAnalyticsPage")), requireAuth: true, roles: ["admin"], title: "Analytics" },

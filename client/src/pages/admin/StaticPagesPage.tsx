@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Edit, Trash2, Loader2, FileText, Eye } from "lucide-react";
 import type { StaticPage } from "@shared/schema";
 
+const FOOTER_SECTIONS = ["company", "legal", "resources", "support"];
+
 const filters: FilterConfig[] = [
   { key: "search", label: "Title/Slug", type: "search", placeholder: "Search pages..." },
   {
@@ -25,7 +27,15 @@ const filters: FilterConfig[] = [
     options: [
       { value: "header", label: "In Header" },
       { value: "footer", label: "In Footer" },
+      { value: "both", label: "Both" },
+      { value: "none", label: "Hidden" },
     ]
+  },
+  {
+    key: "footerSection",
+    label: "Footer Section",
+    type: "select",
+    options: FOOTER_SECTIONS.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))
   }
 ];
 
@@ -164,11 +174,18 @@ export default function StaticPagesPage() {
       page.title.toLowerCase().includes(filters.search.toLowerCase()) ||
       page.slug.toLowerCase().includes(filters.search.toLowerCase());
     
-    const showMatch = !filters.showIn || filters.showIn === "all" ||
-      (filters.showIn === "header" && page.showInHeader) ||
-      (filters.showIn === "footer" && page.showInFooter);
+    let showMatch = true;
+    if (filters.showIn && filters.showIn !== "all") {
+      if (filters.showIn === "header") showMatch = page.showInHeader === true;
+      else if (filters.showIn === "footer") showMatch = page.showInFooter === true;
+      else if (filters.showIn === "both") showMatch = page.showInHeader === true && page.showInFooter === true;
+      else if (filters.showIn === "none") showMatch = !page.showInHeader && !page.showInFooter;
+    }
     
-    return searchMatch && showMatch;
+    const sectionMatch = !filters.footerSection || filters.footerSection === "all" || 
+      page.footerSection === filters.footerSection;
+    
+    return searchMatch && showMatch && sectionMatch;
   };
 
   const isMutating = createMutation.isPending || updateMutation.isPending;
