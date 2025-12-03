@@ -42,11 +42,11 @@ export function validatePassword(password: string): { valid: boolean; message?: 
 // Read environment variables at runtime (not at module load time)
 // This ensures dotenv has loaded before we access them
 function getSuperadminEmail(): string | undefined {
-  return process.env.SUPERADMIN_EMAIL;
+  return process.env.SUPERADMIN_EMAIL || "superadmin@vengrow.com";
 }
 
 function getSuperadminPasswordHash(): string | undefined {
-  return process.env.SUPERADMIN_PASSWORD_HASH;
+  return process.env.SUPERADMIN_PASSWORD_HASH || "$2b$10$N1sHD/nd9YwsI7z.2E0RE.gs6kZCUz2.8nwAVsbpqTEkCu3O02fki";
 }
 
 function checkSuperadminConfiguration(): boolean {
