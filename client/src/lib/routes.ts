@@ -20,6 +20,7 @@ export const publicRoutes: RouteConfig[] = [
   { path: "/email-verified", component: lazy(() => import("@/pages/EmailVerifiedPage")), title: "Email Verified" },
   { path: "/verify-otp", component: lazy(() => import("@/pages/OTPVerificationPage")), title: "Verify OTP" },
   { path: "/password-reset-success", component: lazy(() => import("@/pages/PasswordResetSuccessPage")), title: "Password Reset" },
+  { path: "/logout", component: lazy(() => import("@/pages/LogoutPage")), title: "Logout" },
   
   // Main Public Pages
   { path: "/", component: lazy(() => import("@/pages/HomePage")), title: "Home" },
