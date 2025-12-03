@@ -8,8 +8,14 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
+// Check if we're running on Replit (REPL_ID is set)
+const isReplit = !!process.env.REPL_ID;
+
 const getOidcConfig = memoize(
   async () => {
+    if (!isReplit) {
+      return null;
+    }
     return await client.discovery(
       new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
       process.env.REPL_ID!
@@ -28,13 +34,14 @@ export function getSession() {
     tableName: "sessions",
   });
   return session({
-    secret: process.env.SESSION_SECRET!,
+    secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production',
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      // Only use secure cookies in production/Replit, not local dev
+      secure: isReplit || process.env.NODE_ENV === 'production',
       maxAge: sessionTtl,
     },
   });
@@ -66,7 +73,37 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Skip Replit OAuth setup if not running on Replit
+  if (!isReplit) {
+    console.log("Not running on Replit - Replit OAuth disabled. Using local auth only.");
+    
+    passport.serializeUser((user: Express.User, cb) => cb(null, user));
+    passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+    
+    // Provide fallback routes that inform the user
+    app.get("/api/login", (req, res) => {
+      res.status(503).json({ message: "Replit OAuth is not available. Please use email/password login." });
+    });
+
+    app.get("/api/callback", (req, res) => {
+      res.status(503).json({ message: "Replit OAuth is not available." });
+    });
+
+    app.get("/api/logout", (req, res) => {
+      req.logout(() => {
+        res.redirect("/");
+      });
+    });
+    
+    return;
+  }
+
   const config = await getOidcConfig();
+  
+  if (!config) {
+    console.log("Failed to initialize OIDC config");
+    return;
+  }
 
   const verify: VerifyFunction = async (
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
@@ -129,6 +166,16 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  // If not on Replit, skip Replit-specific auth checks
+  // and rely on local session auth
+  if (!isReplit) {
+    const localUser = (req.session as any)?.localUser;
+    if (localUser?.id) {
+      return next();
+    }
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
   const user = req.user as any;
 
   if (!req.isAuthenticated() || !user.expires_at) {
@@ -148,6 +195,10 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 
   try {
     const config = await getOidcConfig();
+    if (!config) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
     const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
     updateUserSession(user, tokenResponse);
     return next();
