@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import Uppy from "@uppy/core";
-import { Dashboard } from "@uppy/react";
+import Dashboard from "@uppy/react/dashboard";
 import "@uppy/core/css/style.min.css";
 import "@uppy/dashboard/css/style.min.css";
+
 import AwsS3 from "@uppy/aws-s3";
 import type { UploadResult } from "@uppy/core";
 import { Button } from "@/components/ui/button";
@@ -94,7 +95,6 @@ export function ObjectUploader({
               uppy={uppy}
               hideUploadButton={false}
               proudlyDisplayPoweredByUppy={false}
-              showProgressDetails={true}
               note="Images only, up to 10 MB each"
               height={350}
             />
