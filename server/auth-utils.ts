@@ -41,43 +41,27 @@ export function validatePassword(password: string): { valid: boolean; message?: 
 
 // Read environment variables at runtime (not at module load time)
 // This ensures dotenv has loaded before we access them
-function getSuperadminEmail(): string | undefined {
-  return process.env.SUPERADMIN_EMAIL || "superadmin@vengrow.com";
+// Default credentials are provided as fallback
+const DEFAULT_SUPERADMIN_EMAIL = "superadmin@vengrow.com";
+const DEFAULT_SUPERADMIN_PASSWORD_HASH = "$2b$10$N1sHD/nd9YwsI7z.2E0RE.gs6kZCUz2.8nwAVsbpqTEkCu3O02fki";
+
+function getSuperadminEmail(): string {
+  return process.env.SUPERADMIN_EMAIL || DEFAULT_SUPERADMIN_EMAIL;
 }
 
-function getSuperadminPasswordHash(): string | undefined {
-  return process.env.SUPERADMIN_PASSWORD_HASH || "$2b$10$N1sHD/nd9YwsI7z.2E0RE.gs6kZCUz2.8nwAVsbpqTEkCu3O02fki";
+function getSuperadminPasswordHash(): string {
+  return process.env.SUPERADMIN_PASSWORD_HASH || DEFAULT_SUPERADMIN_PASSWORD_HASH;
 }
 
-function checkSuperadminConfiguration(): boolean {
-  const email = getSuperadminEmail();
-  const passwordHash = getSuperadminPasswordHash();
-  
-  if (!email || !passwordHash) {
-    console.warn("WARNING: SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD_HASH must be set in environment variables");
-    return false;
-  }
-  return true;
-}
-
-export async function getSuperadminCredentials(): Promise<{ email: string; passwordHash: string } | null> {
-  if (!checkSuperadminConfiguration()) {
-    return null;
-  }
-  
+export async function getSuperadminCredentials(): Promise<{ email: string; passwordHash: string }> {
   return {
-    email: getSuperadminEmail()!,
-    passwordHash: getSuperadminPasswordHash()!,
+    email: getSuperadminEmail(),
+    passwordHash: getSuperadminPasswordHash(),
   };
 }
 
 export async function verifySuperadminCredentials(email: string, password: string): Promise<boolean> {
   const credentials = await getSuperadminCredentials();
-  
-  if (!credentials) {
-    console.error("Superadmin credentials not configured");
-    return false;
-  }
   
   if (email.toLowerCase() !== credentials.email.toLowerCase()) {
     return false;
