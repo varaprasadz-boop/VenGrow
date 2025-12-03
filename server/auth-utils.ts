@@ -39,13 +39,21 @@ export function validatePassword(password: string): { valid: boolean; message?: 
   return { valid: true };
 }
 
-const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL;
-const SUPERADMIN_PASSWORD_HASH = process.env.SUPERADMIN_PASSWORD_HASH;
+// Read environment variables at runtime (not at module load time)
+// This ensures dotenv has loaded before we access them
+function getSuperadminEmail(): string | undefined {
+  return process.env.SUPERADMIN_EMAIL;
+}
 
-let cachedPasswordHash: string | null = null;
+function getSuperadminPasswordHash(): string | undefined {
+  return process.env.SUPERADMIN_PASSWORD_HASH;
+}
 
 function checkSuperadminConfiguration(): boolean {
-  if (!SUPERADMIN_EMAIL || !SUPERADMIN_PASSWORD_HASH) {
+  const email = getSuperadminEmail();
+  const passwordHash = getSuperadminPasswordHash();
+  
+  if (!email || !passwordHash) {
     console.warn("WARNING: SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD_HASH must be set in environment variables");
     return false;
   }
@@ -58,8 +66,8 @@ export async function getSuperadminCredentials(): Promise<{ email: string; passw
   }
   
   return {
-    email: SUPERADMIN_EMAIL!,
-    passwordHash: SUPERADMIN_PASSWORD_HASH!,
+    email: getSuperadminEmail()!,
+    passwordHash: getSuperadminPasswordHash()!,
   };
 }
 

@@ -1,22 +1,32 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
 
-const razorpayKeyId = process.env.RAZORPAY_KEY_ID;
-const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
+// Read environment variables at runtime (not at module load time)
+function getRazorpayKeyId(): string | undefined {
+  return process.env.RAZORPAY_KEY_ID;
+}
+
+function getRazorpayKeySecret(): string | undefined {
+  return process.env.RAZORPAY_KEY_SECRET;
+}
 
 let razorpayInstance: Razorpay | null = null;
 
-const DUMMY_MODE = !razorpayKeyId || !razorpayKeySecret;
+function isDummyModeEnabled(): boolean {
+  const keyId = getRazorpayKeyId();
+  const keySecret = getRazorpayKeySecret();
+  return !keyId || !keySecret;
+}
 
 export function getRazorpay(): Razorpay {
-  if (DUMMY_MODE) {
+  if (isDummyModeEnabled()) {
     throw new Error("Razorpay is in dummy mode");
   }
   
   if (!razorpayInstance) {
     razorpayInstance = new Razorpay({
-      key_id: razorpayKeyId!,
-      key_secret: razorpayKeySecret!,
+      key_id: getRazorpayKeyId()!,
+      key_secret: getRazorpayKeySecret()!,
     });
   }
   
@@ -24,15 +34,15 @@ export function getRazorpay(): Razorpay {
 }
 
 export function isRazorpayConfigured(): boolean {
-  return !DUMMY_MODE;
+  return !isDummyModeEnabled();
 }
 
 export function isDummyMode(): boolean {
-  return DUMMY_MODE;
+  return isDummyModeEnabled();
 }
 
 export function getKeyId(): string {
-  return razorpayKeyId || "rzp_test_dummy";
+  return getRazorpayKeyId() || "rzp_test_dummy";
 }
 
 interface CreateOrderParams {
@@ -56,7 +66,7 @@ export interface RazorpayOrder {
 }
 
 export async function createOrder(params: CreateOrderParams): Promise<RazorpayOrder> {
-  if (DUMMY_MODE) {
+  if (isDummyModeEnabled()) {
     const dummyOrderId = `order_dummy_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     return {
       id: dummyOrderId,
@@ -91,17 +101,18 @@ interface VerifyPaymentParams {
 }
 
 export function verifyPaymentSignature(params: VerifyPaymentParams): boolean {
-  if (DUMMY_MODE) {
+  if (isDummyModeEnabled()) {
     return true;
   }
 
-  if (!razorpayKeySecret) {
+  const keySecret = getRazorpayKeySecret();
+  if (!keySecret) {
     throw new Error("Razorpay key secret not configured");
   }
   
   const body = params.razorpay_order_id + "|" + params.razorpay_payment_id;
   const expectedSignature = crypto
-    .createHmac("sha256", razorpayKeySecret)
+    .createHmac("sha256", keySecret)
     .update(body)
     .digest("hex");
   
@@ -109,7 +120,7 @@ export function verifyPaymentSignature(params: VerifyPaymentParams): boolean {
 }
 
 export async function fetchPaymentDetails(paymentId: string) {
-  if (DUMMY_MODE) {
+  if (isDummyModeEnabled()) {
     return {
       id: paymentId,
       entity: "payment",

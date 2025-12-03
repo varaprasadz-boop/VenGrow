@@ -8,12 +8,14 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
-// Check if we're running on Replit (REPL_ID is set)
-const isReplit = !!process.env.REPL_ID;
+// Check if we're running on Replit (REPL_ID is set) - evaluated at runtime
+function isRunningOnReplit(): boolean {
+  return !!process.env.REPL_ID;
+}
 
 const getOidcConfig = memoize(
   async () => {
-    if (!isReplit) {
+    if (!isRunningOnReplit()) {
       return null;
     }
     return await client.discovery(
@@ -41,7 +43,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       // Only use secure cookies in production/Replit, not local dev
-      secure: isReplit || process.env.NODE_ENV === 'production',
+      secure: isRunningOnReplit() || process.env.NODE_ENV === 'production',
       maxAge: sessionTtl,
     },
   });
@@ -74,7 +76,7 @@ export async function setupAuth(app: Express) {
   app.use(passport.session());
 
   // Skip Replit OAuth setup if not running on Replit
-  if (!isReplit) {
+  if (!isRunningOnReplit()) {
     console.log("Not running on Replit - Replit OAuth disabled. Using local auth only.");
     
     passport.serializeUser((user: Express.User, cb) => cb(null, user));
@@ -168,7 +170,7 @@ export async function setupAuth(app: Express) {
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   // If not on Replit, skip Replit-specific auth checks
   // and rely on local session auth
-  if (!isReplit) {
+  if (!isRunningOnReplit()) {
     const localUser = (req.session as any)?.localUser;
     if (localUser?.id) {
       return next();
