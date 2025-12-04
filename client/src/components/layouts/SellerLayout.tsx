@@ -123,8 +123,13 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       <div className="flex h-screen w-full">
         <Sidebar>
           <SidebarHeader className="border-b p-4">
-            <Link href="/seller/dashboard" className="flex items-center gap-2" data-testid="link-seller-home">
-              <Building2 className="h-6 w-6 text-primary" />
+            <Link href="/seller/dashboard" className="flex items-center gap-3" data-testid="link-seller-home">
+              <img 
+                src="/favicon.png" 
+                alt="VenGrow" 
+                className="h-8 w-8 object-contain"
+                data-testid="img-seller-logo"
+              />
               <div className="flex flex-col">
                 <span className="font-serif font-bold text-lg">VenGrow</span>
                 <span className="text-xs text-muted-foreground">Seller Portal</span>

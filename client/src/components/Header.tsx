@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Menu, Search, Heart, User, Home, Building2, Loader2 } from "lucide-react";
+import { Menu, Search, Heart, User, Home, Loader2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -88,8 +88,12 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1 -ml-2" data-testid="link-home">
-            <Building2 className="h-6 w-6 text-primary" />
-            {siteName && <span className="font-serif font-bold text-xl hidden sm:inline">{siteName}</span>}
+            <img 
+              src="/vengrow-logo.png" 
+              alt="VenGrow" 
+              className="h-10 object-contain"
+              data-testid="img-header-logo"
+            />
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1">
