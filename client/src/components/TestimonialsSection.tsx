@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Star, Quote } from "lucide-react";
+import { Star, Quote, Settings } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Testimonial {
@@ -40,6 +40,10 @@ export default function TestimonialsSection() {
   const badgeText = getSettingValue("testimonials_badge_text");
   const sectionTitle = getSettingValue("testimonials_section_title");
   const sectionSubtitle = getSettingValue("testimonials_section_subtitle");
+  const emptyTitle = getSettingValue("testimonials_empty_title");
+  const emptyDescription = getSettingValue("testimonials_empty_description");
+  const adminPromptTitle = getSettingValue("admin_config_prompt_title");
+  const adminPromptDescription = getSettingValue("admin_config_prompt_description");
 
   const activeTestimonials = testimonials.filter(t => t.isActive).slice(0, 3);
 
@@ -69,6 +73,22 @@ export default function TestimonialsSection() {
   }
 
   if (!activeTestimonials.length) {
+    const promptTitle = emptyTitle || adminPromptTitle;
+    const promptDescription = emptyDescription || adminPromptDescription;
+    
+    if (promptTitle || promptDescription) {
+      return (
+        <section className="py-16 bg-muted/30" data-testid="section-testimonials">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <Card className="p-8 text-center max-w-md mx-auto">
+              <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              {promptTitle && <h3 className="font-semibold text-lg mb-2">{promptTitle}</h3>}
+              {promptDescription && <p className="text-muted-foreground text-sm">{promptDescription}</p>}
+            </Card>
+          </div>
+        </section>
+      );
+    }
     return null;
   }
 
