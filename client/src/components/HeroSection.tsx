@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, MapPin, AlertCircle, Settings } from "lucide-react";
+import { Search, MapPin, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,6 +23,11 @@ interface HeroSlide {
   buttonLink?: string;
   overlayOpacity?: number;
   isActive: boolean;
+}
+
+interface SiteSetting {
+  key: string;
+  value: string | null;
 }
 
 interface HeroSectionProps {
@@ -49,6 +54,26 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: siteSettings = [], isLoading: settingsLoading } = useQuery<SiteSetting[]>({
+    queryKey: ["/api/site-settings"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const getSettingValue = (key: string): string | null => {
+    const setting = siteSettings.find(s => s.key === key);
+    return setting?.value || null;
+  };
+
+  const searchPlaceholder = getSettingValue("hero_search_placeholder");
+  const allTypesLabel = getSettingValue("hero_all_types_label");
+  const buyLabel = getSettingValue("hero_buy_label");
+  const leaseLabel = getSettingValue("hero_lease_label");
+  const rentLabel = getSettingValue("hero_rent_label");
+  const searchButtonText = getSettingValue("hero_search_button");
+  const popularLabel = getSettingValue("hero_popular_label");
+  const emptyTitle = getSettingValue("hero_empty_title");
+  const emptyDescription = getSettingValue("hero_empty_description");
+
   const activeSlide = heroSlides.find(s => s.isActive) || heroSlides[0];
   const displayCities = popularCities.slice(0, 5);
   const displayPropertyTypes = propertyTypes.filter(pt => pt.isActive);
@@ -57,7 +82,7 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
     onSearch?.({ location, propertyType, transactionType });
   };
 
-  if (heroLoading) {
+  if (heroLoading || settingsLoading) {
     return (
       <div className="relative h-[600px] w-full" data-testid="section-hero">
         <Skeleton className="w-full h-full" />
@@ -66,19 +91,20 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
   }
 
   if (!activeSlide) {
-    return (
-      <div className="relative h-[500px] w-full bg-gradient-to-br from-primary/20 to-primary/5" data-testid="section-hero">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Card className="p-8 text-center max-w-md">
-            <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="font-semibold text-xl mb-2">Hero Section Not Configured</h2>
-            <p className="text-muted-foreground text-sm">
-              Configure hero slides in the Admin Panel to display content here.
-            </p>
-          </Card>
+    if (emptyTitle || emptyDescription) {
+      return (
+        <div className="relative h-[500px] w-full bg-gradient-to-br from-primary/20 to-primary/5" data-testid="section-hero">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Card className="p-8 text-center max-w-md">
+              <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              {emptyTitle && <h2 className="font-semibold text-xl mb-2">{emptyTitle}</h2>}
+              {emptyDescription && <p className="text-muted-foreground text-sm">{emptyDescription}</p>}
+            </Card>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+    return null;
   }
 
   return (
@@ -87,7 +113,7 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
         {activeSlide.imageUrl ? (
           <img
             src={activeSlide.imageUrl}
-            alt="Property showcase"
+            alt=""
             className="w-full h-full object-cover"
             data-testid="img-hero-background"
           />
@@ -123,7 +149,7 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
                     <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       type="text"
-                      placeholder="City, Locality, or Project"
+                      placeholder={searchPlaceholder || ""}
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                       className="pl-10"
@@ -135,10 +161,10 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
                 <div className="md:col-span-3">
                   <Select value={propertyType} onValueChange={setPropertyType}>
                     <SelectTrigger data-testid="select-property-type">
-                      <SelectValue placeholder="Property Type" />
+                      <SelectValue placeholder={allTypesLabel || ""} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
+                      {allTypesLabel && <SelectItem value="all">{allTypesLabel}</SelectItem>}
                       {displayPropertyTypes.map((type) => (
                         <SelectItem key={type.slug} value={type.slug}>
                           {type.name}
@@ -151,12 +177,12 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
                 <div className="md:col-span-2">
                   <Select value={transactionType} onValueChange={setTransactionType}>
                     <SelectTrigger data-testid="select-transaction-type">
-                      <SelectValue placeholder="Buy/Lease/Rent" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="sale">Buy</SelectItem>
-                      <SelectItem value="lease">Lease</SelectItem>
-                      <SelectItem value="rent">Rent</SelectItem>
+                      {buyLabel && <SelectItem value="sale">{buyLabel}</SelectItem>}
+                      {leaseLabel && <SelectItem value="lease">{leaseLabel}</SelectItem>}
+                      {rentLabel && <SelectItem value="rent">{rentLabel}</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>
@@ -168,14 +194,14 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
                     data-testid="button-hero-search"
                   >
                     <Search className="h-4 w-4 mr-2" />
-                    Search
+                    {searchButtonText}
                   </Button>
                 </div>
               </div>
 
-              {displayCities.length > 0 && (
+              {displayCities.length > 0 && popularLabel && (
                 <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
-                  <span className="text-sm text-muted-foreground">Popular:</span>
+                  <span className="text-sm text-muted-foreground">{popularLabel}</span>
                   {displayCities.map((city) => (
                     <Button
                       key={city.id}

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Star, Quote, AlertCircle } from "lucide-react";
+import { Star, Quote } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Testimonial {
@@ -16,11 +16,30 @@ interface Testimonial {
   sortOrder: number;
 }
 
+interface SiteSetting {
+  key: string;
+  value: string | null;
+}
+
 export default function TestimonialsSection() {
   const { data: testimonials = [], isLoading } = useQuery<Testimonial[]>({
     queryKey: ["/api/testimonials"],
     staleTime: 5 * 60 * 1000,
   });
+
+  const { data: siteSettings = [], isLoading: settingsLoading } = useQuery<SiteSetting[]>({
+    queryKey: ["/api/site-settings"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const getSettingValue = (key: string): string | null => {
+    const setting = siteSettings.find(s => s.key === key);
+    return setting?.value || null;
+  };
+
+  const badgeText = getSettingValue("testimonials_badge_text");
+  const sectionTitle = getSettingValue("testimonials_section_title");
+  const sectionSubtitle = getSettingValue("testimonials_section_subtitle");
 
   const activeTestimonials = testimonials.filter(t => t.isActive).slice(0, 3);
 
@@ -35,14 +54,10 @@ export default function TestimonialsSection() {
     </div>
   );
 
-  if (isLoading) {
+  if (isLoading || settingsLoading) {
     return (
       <section className="py-16 bg-muted/30" data-testid="section-testimonials">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <Skeleton className="h-10 w-64 mx-auto mb-4" />
-            <Skeleton className="h-6 w-96 mx-auto" />
-          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-64 w-full rounded-lg" />
@@ -60,18 +75,26 @@ export default function TestimonialsSection() {
   return (
     <section className="py-16 bg-muted/30" data-testid="section-testimonials">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-4">
-            <Quote className="h-5 w-5" />
-            <span className="text-sm font-medium">Customer Stories</span>
+        {(badgeText || sectionTitle || sectionSubtitle) && (
+          <div className="text-center mb-12">
+            {badgeText && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-4">
+                <Quote className="h-5 w-5" />
+                <span className="text-sm font-medium">{badgeText}</span>
+              </div>
+            )}
+            {sectionTitle && (
+              <h2 className="font-serif font-bold text-3xl sm:text-4xl mb-4">
+                {sectionTitle}
+              </h2>
+            )}
+            {sectionSubtitle && (
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                {sectionSubtitle}
+              </p>
+            )}
           </div>
-          <h2 className="font-serif font-bold text-3xl sm:text-4xl mb-4">
-            What Our Customers Say
-          </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Hear from thousands of happy customers who found their perfect property with VenGrow
-          </p>
-        </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8" data-testid="grid-testimonials">
           {activeTestimonials.map((testimonial) => (
