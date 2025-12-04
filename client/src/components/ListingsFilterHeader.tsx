@@ -75,11 +75,11 @@ export default function ListingsFilterHeader({ onOpenFilters }: ListingsFilterHe
                 <Button variant="ghost" size="sm" className="w-full justify-start" data-testid="option-buy">
                   Buy
                 </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start" data-testid="option-lease">
+                  Lease
+                </Button>
                 <Button variant="ghost" size="sm" className="w-full justify-start" data-testid="option-rent">
                   Rent
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start" data-testid="option-pg">
-                  PG/Co-living
                 </Button>
               </div>
             </PopoverContent>

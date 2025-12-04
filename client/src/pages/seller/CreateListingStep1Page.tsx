@@ -107,8 +107,8 @@ export default function CreateListingStep1Page() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="sale">For Sale</SelectItem>
-                      <SelectItem value="rent">For Rent</SelectItem>
                       <SelectItem value="lease">For Lease</SelectItem>
+                      <SelectItem value="rent">For Rent</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -154,14 +154,14 @@ export default function CreateListingStep1Page() {
                   <Input
                     id="price"
                     type="number"
-                    placeholder={formData.transactionType === "rent" ? "45000" : "8500000"}
+                    placeholder={formData.transactionType === "rent" || formData.transactionType === "lease" ? "45000" : "8500000"}
                     value={formData.price}
                     onChange={(e) =>
                       setFormData({ ...formData, price: e.target.value })
                     }
                     data-testid="input-price"
                   />
-                  {formData.transactionType === "rent" && (
+                  {(formData.transactionType === "rent" || formData.transactionType === "lease") && (
                     <span className="text-muted-foreground">/month</span>
                   )}
                 </div>

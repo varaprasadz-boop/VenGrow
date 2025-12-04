@@ -26,6 +26,7 @@ interface FilterSidebarProps {
 
 export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
   const [priceRange, setPriceRange] = useState([0, 20000000]);
+  const [selectedTransactionTypes, setSelectedTransactionTypes] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedBHK, setSelectedBHK] = useState<string[]>([]);
   const [selectedSeller, setSelectedSeller] = useState<string[]>([]);
@@ -58,8 +59,15 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
     );
   };
 
+  const handleTransactionTypeToggle = (type: string) => {
+    setSelectedTransactionTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
   const handleClearFilters = () => {
     setPriceRange([0, 20000000]);
+    setSelectedTransactionTypes([]);
     setSelectedTypes([]);
     setSelectedBHK([]);
     setSelectedSeller([]);
@@ -73,6 +81,7 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
   const handleApply = () => {
     const filters = {
       priceRange,
+      transactionTypes: selectedTransactionTypes,
       propertyTypes: selectedTypes,
       bhk: selectedBHK,
       sellerTypes: selectedSeller,
@@ -113,7 +122,7 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
     return `₹${value.toLocaleString('en-IN')}`;
   };
 
-  const activeFiltersCount = selectedTypes.length + selectedBHK.length + selectedSeller.length + 
+  const activeFiltersCount = selectedTransactionTypes.length + selectedTypes.length + selectedBHK.length + selectedSeller.length + 
     selectedPropertyAge.length + (selectedCity !== "all" ? 1 : 0) + (corporateSearch ? 1 : 0);
 
   return (
@@ -138,7 +147,34 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
       </div>
 
       {/* Filter Sections */}
-      <Accordion type="multiple" defaultValue={["location", "price", "type", "seller", "age"]} className="w-full">
+      <Accordion type="multiple" defaultValue={["transaction", "location", "price", "type", "seller", "age"]} className="w-full">
+        {/* Transaction Type Filter */}
+        <AccordionItem value="transaction">
+          <AccordionTrigger>Transaction Type</AccordionTrigger>
+          <AccordionContent className="space-y-3">
+            {[
+              { id: "buy", label: "Buy" },
+              { id: "lease", label: "Lease" },
+              { id: "rent", label: "Rent" },
+            ].map((type) => (
+              <div key={type.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`transaction-${type.id}`}
+                  checked={selectedTransactionTypes.includes(type.id)}
+                  onCheckedChange={() => handleTransactionTypeToggle(type.id)}
+                  data-testid={`checkbox-transaction-${type.id}`}
+                />
+                <Label
+                  htmlFor={`transaction-${type.id}`}
+                  className="flex-1 cursor-pointer text-sm font-normal"
+                >
+                  {type.label}
+                </Label>
+              </div>
+            ))}
+          </AccordionContent>
+        </AccordionItem>
+
         {/* Location Filter */}
         <AccordionItem value="location">
           <AccordionTrigger>

@@ -46,13 +46,27 @@ A PropertyMapView component uses Leaflet with OpenStreetMap tiles, offering grid
 
 The homepage features a section showcasing clickable corporate builder logos with verified badges, property counts, and links to filtered listings.
 
+### Transaction Types
+
+The platform supports three transaction types: Buy (Sale), Lease, and Rent. The UI consistently displays these in the Buy/Lease/Rent sequence across all components. Both Lease and Rent properties display "/month" price suffix. Components updated for this include:
+- HeroSection with transaction type tabs
+- ListingsFilterHeader with Buy/Lease/Rent tabs
+- FilterSidebar with transaction type checkboxes
+- PropertyCard with transaction type badges
+- Seller create listing flow with Lease option
+- Admin listing moderation with Lease support
+
 ### Enhanced FilterSidebar
 
-The filter sidebar includes advanced options for location (city/locality), property age, builder/developer search, and seller type, all with robust test attributes.
+The filter sidebar includes advanced options for transaction type (Buy/Lease/Rent), location (city/locality), property age, builder/developer search, and seller type, all with robust test attributes.
 
 ### Seller Dashboard Components
 
-The SellerDashboardPage includes an ApprovalStatusTracker, providing visual progress for property workflow, displaying rejected properties with reasons, and offering actions for editing or resubmitting.
+The SellerDashboardPage includes an ApprovalStatusTracker, providing visual progress for property workflow, displaying rejected properties with reasons, and offering actions for editing or resubmitting. The ManageListingsPage supports filtering by status including "Leased" alongside "Sold" and "Rented".
+
+### Property Listing Features
+
+Properties now capture additional details including Possession Status (Ready to Move/Under Construction), New Construction indicator, Furnishing Status (Unfurnished/Semi-Furnished/Fully Furnished), and Property Age. These fields are displayed as badges in PropertyCard, property detail pages, and admin moderation views.
 
 ### Admin Content Management System
 

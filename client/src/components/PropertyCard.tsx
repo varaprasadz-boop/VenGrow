@@ -17,8 +17,11 @@ interface PropertyCardProps {
   propertyType: string;
   isFeatured?: boolean;
   isVerified?: boolean;
+  isNewConstruction?: boolean;
+  furnishing?: "Unfurnished" | "Semi-Furnished" | "Fully Furnished";
+  ageOfProperty?: string;
   sellerType: "Individual" | "Broker" | "Builder";
-  transactionType: "Sale" | "Rent";
+  transactionType: "Sale" | "Lease" | "Rent";
   onFavoriteClick?: (id: string) => void;
   onClick?: (id: string) => void;
 }
@@ -35,6 +38,9 @@ export default function PropertyCard({
   propertyType,
   isFeatured = false,
   isVerified = false,
+  isNewConstruction = false,
+  furnishing,
+  ageOfProperty,
   sellerType,
   transactionType,
   onFavoriteClick,
@@ -80,15 +86,20 @@ export default function PropertyCard({
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex gap-2">
+        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
           {isFeatured && (
-            <Badge className="bg-primary text-primary-foreground border-primary-border">
+            <Badge className="bg-primary text-primary-foreground border-primary-border text-xs">
               Featured
             </Badge>
           )}
-          <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm">
+          <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm text-xs">
             For {transactionType}
           </Badge>
+          {isNewConstruction && (
+            <Badge variant="secondary" className="bg-blue-500/90 text-white backdrop-blur-sm text-xs" data-testid={`badge-new-${id}`}>
+              New
+            </Badge>
+          )}
         </div>
 
         {/* Favorite Button */}
@@ -108,7 +119,7 @@ export default function PropertyCard({
         <div className="absolute bottom-3 left-3 right-3">
           <p className="text-white font-bold text-2xl font-serif drop-shadow-lg">
             {formatPrice(price)}
-            {transactionType === "Rent" && <span className="text-lg">/month</span>}
+            {(transactionType === "Rent" || transactionType === "Lease") && <span className="text-lg">/month</span>}
           </p>
         </div>
       </div>
@@ -147,13 +158,23 @@ export default function PropertyCard({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge variant="outline" className="text-xs" data-testid={`badge-seller-${id}`}>
               {sellerType}
             </Badge>
             {isVerified && (
               <CheckCircle2 className="h-4 w-4 text-green-600" />
+            )}
+            {furnishing && (
+              <Badge variant="secondary" className="text-xs" data-testid={`badge-furnishing-${id}`}>
+                {furnishing}
+              </Badge>
+            )}
+            {ageOfProperty && (
+              <Badge variant="outline" className="text-xs text-muted-foreground" data-testid={`badge-age-${id}`}>
+                {ageOfProperty}
+              </Badge>
             )}
           </div>
           <Badge variant="secondary" className="text-xs">

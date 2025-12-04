@@ -136,11 +136,15 @@ function FilterSidebar({ className }: { className?: string }) {
           <h3 className="font-semibold mb-3">Transaction Type</h3>
           <div className="space-y-2">
             <label className="flex items-center gap-2 cursor-pointer">
-              <Checkbox id="sale" />
+              <Checkbox id="sale" data-testid="checkbox-buy" />
               <span className="text-sm">Buy</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <Checkbox id="rent" />
+              <Checkbox id="lease" data-testid="checkbox-lease" />
+              <span className="text-sm">Lease</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox id="rent" data-testid="checkbox-rent" />
               <span className="text-sm">Rent</span>
             </label>
           </div>

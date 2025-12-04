@@ -283,19 +283,41 @@ export default function ListingModerationPage() {
                                         {approval.property.propertyType}
                                       </Badge>
                                       <Badge variant="outline" className="capitalize">
-                                        {approval.property.transactionType}
+                                        {approval.property.transactionType === "sale" ? "For Sale" : 
+                                         (approval.property.transactionType as string) === "lease" ? "For Lease" : "For Rent"}
                                       </Badge>
+                                      {approval.property.bedrooms && (
+                                        <Badge variant="secondary" className="text-xs" data-testid={`badge-bhk-${approval.id}`}>
+                                          {approval.property.bedrooms} BHK
+                                        </Badge>
+                                      )}
+                                      {approval.property.furnishing && (
+                                        <Badge variant="outline" className="text-xs capitalize" data-testid={`badge-furnishing-${approval.id}`}>
+                                          {approval.property.furnishing}
+                                        </Badge>
+                                      )}
+                                      {approval.property.ageOfProperty && (
+                                        <Badge variant="outline" className="text-xs" data-testid={`badge-age-${approval.id}`}>
+                                          {approval.property.ageOfProperty}
+                                        </Badge>
+                                      )}
+                                      {approval.property.possessionStatus && (
+                                        <Badge variant="outline" className="text-xs capitalize" data-testid={`badge-possession-${approval.id}`}>
+                                          {approval.property.possessionStatus === "ready-to-move" ? "Ready to Move" : "Under Construction"}
+                                        </Badge>
+                                      )}
                                     </div>
                                     <div className="space-y-1 text-sm">
                                       <div className="flex items-center gap-2 text-muted-foreground">
                                         <MapPin className="h-4 w-4" />
-                                        {approval.property.locality}, {approval.property.city}
+                                        {approval.property.locality && <span className="font-medium">{approval.property.locality}, </span>}
+                                        {approval.property.city}
                                       </div>
                                       <div className="flex items-center gap-2 text-muted-foreground">
                                         <IndianRupee className="h-4 w-4" />
                                         <span className="font-medium text-primary">
                                           {formatPrice(approval.property.price)}
-                                          {approval.property.transactionType === "rent" && "/month"}
+                                          {(approval.property.transactionType === "rent" || (approval.property.transactionType as string) === "lease") && "/month"}
                                         </span>
                                       </div>
                                     </div>

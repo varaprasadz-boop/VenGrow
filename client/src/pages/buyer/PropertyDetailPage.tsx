@@ -29,15 +29,18 @@ export default function PropertyDetailPage() {
     title: "Luxury 3BHK Apartment in Prime Location",
     price: "₹85 L",
     location: "Bandra West, Mumbai, Maharashtra",
+    locality: "Bandra West",
     bedrooms: 3,
     bathrooms: 2,
     area: 1200,
-    status: "For Sale",
+    status: "For Sale" as "For Sale" | "For Lease" | "For Rent",
     propertyType: "Apartment",
     postedDate: "Oct 15, 2025",
+    isNewConstruction: false,
+    possessionStatus: "Ready to Move",
     seller: {
       name: "Prestige Estates",
-      type: "Builder",
+      type: "Builder" as "Individual" | "Broker" | "Builder",
       verified: true,
     },
     features: {
@@ -119,10 +122,34 @@ Key Highlights:
                 </div>
                 <div className="flex flex-wrap items-center gap-3 mb-4">
                   <Badge variant="outline">{property.propertyType}</Badge>
-                  <Badge variant="default">{property.status}</Badge>
+                  <Badge variant="default" data-testid="badge-status">{property.status}</Badge>
+                  {property.isNewConstruction && (
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" data-testid="badge-new-construction">
+                      New Construction
+                    </Badge>
+                  )}
+                  {!property.isNewConstruction && (
+                    <Badge variant="outline" className="text-muted-foreground" data-testid="badge-resale">
+                      Resale
+                    </Badge>
+                  )}
+                  <Badge variant="outline" data-testid="badge-possession">
+                    {property.possessionStatus}
+                  </Badge>
+                  <Badge variant="outline" data-testid="badge-property-age">
+                    {property.features.ageOfProperty} old
+                  </Badge>
                   <span className="text-sm text-muted-foreground">
                     Posted {property.postedDate}
                   </span>
+                </div>
+                {/* Locality Display */}
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="secondary" className="text-xs" data-testid="badge-locality">
+                    {property.locality}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">•</span>
+                  <span className="text-sm font-medium" data-testid="text-bhk">{property.bedrooms} BHK {property.propertyType}</span>
                 </div>
                 <p className="text-4xl font-bold font-serif text-primary mb-2">
                   {property.price}

@@ -23,12 +23,18 @@ export default function CreateListingStep4Page() {
   const propertyData = {
     title: "Luxury 3BHK Apartment in Prime Location",
     location: "Bandra West, Mumbai, Maharashtra",
+    locality: "Bandra West",
     price: "₹85 L",
     type: "Apartment",
+    transactionType: "sale" as "sale" | "lease" | "rent",
     bedrooms: 3,
     bathrooms: 2,
     area: 1200,
     features: ["Swimming Pool", "Gym", "Garden", "Security"],
+    possessionStatus: "Ready to Move",
+    ageOfProperty: "2 years",
+    isNewConstruction: false,
+    furnishing: "Semi-Furnished",
   };
 
   return (
@@ -193,11 +199,30 @@ export default function CreateListingStep4Page() {
                   </div>
 
                   <div>
-                    <div className="flex items-start gap-2 mb-2">
-                      <h4 className="font-semibold line-clamp-2">
+                    <div className="flex flex-wrap items-start gap-2 mb-2">
+                      <h4 className="font-semibold line-clamp-2 flex-1">
                         {propertyData.title}
                       </h4>
-                      <Badge>For Sale</Badge>
+                      <Badge data-testid="badge-transaction-type">
+                        {propertyData.transactionType === "sale" ? "For Sale" : 
+                         propertyData.transactionType === "lease" ? "For Lease" : "For Rent"}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <Badge variant="secondary" className="text-xs" data-testid="badge-locality">
+                        {propertyData.locality}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs" data-testid="badge-possession">
+                        {propertyData.possessionStatus}
+                      </Badge>
+                      {propertyData.isNewConstruction && (
+                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" data-testid="badge-new-construction">
+                          New
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="text-xs" data-testid="badge-furnishing">
+                        {propertyData.furnishing}
+                      </Badge>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
                       <MapPin className="h-4 w-4" />
@@ -205,6 +230,9 @@ export default function CreateListingStep4Page() {
                     </div>
                     <p className="text-2xl font-bold font-serif text-primary mb-4">
                       {propertyData.price}
+                      {(propertyData.transactionType === "rent" || propertyData.transactionType === "lease") && (
+                        <span className="text-lg font-normal">/month</span>
+                      )}
                     </p>
                   </div>
 

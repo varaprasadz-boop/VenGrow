@@ -149,10 +149,15 @@ export default function ManageListingsPage() {
         label: "Rented",
         icon: CheckCircle,
       },
+      leased: {
+        className: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-500",
+        label: "Leased",
+        icon: CheckCircle,
+      },
     };
 
-    if (status === "sold" || status === "rented") {
-      return variants[status];
+    if (status === "sold" || status === "rented" || (status as string) === "leased") {
+      return variants[status as keyof typeof variants] || variants.draft;
     }
     
     return variants[workflowStatus] || variants.draft;
@@ -172,7 +177,7 @@ export default function ManageListingsPage() {
       } else if (selectedTab === "rejected") {
         filtered = filtered.filter((l) => l.workflowStatus === "rejected");
       } else if (selectedTab === "sold") {
-        filtered = filtered.filter((l) => l.status === "sold" || l.status === "rented");
+        filtered = filtered.filter((l) => l.status === "sold" || l.status === "rented" || (l.status as string) === "leased");
       }
     }
     if (searchQuery) {
@@ -189,7 +194,7 @@ export default function ManageListingsPage() {
   const filteredListings = filterListings();
 
   const formatPrice = (price: number, transactionType: string) => {
-    if (transactionType === "rent") {
+    if (transactionType === "rent" || transactionType === "lease") {
       return `₹${(price / 1000).toFixed(0)}K/mo`;
     }
     if (price >= 10000000) {

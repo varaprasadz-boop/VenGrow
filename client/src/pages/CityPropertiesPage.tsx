@@ -295,7 +295,7 @@ export default function CityPropertiesPage() {
                       isFeatured={property.isFeatured || false}
                       isVerified={property.isVerified || false}
                       sellerType="Individual"
-                      transactionType={property.transactionType as "Sale" | "Rent"}
+                      transactionType={property.transactionType as "Sale" | "Lease" | "Rent"}
                     />
                   ))}
                 </div>

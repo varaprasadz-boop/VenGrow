@@ -116,10 +116,11 @@ export default function HeroSection({ backgroundImage, onSearch }: HeroSectionPr
                 <div className="md:col-span-2">
                   <Select value={transactionType} onValueChange={setTransactionType}>
                     <SelectTrigger data-testid="select-transaction-type">
-                      <SelectValue placeholder="Buy/Rent" />
+                      <SelectValue placeholder="Buy/Lease/Rent" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="sale">Buy</SelectItem>
+                      <SelectItem value="lease">Lease</SelectItem>
                       <SelectItem value="rent">Rent</SelectItem>
                     </SelectContent>
                   </Select>

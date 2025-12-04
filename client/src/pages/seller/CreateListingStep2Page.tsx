@@ -30,6 +30,9 @@ export default function CreateListingStep2Page() {
     furnishing: "",
     parking: "",
     ageOfProperty: "",
+    possessionStatus: "",
+    expectedPossessionDate: "",
+    isNewConstruction: false,
     amenities: [] as string[],
   });
 
@@ -290,6 +293,89 @@ export default function CreateListingStep2Page() {
                       <SelectItem value="open">Open Parking</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              {/* Possession Status & Property Age */}
+              <div>
+                <h3 className="font-semibold mb-4">Possession & Construction Status</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="possessionStatus">Possession Status *</Label>
+                    <Select
+                      value={formData.possessionStatus}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, possessionStatus: value })
+                      }
+                    >
+                      <SelectTrigger id="possessionStatus" data-testid="select-possession-status">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ready-to-move">Ready to Move</SelectItem>
+                        <SelectItem value="under-construction">Under Construction</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.possessionStatus === "under-construction" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="expectedPossessionDate">Expected Possession Date</Label>
+                      <Input
+                        id="expectedPossessionDate"
+                        type="month"
+                        value={formData.expectedPossessionDate}
+                        onChange={(e) =>
+                          setFormData({ ...formData, expectedPossessionDate: e.target.value })
+                        }
+                        data-testid="input-expected-possession-date"
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="ageOfProperty">Property Age *</Label>
+                    <Select
+                      value={formData.ageOfProperty}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, ageOfProperty: value })
+                      }
+                    >
+                      <SelectTrigger id="ageOfProperty" data-testid="select-property-age">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="new">New Construction</SelectItem>
+                        <SelectItem value="0-1">Less than 1 year</SelectItem>
+                        <SelectItem value="1-5">1-5 years</SelectItem>
+                        <SelectItem value="5-10">5-10 years</SelectItem>
+                        <SelectItem value="10+">10+ years</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* New Construction Toggle */}
+                <div className="flex items-center space-x-3 mt-4 p-4 border rounded-lg bg-muted/30">
+                  <Checkbox
+                    id="isNewConstruction"
+                    checked={formData.isNewConstruction}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, isNewConstruction: checked === true })
+                    }
+                    data-testid="checkbox-new-construction"
+                  />
+                  <div>
+                    <Label
+                      htmlFor="isNewConstruction"
+                      className="font-medium cursor-pointer"
+                    >
+                      This is a New Construction property
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Check this if the property is a newly built project from a developer/builder
+                    </p>
+                  </div>
                 </div>
               </div>
 
