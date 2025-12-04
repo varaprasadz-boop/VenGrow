@@ -1,164 +1,117 @@
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import CategorySection from "@/components/CategorySection";
 import PropertyCard from "@/components/PropertyCard";
 import StatsSection from "@/components/StatsSection";
 import VerifiedBuildersSection from "@/components/VerifiedBuildersSection";
+import TestimonialsSection from "@/components/TestimonialsSection";
 import Footer from "@/components/Footer";
-import heroImage from '@assets/generated_images/luxury_indian_apartment_building.png';
-import apartmentImage from '@assets/generated_images/modern_apartment_interior_india.png';
-import villaImage from '@assets/generated_images/independent_villa_with_garden.png';
-import commercialImage from '@assets/generated_images/commercial_office_building_india.png';
-import plotImage from '@assets/generated_images/residential_plot_ready_construction.png';
-import kitchenImage from '@assets/generated_images/modern_kitchen_interior_apartment.png';
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+
+interface Property {
+  id: string;
+  title: string;
+  price: number;
+  location: string;
+  imageUrl: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  area: number;
+  propertyType: string;
+  isFeatured?: boolean;
+  isVerified?: boolean;
+  sellerType: "Individual" | "Broker" | "Builder";
+  transactionType: "Sale" | "Rent" | "Lease";
+}
 
 export default function HomePage() {
-  // TODO: Remove mock data
-  const featuredProperties = [
-    {
-      id: "1",
-      title: "Luxury 3BHK Apartment in Prime Location",
-      price: 8500000,
-      location: "Bandra West, Mumbai",
-      imageUrl: heroImage,
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 1450,
-      propertyType: "Apartment",
-      isFeatured: true,
-      isVerified: true,
-      sellerType: "Builder" as const,
-      transactionType: "Sale" as const,
-    },
-    {
-      id: "2",
-      title: "Spacious 2BHK Flat with Modern Amenities",
-      price: 45000,
-      location: "Koramangala, Bangalore",
-      imageUrl: apartmentImage,
-      bedrooms: 2,
-      bathrooms: 2,
-      area: 1200,
-      propertyType: "Apartment",
-      isVerified: true,
-      sellerType: "Individual" as const,
-      transactionType: "Rent" as const,
-    },
-    {
-      id: "3",
-      title: "Beautiful Independent Villa with Garden",
-      price: 12500000,
-      location: "Whitefield, Bangalore",
-      imageUrl: villaImage,
-      bedrooms: 4,
-      bathrooms: 3,
-      area: 2800,
-      propertyType: "Villa",
-      isVerified: true,
-      sellerType: "Broker" as const,
-      transactionType: "Sale" as const,
-    },
-  ];
+  const { data: featuredProperties = [], isLoading: featuredLoading } = useQuery<Property[]>({
+    queryKey: ["/api/properties", "featured"],
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const newListings = [
-    {
-      id: "4",
-      title: "Modern Commercial Office Space",
-      price: 15000000,
-      location: "Cyber City, Gurgaon",
-      imageUrl: commercialImage,
-      area: 3500,
-      propertyType: "Commercial",
-      isVerified: true,
-      sellerType: "Builder" as const,
-      transactionType: "Sale" as const,
-    },
-    {
-      id: "5",
-      title: "Premium Showroom Space for Lease",
-      price: 150000,
-      location: "MG Road, Bangalore",
-      imageUrl: plotImage,
-      area: 2400,
-      propertyType: "Commercial",
-      isVerified: true,
-      sellerType: "Builder" as const,
-      transactionType: "Lease" as const,
-    },
-    {
-      id: "6",
-      title: "Fully Furnished 3BHK Premium Apartment",
-      price: 75000,
-      location: "Powai, Mumbai",
-      imageUrl: kitchenImage,
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 1650,
-      propertyType: "Apartment",
-      isFeatured: true,
-      isVerified: true,
-      sellerType: "Broker" as const,
-      transactionType: "Rent" as const,
-    },
-  ];
+  const { data: newProperties = [], isLoading: newLoading } = useQuery<Property[]>({
+    queryKey: ["/api/properties", "new"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const PropertySkeletons = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {[1, 2, 3].map((i) => (
+        <Skeleton key={i} className="h-80 w-full rounded-lg" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       
       <main className="flex-1">
-        <HeroSection backgroundImage={heroImage} />
+        <HeroSection />
         
         <CategorySection />
 
-        {/* Featured Properties */}
-        <section className="py-16 bg-background">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="font-serif font-bold text-3xl mb-2">Featured Properties</h2>
-                <p className="text-muted-foreground">Handpicked premium properties for you</p>
+        {(featuredLoading || featuredProperties.length > 0) && (
+          <section className="py-16 bg-background" data-testid="section-featured-properties">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="font-serif font-bold text-3xl mb-2">Featured Properties</h2>
+                  <p className="text-muted-foreground">Handpicked premium properties for you</p>
+                </div>
+                <Link href="/listings?featured=true" className="text-primary font-medium hover:underline" data-testid="link-view-all-featured">
+                  View All
+                </Link>
               </div>
-              <a href="/listings" className="text-primary font-medium hover:underline" data-testid="link-view-all-featured">
-                View All
-              </a>
+              {featuredLoading ? (
+                <PropertySkeletons />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-featured-properties">
+                  {featuredProperties.slice(0, 3).map((property) => (
+                    <PropertyCard key={property.id} {...property} />
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredProperties.map((property) => (
-                <PropertyCard key={property.id} {...property} />
-              ))}
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
-        {/* Stats */}
         <StatsSection />
 
-        {/* New Listings */}
-        <section className="py-16 bg-background">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="font-serif font-bold text-3xl mb-2">New Listings</h2>
-                <p className="text-muted-foreground">Recently added properties</p>
+        {(newLoading || newProperties.length > 0) && (
+          <section className="py-16 bg-background" data-testid="section-new-listings">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="font-serif font-bold text-3xl mb-2">New Listings</h2>
+                  <p className="text-muted-foreground">Recently added properties</p>
+                </div>
+                <Link href="/listings?sort=newest" className="text-primary font-medium hover:underline" data-testid="link-view-all-new">
+                  View All
+                </Link>
               </div>
-              <a href="/listings" className="text-primary font-medium hover:underline" data-testid="link-view-all-new">
-                View All
-              </a>
+              {newLoading ? (
+                <PropertySkeletons />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-new-listings">
+                  {newProperties.slice(0, 3).map((property) => (
+                    <PropertyCard key={property.id} {...property} />
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {newListings.map((property) => (
-                <PropertyCard key={property.id} {...property} />
-              ))}
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
-        {/* Verified Builders Section */}
         <VerifiedBuildersSection />
 
-        {/* CTA Section */}
-        <section className="py-16 bg-primary text-primary-foreground">
+        <TestimonialsSection />
+
+        <section className="py-16 bg-primary text-primary-foreground" data-testid="section-cta">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="font-serif font-bold text-3xl sm:text-4xl mb-4">
               Ready to Sell Your Property?
@@ -166,11 +119,11 @@ export default function HomePage() {
             <p className="text-lg mb-8 opacity-90">
               Join thousands of sellers and list your property with verified buyers waiting
             </p>
-            <a href="/seller/register" data-testid="link-become-seller">
-              <button className="bg-background text-foreground hover-elevate active-elevate-2 px-8 py-4 rounded-lg font-semibold text-lg">
+            <Link href="/seller/register" data-testid="link-become-seller">
+              <Button size="lg" variant="secondary" className="font-semibold text-lg px-8">
                 Become a Seller
-              </button>
-            </a>
+              </Button>
+            </Link>
           </div>
         </section>
       </main>

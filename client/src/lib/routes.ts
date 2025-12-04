@@ -384,9 +384,15 @@ export const adminRoutes: RouteConfig[] = [
   { path: "/admin/popular-cities", component: lazy(() => import("@/pages/admin/PopularCitiesPage")), requireAuth: true, roles: ["admin"], title: "Popular Cities" },
   { path: "/admin/property-types", component: lazy(() => import("@/pages/admin/PropertyTypesPage")), requireAuth: true, roles: ["admin"], title: "Property Types" },
   { path: "/admin/navigation-links", component: lazy(() => import("@/pages/admin/NavigationLinksPage")), requireAuth: true, roles: ["admin"], title: "Navigation Links" },
+  { path: "/admin/navigation", component: lazy(() => import("@/pages/admin/NavigationLinksPage")), requireAuth: true, roles: ["admin"], title: "Navigation Links" },
   { path: "/admin/static-pages", component: lazy(() => import("@/pages/admin/StaticPagesPage")), requireAuth: true, roles: ["admin"], title: "Static Pages" },
   { path: "/admin/faqs", component: lazy(() => import("@/pages/admin/FaqManagementPage")), requireAuth: true, roles: ["admin"], title: "FAQ Management" },
   { path: "/admin/banners", component: lazy(() => import("@/pages/admin/BannersPage")), requireAuth: true, roles: ["admin"], title: "Banners" },
+  { path: "/admin/hero-slides", component: lazy(() => import("@/pages/admin/HeroSlidesPage")), requireAuth: true, roles: ["admin"], title: "Hero Slides" },
+  { path: "/admin/verified-builders", component: lazy(() => import("@/pages/admin/VerifiedBuildersPage")), requireAuth: true, roles: ["admin"], title: "Verified Builders" },
+  { path: "/admin/testimonials", component: lazy(() => import("@/pages/admin/TestimonialsPage")), requireAuth: true, roles: ["admin"], title: "Testimonials" },
+  { path: "/admin/team-members", component: lazy(() => import("@/pages/admin/TeamMembersPage")), requireAuth: true, roles: ["admin"], title: "Team Members" },
+  { path: "/admin/company-values", component: lazy(() => import("@/pages/admin/CompanyValuesPage")), requireAuth: true, roles: ["admin"], title: "Company Values" },
   { path: "/admin/site-settings", component: lazy(() => import("@/pages/admin/SiteSettingsPage")), requireAuth: true, roles: ["admin"], title: "Site Settings" },
   
   // Analytics & Reports

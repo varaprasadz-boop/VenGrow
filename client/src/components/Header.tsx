@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Menu, Search, Heart, User, Home, Building2 } from "lucide-react";
+import { Menu, Search, Heart, User, Home, Building2, Loader2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -16,6 +16,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/NotificationBell";
+import { useQuery } from "@tanstack/react-query";
+
+interface NavigationLink {
+  id: string;
+  label: string;
+  url: string;
+  position: string;
+  sortOrder: number;
+  isActive: boolean;
+}
 
 interface HeaderProps {
   isLoggedIn?: boolean;
@@ -26,18 +36,38 @@ interface HeaderProps {
 export default function Header({ isLoggedIn = false, userType = "buyer", userId }: HeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false);
 
+  const { data: navigationLinks = [], isLoading: navLoading } = useQuery<NavigationLink[]>({
+    queryKey: ["/api/navigation-links", "header"],
+  });
+
+  const headerLinks = navigationLinks.filter(
+    link => link.position === "header" && link.isActive
+  ).sort((a, b) => a.sortOrder - b.sortOrder);
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1 -ml-2" data-testid="link-home">
             <Building2 className="h-6 w-6 text-primary" />
             <span className="font-serif font-bold text-xl hidden sm:inline">VenGrow</span>
           </Link>
 
-          {/* Desktop Search */}
-          <div className="hidden md:flex flex-1 max-w-xl">
+          <nav className="hidden lg:flex items-center gap-1">
+            {navLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            ) : headerLinks.length > 0 ? (
+              headerLinks.map((link) => (
+                <Link key={link.id} href={link.url}>
+                  <Button variant="ghost" size="sm" data-testid={`nav-link-${link.label.toLowerCase()}`}>
+                    {link.label}
+                  </Button>
+                </Link>
+              ))
+            ) : null}
+          </nav>
+
+          <div className="hidden md:flex flex-1 max-w-md">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -49,7 +79,6 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
             </div>
           </div>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-2">
             {!isLoggedIn ? (
               <>
@@ -104,7 +133,6 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
             )}
           </nav>
 
-          {/* Mobile Menu */}
           <div className="flex md:hidden items-center gap-2">
             <Button
               variant="ghost"
@@ -128,6 +156,15 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
                       Home
                     </Button>
                   </Link>
+                  
+                  {headerLinks.map((link) => (
+                    <Link key={link.id} href={link.url}>
+                      <Button variant="ghost" className="w-full justify-start" data-testid={`button-nav-${link.label.toLowerCase()}`}>
+                        {link.label}
+                      </Button>
+                    </Link>
+                  ))}
+
                   {!isLoggedIn ? (
                     <>
                       <Link href="/login">
@@ -164,7 +201,6 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
           </div>
         </div>
 
-        {/* Mobile Search */}
         {searchOpen && (
           <div className="md:hidden pb-4">
             <div className="relative">

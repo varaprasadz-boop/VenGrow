@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Building2, Package, CreditCard, MessageSquare, 
   Bell, Settings, Shield, FileText, BarChart3, HelpCircle, LogOut,
   ChevronDown, UserCog, ListChecks, Globe, Mail, Clock, Star,
-  Database, Activity, Megaphone
+  Database, Activity, Megaphone, Image, Quote, BadgeCheck, Heart, UserCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -73,6 +73,21 @@ const systemItems = [
   { title: "SMTP Settings", href: "/admin/settings/smtp", icon: Mail },
   { title: "Payment Gateway", href: "/admin/settings/razorpay", icon: CreditCard },
   { title: "Audit Logs", href: "/admin/audit-logs", icon: Database },
+];
+
+const cmsContentItems = [
+  { title: "Popular Cities", href: "/admin/popular-cities", icon: Globe },
+  { title: "Property Types", href: "/admin/property-types", icon: Building2 },
+  { title: "Hero Slides", href: "/admin/hero-slides", icon: Image },
+  { title: "Verified Builders", href: "/admin/verified-builders", icon: BadgeCheck },
+  { title: "Testimonials", href: "/admin/testimonials", icon: Quote },
+  { title: "Team Members", href: "/admin/team-members", icon: UserCircle },
+  { title: "Company Values", href: "/admin/company-values", icon: Heart },
+  { title: "FAQs", href: "/admin/faqs", icon: HelpCircle },
+  { title: "Banners", href: "/admin/banners", icon: Megaphone },
+  { title: "Static Pages", href: "/admin/static-pages", icon: FileText },
+  { title: "Navigation Links", href: "/admin/navigation", icon: Globe },
+  { title: "Site Settings", href: "/admin/site-settings", icon: Settings },
 ];
 
 function NavSection({ title, items }: { title: string; items: typeof mainNavItems }) {
@@ -155,6 +170,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <NavSection title="Properties" items={propertyManagementItems} />
               <NavSection title="Packages & Payments" items={packageItems} />
               <NavSection title="Communication" items={communicationItems} />
+              <NavSection title="CMS Content" items={cmsContentItems} />
               <NavSection title="System" items={systemItems} />
             </ScrollArea>
           </SidebarContent>

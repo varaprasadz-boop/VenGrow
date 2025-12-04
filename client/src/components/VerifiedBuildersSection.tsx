@@ -3,6 +3,7 @@ import { BadgeCheck, Building2, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
 
 interface VerifiedBuilder {
   id: string;
@@ -10,28 +11,21 @@ interface VerifiedBuilder {
   logoUrl: string;
   propertyCount: number;
   slug?: string;
+  isVerified?: boolean;
+  isActive?: boolean;
 }
 
-interface VerifiedBuildersSectionProps {
-  builders?: VerifiedBuilder[];
-  isLoading?: boolean;
-}
+export default function VerifiedBuildersSection() {
+  const { data: builders = [], isLoading } = useQuery<VerifiedBuilder[]>({
+    queryKey: ["/api/verified-builders"],
+    staleTime: 5 * 60 * 1000,
+  });
 
-export default function VerifiedBuildersSection({ builders, isLoading }: VerifiedBuildersSectionProps) {
-  const mockBuilders: VerifiedBuilder[] = [
-    { id: "1", companyName: "Prestige Group", logoUrl: "", propertyCount: 45, slug: "prestige-group" },
-    { id: "2", companyName: "Godrej Properties", logoUrl: "", propertyCount: 38, slug: "godrej-properties" },
-    { id: "3", companyName: "DLF Limited", logoUrl: "", propertyCount: 52, slug: "dlf-limited" },
-    { id: "4", companyName: "Lodha Group", logoUrl: "", propertyCount: 29, slug: "lodha-group" },
-    { id: "5", companyName: "Sobha Limited", logoUrl: "", propertyCount: 33, slug: "sobha-limited" },
-    { id: "6", companyName: "Brigade Group", logoUrl: "", propertyCount: 27, slug: "brigade-group" },
-  ];
-
-  const displayBuilders = builders || mockBuilders;
+  const activeBuilders = builders.filter(b => b.isActive !== false).slice(0, 6);
 
   if (isLoading) {
     return (
-      <section className="py-16 bg-muted/30">
+      <section className="py-16 bg-muted/30" data-testid="section-verified-builders">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <Skeleton className="h-10 w-64 mx-auto mb-4" />
@@ -47,14 +41,13 @@ export default function VerifiedBuildersSection({ builders, isLoading }: Verifie
     );
   }
 
-  if (!displayBuilders || displayBuilders.length === 0) {
+  if (!activeBuilders.length) {
     return null;
   }
 
   return (
     <section className="py-16 bg-muted/30" data-testid="section-verified-builders">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-4">
             <BadgeCheck className="h-5 w-5" />
@@ -68,9 +61,8 @@ export default function VerifiedBuildersSection({ builders, isLoading }: Verifie
           </p>
         </div>
 
-        {/* Builder Logos Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6" data-testid="grid-verified-builders">
-          {displayBuilders.map((builder) => (
+          {activeBuilders.map((builder) => (
             <Link 
               key={builder.id} 
               href={`/listings?seller=${builder.slug || builder.id}`}
@@ -81,7 +73,6 @@ export default function VerifiedBuildersSection({ builders, isLoading }: Verifie
                 data-testid={`card-builder-${builder.id}`}
               >
                 <div className="flex flex-col items-center justify-center h-full gap-3">
-                  {/* Logo or Placeholder */}
                   {builder.logoUrl ? (
                     <img 
                       src={builder.logoUrl} 
@@ -98,7 +89,6 @@ export default function VerifiedBuildersSection({ builders, isLoading }: Verifie
                     </div>
                   )}
                   
-                  {/* Company Name */}
                   <div>
                     <p 
                       className="font-semibold text-sm line-clamp-2"
@@ -114,7 +104,6 @@ export default function VerifiedBuildersSection({ builders, isLoading }: Verifie
                     </p>
                   </div>
 
-                  {/* Verified Badge */}
                   <div className="flex items-center gap-1 text-primary" data-testid={`badge-verified-${builder.id}`}>
                     <BadgeCheck className="h-4 w-4" />
                     <span className="text-xs font-medium">Verified</span>
@@ -125,7 +114,6 @@ export default function VerifiedBuildersSection({ builders, isLoading }: Verifie
           ))}
         </div>
 
-        {/* View All Link */}
         <div className="text-center mt-10">
           <Link href="/listings?sellerType=corporate">
             <Button variant="outline" size="lg" data-testid="button-view-all-builders">
