@@ -54,9 +54,9 @@ export default function ListingsFilterHeader({ onOpenFilters }: ListingsFilterHe
   const bhkOptions = ["1 BHK", "2 BHK", "3 BHK", "4+ BHK"];
 
   return (
-    <div className="bg-background border-b sticky top-16 z-40" data-testid="section-filter-header">
+    <div className="bg-background border-b" data-testid="section-filter-header">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-3 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+        <div className="py-3 flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {/* Transaction Type Chip */}
           <Popover>
             <PopoverTrigger asChild>
