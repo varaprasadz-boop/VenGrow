@@ -2,6 +2,10 @@ import { Star, Quote } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+import avatarImg1 from "@assets/stock_images/professional_indian__996a8952.jpg";
+import avatarImg2 from "@assets/stock_images/professional_indian__e3e9c94e.jpg";
+import avatarImg3 from "@assets/stock_images/professional_indian__3a68d1a9.jpg";
+
 const testimonials = [
   {
     id: "1",
@@ -9,7 +13,7 @@ const testimonials = [
     location: "Mumbai",
     rating: 5,
     comment: "Found my dream apartment through VenGrow. The verification process gave me confidence that I was dealing with genuine sellers. Highly recommended!",
-    avatarUrl: "",
+    avatarUrl: avatarImg1,
     propertyType: "Apartment",
   },
   {
@@ -18,7 +22,7 @@ const testimonials = [
     location: "Bangalore",
     rating: 5,
     comment: "As a first-time home buyer, I was nervous about the process. VenGrow made it so easy with their verified listings and responsive support team.",
-    avatarUrl: "",
+    avatarUrl: avatarImg2,
     propertyType: "Villa",
   },
   {
@@ -27,7 +31,7 @@ const testimonials = [
     location: "Delhi",
     rating: 5,
     comment: "Excellent platform for property search. The filters helped me find exactly what I was looking for within my budget. Very professional service!",
-    avatarUrl: "",
+    avatarUrl: avatarImg3,
     propertyType: "Plot",
   },
 ];
@@ -76,7 +80,7 @@ export default function TestimonialsSection() {
 
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage src={testimonial.avatarUrl} />
+                  <AvatarImage src={testimonial.avatarUrl} alt={testimonial.name} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
                     {testimonial.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>

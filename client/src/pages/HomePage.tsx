@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
@@ -8,8 +7,14 @@ import StatsSection from "@/components/StatsSection";
 import VerifiedBuildersSection from "@/components/VerifiedBuildersSection";
 import TestimonialsSection from "@/components/TestimonialsSection";
 import Footer from "@/components/Footer";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+
+import propertyImg1 from "@assets/stock_images/luxury_apartment_bui_734bab84.jpg";
+import propertyImg2 from "@assets/stock_images/modern_villa_house_w_a69bd44b.jpg";
+import propertyImg3 from "@assets/stock_images/luxury_apartment_bui_d72f53b5.jpg";
+import propertyImg4 from "@assets/stock_images/luxury_apartment_bui_1d237319.jpg";
+import propertyImg5 from "@assets/stock_images/modern_villa_house_w_e69d664a.jpg";
+import propertyImg6 from "@assets/stock_images/commercial_office_bu_35b810a4.jpg";
 
 interface Property {
   id: string;
@@ -33,7 +38,7 @@ const sampleFeaturedProperties: Property[] = [
     title: "Luxury 3 BHK Apartment in Bandra West",
     price: 25000000,
     location: "Bandra West, Mumbai",
-    imageUrl: "",
+    imageUrl: propertyImg1,
     bedrooms: 3,
     bathrooms: 3,
     area: 1800,
@@ -48,7 +53,7 @@ const sampleFeaturedProperties: Property[] = [
     title: "Modern Villa with Garden in Whitefield",
     price: 45000000,
     location: "Whitefield, Bangalore",
-    imageUrl: "",
+    imageUrl: propertyImg2,
     bedrooms: 4,
     bathrooms: 4,
     area: 3500,
@@ -63,7 +68,7 @@ const sampleFeaturedProperties: Property[] = [
     title: "Premium 2 BHK in Gurgaon",
     price: 18000000,
     location: "Golf Course Road, Gurgaon",
-    imageUrl: "",
+    imageUrl: propertyImg3,
     bedrooms: 2,
     bathrooms: 2,
     area: 1400,
@@ -81,7 +86,7 @@ const sampleNewProperties: Property[] = [
     title: "Spacious 4 BHK in Powai",
     price: 35000000,
     location: "Powai, Mumbai",
-    imageUrl: "",
+    imageUrl: propertyImg4,
     bedrooms: 4,
     bathrooms: 3,
     area: 2400,
@@ -96,7 +101,7 @@ const sampleNewProperties: Property[] = [
     title: "Cozy 1 BHK for Rent in Koramangala",
     price: 35000,
     location: "Koramangala, Bangalore",
-    imageUrl: "",
+    imageUrl: propertyImg5,
     bedrooms: 1,
     bathrooms: 1,
     area: 650,
@@ -111,7 +116,7 @@ const sampleNewProperties: Property[] = [
     title: "Commercial Space in Connaught Place",
     price: 150000,
     location: "Connaught Place, Delhi",
-    imageUrl: "",
+    imageUrl: propertyImg6,
     bedrooms: 0,
     bathrooms: 2,
     area: 2000,
@@ -124,26 +129,8 @@ const sampleNewProperties: Property[] = [
 ];
 
 export default function HomePage() {
-  const { data: featuredProperties = sampleFeaturedProperties, isLoading: featuredLoading } = useQuery<Property[]>({
-    queryKey: ["/api/properties/featured"],
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: newProperties = sampleNewProperties, isLoading: newLoading } = useQuery<Property[]>({
-    queryKey: ["/api/properties/new"],
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const PropertySkeletons = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {[1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-80 w-full rounded-lg" />
-      ))}
-    </div>
-  );
-
-  const displayFeatured = featuredProperties.length > 0 ? featuredProperties : sampleFeaturedProperties;
-  const displayNew = newProperties.length > 0 ? newProperties : sampleNewProperties;
+  const displayFeatured = sampleFeaturedProperties;
+  const displayNew = sampleNewProperties;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -165,15 +152,11 @@ export default function HomePage() {
                 View All
               </Link>
             </div>
-            {featuredLoading ? (
-              <PropertySkeletons />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-featured-properties">
-                {displayFeatured.slice(0, 3).map((property) => (
-                  <PropertyCard key={property.id} {...property} />
-                ))}
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-featured-properties">
+              {displayFeatured.slice(0, 3).map((property) => (
+                <PropertyCard key={property.id} {...property} />
+              ))}
+            </div>
           </div>
         </section>
 
@@ -190,15 +173,11 @@ export default function HomePage() {
                 View All
               </Link>
             </div>
-            {newLoading ? (
-              <PropertySkeletons />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-new-listings">
-                {displayNew.slice(0, 3).map((property) => (
-                  <PropertyCard key={property.id} {...property} />
-                ))}
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-new-listings">
+              {displayNew.slice(0, 3).map((property) => (
+                <PropertyCard key={property.id} {...property} />
+              ))}
+            </div>
           </div>
         </section>
 
