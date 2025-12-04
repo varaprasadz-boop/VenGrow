@@ -84,12 +84,20 @@ export const buyerRoutes: RouteConfig[] = [
   { path: "/dashboard", component: lazy(() => import("@/pages/buyer/BuyerDashboardPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Dashboard" },
   { path: "/buyer/dashboard", component: lazy(() => import("@/pages/buyer/BuyerDashboardPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Dashboard" },
   
-  // Core Buyer Features
+  // Core Buyer Features - Sidebar Links
   { path: "/favorites", component: lazy(() => import("@/pages/buyer/FavoritesPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Favorites" },
   { path: "/buyer/favorites", component: lazy(() => import("@/pages/buyer/FavoritesPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Favorites" },
   { path: "/inquiries", component: lazy(() => import("@/pages/buyer/InquiriesPage")), requireAuth: true, roles: ["buyer", "admin"], title: "My Inquiries" },
   { path: "/buyer/inquiries", component: lazy(() => import("@/pages/buyer/MyInquiriesPage")), requireAuth: true, roles: ["buyer", "admin"], title: "My Inquiries" },
   { path: "/buyer/notifications", component: lazy(() => import("@/pages/buyer/NotificationsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Notifications" },
+  { path: "/buyer/messages", component: lazy(() => import("@/pages/buyer/InquiriesPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Messages" },
+  { path: "/buyer/visits", component: lazy(() => import("@/pages/buyer/ScheduleVisitPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Scheduled Visits" },
+  { path: "/buyer/reviews", component: lazy(() => import("@/pages/buyer/ProfilePage")), requireAuth: true, roles: ["buyer", "admin"], title: "My Reviews" },
+  { path: "/buyer/search-history", component: lazy(() => import("@/pages/buyer/ViewingHistoryPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Search History" },
+  
+  // Quick Links - Sidebar
+  { path: "/buy", component: lazy(() => import("@/pages/ListingsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Buy Property" },
+  { path: "/rent", component: lazy(() => import("@/pages/ListingsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Rent Property" },
   
   // Profile & Settings
   { path: "/profile", component: lazy(() => import("@/pages/buyer/ProfilePage")), requireAuth: true, roles: ["buyer", "admin"], title: "Profile" },
@@ -97,8 +105,9 @@ export const buyerRoutes: RouteConfig[] = [
   { path: "/settings", component: lazy(() => import("@/pages/buyer/SettingsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Settings" },
   { path: "/buyer/settings", component: lazy(() => import("@/pages/buyer/SettingsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Settings" },
   
-  // Map View
+  // Map View - Sidebar Links
   { path: "/map", component: lazy(() => import("@/pages/buyer/PropertyMapPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Map View" },
+  { path: "/map-search", component: lazy(() => import("@/pages/buyer/PropertyMapPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Map Search" },
   
   // Property Comparison & Search
   { path: "/compare", component: lazy(() => import("@/pages/buyer/ComparePropertiesPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Compare" },
@@ -211,8 +220,14 @@ export const sellerRoutes: RouteConfig[] = [
   // Dashboard
   { path: "/seller/dashboard", component: lazy(() => import("@/pages/seller/SellerDashboardPage")), requireAuth: true, roles: ["seller", "admin"], title: "Seller Dashboard" },
   
-  // Property Management
+  // Property Management - Sidebar Links
+  { path: "/seller/property/add", component: lazy(() => import("@/pages/seller/CreatePropertyPage")), requireAuth: true, roles: ["seller", "admin"], title: "Add Property" },
+  { path: "/seller/properties", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller", "admin"], title: "My Properties" },
   { path: "/seller/listings", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller", "admin"], title: "My Listings" },
+  { path: "/seller/listings/active", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Active Listings" },
+  { path: "/seller/listings/pending", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Pending Review" },
+  { path: "/seller/listings/drafts", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Drafts" },
+  { path: "/seller/listings/expired", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Expired Listings" },
   { path: "/seller/manage-listings", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Manage Listings" },
   { path: "/seller/create-property", component: lazy(() => import("@/pages/seller/CreatePropertyPage")), requireAuth: true, roles: ["seller", "admin"], title: "Create Property" },
   { path: "/seller/create-listing/step1", component: lazy(() => import("@/pages/seller/CreateListingStep1Page")), requireAuth: true, roles: ["seller", "admin"], title: "Create Listing - Step 1" },
@@ -246,11 +261,14 @@ export const sellerRoutes: RouteConfig[] = [
   { path: "/seller/export-data", component: lazy(() => import("@/pages/seller/ExportDataPage")), requireAuth: true, roles: ["seller", "admin"], title: "Export Data" },
   { path: "/seller/contract-templates", component: lazy(() => import("@/pages/seller/ContractTemplatesPage")), requireAuth: true, roles: ["seller", "admin"], title: "Contract Templates" },
   
-  // Inquiries & Leads
+  // Inquiries & Leads - Sidebar Links
   { path: "/seller/inquiries", component: lazy(() => import("@/pages/seller/InquiriesPage")), requireAuth: true, roles: ["seller", "admin"], title: "Inquiries" },
+  { path: "/seller/inquiries/new", component: lazy(() => import("@/pages/seller/LeadManagementPage")), requireAuth: true, roles: ["seller", "admin"], title: "New Leads" },
   { path: "/seller/inquiries/form", component: lazy(() => import("@/pages/seller/FormInquiriesPage")), requireAuth: true, roles: ["seller", "admin"], title: "Form Submissions" },
   { path: "/seller/inquiries/chat", component: lazy(() => import("@/pages/seller/ChatInquiriesPage")), requireAuth: true, roles: ["seller", "admin"], title: "Chat Inquiries" },
   { path: "/seller/inquiries/call", component: lazy(() => import("@/pages/seller/CallInquiriesPage")), requireAuth: true, roles: ["seller", "admin"], title: "Call Requests" },
+  { path: "/seller/visits", component: lazy(() => import("@/pages/seller/CalendarPage")), requireAuth: true, roles: ["seller", "admin"], title: "Scheduled Visits" },
+  { path: "/seller/favorites", component: lazy(() => import("@/pages/seller/CustomerReviewsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Favorites" },
   { path: "/seller/leads", component: lazy(() => import("@/pages/seller/LeadManagementPage")), requireAuth: true, roles: ["seller", "admin"], title: "Lead Management" },
   { path: "/seller/lead-pipeline", component: lazy(() => import("@/pages/seller/LeadPipelinePage")), requireAuth: true, roles: ["seller", "admin"], title: "Lead Pipeline" },
   { path: "/seller/lead-score", component: lazy(() => import("@/pages/seller/LeadScorePage")), requireAuth: true, roles: ["seller", "admin"], title: "Lead Scoring" },
@@ -259,15 +277,22 @@ export const sellerRoutes: RouteConfig[] = [
   { path: "/seller/quick-replies", component: lazy(() => import("@/pages/seller/QuickRepliesPage")), requireAuth: true, roles: ["seller", "admin"], title: "Quick Replies" },
   { path: "/seller/auto-responses", component: lazy(() => import("@/pages/seller/AutoResponsesPage")), requireAuth: true, roles: ["seller", "admin"], title: "Auto Responses" },
   
-  // Analytics & Reports
+  // Analytics & Reports - Sidebar Links
   { path: "/seller/analytics", component: lazy(() => import("@/pages/seller/AnalyticsDashboardPage")), requireAuth: true, roles: ["seller", "admin"], title: "Analytics" },
+  { path: "/seller/analytics/views", component: lazy(() => import("@/pages/seller/AnalyticsDashboardPage")), requireAuth: true, roles: ["seller", "admin"], title: "Property Views" },
+  { path: "/seller/analytics/leads", component: lazy(() => import("@/pages/seller/PerformanceInsightsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Lead Performance" },
+  { path: "/seller/analytics/conversion", component: lazy(() => import("@/pages/seller/PerformanceInsightsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Conversion Insights" },
   { path: "/seller/performance", component: lazy(() => import("@/pages/seller/PerformanceInsightsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Performance" },
   { path: "/seller/competitor-analysis", component: lazy(() => import("@/pages/seller/CompetitorAnalysisPage")), requireAuth: true, roles: ["seller", "admin"], title: "Competitor Analysis" },
   { path: "/seller/sales-targets", component: lazy(() => import("@/pages/seller/SalesTargetsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Sales Targets" },
   { path: "/seller/commission-calculator", component: lazy(() => import("@/pages/seller/CommissionCalculatorPage")), requireAuth: true, roles: ["seller", "admin"], title: "Commission Calculator" },
   
-  // Subscription & Payments
-  { path: "/seller/packages", component: lazy(() => import("@/pages/seller/PackageSelectionPage")), requireAuth: true, roles: ["seller", "admin"], title: "Select Package" },
+  // Subscription & Payments - Sidebar Links
+  { path: "/seller/packages", component: lazy(() => import("@/pages/seller/PackageSelectionPage")), requireAuth: true, roles: ["seller", "admin"], title: "My Packages" },
+  { path: "/seller/packages/buy", component: lazy(() => import("@/pages/seller/PackageSelectionPage")), requireAuth: true, roles: ["seller", "admin"], title: "Buy Package" },
+  { path: "/seller/package-history", component: lazy(() => import("@/pages/seller/SubscriptionHistoryPage")), requireAuth: true, roles: ["seller", "admin"], title: "Package History" },
+  { path: "/seller/wallet", component: lazy(() => import("@/pages/seller/EarningsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Wallet" },
+  { path: "/seller/transactions", component: lazy(() => import("@/pages/seller/TransactionHistoryPage")), requireAuth: true, roles: ["seller", "admin"], title: "Transactions" },
   { path: "/seller/subscription", component: lazy(() => import("@/pages/seller/SubscriptionPage")), requireAuth: true, roles: ["seller", "admin"], title: "Subscription" },
   { path: "/seller/subscription-history", component: lazy(() => import("@/pages/seller/SubscriptionHistoryPage")), requireAuth: true, roles: ["seller", "admin"], title: "Subscription History" },
   { path: "/seller/invoices", component: lazy(() => import("@/pages/seller/InvoicesPage")), requireAuth: true, roles: ["seller", "admin"], title: "My Invoices" },
@@ -281,7 +306,11 @@ export const sellerRoutes: RouteConfig[] = [
   { path: "/seller/withdraw", component: lazy(() => import("@/pages/seller/WithdrawFundsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Withdraw Funds" },
   { path: "/seller/upgrade", component: lazy(() => import("@/pages/seller/UpgradeAccountPage")), requireAuth: true, roles: ["seller", "admin"], title: "Upgrade Account" },
   
-  // Profile & Settings
+  // Profile & Settings - Sidebar Links
+  { path: "/seller/profile", component: lazy(() => import("@/pages/seller/BrandingPage")), requireAuth: true, roles: ["seller", "admin"], title: "Profile" },
+  { path: "/seller/settings", component: lazy(() => import("@/pages/seller/ListingSettingsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Account Settings" },
+  { path: "/seller/notifications", component: lazy(() => import("@/pages/seller/NotificationPreferencesPage")), requireAuth: true, roles: ["seller", "admin"], title: "Notifications" },
+  { path: "/seller/help", component: lazy(() => import("@/pages/seller/DocumentsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Help Center" },
   { path: "/seller/branding", component: lazy(() => import("@/pages/seller/BrandingPage")), requireAuth: true, roles: ["seller", "admin"], title: "Branding" },
   { path: "/seller/notification-preferences", component: lazy(() => import("@/pages/seller/NotificationPreferencesPage")), requireAuth: true, roles: ["seller", "admin"], title: "Notification Preferences" },
   { path: "/seller/reviews", component: lazy(() => import("@/pages/seller/ReviewsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Reviews" },
@@ -301,9 +330,10 @@ export const sellerRoutes: RouteConfig[] = [
 
 // Admin Routes - Requires auth with admin role
 export const adminRoutes: RouteConfig[] = [
-  // Dashboard
+  // Dashboard - Sidebar Links
   { path: "/admin", component: lazy(() => import("@/pages/admin/AdminDashboardPage")), requireAuth: true, roles: ["admin"], title: "Admin Dashboard" },
   { path: "/admin/dashboard", component: lazy(() => import("@/pages/admin/AdminDashboardPage")), requireAuth: true, roles: ["admin"], title: "Admin Dashboard" },
+  { path: "/admin/activity", component: lazy(() => import("@/pages/admin/ActivityLogPage")), requireAuth: true, roles: ["admin"], title: "Activity Log" },
   
   // User Management
   { path: "/admin/users", component: lazy(() => import("@/pages/admin/UserManagementPage")), requireAuth: true, roles: ["admin"], title: "Users" },
