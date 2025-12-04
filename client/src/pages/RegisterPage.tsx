@@ -37,7 +37,7 @@ export default function RegisterPage() {
     if (selectedIntent === "buyer") {
       setStep("buyer-form");
     } else if (selectedIntent === "seller") {
-      setStep("seller-package");
+      setLocation("/seller/type");
     }
   };
 

@@ -3,6 +3,7 @@ import HeroSection from "@/components/HeroSection";
 import CategorySection from "@/components/CategorySection";
 import PropertyCard from "@/components/PropertyCard";
 import StatsSection from "@/components/StatsSection";
+import VerifiedBuildersSection from "@/components/VerifiedBuildersSection";
 import Footer from "@/components/Footer";
 import heroImage from '@assets/generated_images/luxury_indian_apartment_building.png';
 import apartmentImage from '@assets/generated_images/modern_apartment_interior_india.png';
@@ -152,6 +153,9 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* Verified Builders Section */}
+        <VerifiedBuildersSection />
 
         {/* CTA Section */}
         <section className="py-16 bg-primary text-primary-foreground">

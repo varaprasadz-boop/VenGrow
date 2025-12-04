@@ -211,6 +211,7 @@ export const sellerRoutes: RouteConfig[] = [
   { path: "/seller/register/individual", component: lazy(() => import("@/pages/seller/IndividualRegisterPage")), requireAuth: true, roles: ["seller", "admin"], title: "Individual Registration" },
   { path: "/seller/register/broker", component: lazy(() => import("@/pages/seller/BrokerRegisterPage")), requireAuth: true, roles: ["seller", "admin"], title: "Broker Registration" },
   { path: "/seller/register/builder", component: lazy(() => import("@/pages/seller/BuilderRegisterPage")), requireAuth: true, roles: ["seller", "admin"], title: "Builder Registration" },
+  { path: "/seller/register/corporate", component: lazy(() => import("@/pages/seller/CorporateRegisterPage")), requireAuth: true, roles: ["seller", "admin"], title: "Corporate Registration" },
   { path: "/seller/verification", component: lazy(() => import("@/pages/seller/VerificationCenterPage")), requireAuth: true, roles: ["seller", "admin"], title: "Verification" },
   { path: "/seller/document-verification", component: lazy(() => import("@/pages/seller/DocumentVerificationPage")), requireAuth: true, roles: ["seller", "admin"], title: "Document Verification" },
   { path: "/seller/approval-pending", component: lazy(() => import("@/pages/seller/ApprovalPendingPage")), requireAuth: true, roles: ["seller", "admin"], title: "Approval Pending" },

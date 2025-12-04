@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Filter, X } from "lucide-react";
+import { Filter, X, Search, MapPin, Calendar, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import {
   Accordion,
   AccordionContent,
@@ -28,6 +29,10 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedBHK, setSelectedBHK] = useState<string[]>([]);
   const [selectedSeller, setSelectedSeller] = useState<string[]>([]);
+  const [selectedCity, setSelectedCity] = useState<string>("all");
+  const [selectedLocality, setSelectedLocality] = useState<string>("all");
+  const [selectedPropertyAge, setSelectedPropertyAge] = useState<string[]>([]);
+  const [corporateSearch, setCorporateSearch] = useState<string>("");
 
   const handleTypeToggle = (type: string) => {
     setSelectedTypes(prev =>
@@ -47,11 +52,21 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
     );
   };
 
+  const handlePropertyAgeToggle = (age: string) => {
+    setSelectedPropertyAge(prev =>
+      prev.includes(age) ? prev.filter(a => a !== age) : [...prev, age]
+    );
+  };
+
   const handleClearFilters = () => {
     setPriceRange([0, 20000000]);
     setSelectedTypes([]);
     setSelectedBHK([]);
     setSelectedSeller([]);
+    setSelectedCity("all");
+    setSelectedLocality("all");
+    setSelectedPropertyAge([]);
+    setCorporateSearch("");
     console.log('Filters cleared');
   };
 
@@ -61,10 +76,36 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
       propertyTypes: selectedTypes,
       bhk: selectedBHK,
       sellerTypes: selectedSeller,
+      city: selectedCity,
+      locality: selectedLocality,
+      propertyAge: selectedPropertyAge,
+      corporateSearch,
     };
     onApplyFilters?.(filters);
     console.log('Filters applied:', filters);
   };
+
+  const cities = [
+    "Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai", 
+    "Kolkata", "Pune", "Ahmedabad", "Gurgaon", "Noida"
+  ];
+
+  const localities: Record<string, string[]> = {
+    Mumbai: ["Bandra", "Andheri", "Powai", "Worli", "Juhu", "Goregaon"],
+    Bangalore: ["Koramangala", "Whitefield", "HSR Layout", "Indiranagar", "Electronic City"],
+    Delhi: ["Connaught Place", "Dwarka", "Rohini", "Saket", "Vasant Kunj"],
+    Pune: ["Koregaon Park", "Baner", "Hinjewadi", "Kharadi", "Wakad"],
+    Gurgaon: ["DLF Phase 1", "Sector 56", "Golf Course Road", "Sohna Road"],
+  };
+
+  const corporateBuilders = [
+    "Prestige Group", "Godrej Properties", "DLF Limited", "Lodha Group",
+    "Sobha Limited", "Brigade Group", "Puravankara", "Mahindra Lifespace"
+  ];
+
+  const filteredCorporates = corporateBuilders.filter(corp => 
+    corp.toLowerCase().includes(corporateSearch.toLowerCase())
+  );
 
   const formatPrice = (value: number) => {
     if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)} Cr`;
@@ -72,7 +113,8 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
     return `₹${value.toLocaleString('en-IN')}`;
   };
 
-  const activeFiltersCount = selectedTypes.length + selectedBHK.length + selectedSeller.length;
+  const activeFiltersCount = selectedTypes.length + selectedBHK.length + selectedSeller.length + 
+    selectedPropertyAge.length + (selectedCity !== "all" ? 1 : 0) + (corporateSearch ? 1 : 0);
 
   return (
     <div className="w-full space-y-4">
@@ -96,7 +138,52 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
       </div>
 
       {/* Filter Sections */}
-      <Accordion type="multiple" defaultValue={["price", "type", "bhk", "seller"]} className="w-full">
+      <Accordion type="multiple" defaultValue={["location", "price", "type", "seller", "age"]} className="w-full">
+        {/* Location Filter */}
+        <AccordionItem value="location">
+          <AccordionTrigger>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Location
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">City</Label>
+              <Select value={selectedCity} onValueChange={(value) => {
+                setSelectedCity(value);
+                setSelectedLocality("all");
+              }}>
+                <SelectTrigger data-testid="select-city">
+                  <SelectValue placeholder="Select city" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cities</SelectItem>
+                  {cities.map((city) => (
+                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedCity !== "all" && localities[selectedCity] && (
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Locality</Label>
+                <Select value={selectedLocality} onValueChange={setSelectedLocality}>
+                  <SelectTrigger data-testid="select-locality">
+                    <SelectValue placeholder="Select locality" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Localities</SelectItem>
+                    {localities[selectedCity].map((locality) => (
+                      <SelectItem key={locality} value={locality}>{locality}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+
         {/* Price Range */}
         <AccordionItem value="price">
           <AccordionTrigger>Price Range</AccordionTrigger>
@@ -181,7 +268,7 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
         <AccordionItem value="seller">
           <AccordionTrigger>Seller Type</AccordionTrigger>
           <AccordionContent className="space-y-3">
-            {["Individual", "Broker", "Builder"].map((seller) => (
+            {["Individual", "Broker", "Corporate"].map((seller) => (
               <div key={seller} className="flex items-center space-x-2">
                 <Checkbox
                   id={`seller-${seller}`}
@@ -197,6 +284,86 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
                 </Label>
               </div>
             ))}
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Property Age */}
+        <AccordionItem value="age">
+          <AccordionTrigger>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Property Age
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-3">
+            {[
+              { id: "new", label: "New Construction", desc: "Under construction / Ready to move" },
+              { id: "1-5", label: "1-5 Years", desc: "Relatively new" },
+              { id: "5+", label: "5+ Years", desc: "Resale properties" },
+            ].map((age) => (
+              <div key={age.id} className="flex items-start space-x-2">
+                <Checkbox
+                  id={`age-${age.id}`}
+                  checked={selectedPropertyAge.includes(age.id)}
+                  onCheckedChange={() => handlePropertyAgeToggle(age.id)}
+                  data-testid={`checkbox-age-${age.id}`}
+                />
+                <div className="grid gap-0.5 leading-none">
+                  <Label htmlFor={`age-${age.id}`} className="text-sm cursor-pointer">
+                    {age.label}
+                  </Label>
+                  <span className="text-xs text-muted-foreground">{age.desc}</span>
+                </div>
+              </div>
+            ))}
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Corporate/Builder Search */}
+        <AccordionItem value="corporate">
+          <AccordionTrigger>
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              Builder/Developer
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search builders..."
+                value={corporateSearch}
+                onChange={(e) => setCorporateSearch(e.target.value)}
+                className="pl-8"
+                data-testid="input-corporate-search"
+              />
+            </div>
+            {corporateSearch && (
+              <div className="max-h-32 overflow-y-auto space-y-1">
+                {filteredCorporates.length > 0 ? (
+                  filteredCorporates.map((corp) => (
+                    <Button
+                      key={corp}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start text-sm"
+                      onClick={() => setCorporateSearch(corp)}
+                      data-testid={`option-corporate-${corp.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      <Building2 className="h-3 w-3 mr-2" />
+                      {corp}
+                    </Button>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground py-2 text-center">
+                    No builders found
+                  </p>
+                )}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Search for verified builders and developers
+            </p>
           </AccordionContent>
         </AccordionItem>
       </Accordion>

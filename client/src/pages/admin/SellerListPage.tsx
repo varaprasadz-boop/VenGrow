@@ -35,7 +35,13 @@ import {
   XCircle,
   RefreshCw,
   AlertCircle,
+  User,
+  Briefcase,
+  Building2,
+  BadgeCheck,
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { formatDistanceToNow, format } from "date-fns";
 import { useState } from "react";
 
@@ -56,6 +62,8 @@ interface SellerWithStats {
   };
   livePropertiesCount: number;
   totalInquiries: number;
+  isVerifiedBuilder?: boolean;
+  logoUrl?: string | null;
 }
 
 export default function SellerListPage() {
@@ -75,7 +83,9 @@ export default function SellerListPage() {
       (seller.user?.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
 
     const matchesStatus = statusFilter === "all" || seller.verificationStatus === statusFilter;
-    const matchesType = typeFilter === "all" || seller.sellerType === typeFilter;
+    const matchesType = typeFilter === "all" || 
+      seller.sellerType === typeFilter || 
+      (typeFilter === "corporate" && seller.sellerType === "builder");
 
     return matchesSearch && matchesStatus && matchesType;
   });
@@ -114,6 +124,16 @@ export default function SellerListPage() {
       return `${seller.user.firstName || ''} ${seller.user.lastName || ''}`.trim();
     }
     return seller.user?.email || "Unknown Seller";
+  };
+
+  const getNormalizedSellerType = (sellerType: string): "individual" | "broker" | "corporate" => {
+    if (sellerType === "corporate" || sellerType === "builder") return "corporate";
+    if (sellerType === "broker") return "broker";
+    return "individual";
+  };
+
+  const isCorporateSeller = (seller: SellerWithStats): boolean => {
+    return getNormalizedSellerType(seller.sellerType) === "corporate";
   };
 
   if (isLoading) {
@@ -234,6 +254,31 @@ export default function SellerListPage() {
           </div>
 
           <Card className="p-6">
+            {/* Seller Type Tabs */}
+            <div className="mb-6">
+              <Tabs value={typeFilter} onValueChange={setTypeFilter} className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="all" className="flex items-center gap-2" data-testid="tab-all">
+                    <Building className="h-4 w-4" />
+                    All
+                  </TabsTrigger>
+                  <TabsTrigger value="individual" className="flex items-center gap-2" data-testid="tab-individual">
+                    <User className="h-4 w-4" />
+                    Individual
+                  </TabsTrigger>
+                  <TabsTrigger value="broker" className="flex items-center gap-2" data-testid="tab-broker">
+                    <Briefcase className="h-4 w-4" />
+                    Broker
+                  </TabsTrigger>
+                  <TabsTrigger value="corporate" className="flex items-center gap-2" data-testid="tab-corporate">
+                    <Building2 className="h-4 w-4" />
+                    Corporate
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            {/* Search and Status Filter */}
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -256,17 +301,6 @@ export default function SellerListPage() {
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[180px]" data-testid="select-type">
-                  <SelectValue placeholder="Seller Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="individual">Individual</SelectItem>
-                  <SelectItem value="broker">Broker</SelectItem>
-                  <SelectItem value="builder">Builder</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="border rounded-lg overflow-hidden">
@@ -276,6 +310,14 @@ export default function SellerListPage() {
                     <TableHead>Seller</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Status</TableHead>
+                    {(typeFilter === "corporate" || typeFilter === "all") && (
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <BadgeCheck className="h-4 w-4" />
+                          Verified Builder
+                        </div>
+                      </TableHead>
+                    )}
                     <TableHead className="text-center">
                       <div className="flex items-center justify-center gap-1">
                         <Calendar className="h-4 w-4" />
@@ -300,7 +342,7 @@ export default function SellerListPage() {
                 <TableBody>
                   {filteredSellers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={(typeFilter === "corporate" || typeFilter === "all") ? 8 : 7} className="text-center py-8 text-muted-foreground">
                         No sellers found matching your criteria
                       </TableCell>
                     </TableRow>
@@ -308,17 +350,65 @@ export default function SellerListPage() {
                     filteredSellers.map((seller) => (
                       <TableRow key={seller.id} data-testid={`row-seller-${seller.id}`}>
                         <TableCell>
-                          <div>
-                            <p className="font-medium">{getSellerName(seller)}</p>
-                            <p className="text-sm text-muted-foreground">{seller.user?.email}</p>
+                          <div className="flex items-center gap-3">
+                            {isCorporateSeller(seller) && seller.logoUrl ? (
+                              <img 
+                                src={seller.logoUrl} 
+                                alt={seller.companyName || "Company"} 
+                                className="h-10 w-10 rounded-lg object-contain bg-muted"
+                              />
+                            ) : isCorporateSeller(seller) ? (
+                              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                <Building2 className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            ) : null}
+                            <div>
+                              <p className="font-medium">{getSellerName(seller)}</p>
+                              <p className="text-sm text-muted-foreground">{seller.user?.email}</p>
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="capitalize">
-                            {seller.sellerType}
+                            {getNormalizedSellerType(seller.sellerType) === "corporate" ? (
+                              <span className="flex items-center gap-1">
+                                <Building2 className="h-3 w-3" />
+                                Corporate
+                              </span>
+                            ) : getNormalizedSellerType(seller.sellerType) === "broker" ? (
+                              <span className="flex items-center gap-1">
+                                <Briefcase className="h-3 w-3" />
+                                Broker
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                Individual
+                              </span>
+                            )}
                           </Badge>
                         </TableCell>
                         <TableCell>{getStatusBadge(seller.verificationStatus)}</TableCell>
+                        {(typeFilter === "corporate" || typeFilter === "all") && (
+                          <TableCell className="text-center">
+                            {isCorporateSeller(seller) ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <Switch
+                                  checked={seller.isVerifiedBuilder || false}
+                                  onCheckedChange={() => {
+                                    console.log("Toggle verified builder for:", seller.id);
+                                  }}
+                                  data-testid={`switch-verified-${seller.id}`}
+                                />
+                                {seller.isVerifiedBuilder && (
+                                  <BadgeCheck className="h-4 w-4 text-primary" />
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        )}
                         <TableCell className="text-center">
                           {seller.liveAt ? (
                             <div>

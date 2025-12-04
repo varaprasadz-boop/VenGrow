@@ -30,15 +30,15 @@ export default function SellerTypePage() {
       ],
     },
     {
-      type: "builder",
-      title: "Builder/Developer",
-      description: "I'm a construction company with new projects to showcase",
+      type: "corporate",
+      title: "Corporate/Builder",
+      description: "I'm a construction company or developer with projects to showcase",
       icon: Building,
       features: [
-        "Showcase entire projects",
+        "Company logo & branding display",
+        "Upload company brochures (PDF)",
+        "Get featured as Verified Builder",
         "Bulk listing capabilities",
-        "Premium branding options",
-        "Project completion tracking",
       ],
     },
   ];
