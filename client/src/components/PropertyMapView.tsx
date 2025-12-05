@@ -20,7 +20,7 @@ interface PropertyMarker {
   propertyType?: string;
   lat: number;
   lng: number;
-  transactionType?: "Sale" | "Rent";
+  transactionType?: "Sale" | "Lease" | "Rent";
   isVerified?: boolean;
   isFeatured?: boolean;
 }
@@ -83,7 +83,7 @@ function MapBoundsUpdater({ properties }: { properties: PropertyMarker[] }) {
 }
 
 function PropertyPopup({ property }: { property: PropertyMarker }) {
-  const isRent = property.transactionType === "Rent";
+  const isRentOrLease = property.transactionType === "Rent" || property.transactionType === "Lease";
 
   return (
     <Card className="w-64 overflow-hidden border-0 shadow-none">
@@ -109,7 +109,7 @@ function PropertyPopup({ property }: { property: PropertyMarker }) {
           {property.location}
         </div>
         <p className="text-primary font-bold mb-2">
-          {formatPrice(property.price, isRent)}
+          {formatPrice(property.price, isRentOrLease)}
         </p>
         <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
           {property.bedrooms && (

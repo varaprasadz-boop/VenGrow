@@ -111,7 +111,7 @@ export default function PropertyCard({
           data-testid={`button-favorite-${id}`}
         >
           <Heart
-            className={`h-5 w-5 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`}
+            className={`h-5 w-5 ${isFavorited ? 'fill-red-500 text-red-500' : 'text-foreground'}`}
           />
         </Button>
 

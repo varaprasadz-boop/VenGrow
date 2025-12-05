@@ -97,7 +97,11 @@ export const buyerRoutes: RouteConfig[] = [
   
   // Quick Links - Sidebar
   { path: "/buy", component: lazy(() => import("@/pages/ListingsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Buy Property" },
+  { path: "/lease", component: lazy(() => import("@/pages/ListingsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Lease Property" },
   { path: "/rent", component: lazy(() => import("@/pages/ListingsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Rent Property" },
+  
+  // Browse Properties - Buyer access to public listings
+  { path: "/properties", component: lazy(() => import("@/pages/ListingsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Browse Properties" },
   
   // Profile & Settings
   { path: "/profile", component: lazy(() => import("@/pages/buyer/ProfilePage")), requireAuth: true, roles: ["buyer", "admin"], title: "Profile" },

@@ -56,6 +56,7 @@ const accountItems = [
 
 const quickLinks = [
   { title: "Buy Property", href: "/buy", icon: Home },
+  { title: "Lease Property", href: "/lease", icon: Building2 },
   { title: "Rent Property", href: "/rent", icon: Building2 },
 ];
 

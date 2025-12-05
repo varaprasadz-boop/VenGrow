@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useLocation } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import FilterSidebar from "@/components/FilterSidebar";
@@ -23,11 +24,26 @@ import plotImage from '@assets/generated_images/residential_plot_ready_construct
 import kitchenImage from '@assets/generated_images/modern_kitchen_interior_apartment.png';
 
 export default function ListingsPage() {
+  const [location] = useLocation();
   const [viewType, setViewType] = useState<"grid" | "list" | "map">("grid");
   const [sortBy, setSortBy] = useState("newest");
+  
+  const transactionTypeFromPath = useMemo(() => {
+    if (location === "/buy" || location.startsWith("/buy?")) return "Sale";
+    if (location === "/lease" || location.startsWith("/lease?")) return "Lease";
+    if (location === "/rent" || location.startsWith("/rent?")) return "Rent";
+    return null;
+  }, [location]);
+  
+  const pageTitle = useMemo(() => {
+    if (location === "/buy" || location.startsWith("/buy?")) return "Properties for Sale";
+    if (location === "/lease" || location.startsWith("/lease?")) return "Properties for Lease";
+    if (location === "/rent" || location.startsWith("/rent?")) return "Properties for Rent";
+    return "All Properties";
+  }, [location]);
 
   // TODO: Remove mock data
-  const properties = [
+  const allProperties = [
     {
       id: "1",
       title: "Luxury 3BHK Apartment in Prime Location",
@@ -122,7 +138,40 @@ export default function ListingsPage() {
       lat: 19.1176,
       lng: 72.9060,
     },
+    {
+      id: "7",
+      title: "Commercial Showroom for Long-term Lease",
+      price: 150000,
+      location: "MG Road, Bangalore",
+      imageUrl: commercialImage,
+      area: 2000,
+      propertyType: "Commercial",
+      isVerified: true,
+      sellerType: "Builder" as const,
+      transactionType: "Lease" as const,
+      lat: 12.9756,
+      lng: 77.6091,
+    },
+    {
+      id: "8",
+      title: "Industrial Warehouse on Lease",
+      price: 200000,
+      location: "Bhiwandi, Mumbai",
+      imageUrl: plotImage,
+      area: 5000,
+      propertyType: "Commercial",
+      isVerified: true,
+      sellerType: "Individual" as const,
+      transactionType: "Lease" as const,
+      lat: 19.3000,
+      lng: 73.0587,
+    },
   ];
+  
+  const filteredProperties = useMemo(() => {
+    if (!transactionTypeFromPath) return allProperties;
+    return allProperties.filter(p => p.transactionType === transactionTypeFromPath);
+  }, [transactionTypeFromPath]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -146,9 +195,9 @@ export default function ListingsPage() {
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="font-serif font-bold text-3xl mb-2">All Properties</h1>
+                  <h1 className="font-serif font-bold text-3xl mb-2" data-testid="heading-page-title">{pageTitle}</h1>
                   <p className="text-muted-foreground">
-                    {properties.length} properties found
+                    {filteredProperties.length} properties found
                   </p>
                 </div>
 
@@ -217,7 +266,7 @@ export default function ListingsPage() {
               {/* Properties Display */}
               {viewType === 'map' ? (
                 <PropertyMapView 
-                  properties={properties} 
+                  properties={filteredProperties} 
                   className="h-[600px]" 
                 />
               ) : (
@@ -227,7 +276,7 @@ export default function ListingsPage() {
                       ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
                       : "space-y-4"
                   }>
-                    {properties.map((property) => (
+                    {filteredProperties.map((property) => (
                       <PropertyCard key={property.id} {...property} />
                     ))}
                   </div>
