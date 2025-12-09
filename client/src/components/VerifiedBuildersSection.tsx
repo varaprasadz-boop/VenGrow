@@ -121,23 +121,23 @@ export default function VerifiedBuildersSection() {
           </p>
         </div>
 
-        <div className="relative">
-          <Button
-            variant="outline"
-            size="icon"
-            className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-background shadow-md ${
-              !canScrollLeft ? "opacity-50 cursor-not-allowed" : ""
+        <div className="relative group/carousel">
+          <button
+            className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm transition-all duration-200 ${
+              canScrollLeft 
+                ? "opacity-0 group-hover/carousel:opacity-100 hover:bg-background hover:shadow-md cursor-pointer" 
+                : "opacity-0 cursor-not-allowed"
             }`}
             onClick={scrollLeft}
             disabled={!canScrollLeft}
             data-testid="button-scroll-left"
           >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
+            <ChevronLeft className="h-5 w-5 text-muted-foreground" />
+          </button>
 
           <div
             ref={scrollContainerRef}
-            className="flex gap-6 overflow-x-auto scrollbar-hide px-10 py-2"
+            className="flex gap-6 overflow-x-auto scrollbar-hide px-8 py-2"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             data-testid="carousel-verified-builders"
           >
@@ -189,18 +189,18 @@ export default function VerifiedBuildersSection() {
             ))}
           </div>
 
-          <Button
-            variant="outline"
-            size="icon"
-            className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-background shadow-md ${
-              !canScrollRight ? "opacity-50 cursor-not-allowed" : ""
+          <button
+            className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm transition-all duration-200 ${
+              canScrollRight 
+                ? "opacity-0 group-hover/carousel:opacity-100 hover:bg-background hover:shadow-md cursor-pointer" 
+                : "opacity-0 cursor-not-allowed"
             }`}
             onClick={scrollRight}
             disabled={!canScrollRight}
             data-testid="button-scroll-right"
           >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </button>
         </div>
 
         <div className="text-center mt-10">

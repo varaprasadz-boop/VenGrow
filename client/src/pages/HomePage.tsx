@@ -77,6 +77,21 @@ const sampleFeaturedProperties: Property[] = [
     sellerType: "Broker",
     transactionType: "Sale",
   },
+  {
+    id: "7",
+    title: "Spacious 4 BHK in Powai",
+    price: 35000000,
+    location: "Powai, Mumbai",
+    imageUrl: propertyImg4,
+    bedrooms: 4,
+    bathrooms: 3,
+    area: 2400,
+    propertyType: "Apartment",
+    isFeatured: true,
+    isVerified: true,
+    sellerType: "Builder",
+    transactionType: "Sale",
+  },
 ];
 
 const sampleNewProperties: Property[] = [
@@ -125,6 +140,21 @@ const sampleNewProperties: Property[] = [
     sellerType: "Broker",
     transactionType: "Lease",
   },
+  {
+    id: "8",
+    title: "Sea View Penthouse in Worli",
+    price: 85000000,
+    location: "Worli, Mumbai",
+    imageUrl: propertyImg1,
+    bedrooms: 5,
+    bathrooms: 5,
+    area: 4500,
+    propertyType: "Apartment",
+    isFeatured: false,
+    isVerified: true,
+    sellerType: "Builder",
+    transactionType: "Sale",
+  },
 ];
 
 export default function HomePage() {
@@ -170,8 +200,8 @@ export default function HomePage() {
                 View All
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-new-listings">
-              {displayNew.slice(0, 3).map((property) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="grid-new-listings">
+              {displayNew.slice(0, 4).map((property) => (
                 <PropertyCard key={property.id} {...property} />
               ))}
             </div>
