@@ -149,7 +149,7 @@ export default function VerifiedBuildersSection() {
                 className="flex-shrink-0"
               >
                 <Card 
-                  className="p-4 w-40 hover-elevate active-elevate-2 cursor-pointer transition-all group text-center"
+                  className="p-6 w-52 hover-elevate active-elevate-2 cursor-pointer transition-all group text-center"
                   data-testid={`card-builder-${builder.id}`}
                 >
                   <div className="flex flex-col items-center justify-center gap-3">
