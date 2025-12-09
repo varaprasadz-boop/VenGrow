@@ -5,6 +5,7 @@ import {
   ChevronDown, UserCog, ListChecks, Globe, Mail, Clock, Star,
   Database, Activity, Megaphone, Image, Quote, BadgeCheck, Heart, UserCircle
 } from "lucide-react";
+import vengrowLogo from "@assets/image_1765269036042.png";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -134,17 +135,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <div className="flex h-screen w-full">
         <Sidebar>
           <SidebarHeader className="border-b p-4">
-            <Link href="/admin/dashboard" className="flex items-center gap-3" data-testid="link-admin-home">
+            <Link href="/admin/dashboard" className="flex items-center" data-testid="link-admin-home">
               <img 
-                src="/favicon.png" 
-                alt="VenGrow" 
-                className="h-8 w-8 object-contain"
+                src={vengrowLogo} 
+                alt="VenGrow - Verified Property Market" 
+                className="h-10 object-contain"
                 data-testid="img-admin-logo"
               />
-              <div className="flex flex-col">
-                <span className="font-serif font-bold text-lg">VenGrow</span>
-                <span className="text-xs text-muted-foreground">Admin Panel</span>
-              </div>
             </Link>
           </SidebarHeader>
 

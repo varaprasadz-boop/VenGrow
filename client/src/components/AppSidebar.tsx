@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import vengrowLogo from "@assets/image_1765269036042.png";
 import {
   Sidebar,
   SidebarContent,
@@ -299,15 +300,11 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-4">
         <Link href="/">
-          <div className="flex items-center gap-2 cursor-pointer">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <Building className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-serif font-bold text-lg">VenGrow</span>
-              <span className="text-xs text-muted-foreground">Real Estate</span>
-            </div>
-          </div>
+          <img 
+            src={vengrowLogo} 
+            alt="VenGrow - Verified Property Market" 
+            className="h-10 object-contain cursor-pointer"
+          />
         </Link>
       </SidebarHeader>
 
