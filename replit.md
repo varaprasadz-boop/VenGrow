@@ -56,9 +56,39 @@ The platform supports three transaction types: Buy (Sale), Lease, and Rent. The 
 - Seller create listing flow with Lease option
 - Admin listing moderation with Lease support
 
+### Property Categories & Subcategories
+
+The platform features an expanded hierarchical property categorization system with 11 main categories and 63 subcategories:
+
+**Categories:**
+1. Apartments (Studio, 1BHK, 2BHK, 3BHK, 4BHK, 5BHK+, Penthouse, Duplex, Service)
+2. Villas (Independent, Luxury, Farm House, Row House, Twin, Triplex)
+3. Plots (Residential, Commercial, Agricultural, Industrial, NA)
+4. Independent House (1RK, 1BHK, 2BHK, 3BHK, 4BHK, 5BHK+)
+5. New Projects (Residential, Commercial, Integrated Township)
+6. Ultra Luxury (Premium Apartments, Luxury Villas, Premium Commercial)
+7. Commercial (Office Space, Shop, Showroom, Warehouse, Industrial Building, Co-working, Business Center)
+8. Joint Venture (Land, Redevelopment, Partial Development)
+9. PG (Single, Double, Triple Sharing, Boys Only, Girls Only, Co-ed)
+10. Farm Land (Agriculture, Converted, NA Plot, Orchard)
+11. Rush Deal (Distress Sale, Bank Auction, Quick Sale)
+
+**Project Stage Filter:** Applicable to New Projects, Apartments, Villas categories:
+- Pre-launch
+- Launch
+- Under Construction
+- Ready to Move
+
+**Implementation:**
+- Database tables: `property_categories` and `property_subcategories` with parent-child relationships
+- Admin management via `/admin/property-types` with tabbed interface for categories/subcategories
+- Seller create listing form dynamically loads subcategories based on selected category
+- FilterSidebar displays category and subcategory filters with project stage for applicable categories
+- PropertyCard displays project stage and subcategory badges
+
 ### Enhanced FilterSidebar
 
-The filter sidebar includes advanced options for transaction type (Buy/Lease/Rent), location (city/locality), property age, builder/developer search, and seller type, all with robust test attributes.
+The filter sidebar includes advanced options for transaction type (Buy/Lease/Rent), location (city/locality), property category/subcategory selection, project stage (for applicable categories), property age, builder/developer search, and seller type, all with robust test attributes.
 
 ### Seller Dashboard Components
 

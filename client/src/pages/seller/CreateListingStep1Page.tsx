@@ -64,16 +64,32 @@ export default function CreateListingStep1Page() {
   }, [selectedCategory]);
 
   const handleCategoryChange = (value: string) => {
+    const category = categories.find(c => c.id === value);
+    const allowed = category?.allowedTransactionTypes || ["sale", "rent", "lease"];
     setFormData({ 
       ...formData, 
       categoryId: value, 
       subcategoryId: "", 
       projectStage: "",
-      transactionType: ""
+      transactionType: allowed[0] || "sale"
     });
   };
 
+  const isFormValid = useMemo(() => {
+    if (!formData.categoryId || !formData.transactionType || !formData.title || !formData.price || !formData.city) {
+      return false;
+    }
+    if (filteredSubcategories.length > 0 && !formData.subcategoryId) {
+      return false;
+    }
+    if (selectedCategory?.hasProjectStage && !formData.projectStage) {
+      return false;
+    }
+    return true;
+  }, [formData, filteredSubcategories, selectedCategory]);
+
   const handleNext = () => {
+    if (!isFormValid) return;
     console.log("Step 1 data:", formData);
   };
 
@@ -343,7 +359,7 @@ export default function CreateListingStep1Page() {
                     Cancel
                   </Button>
                 </Link>
-                <Button onClick={handleNext} type="button" data-testid="button-next">
+                <Button onClick={handleNext} type="button" disabled={!isFormValid} data-testid="button-next">
                   Next: Property Details
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
