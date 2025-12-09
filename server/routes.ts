@@ -2320,6 +2320,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all active property categories
+  app.get("/api/property-categories", async (req: Request, res: Response) => {
+    try {
+      const categories = await storage.getPropertyCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching property categories:", error);
+      res.status(500).json({ message: "Failed to fetch property categories" });
+    }
+  });
+
+  // Get property category by slug
+  app.get("/api/property-categories/:slug", async (req: Request, res: Response) => {
+    try {
+      const { slug } = req.params;
+      const category = await storage.getPropertyCategoryBySlug(slug);
+      if (!category) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      res.json(category);
+    } catch (error) {
+      console.error("Error fetching property category:", error);
+      res.status(500).json({ message: "Failed to fetch category" });
+    }
+  });
+
+  // Get property subcategories (optionally filtered by categoryId)
+  app.get("/api/property-subcategories", async (req: Request, res: Response) => {
+    try {
+      const categoryId = req.query.categoryId as string | undefined;
+      const subcategories = await storage.getPropertySubcategories(categoryId);
+      res.json(subcategories);
+    } catch (error) {
+      console.error("Error fetching property subcategories:", error);
+      res.status(500).json({ message: "Failed to fetch subcategories" });
+    }
+  });
+
   // Get all site settings (filterable by category)
   app.get("/api/site-settings", async (req: Request, res: Response) => {
     try {
@@ -2483,6 +2521,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting property type:", error);
       res.status(500).json({ message: "Failed to delete type" });
+    }
+  });
+
+  // --- Property Categories Admin CRUD ---
+  app.get("/api/admin/property-categories", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const categories = await storage.getPropertyCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching property categories:", error);
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  app.post("/api/admin/property-categories", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const category = await storage.createPropertyCategory(req.body);
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating property category:", error);
+      res.status(500).json({ message: "Failed to create category" });
+    }
+  });
+
+  app.put("/api/admin/property-categories/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const category = await storage.updatePropertyCategory(req.params.id, req.body);
+      if (!category) return res.status(404).json({ message: "Category not found" });
+      res.json(category);
+    } catch (error) {
+      console.error("Error updating property category:", error);
+      res.status(500).json({ message: "Failed to update category" });
+    }
+  });
+
+  app.delete("/api/admin/property-categories/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deletePropertyCategory(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting property category:", error);
+      res.status(500).json({ message: "Failed to delete category" });
+    }
+  });
+
+  // --- Property Subcategories Admin CRUD ---
+  app.get("/api/admin/property-subcategories", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const categoryId = req.query.categoryId as string | undefined;
+      const subcategories = await storage.getPropertySubcategories(categoryId);
+      res.json(subcategories);
+    } catch (error) {
+      console.error("Error fetching property subcategories:", error);
+      res.status(500).json({ message: "Failed to fetch subcategories" });
+    }
+  });
+
+  app.post("/api/admin/property-subcategories", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const subcategory = await storage.createPropertySubcategory(req.body);
+      res.status(201).json(subcategory);
+    } catch (error) {
+      console.error("Error creating property subcategory:", error);
+      res.status(500).json({ message: "Failed to create subcategory" });
+    }
+  });
+
+  app.put("/api/admin/property-subcategories/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const subcategory = await storage.updatePropertySubcategory(req.params.id, req.body);
+      if (!subcategory) return res.status(404).json({ message: "Subcategory not found" });
+      res.json(subcategory);
+    } catch (error) {
+      console.error("Error updating property subcategory:", error);
+      res.status(500).json({ message: "Failed to update subcategory" });
+    }
+  });
+
+  app.delete("/api/admin/property-subcategories/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deletePropertySubcategory(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting property subcategory:", error);
+      res.status(500).json({ message: "Failed to delete subcategory" });
     }
   });
 
