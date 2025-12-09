@@ -15,6 +15,8 @@ interface PropertyCardProps {
   bathrooms?: number;
   area: number;
   propertyType: string;
+  subcategory?: string;
+  projectStage?: "pre_launch" | "launch" | "under_construction" | "ready_to_move";
   isFeatured?: boolean;
   isVerified?: boolean;
   isNewConstruction?: boolean;
@@ -26,6 +28,13 @@ interface PropertyCardProps {
   onClick?: (id: string) => void;
 }
 
+const projectStageLabels: Record<string, string> = {
+  pre_launch: "Pre-launch",
+  launch: "Launch",
+  under_construction: "Under Construction",
+  ready_to_move: "Ready to Move",
+};
+
 export default function PropertyCard({
   id,
   title,
@@ -36,6 +45,8 @@ export default function PropertyCard({
   bathrooms,
   area,
   propertyType,
+  subcategory,
+  projectStage,
   isFeatured = false,
   isVerified = false,
   isNewConstruction = false,
@@ -98,6 +109,11 @@ export default function PropertyCard({
           {isNewConstruction && (
             <Badge variant="secondary" className="bg-blue-500/90 text-white backdrop-blur-sm text-xs" data-testid={`badge-new-${id}`}>
               New
+            </Badge>
+          )}
+          {projectStage && (
+            <Badge variant="secondary" className="bg-amber-500/90 text-white backdrop-blur-sm text-xs" data-testid={`badge-stage-${id}`}>
+              {projectStageLabels[projectStage]}
             </Badge>
           )}
         </div>
@@ -177,9 +193,16 @@ export default function PropertyCard({
               </Badge>
             )}
           </div>
-          <Badge variant="secondary" className="text-xs">
-            {propertyType}
-          </Badge>
+          <div className="flex items-center gap-1.5">
+            <Badge variant="secondary" className="text-xs">
+              {propertyType}
+            </Badge>
+            {subcategory && (
+              <Badge variant="outline" className="text-xs text-muted-foreground" data-testid={`badge-subcategory-${id}`}>
+                {subcategory}
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
     </Card>
