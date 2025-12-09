@@ -92,7 +92,7 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
           </nav>
 
           <nav className="hidden md:flex items-center gap-2">
-            <Link href="/sell">
+            <Link href="/login">
               <Button variant="outline" size="sm" data-testid="button-post-property">
                 Post Property <span className="text-primary font-bold italic ml-1">FREE</span>
               </Button>

@@ -128,7 +128,7 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
             >
               Rent
             </button>
-            <Link href="/sell" data-testid="link-post-free-property">
+            <Link href="/login" data-testid="link-post-free-property">
               <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Post Property <span className="text-primary font-bold">FREE</span>
               </span>
