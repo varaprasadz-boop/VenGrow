@@ -16,7 +16,8 @@ export const sessions = pgTable(
 export const userRoleEnum = pgEnum("user_role", ["buyer", "seller", "admin"]);
 export const sellerTypeEnum = pgEnum("seller_type", ["individual", "broker", "builder"]);
 export const propertyTypeEnum = pgEnum("property_type", ["apartment", "villa", "plot", "commercial", "farmhouse", "penthouse"]);
-export const transactionTypeEnum = pgEnum("transaction_type", ["sale", "rent"]);
+export const transactionTypeEnum = pgEnum("transaction_type", ["sale", "rent", "lease"]);
+export const projectStageEnum = pgEnum("project_stage", ["pre_launch", "launch", "under_construction", "ready_to_move"]);
 export const listingStatusEnum = pgEnum("listing_status", ["draft", "pending", "active", "sold", "rented", "expired", "rejected"]);
 export const inquiryStatusEnum = pgEnum("inquiry_status", ["pending", "replied", "closed"]);
 export const inquirySourceEnum = pgEnum("inquiry_source", ["form", "chat", "call"]);
@@ -115,6 +116,9 @@ export const properties = pgTable("properties", {
   description: text("description"),
   propertyType: propertyTypeEnum("property_type").notNull(),
   transactionType: transactionTypeEnum("transaction_type").notNull(),
+  categoryId: varchar("category_id"),
+  subcategoryId: varchar("subcategory_id"),
+  projectStage: projectStageEnum("project_stage"),
   price: integer("price").notNull(),
   pricePerSqft: integer("price_per_sqft"),
   area: integer("area").notNull(),
@@ -510,6 +514,35 @@ export const propertyTypesManaged = pgTable("property_types_managed", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const propertyCategories = pgTable("property_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  icon: text("icon"),
+  description: text("description"),
+  propertyCount: integer("property_count").notNull().default(0),
+  allowedTransactionTypes: jsonb("allowed_transaction_types").$type<string[]>().default(["sale", "rent", "lease"]),
+  hasProjectStage: boolean("has_project_stage").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const propertySubcategories = pgTable("property_subcategories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  categoryId: varchar("category_id").notNull().references(() => propertyCategories.id),
+  name: text("name").notNull(),
+  slug: text("slug").notNull(),
+  icon: text("icon"),
+  description: text("description"),
+  applicableFor: jsonb("applicable_for").$type<string[]>().default(["sale", "rent", "lease"]),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const siteSettings = pgTable("site_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   key: text("key").notNull().unique(),
@@ -736,3 +769,22 @@ export type PropertyTypeManaged = typeof propertyTypesManaged.$inferSelect;
 
 export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;
 export type SiteSetting = typeof siteSettings.$inferSelect;
+
+export const insertPropertyCategorySchema = createInsertSchema(propertyCategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  propertyCount: true,
+});
+
+export const insertPropertySubcategorySchema = createInsertSchema(propertySubcategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPropertyCategory = z.infer<typeof insertPropertyCategorySchema>;
+export type PropertyCategory = typeof propertyCategories.$inferSelect;
+
+export type InsertPropertySubcategory = z.infer<typeof insertPropertySubcategorySchema>;
+export type PropertySubcategory = typeof propertySubcategories.$inferSelect;

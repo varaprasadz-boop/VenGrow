@@ -1,0 +1,126 @@
+
+1. Appartment 
+
+                 Property Types
+	•	Apartments / Flats
+	•	Studio Apartments
+	•	Duplex 
+     • Triplex
+	  •	Penthouse 
+	                •	Service Apartments  
+
+2. Villas
+
+     Villa Types 
+        Row Houses
+        Individual Villa
+
+3. Plots
+                
+                Type of Plots
+
+              Gatted community Plot
+              Layout  Plot
+              Independent Plot
+              Commercial Plot
+              Industrial Plot
+
+4. Independent House
+
+             Property Type
+
+            •.     Single Floor House
+	•	Duplex House (G+1)
+	•.    Multi-Storey Independent House
+	•	Rental Yield House (multiple portions)
+
+5. New Projects
+
+        Project Types
+	      Apartment Projects
+            Villa Projects
+            Plotted Development
+
+              Project Stage
+	•	Pre-launch
+	•	Launch
+	•	Under Construction
+	•	Ready to Move
+
+6. Ultra Luxury 
+
+         Property Types
+	•	Ultra Luxury Villas
+	•	Luxury Penthouses
+	•	Signature Apartments
+       •     Independent Bungalow 
+	•	Estate Homes
+
+7. Commercial 
+
+         Commercial Types under sale
+
+                     •   Commercial Building 
+	              •	Office Space
+	            •	Retail Shops
+	           •	Showrooms
+	          •	Warehouse
+	          •	IT Parks
+                • Commercial Plot
+                • Industrial Plot
+
+       Commercial Types under lease/ Rent
+	•	Office Space
+   •.   Co- working
+	•	Retail Shops
+	•	Showrooms
+	•	Warehouses
+	•	Industrial Sheds
+	•	Cloud Kitchens
+                    •.      Logistics & Cold Storage
+                     •.      IT Parks
+                     •.Plug-and-play IT offices
+                      •. Clinics
+	                •.  Diagnostic centers
+                      •.      Day-care hospitals
+	                •.    Medical labs
+                       • Restaurants
+                       •. Cafés
+                       • Bars & lounges
+                       •. Banquet halls
+                       • Education Spaces
+
+8. Joint Venture
+      
+                              Options For
+                        Appartment Construction 
+	                Plotted Development 
+                        Villa construction 
+                        Commercial Construction 
+
+
+9. PG
+
+    PG Types
+	•	Men PG
+	•	Women PG
+	•	Co-Living Spaces
+      •     Luxury Co-living
+
+10. Farm Land
+
+       Farm Land Types
+	•	Agricultural
+	•	Plantation Land
+	•	Manage Farmland
+
+11. Rush Deal
+
+       Deal Types
+        •     Appartment 
+        •     Villa 
+         •     Builder Last-Unit Clearance
+	  •	Independent House
+	  •	Commercial Building 
+         •   Commercial Plot
+	  •	Residential Plots
