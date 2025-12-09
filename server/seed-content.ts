@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { packages, faqItems, staticPages, banners, platformSettings, emailTemplates, popularCities, navigationLinks, propertyTypesManaged, siteSettings } from "@shared/schema";
+import { packages, faqItems, staticPages, banners, platformSettings, emailTemplates, popularCities, navigationLinks, propertyTypesManaged, siteSettings, propertyCategories, propertySubcategories } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 async function seedPackages() {
@@ -1249,6 +1249,235 @@ async function seedSiteSettings() {
   console.log(`Inserted ${settingsData.length} site settings`);
 }
 
+async function seedPropertyCategories() {
+  console.log("Seeding property categories...");
+  
+  const existingCategories = await db.select().from(propertyCategories);
+  if (existingCategories.length > 0) {
+    console.log("Property categories already exist, skipping...");
+    return;
+  }
+
+  const categoriesData = [
+    {
+      name: "Apartments",
+      slug: "apartments",
+      icon: "Building2",
+      description: "Apartments, flats, and studio units",
+      allowedTransactionTypes: ["sale", "rent", "lease"],
+      hasProjectStage: true,
+      sortOrder: 1,
+      isActive: true,
+    },
+    {
+      name: "Villas",
+      slug: "villas",
+      icon: "Home",
+      description: "Independent villas and row houses",
+      allowedTransactionTypes: ["sale", "rent", "lease"],
+      hasProjectStage: true,
+      sortOrder: 2,
+      isActive: true,
+    },
+    {
+      name: "Plots",
+      slug: "plots",
+      icon: "Map",
+      description: "Residential and commercial plots",
+      allowedTransactionTypes: ["sale"],
+      hasProjectStage: false,
+      sortOrder: 3,
+      isActive: true,
+    },
+    {
+      name: "Independent House",
+      slug: "independent-house",
+      icon: "House",
+      description: "Independent houses and bungalows",
+      allowedTransactionTypes: ["sale", "rent", "lease"],
+      hasProjectStage: true,
+      sortOrder: 4,
+      isActive: true,
+    },
+    {
+      name: "New Projects",
+      slug: "new-projects",
+      icon: "Building",
+      description: "New construction projects",
+      allowedTransactionTypes: ["sale"],
+      hasProjectStage: true,
+      sortOrder: 5,
+      isActive: true,
+    },
+    {
+      name: "Ultra Luxury",
+      slug: "ultra-luxury",
+      icon: "Crown",
+      description: "Premium luxury properties",
+      allowedTransactionTypes: ["sale", "rent", "lease"],
+      hasProjectStage: true,
+      sortOrder: 6,
+      isActive: true,
+    },
+    {
+      name: "Commercial",
+      slug: "commercial",
+      icon: "Briefcase",
+      description: "Office spaces, retail, and warehouses",
+      allowedTransactionTypes: ["sale", "rent", "lease"],
+      hasProjectStage: true,
+      sortOrder: 7,
+      isActive: true,
+    },
+    {
+      name: "Joint Venture",
+      slug: "joint-venture",
+      icon: "Handshake",
+      description: "Joint development opportunities",
+      allowedTransactionTypes: ["sale"],
+      hasProjectStage: false,
+      sortOrder: 8,
+      isActive: true,
+    },
+    {
+      name: "PG",
+      slug: "pg",
+      icon: "Users",
+      description: "Paying guest and co-living spaces",
+      allowedTransactionTypes: ["rent"],
+      hasProjectStage: false,
+      sortOrder: 9,
+      isActive: true,
+    },
+    {
+      name: "Farm Land",
+      slug: "farm-land",
+      icon: "Trees",
+      description: "Agricultural and plantation land",
+      allowedTransactionTypes: ["sale"],
+      hasProjectStage: false,
+      sortOrder: 10,
+      isActive: true,
+    },
+    {
+      name: "Rush Deal",
+      slug: "rush-deal",
+      icon: "Zap",
+      description: "Time-sensitive property deals",
+      allowedTransactionTypes: ["sale", "rent"],
+      hasProjectStage: false,
+      sortOrder: 11,
+      isActive: true,
+    },
+  ];
+
+  const insertedCategories = await db.insert(propertyCategories).values(categoriesData).returning();
+  console.log(`Inserted ${insertedCategories.length} property categories`);
+
+  // Create a map of category slugs to IDs
+  const categoryMap: Record<string, string> = {};
+  insertedCategories.forEach(cat => {
+    categoryMap[cat.slug] = cat.id;
+  });
+
+  // Seed subcategories
+  const subcategoriesData = [
+    // Apartments subcategories
+    { categoryId: categoryMap["apartments"], name: "Apartments / Flats", slug: "apartments-flats", sortOrder: 1 },
+    { categoryId: categoryMap["apartments"], name: "Studio Apartments", slug: "studio-apartments", sortOrder: 2 },
+    { categoryId: categoryMap["apartments"], name: "Duplex", slug: "duplex", sortOrder: 3 },
+    { categoryId: categoryMap["apartments"], name: "Triplex", slug: "triplex", sortOrder: 4 },
+    { categoryId: categoryMap["apartments"], name: "Penthouse", slug: "penthouse", sortOrder: 5 },
+    { categoryId: categoryMap["apartments"], name: "Service Apartments", slug: "service-apartments", sortOrder: 6 },
+
+    // Villas subcategories
+    { categoryId: categoryMap["villas"], name: "Row Houses", slug: "row-houses", sortOrder: 1 },
+    { categoryId: categoryMap["villas"], name: "Individual Villa", slug: "individual-villa", sortOrder: 2 },
+
+    // Plots subcategories
+    { categoryId: categoryMap["plots"], name: "Gated Community Plot", slug: "gated-community-plot", sortOrder: 1 },
+    { categoryId: categoryMap["plots"], name: "Layout Plot", slug: "layout-plot", sortOrder: 2 },
+    { categoryId: categoryMap["plots"], name: "Independent Plot", slug: "independent-plot", sortOrder: 3 },
+    { categoryId: categoryMap["plots"], name: "Commercial Plot", slug: "commercial-plot", sortOrder: 4 },
+    { categoryId: categoryMap["plots"], name: "Industrial Plot", slug: "industrial-plot", sortOrder: 5 },
+
+    // Independent House subcategories
+    { categoryId: categoryMap["independent-house"], name: "Single Floor House", slug: "single-floor-house", sortOrder: 1 },
+    { categoryId: categoryMap["independent-house"], name: "Duplex House (G+1)", slug: "duplex-house", sortOrder: 2 },
+    { categoryId: categoryMap["independent-house"], name: "Multi-Storey Independent House", slug: "multi-storey-house", sortOrder: 3 },
+    { categoryId: categoryMap["independent-house"], name: "Rental Yield House", slug: "rental-yield-house", sortOrder: 4 },
+
+    // New Projects subcategories
+    { categoryId: categoryMap["new-projects"], name: "Apartment Projects", slug: "apartment-projects", sortOrder: 1 },
+    { categoryId: categoryMap["new-projects"], name: "Villa Projects", slug: "villa-projects", sortOrder: 2 },
+    { categoryId: categoryMap["new-projects"], name: "Plotted Development", slug: "plotted-development", sortOrder: 3 },
+
+    // Ultra Luxury subcategories
+    { categoryId: categoryMap["ultra-luxury"], name: "Ultra Luxury Villas", slug: "ultra-luxury-villas", sortOrder: 1 },
+    { categoryId: categoryMap["ultra-luxury"], name: "Luxury Penthouses", slug: "luxury-penthouses", sortOrder: 2 },
+    { categoryId: categoryMap["ultra-luxury"], name: "Signature Apartments", slug: "signature-apartments", sortOrder: 3 },
+    { categoryId: categoryMap["ultra-luxury"], name: "Independent Bungalow", slug: "independent-bungalow", sortOrder: 4 },
+    { categoryId: categoryMap["ultra-luxury"], name: "Estate Homes", slug: "estate-homes", sortOrder: 5 },
+
+    // Commercial subcategories (Sale)
+    { categoryId: categoryMap["commercial"], name: "Commercial Building", slug: "commercial-building", applicableFor: ["sale"], sortOrder: 1 },
+    { categoryId: categoryMap["commercial"], name: "Office Space", slug: "office-space", applicableFor: ["sale", "rent", "lease"], sortOrder: 2 },
+    { categoryId: categoryMap["commercial"], name: "Retail Shops", slug: "retail-shops", applicableFor: ["sale", "rent", "lease"], sortOrder: 3 },
+    { categoryId: categoryMap["commercial"], name: "Showrooms", slug: "showrooms", applicableFor: ["sale", "rent", "lease"], sortOrder: 4 },
+    { categoryId: categoryMap["commercial"], name: "Warehouse", slug: "warehouse", applicableFor: ["sale", "rent", "lease"], sortOrder: 5 },
+    { categoryId: categoryMap["commercial"], name: "IT Parks", slug: "it-parks", applicableFor: ["sale", "rent", "lease"], sortOrder: 6 },
+    { categoryId: categoryMap["commercial"], name: "Co-working", slug: "co-working", applicableFor: ["rent", "lease"], sortOrder: 7 },
+    { categoryId: categoryMap["commercial"], name: "Industrial Sheds", slug: "industrial-sheds", applicableFor: ["rent", "lease"], sortOrder: 8 },
+    { categoryId: categoryMap["commercial"], name: "Cloud Kitchens", slug: "cloud-kitchens", applicableFor: ["rent", "lease"], sortOrder: 9 },
+    { categoryId: categoryMap["commercial"], name: "Logistics & Cold Storage", slug: "logistics-cold-storage", applicableFor: ["rent", "lease"], sortOrder: 10 },
+    { categoryId: categoryMap["commercial"], name: "Plug-and-play IT Offices", slug: "plug-and-play-offices", applicableFor: ["rent", "lease"], sortOrder: 11 },
+    { categoryId: categoryMap["commercial"], name: "Clinics", slug: "clinics", applicableFor: ["rent", "lease"], sortOrder: 12 },
+    { categoryId: categoryMap["commercial"], name: "Diagnostic Centers", slug: "diagnostic-centers", applicableFor: ["rent", "lease"], sortOrder: 13 },
+    { categoryId: categoryMap["commercial"], name: "Day-care Hospitals", slug: "day-care-hospitals", applicableFor: ["rent", "lease"], sortOrder: 14 },
+    { categoryId: categoryMap["commercial"], name: "Medical Labs", slug: "medical-labs", applicableFor: ["rent", "lease"], sortOrder: 15 },
+    { categoryId: categoryMap["commercial"], name: "Restaurants", slug: "restaurants", applicableFor: ["rent", "lease"], sortOrder: 16 },
+    { categoryId: categoryMap["commercial"], name: "Cafés", slug: "cafes", applicableFor: ["rent", "lease"], sortOrder: 17 },
+    { categoryId: categoryMap["commercial"], name: "Bars & Lounges", slug: "bars-lounges", applicableFor: ["rent", "lease"], sortOrder: 18 },
+    { categoryId: categoryMap["commercial"], name: "Banquet Halls", slug: "banquet-halls", applicableFor: ["rent", "lease"], sortOrder: 19 },
+    { categoryId: categoryMap["commercial"], name: "Education Spaces", slug: "education-spaces", applicableFor: ["rent", "lease"], sortOrder: 20 },
+
+    // Joint Venture subcategories
+    { categoryId: categoryMap["joint-venture"], name: "Apartment Construction", slug: "jv-apartment", sortOrder: 1 },
+    { categoryId: categoryMap["joint-venture"], name: "Plotted Development", slug: "jv-plotted", sortOrder: 2 },
+    { categoryId: categoryMap["joint-venture"], name: "Villa Construction", slug: "jv-villa", sortOrder: 3 },
+    { categoryId: categoryMap["joint-venture"], name: "Commercial Construction", slug: "jv-commercial", sortOrder: 4 },
+
+    // PG subcategories
+    { categoryId: categoryMap["pg"], name: "Men PG", slug: "men-pg", sortOrder: 1 },
+    { categoryId: categoryMap["pg"], name: "Women PG", slug: "women-pg", sortOrder: 2 },
+    { categoryId: categoryMap["pg"], name: "Co-Living Spaces", slug: "co-living-spaces", sortOrder: 3 },
+    { categoryId: categoryMap["pg"], name: "Luxury Co-living", slug: "luxury-co-living", sortOrder: 4 },
+
+    // Farm Land subcategories
+    { categoryId: categoryMap["farm-land"], name: "Agricultural", slug: "agricultural-land", sortOrder: 1 },
+    { categoryId: categoryMap["farm-land"], name: "Plantation Land", slug: "plantation-land", sortOrder: 2 },
+    { categoryId: categoryMap["farm-land"], name: "Managed Farmland", slug: "managed-farmland", sortOrder: 3 },
+
+    // Rush Deal subcategories
+    { categoryId: categoryMap["rush-deal"], name: "Apartment", slug: "rush-apartment", sortOrder: 1 },
+    { categoryId: categoryMap["rush-deal"], name: "Villa", slug: "rush-villa", sortOrder: 2 },
+    { categoryId: categoryMap["rush-deal"], name: "Builder Last-Unit Clearance", slug: "builder-clearance", sortOrder: 3 },
+    { categoryId: categoryMap["rush-deal"], name: "Independent House", slug: "rush-independent-house", sortOrder: 4 },
+    { categoryId: categoryMap["rush-deal"], name: "Commercial Building", slug: "rush-commercial-building", sortOrder: 5 },
+    { categoryId: categoryMap["rush-deal"], name: "Commercial Plot", slug: "rush-commercial-plot", sortOrder: 6 },
+    { categoryId: categoryMap["rush-deal"], name: "Residential Plots", slug: "rush-residential-plots", sortOrder: 7 },
+  ];
+
+  const validSubcategories = subcategoriesData.map(sub => ({
+    ...sub,
+    isActive: true,
+    applicableFor: sub.applicableFor || ["sale", "rent", "lease"],
+  }));
+
+  await db.insert(propertySubcategories).values(validSubcategories);
+  console.log(`Inserted ${validSubcategories.length} property subcategories`);
+}
+
 export async function seedAllContent() {
   console.log("Starting content seeding...\n");
   
@@ -1263,6 +1492,7 @@ export async function seedAllContent() {
     await seedNavigationLinks();
     await seedPropertyTypesManaged();
     await seedSiteSettings();
+    await seedPropertyCategories();
     
     console.log("\nContent seeding completed successfully!");
   } catch (error) {
