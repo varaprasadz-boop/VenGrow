@@ -1,7 +1,6 @@
 import { Link } from "wouter";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
-import CategorySection from "@/components/CategorySection";
 import PropertyCard from "@/components/PropertyCard";
 import StatsSection from "@/components/StatsSection";
 import VerifiedBuildersSection from "@/components/VerifiedBuildersSection";
@@ -138,8 +137,6 @@ export default function HomePage() {
       
       <main className="flex-1">
         <HeroSection />
-        
-        <CategorySection />
 
         <section className="py-16 bg-background" data-testid="section-featured-properties">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -152,8 +149,8 @@ export default function HomePage() {
                 View All
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-featured-properties">
-              {displayFeatured.slice(0, 3).map((property) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="grid-featured-properties">
+              {displayFeatured.slice(0, 4).map((property) => (
                 <PropertyCard key={property.id} {...property} />
               ))}
             </div>

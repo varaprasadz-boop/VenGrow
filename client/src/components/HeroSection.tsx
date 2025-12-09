@@ -128,6 +128,11 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
             >
               Rent
             </button>
+            <Link href="/sell" data-testid="link-post-free-property">
+              <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Post Free Property Ad
+              </span>
+            </Link>
           </div>
 
           <div className="flex items-center bg-card border rounded-full shadow-sm p-1.5 sm:p-2">

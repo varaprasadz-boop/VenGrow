@@ -94,8 +94,7 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
           <nav className="hidden md:flex items-center gap-2">
             <Link href="/sell">
               <Button variant="outline" size="sm" data-testid="button-post-property">
-                <Plus className="h-4 w-4 mr-1" />
-                Post Property
+                Post Property <span className="text-primary font-bold italic ml-1">FREE</span>
               </Button>
             </Link>
             {!isLoggedIn ? (

@@ -1,5 +1,6 @@
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
-import { BadgeCheck, ArrowRight } from "lucide-react";
+import { BadgeCheck, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -56,6 +57,54 @@ const verifiedBuilders = [
 ];
 
 export default function VerifiedBuildersSection() {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScrollButtons = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  useEffect(() => {
+    checkScrollButtons();
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener("scroll", checkScrollButtons);
+      return () => container.removeEventListener("scroll", checkScrollButtons);
+    }
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (scrollContainerRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+        if (scrollLeft >= scrollWidth - clientWidth - 10) {
+          scrollContainerRef.current.scrollTo({ left: 0, behavior: "smooth" });
+        } else {
+          scrollContainerRef.current.scrollBy({ left: 200, behavior: "smooth" });
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -200, behavior: "smooth" });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 200, behavior: "smooth" });
+    }
+  };
+
   return (
     <section className="py-16 bg-muted/30" data-testid="section-verified-builders">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -72,52 +121,86 @@ export default function VerifiedBuildersSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6" data-testid="grid-verified-builders">
-          {verifiedBuilders.map((builder) => (
-            <Link 
-              key={builder.id} 
-              href={`/builder/${builder.slug}`}
-              data-testid={`link-builder-${builder.id}`}
-            >
-              <Card 
-                className="p-4 h-full hover-elevate active-elevate-2 cursor-pointer transition-all group text-center overflow-hidden"
-                data-testid={`card-builder-${builder.id}`}
-              >
-                <div className="flex flex-col items-center justify-center h-full gap-3">
-                  <div 
-                    className="h-20 w-20 rounded-lg overflow-hidden"
-                    data-testid={`img-builder-logo-${builder.id}`}
-                  >
-                    <img 
-                      src={builder.logoUrl} 
-                      alt={builder.companyName}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  
-                  <div>
-                    <p 
-                      className="font-semibold text-sm line-clamp-2"
-                      data-testid={`text-builder-name-${builder.id}`}
-                    >
-                      {builder.companyName}
-                    </p>
-                    <p 
-                      className="text-xs text-muted-foreground mt-1"
-                      data-testid={`text-builder-count-${builder.id}`}
-                    >
-                      {builder.propertyCount} Properties
-                    </p>
-                  </div>
+        <div className="relative">
+          <Button
+            variant="outline"
+            size="icon"
+            className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-background shadow-md ${
+              !canScrollLeft ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            onClick={scrollLeft}
+            disabled={!canScrollLeft}
+            data-testid="button-scroll-left"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
 
-                  <div className="flex items-center gap-1 text-primary" data-testid={`badge-verified-${builder.id}`}>
-                    <BadgeCheck className="h-4 w-4" />
-                    <span className="text-xs font-medium">Verified</span>
+          <div
+            ref={scrollContainerRef}
+            className="flex gap-6 overflow-x-auto scrollbar-hide px-10 py-2"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            data-testid="carousel-verified-builders"
+          >
+            {verifiedBuilders.map((builder) => (
+              <Link 
+                key={builder.id} 
+                href={`/builder/${builder.slug}`}
+                data-testid={`link-builder-${builder.id}`}
+                className="flex-shrink-0"
+              >
+                <Card 
+                  className="p-4 w-40 hover-elevate active-elevate-2 cursor-pointer transition-all group text-center"
+                  data-testid={`card-builder-${builder.id}`}
+                >
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <div 
+                      className="h-20 w-20 rounded-lg overflow-hidden"
+                      data-testid={`img-builder-logo-${builder.id}`}
+                    >
+                      <img 
+                        src={builder.logoUrl} 
+                        alt={builder.companyName}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    
+                    <div>
+                      <p 
+                        className="font-semibold text-sm line-clamp-2"
+                        data-testid={`text-builder-name-${builder.id}`}
+                      >
+                        {builder.companyName}
+                      </p>
+                      <p 
+                        className="text-xs text-muted-foreground mt-1"
+                        data-testid={`text-builder-count-${builder.id}`}
+                      >
+                        {builder.propertyCount} Properties
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1 text-primary" data-testid={`badge-verified-${builder.id}`}>
+                      <BadgeCheck className="h-4 w-4" />
+                      <span className="text-xs font-medium">Verified</span>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            </Link>
-          ))}
+                </Card>
+              </Link>
+            ))}
+          </div>
+
+          <Button
+            variant="outline"
+            size="icon"
+            className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-background shadow-md ${
+              !canScrollRight ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            onClick={scrollRight}
+            disabled={!canScrollRight}
+            data-testid="button-scroll-right"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
         </div>
 
         <div className="text-center mt-10">
