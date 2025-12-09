@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Search, MapPin, Building2, Home, TreePine, Building, Warehouse, LandPlot, IndianRupee } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Search, MapPin, Home, IndianRupee, Building2, Building, Map, House, Crown, Briefcase, Handshake, Users, Trees, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
@@ -10,19 +11,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { PropertyCategory } from "@shared/schema";
 
 interface HeroSectionProps {
   onSearch?: (params: { location: string; propertyType: string; transactionType: string; budget: string }) => void;
 }
 
-const propertyTypes = [
-  { value: "all", label: "All Types" },
-  { value: "apartment", label: "Apartment" },
-  { value: "villa", label: "Villa" },
-  { value: "plot", label: "Plot" },
-  { value: "commercial", label: "Commercial" },
-  { value: "farmhouse", label: "Farmhouse" },
-];
+const iconMap: Record<string, typeof Building2> = {
+  Building2,
+  Home,
+  Map,
+  House,
+  Building,
+  Crown,
+  Briefcase,
+  Handshake,
+  Users,
+  Trees,
+  Zap,
+};
 
 const budgetRanges = [
   { value: "all", label: "Budget" },
@@ -34,24 +41,24 @@ const budgetRanges = [
   { value: "above-5cr", label: "Above ₹5 Cr" },
 ];
 
-const propertyTypeCards = [
-  { type: "apartment", label: "Apartments", icon: Building2, count: "2,450" },
-  { type: "villa", label: "Villas", icon: Home, count: "890" },
-  { type: "plot", label: "Plots", icon: LandPlot, count: "1,230" },
-  { type: "commercial", label: "Commercial", icon: Building, count: "567" },
-  { type: "farmhouse", label: "Farmhouse", icon: TreePine, count: "234" },
-  { type: "warehouse", label: "Warehouse", icon: Warehouse, count: "189" },
-];
-
 export default function HeroSection({ onSearch }: HeroSectionProps) {
   const [location, setLocation] = useState("");
   const [propertyType, setPropertyType] = useState("all");
   const [transactionType, setTransactionType] = useState("buy");
   const [budget, setBudget] = useState("all");
 
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery<PropertyCategory[]>({
+    queryKey: ["/api/property-categories"],
+  });
+
   const handleSearch = () => {
     onSearch?.({ location, propertyType, transactionType, budget });
   };
+
+  const propertyTypes = [
+    { value: "all", label: "All Types" },
+    ...categories.map(cat => ({ value: cat.slug, label: cat.name })),
+  ];
 
   return (
     <div className="w-full bg-background py-12 md:py-16" data-testid="section-hero">
@@ -72,26 +79,35 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
-          {propertyTypeCards.map((item) => (
-            <Link 
-              key={item.type} 
-              href={`/listings?type=${item.type}`}
-              className="block"
-            >
-              <div 
-                className="bg-card border rounded-lg p-4 text-center hover-elevate active-elevate-2 cursor-pointer transition-all"
-                data-testid={`card-property-type-${item.type}`}
-              >
-                <div className="w-12 h-12 mx-auto mb-3 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <item.icon className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-medium text-sm text-foreground">{item.label}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{item.count} Properties</p>
-              </div>
-            </Link>
-          ))}
-        </div>
+        {categoriesLoading ? (
+          <div className="flex items-center justify-center mb-10 py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-10">
+            {categories.slice(0, 11).map((category) => {
+              const IconComponent = iconMap[category.icon || "Building2"] || Building2;
+              return (
+                <Link 
+                  key={category.id} 
+                  href={`/listings?category=${category.slug}`}
+                  className="block"
+                >
+                  <div 
+                    className="bg-card border rounded-lg p-3 sm:p-4 text-center hover-elevate active-elevate-2 cursor-pointer transition-all"
+                    data-testid={`card-category-${category.slug}`}
+                  >
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <IconComponent className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                    </div>
+                    <h3 className="font-medium text-xs sm:text-sm text-foreground line-clamp-1">{category.name}</h3>
+                    <p className="text-xs text-muted-foreground mt-1 hidden sm:block">{category.description?.slice(0, 20) || "View properties"}</p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-center gap-6 mb-4">
@@ -155,7 +171,7 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
                   className="border-0 shadow-none focus:ring-0 bg-transparent w-[100px] sm:w-[120px] text-sm h-9"
                   data-testid="select-property-type"
                 >
-                  <SelectValue placeholder="Flat +1" />
+                  <SelectValue placeholder="All Types" />
                 </SelectTrigger>
                 <SelectContent>
                   {propertyTypes.map((type) => (

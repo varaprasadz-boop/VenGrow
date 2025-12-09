@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Filter, X, Search, MapPin, Calendar, Building2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Filter, X, Search, MapPin, Calendar, Building2, Layers, Milestone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -19,15 +20,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import type { PropertyCategory, PropertySubcategory } from "@shared/schema";
 
 interface FilterSidebarProps {
   onApplyFilters?: (filters: any) => void;
+  initialCategory?: string;
 }
 
-export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
+const projectStages = [
+  { value: "pre_launch", label: "Pre-launch" },
+  { value: "launch", label: "Launch" },
+  { value: "under_construction", label: "Under Construction" },
+  { value: "ready_to_move", label: "Ready to Move" },
+];
+
+export default function FilterSidebar({ onApplyFilters, initialCategory }: FilterSidebarProps) {
   const [priceRange, setPriceRange] = useState([0, 20000000]);
   const [selectedTransactionTypes, setSelectedTransactionTypes] = useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || "all");
+  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
+  const [selectedProjectStages, setSelectedProjectStages] = useState<string[]>([]);
   const [selectedBHK, setSelectedBHK] = useState<string[]>([]);
   const [selectedSeller, setSelectedSeller] = useState<string[]>([]);
   const [selectedCity, setSelectedCity] = useState<string>("all");
@@ -35,9 +47,35 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
   const [selectedPropertyAge, setSelectedPropertyAge] = useState<string[]>([]);
   const [corporateSearch, setCorporateSearch] = useState<string>("");
 
-  const handleTypeToggle = (type: string) => {
-    setSelectedTypes(prev =>
-      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+  const { data: categories = [] } = useQuery<PropertyCategory[]>({
+    queryKey: ["/api/property-categories"],
+  });
+
+  const { data: subcategories = [] } = useQuery<PropertySubcategory[]>({
+    queryKey: ["/api/property-subcategories", selectedCategory],
+    enabled: selectedCategory !== "all",
+  });
+
+  const selectedCategoryObj = useMemo(() => {
+    return categories.find(c => c.slug === selectedCategory);
+  }, [categories, selectedCategory]);
+
+  const filteredSubcategories = useMemo(() => {
+    if (selectedCategory === "all") return [];
+    const category = categories.find(c => c.slug === selectedCategory);
+    if (!category) return [];
+    return subcategories.filter(sub => sub.categoryId === category.id);
+  }, [subcategories, categories, selectedCategory]);
+
+  const handleSubcategoryToggle = (slug: string) => {
+    setSelectedSubcategories(prev =>
+      prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]
+    );
+  };
+
+  const handleProjectStageToggle = (stage: string) => {
+    setSelectedProjectStages(prev =>
+      prev.includes(stage) ? prev.filter(s => s !== stage) : [...prev, stage]
     );
   };
 
@@ -65,10 +103,18 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
     );
   };
 
+  const handleCategoryChange = (value: string) => {
+    setSelectedCategory(value);
+    setSelectedSubcategories([]);
+    setSelectedProjectStages([]);
+  };
+
   const handleClearFilters = () => {
     setPriceRange([0, 20000000]);
     setSelectedTransactionTypes([]);
-    setSelectedTypes([]);
+    setSelectedCategory("all");
+    setSelectedSubcategories([]);
+    setSelectedProjectStages([]);
     setSelectedBHK([]);
     setSelectedSeller([]);
     setSelectedCity("all");
@@ -82,7 +128,9 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
     const filters = {
       priceRange,
       transactionTypes: selectedTransactionTypes,
-      propertyTypes: selectedTypes,
+      category: selectedCategory,
+      subcategories: selectedSubcategories,
+      projectStages: selectedProjectStages,
       bhk: selectedBHK,
       sellerTypes: selectedSeller,
       city: selectedCity,
@@ -117,17 +165,23 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
   );
 
   const formatPrice = (value: number) => {
-    if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)} Cr`;
-    if (value >= 100000) return `₹${(value / 100000).toFixed(1)} L`;
-    return `₹${value.toLocaleString('en-IN')}`;
+    if (value >= 10000000) return `${(value / 10000000).toFixed(1)} Cr`;
+    if (value >= 100000) return `${(value / 100000).toFixed(1)} L`;
+    return `${value.toLocaleString('en-IN')}`;
   };
 
-  const activeFiltersCount = selectedTransactionTypes.length + selectedTypes.length + selectedBHK.length + selectedSeller.length + 
-    selectedPropertyAge.length + (selectedCity !== "all" ? 1 : 0) + (corporateSearch ? 1 : 0);
+  const activeFiltersCount = selectedTransactionTypes.length + 
+    (selectedCategory !== "all" ? 1 : 0) + 
+    selectedSubcategories.length +
+    selectedProjectStages.length +
+    selectedBHK.length + 
+    selectedSeller.length + 
+    selectedPropertyAge.length + 
+    (selectedCity !== "all" ? 1 : 0) + 
+    (corporateSearch ? 1 : 0);
 
   return (
     <div className="w-full space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b">
         <div className="flex items-center gap-2">
           <Filter className="h-5 w-5" />
@@ -146,9 +200,84 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
         </Button>
       </div>
 
-      {/* Filter Sections */}
-      <Accordion type="multiple" defaultValue={["transaction", "location", "price", "type", "seller", "age"]} className="w-full">
-        {/* Transaction Type Filter */}
+      <Accordion type="multiple" defaultValue={["category", "subcategory", "projectStage", "transaction", "location", "price", "seller"]} className="w-full">
+        <AccordionItem value="category">
+          <AccordionTrigger>
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4" />
+              Property Category
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-3">
+            <Select value={selectedCategory} onValueChange={handleCategoryChange}>
+              <SelectTrigger data-testid="select-category">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.slug}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </AccordionContent>
+        </AccordionItem>
+
+        {selectedCategory !== "all" && filteredSubcategories.length > 0 && (
+          <AccordionItem value="subcategory">
+            <AccordionTrigger>Subcategory</AccordionTrigger>
+            <AccordionContent className="space-y-3 max-h-48 overflow-y-auto">
+              {filteredSubcategories.map((sub) => (
+                <div key={sub.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`subcategory-${sub.slug}`}
+                    checked={selectedSubcategories.includes(sub.slug)}
+                    onCheckedChange={() => handleSubcategoryToggle(sub.slug)}
+                    data-testid={`checkbox-subcategory-${sub.slug}`}
+                  />
+                  <Label
+                    htmlFor={`subcategory-${sub.slug}`}
+                    className="flex-1 cursor-pointer text-sm font-normal"
+                  >
+                    {sub.name}
+                  </Label>
+                </div>
+              ))}
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
+        {selectedCategoryObj?.hasProjectStage && (
+          <AccordionItem value="projectStage">
+            <AccordionTrigger>
+              <div className="flex items-center gap-2">
+                <Milestone className="h-4 w-4" />
+                Project Stage
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-3">
+              {projectStages.map((stage) => (
+                <div key={stage.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`stage-${stage.value}`}
+                    checked={selectedProjectStages.includes(stage.value)}
+                    onCheckedChange={() => handleProjectStageToggle(stage.value)}
+                    data-testid={`checkbox-stage-${stage.value}`}
+                  />
+                  <Label
+                    htmlFor={`stage-${stage.value}`}
+                    className="flex-1 cursor-pointer text-sm font-normal"
+                  >
+                    {stage.label}
+                  </Label>
+                </div>
+              ))}
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
         <AccordionItem value="transaction">
           <AccordionTrigger>Transaction Type</AccordionTrigger>
           <AccordionContent className="space-y-3">
@@ -175,7 +304,6 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
           </AccordionContent>
         </AccordionItem>
 
-        {/* Location Filter */}
         <AccordionItem value="location">
           <AccordionTrigger>
             <div className="flex items-center gap-2">
@@ -220,7 +348,6 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
           </AccordionContent>
         </AccordionItem>
 
-        {/* Price Range */}
         <AccordionItem value="price">
           <AccordionTrigger>Price Range</AccordionTrigger>
           <AccordionContent className="space-y-4">
@@ -245,39 +372,15 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Prices</SelectItem>
-                <SelectItem value="under50">Under ₹50 Lakhs</SelectItem>
-                <SelectItem value="50to1cr">₹50L - ₹1 Cr</SelectItem>
-                <SelectItem value="1to2cr">₹1 Cr - ₹2 Cr</SelectItem>
-                <SelectItem value="above2cr">Above ₹2 Cr</SelectItem>
+                <SelectItem value="under50">Under 50 Lakhs</SelectItem>
+                <SelectItem value="50to1cr">50L - 1 Cr</SelectItem>
+                <SelectItem value="1to2cr">1 Cr - 2 Cr</SelectItem>
+                <SelectItem value="above2cr">Above 2 Cr</SelectItem>
               </SelectContent>
             </Select>
           </AccordionContent>
         </AccordionItem>
 
-        {/* Property Type */}
-        <AccordionItem value="type">
-          <AccordionTrigger>Property Type</AccordionTrigger>
-          <AccordionContent className="space-y-3">
-            {["Apartment", "Villa", "Plot/Land", "Commercial"].map((type) => (
-              <div key={type} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`type-${type}`}
-                  checked={selectedTypes.includes(type)}
-                  onCheckedChange={() => handleTypeToggle(type)}
-                  data-testid={`checkbox-type-${type.toLowerCase()}`}
-                />
-                <Label
-                  htmlFor={`type-${type}`}
-                  className="flex-1 cursor-pointer text-sm font-normal"
-                >
-                  {type}
-                </Label>
-              </div>
-            ))}
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* BHK Configuration */}
         <AccordionItem value="bhk">
           <AccordionTrigger>BHK</AccordionTrigger>
           <AccordionContent className="space-y-3">
@@ -300,7 +403,6 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
           </AccordionContent>
         </AccordionItem>
 
-        {/* Seller Type */}
         <AccordionItem value="seller">
           <AccordionTrigger>Seller Type</AccordionTrigger>
           <AccordionContent className="space-y-3">
@@ -323,7 +425,6 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
           </AccordionContent>
         </AccordionItem>
 
-        {/* Property Age */}
         <AccordionItem value="age">
           <AccordionTrigger>
             <div className="flex items-center gap-2">
@@ -355,7 +456,6 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
           </AccordionContent>
         </AccordionItem>
 
-        {/* Corporate/Builder Search */}
         <AccordionItem value="corporate">
           <AccordionTrigger>
             <div className="flex items-center gap-2">
@@ -404,7 +504,6 @@ export default function FilterSidebar({ onApplyFilters }: FilterSidebarProps) {
         </AccordionItem>
       </Accordion>
 
-      {/* Apply Button */}
       <Button className="w-full" onClick={handleApply} data-testid="button-apply-filters">
         Apply Filters
       </Button>
