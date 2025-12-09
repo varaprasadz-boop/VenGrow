@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Menu, Search, Heart, User, Home } from "lucide-react";
+import { Menu, Heart, User, Home, ChevronDown, Plus } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -30,22 +29,57 @@ const navigationLinks = [
   { label: "Projects", url: "/projects" },
 ];
 
+const cities = [
+  "Mumbai",
+  "Delhi",
+  "Bangalore",
+  "Hyderabad",
+  "Chennai",
+  "Pune",
+  "Kolkata",
+  "Ahmedabad",
+];
+
 export default function Header({ isLoggedIn = false, userType = "buyer", userId }: HeaderProps) {
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [selectedCity, setSelectedCity] = useState("Mumbai");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _ = selectedCity; // City selector UI only for now
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1 -ml-2" data-testid="link-home">
-            <img 
-              src="/favicon.png" 
-              alt="VenGrow" 
-              className="h-8 w-8 object-contain"
-              data-testid="img-header-logo"
-            />
-            <span className="font-serif font-bold text-xl hidden sm:inline">VenGrow</span>
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link href="/" className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1 -ml-2" data-testid="link-home">
+              <img 
+                src="/favicon.png" 
+                alt="VenGrow" 
+                className="h-8 w-8 object-contain"
+                data-testid="img-header-logo"
+              />
+              <span className="font-serif font-bold text-xl hidden sm:inline">VenGrow</span>
+            </Link>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-muted-foreground" data-testid="dropdown-city">
+                  {selectedCity}
+                  <ChevronDown className="ml-1 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-40">
+                {cities.map((city) => (
+                  <DropdownMenuItem 
+                    key={city} 
+                    onClick={() => setSelectedCity(city)}
+                    data-testid={`city-option-${city.toLowerCase()}`}
+                  >
+                    {city}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
           <nav className="hidden lg:flex items-center gap-1">
             {navigationLinks.map((link) => (
@@ -57,19 +91,13 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
             ))}
           </nav>
 
-          <div className="hidden md:flex flex-1 max-w-md">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search properties, locations..."
-                className="pl-10 w-full"
-                data-testid="input-search"
-              />
-            </div>
-          </div>
-
           <nav className="hidden md:flex items-center gap-2">
+            <Link href="/sell">
+              <Button variant="outline" size="sm" data-testid="button-post-property">
+                <Plus className="h-4 w-4 mr-1" />
+                Post Property
+              </Button>
+            </Link>
             {!isLoggedIn ? (
               <>
                 <Link href="/login">
@@ -124,14 +152,6 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
           </nav>
 
           <div className="flex md:hidden items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSearchOpen(!searchOpen)}
-              data-testid="button-mobile-search"
-            >
-              <Search className="h-5 w-5" />
-            </Button>
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" data-testid="button-mobile-menu">
@@ -191,19 +211,6 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
           </div>
         </div>
 
-        {searchOpen && (
-          <div className="md:hidden pb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search properties, locations..."
-                className="pl-10 w-full"
-                data-testid="input-mobile-search"
-              />
-            </div>
-          </div>
-        )}
       </div>
     </header>
   );
