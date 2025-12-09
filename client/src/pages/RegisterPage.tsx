@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Building2, Shield, Check, Users, TrendingUp, Home, Store, Eye, EyeOff, Mail, Lock, Phone, User, ArrowRight, ArrowLeft } from "lucide-react";
+import { Shield, Check, Users, TrendingUp, Home, Store, Eye, EyeOff, Mail, Lock, Phone, User, ArrowRight, ArrowLeft } from "lucide-react";
+import vengrowLogo from "@assets/image_1765269036042.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -120,9 +121,12 @@ export default function RegisterPage() {
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 py-12">
         <div className="w-full max-w-3xl">
           <div className="text-center mb-8">
-            <Link href="/" className="inline-flex items-center gap-2 mb-4">
-              <Building2 className="h-10 w-10 text-primary" />
-              <span className="font-serif font-bold text-2xl">VenGrow</span>
+            <Link href="/" className="inline-block mb-4">
+              <img 
+                src={vengrowLogo} 
+                alt="VenGrow - Verified Property Market" 
+                className="h-12 object-contain"
+              />
             </Link>
             <h1 className="text-3xl font-bold mb-2">Welcome to VenGrow</h1>
             <p className="text-muted-foreground">
@@ -215,9 +219,12 @@ export default function RegisterPage() {
           {/* Left Side - Benefits */}
           <div className="hidden md:block space-y-6">
             <div>
-              <Link href="/" className="inline-flex items-center gap-2 mb-4">
-                <Building2 className="h-10 w-10 text-primary" />
-                <span className="font-serif font-bold text-2xl">VenGrow</span>
+              <Link href="/" className="inline-block mb-4">
+                <img 
+                  src={vengrowLogo} 
+                  alt="VenGrow - Verified Property Market" 
+                  className="h-12 object-contain"
+                />
               </Link>
               <h1 className="text-3xl font-bold mb-2">Create Your Buyer Account</h1>
               <p className="text-muted-foreground">

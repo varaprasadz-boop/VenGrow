@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Building2, Shield, Users, TrendingUp, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Shield, Users, TrendingUp, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import vengrowLogo from "@assets/image_1765269036042.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -66,9 +67,12 @@ export default function LoginPage() {
         {/* Left Side - Benefits */}
         <div className="hidden md:block space-y-6">
           <div>
-            <Link href="/" className="inline-flex items-center gap-2 mb-4">
-              <Building2 className="h-10 w-10 text-primary" />
-              <span className="font-serif font-bold text-2xl">VenGrow</span>
+            <Link href="/" className="inline-block mb-4">
+              <img 
+                src={vengrowLogo} 
+                alt="VenGrow - Verified Property Market" 
+                className="h-12 object-contain"
+              />
             </Link>
             <h1 className="text-3xl font-bold mb-2">Welcome Back!</h1>
             <p className="text-muted-foreground">
@@ -117,9 +121,12 @@ export default function LoginPage() {
         <Card className="w-full">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4 md:hidden">
-              <Link href="/" className="inline-flex items-center gap-2">
-                <Building2 className="h-10 w-10 text-primary" />
-                <span className="font-serif font-bold text-2xl">VenGrow</span>
+              <Link href="/">
+                <img 
+                  src={vengrowLogo} 
+                  alt="VenGrow - Verified Property Market" 
+                  className="h-12 object-contain"
+                />
               </Link>
             </div>
             <CardTitle className="text-2xl">Sign In</CardTitle>
