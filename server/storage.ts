@@ -16,12 +16,14 @@ import {
   type FaqItem, type StaticPage, type Banner, type PlatformSetting,
   type PopularCity, type NavigationLink, type PropertyTypeManaged, type SiteSetting,
   type EmailTemplate,
+  type PropertyCategory, type PropertySubcategory,
   users, sellerProfiles, packages, properties, propertyImages, propertyDocuments,
   inquiries, favorites, savedSearches, propertyViews,
   chatThreads, chatMessages, notifications, payments, reviews,
   adminApprovals, auditLogs, systemSettings, sellerSubscriptions, propertyAlerts,
   propertyApprovalRequests, faqItems, staticPages, banners, platformSettings,
-  popularCities, navigationLinks, propertyTypesManaged, siteSettings, emailTemplates
+  popularCities, navigationLinks, propertyTypesManaged, siteSettings, emailTemplates,
+  propertyCategories, propertySubcategories
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, like, or, sql, gte, lte, inArray } from "drizzle-orm";
@@ -184,6 +186,21 @@ export interface IStorage {
   createSiteSetting(data: Omit<SiteSetting, 'id' | 'createdAt' | 'updatedAt'>): Promise<SiteSetting>;
   updateSiteSetting(id: string, data: Partial<SiteSetting>): Promise<SiteSetting | undefined>;
   deleteSiteSetting(id: string): Promise<boolean>;
+  
+  // Property Categories
+  getPropertyCategories(): Promise<PropertyCategory[]>;
+  getPropertyCategory(id: string): Promise<PropertyCategory | undefined>;
+  getPropertyCategoryBySlug(slug: string): Promise<PropertyCategory | undefined>;
+  createPropertyCategory(data: Omit<PropertyCategory, 'id' | 'createdAt' | 'updatedAt' | 'propertyCount'>): Promise<PropertyCategory>;
+  updatePropertyCategory(id: string, data: Partial<PropertyCategory>): Promise<PropertyCategory | undefined>;
+  deletePropertyCategory(id: string): Promise<boolean>;
+  
+  // Property Subcategories
+  getPropertySubcategories(categoryId?: string): Promise<PropertySubcategory[]>;
+  getPropertySubcategory(id: string): Promise<PropertySubcategory | undefined>;
+  createPropertySubcategory(data: Omit<PropertySubcategory, 'id' | 'createdAt' | 'updatedAt'>): Promise<PropertySubcategory>;
+  updatePropertySubcategory(id: string, data: Partial<PropertySubcategory>): Promise<PropertySubcategory | undefined>;
+  deletePropertySubcategory(id: string): Promise<boolean>;
 }
 
 export interface PropertyFilters {
@@ -191,6 +208,9 @@ export interface PropertyFilters {
   state?: string;
   propertyType?: string;
   transactionType?: string;
+  categoryId?: string;
+  subcategoryId?: string;
+  projectStage?: string;
   minPrice?: number;
   maxPrice?: number;
   minArea?: number;
@@ -1168,6 +1188,74 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSiteSetting(id: string): Promise<boolean> {
     await db.delete(siteSettings).where(eq(siteSettings.id, id));
+    return true;
+  }
+
+  // Property Categories
+  async getPropertyCategories(): Promise<PropertyCategory[]> {
+    return db.select().from(propertyCategories).where(eq(propertyCategories.isActive, true)).orderBy(propertyCategories.sortOrder);
+  }
+
+  async getPropertyCategory(id: string): Promise<PropertyCategory | undefined> {
+    const [category] = await db.select().from(propertyCategories).where(eq(propertyCategories.id, id));
+    return category;
+  }
+
+  async getPropertyCategoryBySlug(slug: string): Promise<PropertyCategory | undefined> {
+    const [category] = await db.select().from(propertyCategories).where(eq(propertyCategories.slug, slug));
+    return category;
+  }
+
+  async createPropertyCategory(data: Omit<PropertyCategory, 'id' | 'createdAt' | 'updatedAt' | 'propertyCount'>): Promise<PropertyCategory> {
+    const [category] = await db.insert(propertyCategories).values(data).returning();
+    return category;
+  }
+
+  async updatePropertyCategory(id: string, data: Partial<PropertyCategory>): Promise<PropertyCategory | undefined> {
+    const [category] = await db.update(propertyCategories)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(propertyCategories.id, id))
+      .returning();
+    return category;
+  }
+
+  async deletePropertyCategory(id: string): Promise<boolean> {
+    await db.delete(propertyCategories).where(eq(propertyCategories.id, id));
+    return true;
+  }
+
+  // Property Subcategories
+  async getPropertySubcategories(categoryId?: string): Promise<PropertySubcategory[]> {
+    if (categoryId) {
+      return db.select().from(propertySubcategories)
+        .where(and(eq(propertySubcategories.categoryId, categoryId), eq(propertySubcategories.isActive, true)))
+        .orderBy(propertySubcategories.sortOrder);
+    }
+    return db.select().from(propertySubcategories)
+      .where(eq(propertySubcategories.isActive, true))
+      .orderBy(propertySubcategories.sortOrder);
+  }
+
+  async getPropertySubcategory(id: string): Promise<PropertySubcategory | undefined> {
+    const [subcategory] = await db.select().from(propertySubcategories).where(eq(propertySubcategories.id, id));
+    return subcategory;
+  }
+
+  async createPropertySubcategory(data: Omit<PropertySubcategory, 'id' | 'createdAt' | 'updatedAt'>): Promise<PropertySubcategory> {
+    const [subcategory] = await db.insert(propertySubcategories).values(data).returning();
+    return subcategory;
+  }
+
+  async updatePropertySubcategory(id: string, data: Partial<PropertySubcategory>): Promise<PropertySubcategory | undefined> {
+    const [subcategory] = await db.update(propertySubcategories)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(propertySubcategories.id, id))
+      .returning();
+    return subcategory;
+  }
+
+  async deletePropertySubcategory(id: string): Promise<boolean> {
+    await db.delete(propertySubcategories).where(eq(propertySubcategories.id, id));
     return true;
   }
 }
