@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
@@ -14,11 +15,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowRight, ArrowLeft } from "lucide-react";
+import { ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
+import type { PropertyCategory, PropertySubcategory } from "@shared/schema";
+
+const projectStages = [
+  { value: "pre_launch", label: "Pre-launch" },
+  { value: "launch", label: "Launch" },
+  { value: "under_construction", label: "Under Construction" },
+  { value: "ready_to_move", label: "Ready to Move" },
+];
 
 export default function CreateListingStep1Page() {
   const [formData, setFormData] = useState({
-    propertyType: "",
+    categoryId: "",
+    subcategoryId: "",
+    projectStage: "",
     transactionType: "",
     title: "",
     description: "",
@@ -30,9 +41,40 @@ export default function CreateListingStep1Page() {
     locality: "",
   });
 
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery<PropertyCategory[]>({
+    queryKey: ["/api/property-categories"],
+  });
+
+  const { data: allSubcategories = [] } = useQuery<PropertySubcategory[]>({
+    queryKey: ["/api/property-subcategories"],
+  });
+
+  const selectedCategory = useMemo(() => {
+    return categories.find(c => c.id === formData.categoryId);
+  }, [categories, formData.categoryId]);
+
+  const filteredSubcategories = useMemo(() => {
+    if (!formData.categoryId) return [];
+    return allSubcategories.filter(sub => sub.categoryId === formData.categoryId);
+  }, [allSubcategories, formData.categoryId]);
+
+  const allowedTransactionTypes = useMemo(() => {
+    if (!selectedCategory) return ["sale", "rent", "lease"];
+    return selectedCategory.allowedTransactionTypes || ["sale", "rent", "lease"];
+  }, [selectedCategory]);
+
+  const handleCategoryChange = (value: string) => {
+    setFormData({ 
+      ...formData, 
+      categoryId: value, 
+      subcategoryId: "", 
+      projectStage: "",
+      transactionType: ""
+    });
+  };
+
   const handleNext = () => {
     console.log("Step 1 data:", formData);
-    // Navigate to step 2
   };
 
   return (
@@ -41,7 +83,6 @@ export default function CreateListingStep1Page() {
 
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Progress */}
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
@@ -71,29 +112,57 @@ export default function CreateListingStep1Page() {
             </h1>
 
             <form className="space-y-6">
-              {/* Property Type & Transaction Type */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="propertyType">Property Type *</Label>
-                  <Select
-                    value={formData.propertyType}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, propertyType: value })
-                    }
-                  >
-                    <SelectTrigger id="propertyType" data-testid="select-property-type">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="apartment">Apartment</SelectItem>
-                      <SelectItem value="villa">Villa</SelectItem>
-                      <SelectItem value="independent-house">Independent House</SelectItem>
-                      <SelectItem value="commercial">Commercial</SelectItem>
-                      <SelectItem value="plot">Plot/Land</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="category">Property Category *</Label>
+                  {categoriesLoading ? (
+                    <div className="h-10 flex items-center justify-center border rounded-md">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    </div>
+                  ) : (
+                    <Select
+                      value={formData.categoryId}
+                      onValueChange={handleCategoryChange}
+                    >
+                      <SelectTrigger id="category" data-testid="select-category">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
+                {formData.categoryId && filteredSubcategories.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="subcategory">Subcategory *</Label>
+                    <Select
+                      value={formData.subcategoryId}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, subcategoryId: value })
+                      }
+                    >
+                      <SelectTrigger id="subcategory" data-testid="select-subcategory">
+                        <SelectValue placeholder="Select subcategory" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredSubcategories.map((sub) => (
+                          <SelectItem key={sub.id} value={sub.id}>
+                            {sub.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="transactionType">Transaction Type *</Label>
                   <Select
@@ -101,20 +170,49 @@ export default function CreateListingStep1Page() {
                     onValueChange={(value) =>
                       setFormData({ ...formData, transactionType: value })
                     }
+                    disabled={!formData.categoryId}
                   >
                     <SelectTrigger id="transactionType" data-testid="select-transaction-type">
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="sale">For Sale</SelectItem>
-                      <SelectItem value="lease">For Lease</SelectItem>
-                      <SelectItem value="rent">For Rent</SelectItem>
+                      {allowedTransactionTypes.includes("sale") && (
+                        <SelectItem value="sale">For Sale</SelectItem>
+                      )}
+                      {allowedTransactionTypes.includes("lease") && (
+                        <SelectItem value="lease">For Lease</SelectItem>
+                      )}
+                      {allowedTransactionTypes.includes("rent") && (
+                        <SelectItem value="rent">For Rent</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
+
+                {selectedCategory?.hasProjectStage && (
+                  <div className="space-y-2">
+                    <Label htmlFor="projectStage">Project Stage *</Label>
+                    <Select
+                      value={formData.projectStage}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, projectStage: value })
+                      }
+                    >
+                      <SelectTrigger id="projectStage" data-testid="select-project-stage">
+                        <SelectValue placeholder="Select stage" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projectStages.map((stage) => (
+                          <SelectItem key={stage.value} value={stage.value}>
+                            {stage.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
-              {/* Title */}
               <div className="space-y-2">
                 <Label htmlFor="title">Property Title *</Label>
                 <Input
@@ -131,7 +229,6 @@ export default function CreateListingStep1Page() {
                 </p>
               </div>
 
-              {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="description">Property Description *</Label>
                 <Textarea
@@ -146,11 +243,10 @@ export default function CreateListingStep1Page() {
                 />
               </div>
 
-              {/* Price */}
               <div className="space-y-2">
                 <Label htmlFor="price">Price *</Label>
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">₹</span>
+                  <span className="text-2xl">Rs.</span>
                   <Input
                     id="price"
                     type="number"
@@ -167,7 +263,6 @@ export default function CreateListingStep1Page() {
                 </div>
               </div>
 
-              {/* Location */}
               <div>
                 <h3 className="font-semibold mb-4">Location Details</h3>
                 <div className="space-y-4">
@@ -241,7 +336,6 @@ export default function CreateListingStep1Page() {
                 </div>
               </div>
 
-              {/* Navigation */}
               <div className="flex justify-between pt-6">
                 <Link href="/seller/dashboard">
                   <Button variant="outline" type="button" data-testid="button-cancel">

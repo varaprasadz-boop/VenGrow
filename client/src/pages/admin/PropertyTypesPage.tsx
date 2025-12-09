@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -6,16 +6,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AdminDataTable, AdminPageHeader, StatusBadge, type FilterConfig, type ColumnConfig } from "@/components/admin/AdminDataTable";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, Loader2, Building2 } from "lucide-react";
-import type { PropertyTypeManaged } from "@shared/schema";
+import { Edit, Trash2, Loader2, Building2, Layers, ChevronRight } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { PropertyCategory, PropertySubcategory } from "@shared/schema";
 
-const filters: FilterConfig[] = [
-  { key: "search", label: "Name", type: "search", placeholder: "Search property types..." },
+const categoryFilters: FilterConfig[] = [
+  { key: "search", label: "Name", type: "search", placeholder: "Search categories..." },
+  {
+    key: "status",
+    label: "Status",
+    type: "select",
+    options: [
+      { value: "active", label: "Active" },
+      { value: "inactive", label: "Inactive" },
+    ]
+  }
+];
+
+const subcategoryFilters: FilterConfig[] = [
+  { key: "search", label: "Name", type: "search", placeholder: "Search subcategories..." },
   {
     key: "status",
     label: "Status",
@@ -28,101 +49,187 @@ const filters: FilterConfig[] = [
 ];
 
 export default function PropertyTypesPage() {
-  const [editingType, setEditingType] = useState<PropertyTypeManaged | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "", slug: "", icon: "", description: "", isActive: true, sortOrder: 0
+  const [activeTab, setActiveTab] = useState("categories");
+  const [editingCategory, setEditingCategory] = useState<PropertyCategory | null>(null);
+  const [editingSubcategory, setEditingSubcategory] = useState<PropertySubcategory | null>(null);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [isSubcategoryDialogOpen, setIsSubcategoryDialogOpen] = useState(false);
+  
+  const [categoryForm, setCategoryForm] = useState({
+    name: "", slug: "", icon: "", description: "", 
+    allowedTransactionTypes: ["sale", "rent", "lease"] as string[],
+    hasProjectStage: false, isActive: true, sortOrder: 0
   });
+  
+  const [subcategoryForm, setSubcategoryForm] = useState({
+    categoryId: "", name: "", slug: "", 
+    applicableFor: ["sale", "rent", "lease"] as string[],
+    isActive: true, sortOrder: 0
+  });
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: propertyTypes = [], isLoading, isError, refetch } = useQuery<PropertyTypeManaged[]>({
-    queryKey: ["/api/admin/property-types"],
+  const { data: categories = [], isLoading: categoriesLoading, refetch: refetchCategories } = useQuery<PropertyCategory[]>({
+    queryKey: ["/api/admin/property-categories"],
   });
 
-  const createMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const res = await apiRequest("POST", "/api/admin/property-types", data);
+  const { data: subcategories = [], isLoading: subcategoriesLoading, refetch: refetchSubcategories } = useQuery<PropertySubcategory[]>({
+    queryKey: ["/api/admin/property-subcategories"],
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async (data: typeof categoryForm) => {
+      const res = await apiRequest("POST", "/api/admin/property-categories", data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/property-types"] });
-      setIsDialogOpen(false);
-      resetForm();
-      toast({ title: "Property type created successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/property-categories"] });
+      setIsCategoryDialogOpen(false);
+      resetCategoryForm();
+      toast({ title: "Category created successfully" });
     },
-    onError: () => toast({ title: "Failed to create property type", variant: "destructive" }),
+    onError: () => toast({ title: "Failed to create category", variant: "destructive" }),
   });
 
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-      const res = await apiRequest("PUT", `/api/admin/property-types/${id}`, data);
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: typeof categoryForm }) => {
+      const res = await apiRequest("PUT", `/api/admin/property-categories/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/property-types"] });
-      setIsDialogOpen(false);
-      setEditingType(null);
-      resetForm();
-      toast({ title: "Property type updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/property-categories"] });
+      setIsCategoryDialogOpen(false);
+      setEditingCategory(null);
+      resetCategoryForm();
+      toast({ title: "Category updated successfully" });
     },
-    onError: () => toast({ title: "Failed to update property type", variant: "destructive" }),
+    onError: () => toast({ title: "Failed to update category", variant: "destructive" }),
   });
 
-  const deleteMutation = useMutation({
+  const deleteCategoryMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest("DELETE", `/api/admin/property-types/${id}`);
+      await apiRequest("DELETE", `/api/admin/property-categories/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/property-types"] });
-      toast({ title: "Property type deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/property-categories"] });
+      toast({ title: "Category deleted successfully" });
     },
-    onError: () => toast({ title: "Failed to delete property type", variant: "destructive" }),
+    onError: () => toast({ title: "Failed to delete category", variant: "destructive" }),
   });
 
-  const resetForm = () => {
-    setFormData({ name: "", slug: "", icon: "", description: "", isActive: true, sortOrder: 0 });
-  };
+  const createSubcategoryMutation = useMutation({
+    mutationFn: async (data: typeof subcategoryForm) => {
+      const res = await apiRequest("POST", "/api/admin/property-subcategories", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/property-subcategories"] });
+      setIsSubcategoryDialogOpen(false);
+      resetSubcategoryForm();
+      toast({ title: "Subcategory created successfully" });
+    },
+    onError: () => toast({ title: "Failed to create subcategory", variant: "destructive" }),
+  });
 
-  const openEditDialog = (type: PropertyTypeManaged) => {
-    setEditingType(type);
-    setFormData({
-      name: type.name,
-      slug: type.slug,
-      icon: type.icon || "",
-      description: type.description || "",
-      isActive: type.isActive ?? true,
-      sortOrder: type.sortOrder || 0,
+  const updateSubcategoryMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: typeof subcategoryForm }) => {
+      const res = await apiRequest("PUT", `/api/admin/property-subcategories/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/property-subcategories"] });
+      setIsSubcategoryDialogOpen(false);
+      setEditingSubcategory(null);
+      resetSubcategoryForm();
+      toast({ title: "Subcategory updated successfully" });
+    },
+    onError: () => toast({ title: "Failed to update subcategory", variant: "destructive" }),
+  });
+
+  const deleteSubcategoryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/admin/property-subcategories/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/property-subcategories"] });
+      toast({ title: "Subcategory deleted successfully" });
+    },
+    onError: () => toast({ title: "Failed to delete subcategory", variant: "destructive" }),
+  });
+
+  const resetCategoryForm = () => {
+    setCategoryForm({ 
+      name: "", slug: "", icon: "", description: "", 
+      allowedTransactionTypes: ["sale", "rent", "lease"],
+      hasProjectStage: false, isActive: true, sortOrder: 0 
     });
-    setIsDialogOpen(true);
   };
 
-  const openCreateDialog = () => {
-    setEditingType(null);
-    resetForm();
-    setIsDialogOpen(true);
+  const resetSubcategoryForm = () => {
+    setSubcategoryForm({ 
+      categoryId: "", name: "", slug: "", 
+      applicableFor: ["sale", "rent", "lease"],
+      isActive: true, sortOrder: 0 
+    });
   };
 
-  const handleSubmit = () => {
-    if (editingType) {
-      updateMutation.mutate({ id: editingType.id, data: formData });
+  const openEditCategoryDialog = (category: PropertyCategory) => {
+    setEditingCategory(category);
+    setCategoryForm({
+      name: category.name,
+      slug: category.slug,
+      icon: category.icon || "",
+      description: category.description || "",
+      allowedTransactionTypes: category.allowedTransactionTypes || ["sale", "rent", "lease"],
+      hasProjectStage: category.hasProjectStage ?? false,
+      isActive: category.isActive ?? true,
+      sortOrder: category.sortOrder || 0,
+    });
+    setIsCategoryDialogOpen(true);
+  };
+
+  const openEditSubcategoryDialog = (subcategory: PropertySubcategory) => {
+    setEditingSubcategory(subcategory);
+    setSubcategoryForm({
+      categoryId: subcategory.categoryId,
+      name: subcategory.name,
+      slug: subcategory.slug,
+      applicableFor: subcategory.applicableFor || ["sale", "rent", "lease"],
+      isActive: subcategory.isActive ?? true,
+      sortOrder: subcategory.sortOrder || 0,
+    });
+    setIsSubcategoryDialogOpen(true);
+  };
+
+  const handleCategorySubmit = () => {
+    if (editingCategory) {
+      updateCategoryMutation.mutate({ id: editingCategory.id, data: categoryForm });
     } else {
-      createMutation.mutate(formData);
+      createCategoryMutation.mutate(categoryForm);
     }
   };
 
-  const columns: ColumnConfig<PropertyTypeManaged>[] = [
+  const handleSubcategorySubmit = () => {
+    if (editingSubcategory) {
+      updateSubcategoryMutation.mutate({ id: editingSubcategory.id, data: subcategoryForm });
+    } else {
+      createSubcategoryMutation.mutate(subcategoryForm);
+    }
+  };
+
+  const categoryColumns: ColumnConfig<PropertyCategory>[] = [
     {
       key: "name",
-      header: "Property Type",
-      render: (type) => (
+      header: "Category",
+      render: (category) => (
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
-            <Building2 className="h-5 w-5 text-muted-foreground" />
+          <div className="h-10 w-10 rounded bg-primary/10 flex items-center justify-center">
+            <Layers className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="font-medium">{type.name}</p>
-            <p className="text-sm text-muted-foreground">/{type.slug}</p>
+            <p className="font-medium">{category.name}</p>
+            <p className="text-sm text-muted-foreground">/{category.slug}</p>
           </div>
         </div>
       ),
@@ -130,9 +237,18 @@ export default function PropertyTypesPage() {
     { 
       key: "description", 
       header: "Description",
-      render: (type) => (
+      render: (category) => (
         <span className="text-muted-foreground truncate max-w-[200px] block">
-          {type.description || "-"}
+          {category.description || "-"}
+        </span>
+      )
+    },
+    {
+      key: "hasProjectStage",
+      header: "Project Stage",
+      render: (category) => (
+        <span className={category.hasProjectStage ? "text-primary" : "text-muted-foreground"}>
+          {category.hasProjectStage ? "Yes" : "No"}
         </span>
       )
     },
@@ -140,23 +256,70 @@ export default function PropertyTypesPage() {
     {
       key: "isActive",
       header: "Status",
-      render: (type) => <StatusBadge active={type.isActive ?? true} />,
+      render: (category) => <StatusBadge active={category.isActive ?? true} />,
     },
   ];
 
-  const filterFn = (type: PropertyTypeManaged, filters: Record<string, string>) => {
+  const subcategoryColumns: ColumnConfig<PropertySubcategory>[] = [
+    {
+      key: "name",
+      header: "Subcategory",
+      render: (sub) => {
+        const parentCategory = categories.find(c => c.id === sub.categoryId);
+        return (
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="font-medium">{sub.name}</p>
+              <p className="text-sm text-muted-foreground">{parentCategory?.name || "Unknown"}</p>
+            </div>
+          </div>
+        );
+      },
+    },
+    { 
+      key: "slug", 
+      header: "Slug",
+      render: (sub) => (
+        <span className="text-muted-foreground">/{sub.slug}</span>
+      )
+    },
+    { key: "sortOrder", header: "Order" },
+    {
+      key: "isActive",
+      header: "Status",
+      render: (sub) => <StatusBadge active={sub.isActive ?? true} />,
+    },
+  ];
+
+  const categoryFilterFn = (category: PropertyCategory, filters: Record<string, string>) => {
     const searchMatch = !filters.search || 
-      type.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-      type.slug.toLowerCase().includes(filters.search.toLowerCase());
+      category.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+      category.slug.toLowerCase().includes(filters.search.toLowerCase());
     
     const statusMatch = !filters.status || filters.status === "all" ||
-      (filters.status === "active" && type.isActive) ||
-      (filters.status === "inactive" && !type.isActive);
+      (filters.status === "active" && category.isActive) ||
+      (filters.status === "inactive" && !category.isActive);
     
     return searchMatch && statusMatch;
   };
 
-  const isMutating = createMutation.isPending || updateMutation.isPending;
+  const subcategoryFilterFn = (sub: PropertySubcategory, filters: Record<string, string>) => {
+    const searchMatch = !filters.search || 
+      sub.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+      sub.slug.toLowerCase().includes(filters.search.toLowerCase());
+    
+    const statusMatch = !filters.status || filters.status === "all" ||
+      (filters.status === "active" && sub.isActive) ||
+      (filters.status === "inactive" && !sub.isActive);
+    
+    return searchMatch && statusMatch;
+  };
+
+  const isCategoryMutating = createCategoryMutation.isPending || updateCategoryMutation.isPending;
+  const isSubcategoryMutating = createSubcategoryMutation.isPending || updateSubcategoryMutation.isPending;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -165,120 +328,248 @@ export default function PropertyTypesPage() {
       <main className="flex-1 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <AdminPageHeader
-            title="Property Types"
-            description="Manage property type categories and classifications"
+            title="Property Categories"
+            description="Manage property categories and subcategories"
           />
 
-          <AdminDataTable
-            data={propertyTypes}
-            columns={columns}
-            filters={filters}
-            isLoading={isLoading}
-            isError={isError}
-            onRefresh={refetch}
-            onAddNew={openCreateDialog}
-            addNewLabel="Add Type"
-            emptyMessage="No property types found."
-            getRowKey={(type) => type.id}
-            filterFn={filterFn}
-            actions={(type) => (
-              <>
-                <Button variant="ghost" size="icon" onClick={() => openEditDialog(type)} data-testid={`button-edit-${type.id}`}>
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => deleteMutation.mutate(type.id)}
-                  disabled={deleteMutation.isPending}
-                  data-testid={`button-delete-${type.id}`}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </>
-            )}
-          />
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="mb-6">
+              <TabsTrigger value="categories" data-testid="tab-categories">
+                Categories ({categories.length})
+              </TabsTrigger>
+              <TabsTrigger value="subcategories" data-testid="tab-subcategories">
+                Subcategories ({subcategories.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="categories">
+              <AdminDataTable
+                data={categories}
+                columns={categoryColumns}
+                filters={categoryFilters}
+                isLoading={categoriesLoading}
+                onRefresh={refetchCategories}
+                onAddNew={() => { setEditingCategory(null); resetCategoryForm(); setIsCategoryDialogOpen(true); }}
+                addNewLabel="Add Category"
+                emptyMessage="No categories found."
+                getRowKey={(category) => category.id}
+                filterFn={categoryFilterFn}
+                actions={(category) => (
+                  <>
+                    <Button variant="ghost" size="icon" onClick={() => openEditCategoryDialog(category)} data-testid={`button-edit-category-${category.id}`}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => deleteCategoryMutation.mutate(category.id)}
+                      disabled={deleteCategoryMutation.isPending}
+                      data-testid={`button-delete-category-${category.id}`}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </>
+                )}
+              />
+            </TabsContent>
+
+            <TabsContent value="subcategories">
+              <AdminDataTable
+                data={subcategories}
+                columns={subcategoryColumns}
+                filters={subcategoryFilters}
+                isLoading={subcategoriesLoading}
+                onRefresh={refetchSubcategories}
+                onAddNew={() => { setEditingSubcategory(null); resetSubcategoryForm(); setIsSubcategoryDialogOpen(true); }}
+                addNewLabel="Add Subcategory"
+                emptyMessage="No subcategories found."
+                getRowKey={(sub) => sub.id}
+                filterFn={subcategoryFilterFn}
+                actions={(sub) => (
+                  <>
+                    <Button variant="ghost" size="icon" onClick={() => openEditSubcategoryDialog(sub)} data-testid={`button-edit-subcategory-${sub.id}`}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => deleteSubcategoryMutation.mutate(sub.id)}
+                      disabled={deleteSubcategoryMutation.isPending}
+                      data-testid={`button-delete-subcategory-${sub.id}`}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </>
+                )}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
       <Footer />
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingType ? "Edit Property Type" : "Add New Property Type"}</DialogTitle>
+            <DialogTitle>{editingCategory ? "Edit Category" : "Add New Category"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="cat-name">Name</Label>
               <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") })}
-                placeholder="e.g., Apartment"
-                data-testid="input-type-name"
+                id="cat-name"
+                value={categoryForm.name}
+                onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") })}
+                placeholder="e.g., Apartments"
+                data-testid="input-category-name"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="slug">URL Slug</Label>
+              <Label htmlFor="cat-slug">URL Slug</Label>
               <Input
-                id="slug"
-                value={formData.slug}
-                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                placeholder="e.g., apartment"
-                data-testid="input-type-slug"
+                id="cat-slug"
+                value={categoryForm.slug}
+                onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })}
+                placeholder="e.g., apartments"
+                data-testid="input-category-slug"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="icon">Icon (optional)</Label>
+                <Label htmlFor="cat-icon">Icon</Label>
                 <Input
-                  id="icon"
-                  value={formData.icon}
-                  onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                  placeholder="e.g., building"
-                  data-testid="input-type-icon"
+                  id="cat-icon"
+                  value={categoryForm.icon}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
+                  placeholder="e.g., Building2"
+                  data-testid="input-category-icon"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sortOrder">Sort Order</Label>
+                <Label htmlFor="cat-order">Sort Order</Label>
                 <Input
-                  id="sortOrder"
+                  id="cat-order"
                   type="number"
-                  value={formData.sortOrder}
-                  onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-                  data-testid="input-type-order"
+                  value={categoryForm.sortOrder}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, sortOrder: parseInt(e.target.value) || 0 })}
+                  data-testid="input-category-order"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="cat-description">Description</Label>
               <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Brief description of this property type"
-                rows={3}
-                data-testid="input-type-description"
+                id="cat-description"
+                value={categoryForm.description}
+                onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                placeholder="Brief description"
+                rows={2}
+                data-testid="input-category-description"
+              />
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="cat-active"
+                  checked={categoryForm.isActive}
+                  onCheckedChange={(checked) => setCategoryForm({ ...categoryForm, isActive: checked })}
+                  data-testid="switch-category-active"
+                />
+                <Label htmlFor="cat-active">Active</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="cat-projectstage"
+                  checked={categoryForm.hasProjectStage}
+                  onCheckedChange={(checked) => setCategoryForm({ ...categoryForm, hasProjectStage: checked })}
+                  data-testid="switch-category-projectstage"
+                />
+                <Label htmlFor="cat-projectstage">Has Project Stage</Label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCategoryDialogOpen(false)} data-testid="button-cancel-category">
+              Cancel
+            </Button>
+            <Button onClick={handleCategorySubmit} disabled={isCategoryMutating} data-testid="button-save-category">
+              {isCategoryMutating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {editingCategory ? "Update" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSubcategoryDialogOpen} onOpenChange={setIsSubcategoryDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingSubcategory ? "Edit Subcategory" : "Add New Subcategory"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="sub-category">Parent Category</Label>
+              <Select
+                value={subcategoryForm.categoryId}
+                onValueChange={(value) => setSubcategoryForm({ ...subcategoryForm, categoryId: value })}
+              >
+                <SelectTrigger id="sub-category" data-testid="select-parent-category">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sub-name">Name</Label>
+              <Input
+                id="sub-name"
+                value={subcategoryForm.name}
+                onChange={(e) => setSubcategoryForm({ ...subcategoryForm, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") })}
+                placeholder="e.g., Studio Apartments"
+                data-testid="input-subcategory-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sub-slug">URL Slug</Label>
+              <Input
+                id="sub-slug"
+                value={subcategoryForm.slug}
+                onChange={(e) => setSubcategoryForm({ ...subcategoryForm, slug: e.target.value })}
+                placeholder="e.g., studio-apartments"
+                data-testid="input-subcategory-slug"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sub-order">Sort Order</Label>
+              <Input
+                id="sub-order"
+                type="number"
+                value={subcategoryForm.sortOrder}
+                onChange={(e) => setSubcategoryForm({ ...subcategoryForm, sortOrder: parseInt(e.target.value) || 0 })}
+                data-testid="input-subcategory-order"
               />
             </div>
             <div className="flex items-center gap-2">
               <Switch
-                id="isActive"
-                checked={formData.isActive}
-                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                data-testid="switch-type-active"
+                id="sub-active"
+                checked={subcategoryForm.isActive}
+                onCheckedChange={(checked) => setSubcategoryForm({ ...subcategoryForm, isActive: checked })}
+                data-testid="switch-subcategory-active"
               />
-              <Label htmlFor="isActive">Active</Label>
+              <Label htmlFor="sub-active">Active</Label>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} data-testid="button-cancel">
+            <Button variant="outline" onClick={() => setIsSubcategoryDialogOpen(false)} data-testid="button-cancel-subcategory">
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={isMutating} data-testid="button-save">
-              {isMutating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {editingType ? "Update" : "Create"}
+            <Button onClick={handleSubcategorySubmit} disabled={isSubcategoryMutating} data-testid="button-save-subcategory">
+              {isSubcategoryMutating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {editingSubcategory ? "Update" : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
