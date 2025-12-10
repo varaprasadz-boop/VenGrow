@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, Heart, User, Home, ChevronDown, Plus } from "lucide-react";
-import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765366039283.png";
+import vengrowLogo from "@assets/image_1765381383406.png";
 import {
   Sheet,
   SheetContent,

@@ -5,7 +5,7 @@ import {
   ChevronDown, Heart, Calendar, Star, FileText, Upload, Eye,
   TrendingUp, Users, Clock, Wallet
 } from "lucide-react";
-import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765366039283.png";
+import vengrowLogo from "@assets/image_1765381383406.png";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
