@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { NavigationLink, SiteSetting } from "@shared/schema";
-import vengrowLogo from "@assets/VenGrow_Logo_Design,_1765365353403.jpg";
+import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765366039283.png";
 
 interface GroupedSettings {
   site_name?: string;
