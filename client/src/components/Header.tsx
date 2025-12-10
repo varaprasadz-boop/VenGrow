@@ -55,7 +55,7 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
               <img 
                 src={vengrowLogo} 
                 alt="VenGrow - Verified Property Market" 
-                className="h-20 md:h-24 object-contain -my-4"
+                className="h-10 md:h-12 object-contain -my-2"
                 data-testid="img-header-logo"
               />
             </Link>
