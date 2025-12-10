@@ -52,7 +52,7 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
         <div className="flex h-16 items-center justify-between gap-4">
           <div className="flex items-center gap-1">
             <Link href="/" className="flex items-center -ml-2 relative z-10" data-testid="link-home">
-              <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-b-lg px-2 pb-2 pt-1 -mb-8">
+              <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-b-lg px-2 pb-2 pt-1 -mb-10">
                 <img 
                   src={vengrowLogo} 
                   alt="VenGrow - Verified Property Market" 
