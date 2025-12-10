@@ -1,7 +1,8 @@
 import { Link } from "wouter";
-import { Building2, Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from "lucide-react";
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { NavigationLink, SiteSetting } from "@shared/schema";
+import vengrowLogo from "@assets/VenGrow_Logo_Design,_1765365353403.jpg";
 
 interface GroupedSettings {
   site_name?: string;
@@ -85,10 +86,14 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-6 w-6 text-primary" />
-              <span className="font-serif font-bold text-xl">{settings.site_name || fallbackSettings.site_name}</span>
-            </div>
+            <Link href="/" className="block">
+              <img 
+                src={vengrowLogo} 
+                alt="VenGrow - Verified Property Market" 
+                className="h-16 object-contain"
+                data-testid="img-footer-logo"
+              />
+            </Link>
             <p className="text-sm text-muted-foreground">
               {settings.site_description || fallbackSettings.site_description}
             </p>

@@ -68,8 +68,7 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
             className="font-serif font-bold text-3xl sm:text-4xl lg:text-5xl text-foreground mb-3"
             data-testid="text-hero-title"
           >
-            Search on VenGrow is now{" "}
-            <span className="italic text-primary">Simplified</span>
+            <span className="italic text-primary">Simplified Property Searching</span>
           </h1>
           <p 
             className="text-muted-foreground text-base sm:text-lg"
@@ -84,7 +83,7 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-10">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-10">
             {categories.slice(0, 11).map((category) => {
               const IconComponent = iconMap[category.icon || "Building2"] || Building2;
               return (

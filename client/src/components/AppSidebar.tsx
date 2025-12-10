@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import vengrowLogo from "@assets/image_1765269036042.png";
+import vengrowLogo from "@assets/VenGrow_Logo_Design,_1765365353403.jpg";
 import {
   Sidebar,
   SidebarContent,

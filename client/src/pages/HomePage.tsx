@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
@@ -7,6 +8,7 @@ import VerifiedBuildersSection from "@/components/VerifiedBuildersSection";
 import TestimonialsSection from "@/components/TestimonialsSection";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import propertyImg1 from "@assets/stock_images/luxury_apartment_bui_734bab84.jpg";
 import propertyImg2 from "@assets/stock_images/modern_villa_house_w_a69bd44b.jpg";
@@ -160,6 +162,43 @@ const sampleNewProperties: Property[] = [
 export default function HomePage() {
   const displayFeatured = sampleFeaturedProperties;
   const displayNew = sampleNewProperties;
+  
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScrollButtons = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  useEffect(() => {
+    checkScrollButtons();
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener("scroll", checkScrollButtons);
+      window.addEventListener("resize", checkScrollButtons);
+      return () => {
+        container.removeEventListener("scroll", checkScrollButtons);
+        window.removeEventListener("resize", checkScrollButtons);
+      };
+    }
+  }, []);
+
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -300, behavior: "smooth" });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 300, behavior: "smooth" });
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -179,10 +218,54 @@ export default function HomePage() {
                 View All
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="grid-featured-properties">
+            
+            {/* Desktop: Grid layout, Mobile: Horizontal scroll */}
+            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="grid-featured-properties-desktop">
               {displayFeatured.slice(0, 4).map((property) => (
                 <PropertyCard key={property.id} {...property} />
               ))}
+            </div>
+            
+            {/* Mobile: Horizontal scroll with 2 cards visible */}
+            <div className="md:hidden relative group/carousel">
+              <button
+                className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm transition-all duration-200 ${
+                  canScrollLeft 
+                    ? "opacity-0 group-hover/carousel:opacity-100 hover:bg-background hover:shadow-md cursor-pointer" 
+                    : "opacity-0 cursor-not-allowed"
+                }`}
+                onClick={scrollLeft}
+                disabled={!canScrollLeft}
+                data-testid="button-featured-scroll-left"
+              >
+                <ChevronLeft className="h-5 w-5 text-muted-foreground" />
+              </button>
+
+              <div
+                ref={scrollContainerRef}
+                className="flex gap-4 overflow-x-auto scrollbar-hide px-6 py-2"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                data-testid="carousel-featured-properties"
+              >
+                {displayFeatured.map((property) => (
+                  <div key={property.id} className="flex-shrink-0 w-[calc(50%-8px)]">
+                    <PropertyCard {...property} />
+                  </div>
+                ))}
+              </div>
+
+              <button
+                className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm transition-all duration-200 ${
+                  canScrollRight 
+                    ? "opacity-0 group-hover/carousel:opacity-100 hover:bg-background hover:shadow-md cursor-pointer" 
+                    : "opacity-0 cursor-not-allowed"
+                }`}
+                onClick={scrollRight}
+                disabled={!canScrollRight}
+                data-testid="button-featured-scroll-right"
+              >
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </button>
             </div>
           </div>
         </section>
