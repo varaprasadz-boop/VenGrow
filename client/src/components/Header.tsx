@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, Heart, User, Home, ChevronDown, Plus } from "lucide-react";
-import vengrowLogo from "@assets/image_1765381383406.png";
+import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import {
   Sheet,
   SheetContent,
@@ -51,13 +51,15 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
           <div className="flex items-center gap-1">
-            <Link href="/" className="flex items-center hover-elevate active-elevate-2 rounded-md -ml-2 relative z-10" data-testid="link-home">
-              <img 
-                src={vengrowLogo} 
-                alt="VenGrow - Verified Property Market" 
-                className="h-14 md:h-16 object-contain -mt-1 -mb-6"
-                data-testid="img-header-logo"
-              />
+            <Link href="/" className="flex items-center -ml-2 relative z-10" data-testid="link-home">
+              <div className="bg-white dark:bg-background rounded-b-lg px-2 pb-2 pt-1 -mb-8">
+                <img 
+                  src={vengrowLogo} 
+                  alt="VenGrow - Verified Property Market" 
+                  className="h-12 md:h-14 object-contain"
+                  data-testid="img-header-logo"
+                />
+              </div>
             </Link>
 
             <DropdownMenu>

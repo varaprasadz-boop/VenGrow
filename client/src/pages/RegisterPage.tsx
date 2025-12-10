@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Shield, Check, Users, TrendingUp, Home, Store, Eye, EyeOff, Mail, Lock, Phone, User, ArrowRight, ArrowLeft } from "lucide-react";
-import vengrowLogo from "@assets/image_1765381383406.png";
+import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
