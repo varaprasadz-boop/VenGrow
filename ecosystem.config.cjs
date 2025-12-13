@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "vengrow",
+      name: "vengrow-staging",
       script: "dist/index.js",
       env: {
         NODE_ENV: "production",
