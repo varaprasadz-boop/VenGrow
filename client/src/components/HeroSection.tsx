@@ -83,23 +83,23 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-10">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 mb-10">
             {categories.slice(0, 11).map((category) => {
               const IconComponent = iconMap[category.icon || "Building2"] || Building2;
               return (
                 <Link 
                   key={category.id} 
                   href={`/listings?category=${category.slug}`}
-                  className="block"
+                  className="block min-w-0"
                 >
                   <div 
-                    className="bg-card border rounded-lg p-3 sm:p-4 text-center hover-elevate active-elevate-2 cursor-pointer transition-all"
+                    className="bg-card border rounded-lg p-2 sm:p-4 text-center hover-elevate active-elevate-2 cursor-pointer transition-all"
                     data-testid={`card-category-${category.slug}`}
                   >
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <IconComponent className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                    <div className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-1.5 sm:mb-3 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <IconComponent className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
                     </div>
-                    <h3 className="font-medium text-xs sm:text-sm text-foreground line-clamp-1">{category.name}</h3>
+                    <h3 className="font-medium text-[10px] sm:text-sm text-foreground line-clamp-1">{category.name}</h3>
                     <p className="text-xs text-muted-foreground mt-1 hidden sm:block">{category.description?.slice(0, 20) || "View properties"}</p>
                   </div>
                 </Link>
