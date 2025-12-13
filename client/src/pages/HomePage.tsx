@@ -163,9 +163,15 @@ export default function HomePage() {
   const displayFeatured = sampleFeaturedProperties;
   const displayNew = sampleNewProperties;
   
+  // Featured Properties scroll state
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+
+  // New Listings scroll state
+  const newListingsScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeftNew, setCanScrollLeftNew] = useState(false);
+  const [canScrollRightNew, setCanScrollRightNew] = useState(true);
 
   const checkScrollButtons = () => {
     if (scrollContainerRef.current) {
@@ -175,17 +181,37 @@ export default function HomePage() {
     }
   };
 
+  const checkScrollButtonsNew = () => {
+    if (newListingsScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = newListingsScrollRef.current;
+      setCanScrollLeftNew(scrollLeft > 0);
+      setCanScrollRightNew(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
   useEffect(() => {
     checkScrollButtons();
+    checkScrollButtonsNew();
     const container = scrollContainerRef.current;
+    const containerNew = newListingsScrollRef.current;
     if (container) {
       container.addEventListener("scroll", checkScrollButtons);
       window.addEventListener("resize", checkScrollButtons);
-      return () => {
+    }
+    if (containerNew) {
+      containerNew.addEventListener("scroll", checkScrollButtonsNew);
+      window.addEventListener("resize", checkScrollButtonsNew);
+    }
+    return () => {
+      if (container) {
         container.removeEventListener("scroll", checkScrollButtons);
         window.removeEventListener("resize", checkScrollButtons);
-      };
-    }
+      }
+      if (containerNew) {
+        containerNew.removeEventListener("scroll", checkScrollButtonsNew);
+        window.removeEventListener("resize", checkScrollButtonsNew);
+      }
+    };
   }, []);
 
   const scrollLeft = () => {
@@ -197,6 +223,18 @@ export default function HomePage() {
   const scrollRight = () => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollBy({ left: 300, behavior: "smooth" });
+    }
+  };
+
+  const scrollLeftNew = () => {
+    if (newListingsScrollRef.current) {
+      newListingsScrollRef.current.scrollBy({ left: -300, behavior: "smooth" });
+    }
+  };
+
+  const scrollRightNew = () => {
+    if (newListingsScrollRef.current) {
+      newListingsScrollRef.current.scrollBy({ left: 300, behavior: "smooth" });
     }
   };
 
@@ -283,10 +321,54 @@ export default function HomePage() {
                 View All
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="grid-new-listings">
+            
+            {/* Desktop: Grid layout */}
+            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="grid-new-listings-desktop">
               {displayNew.slice(0, 4).map((property) => (
                 <PropertyCard key={property.id} {...property} />
               ))}
+            </div>
+            
+            {/* Mobile: Horizontal scroll with 2 cards visible */}
+            <div className="md:hidden relative group/carousel-new">
+              <button
+                className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm transition-all duration-200 ${
+                  canScrollLeftNew 
+                    ? "opacity-0 group-hover/carousel-new:opacity-100 hover:bg-background hover:shadow-md cursor-pointer" 
+                    : "opacity-0 cursor-not-allowed"
+                }`}
+                onClick={scrollLeftNew}
+                disabled={!canScrollLeftNew}
+                data-testid="button-new-scroll-left"
+              >
+                <ChevronLeft className="h-5 w-5 text-muted-foreground" />
+              </button>
+
+              <div
+                ref={newListingsScrollRef}
+                className="flex gap-4 overflow-x-auto scrollbar-hide px-6 py-2"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                data-testid="carousel-new-listings"
+              >
+                {displayNew.map((property) => (
+                  <div key={property.id} className="flex-shrink-0 w-[calc(50%-8px)]">
+                    <PropertyCard {...property} />
+                  </div>
+                ))}
+              </div>
+
+              <button
+                className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm transition-all duration-200 ${
+                  canScrollRightNew 
+                    ? "opacity-0 group-hover/carousel-new:opacity-100 hover:bg-background hover:shadow-md cursor-pointer" 
+                    : "opacity-0 cursor-not-allowed"
+                }`}
+                onClick={scrollRightNew}
+                disabled={!canScrollRightNew}
+                data-testid="button-new-scroll-right"
+              >
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </button>
             </div>
           </div>
         </section>
