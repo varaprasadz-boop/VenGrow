@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Property } from "@shared/schema";
+import PropertyMap from "@/components/PropertyMap";
 import {
   MapPin,
   Bed,
@@ -420,9 +421,12 @@ export default function PropertyDetailPage() {
                     <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <p>{property.address || [property.locality, property.city, property.state, property.pincode].filter(Boolean).join(', ')}</p>
                   </div>
-                  <div className="bg-muted rounded-lg h-[300px] flex items-center justify-center">
-                    <p className="text-muted-foreground">Interactive map will be shown here</p>
-                  </div>
+                  <PropertyMap
+                    properties={[property]}
+                    singleProperty={true}
+                    height="300px"
+                    showPropertyCards={false}
+                  />
                 </div>
               </Card>
             </div>
