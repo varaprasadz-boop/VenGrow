@@ -247,6 +247,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    // Check if user exists by email first (for OIDC logins where email can collide)
+    if (userData.email) {
+      const existingUser = await this.getUserByEmail(userData.email);
+      if (existingUser) {
+        // Update existing user by their ID
+        const [user] = await db
+          .update(users)
+          .set({
+            firstName: userData.firstName || existingUser.firstName,
+            lastName: userData.lastName || existingUser.lastName,
+            profileImageUrl: userData.profileImageUrl || existingUser.profileImageUrl,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, existingUser.id))
+          .returning();
+        return user;
+      }
+    }
+    
+    // If user doesn't exist by email, try to insert or update by ID
     const [user] = await db
       .insert(users)
       .values(userData)

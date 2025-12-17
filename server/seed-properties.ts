@@ -545,7 +545,17 @@ export async function seedPropertiesComprehensive() {
           const selectedAmenities = randomElements(AMENITIES[amenityType] || AMENITIES.apartment, randomInt(4, 8));
           const selectedHighlights = randomElements(HIGHLIGHTS[amenityType] || HIGHLIGHTS.apartment, randomInt(2, 5));
           
-          const workflowStatus = randomElement(WORKFLOW_STATUSES);
+          // Ensure each seller has at least one draft property for testing
+          // First 2 properties per seller are draft, next 2 are live, rest are random
+          const sellerPropertyCount = propertyBatch.filter(p => p.sellerId === seller.id).length;
+          let workflowStatus: typeof WORKFLOW_STATUSES[number];
+          if (sellerPropertyCount < 2) {
+            workflowStatus = "draft"; // First 2 properties are drafts for testing
+          } else if (sellerPropertyCount < 4) {
+            workflowStatus = "live"; // Next 2 are live for display
+          } else {
+            workflowStatus = randomElement(WORKFLOW_STATUSES); // Rest are random
+          }
           const status = workflowStatus === "live" || workflowStatus === "approved" ? "active" as const : 
                         workflowStatus === "draft" ? "draft" as const : "pending" as const;
           

@@ -11,6 +11,20 @@ import { verifySuperadminCredentials, hashPassword, verifyPassword, validateEmai
 
 const connectedClients = new Map<string, Set<WebSocket>>();
 
+// Helper function to get user ID from either OIDC or local session auth
+function getAuthenticatedUserId(req: any): string | null {
+  // Check local session first (email/password auth)
+  const localUser = (req.session as any)?.localUser;
+  if (localUser?.id) {
+    return localUser.id;
+  }
+  // Check OIDC auth
+  if (req.user?.claims?.sub) {
+    return req.user.claims.sub;
+  }
+  return null;
+}
+
 function broadcastToUser(userId: string, message: any) {
   const userSockets = connectedClients.get(userId);
   if (userSockets) {
@@ -75,7 +89,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current authenticated user (protected)
   app.get("/api/auth/user", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -263,6 +278,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: user.role,
         loginAt: new Date().toISOString(),
       };
+      
+      // Explicitly save session before responding
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err: any) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
       
       res.json({
         success: true,
@@ -904,7 +927,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current user's favorites (authenticated)
   app.get("/api/me/favorites", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const properties = await storage.getFavoriteProperties(userId);
       res.json(properties);
     } catch (error) {
@@ -962,7 +986,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current user's inquiries (authenticated)
   app.get("/api/me/inquiries", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const inquiries = await storage.getInquiriesByBuyer(userId);
       res.json(inquiries);
     } catch (error) {
@@ -1190,7 +1215,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mark all notifications as read for current user
   app.post("/api/notifications/mark-all-read", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
       await storage.markAllNotificationsAsRead(userId);
       res.json({ success: true });
     } catch (error) {
@@ -2067,7 +2093,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current user's dashboard stats (authenticated)
   app.get("/api/me/dashboard", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
       const role = user?.role || 'buyer';
       const stats = await storage.getDashboardStats(role, userId);
@@ -2080,7 +2107,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current user's saved searches (authenticated)
   app.get("/api/me/saved-searches", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const searches = await storage.getSavedSearches(userId);
       res.json(searches);
     } catch (error) {
@@ -2095,7 +2123,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current seller's profile
   app.get("/api/me/seller-profile", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const profile = await storage.getSellerProfileByUserId(userId);
       res.json(profile);
     } catch (error) {
@@ -2106,7 +2135,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current seller's properties
   app.get("/api/me/properties", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const profile = await storage.getSellerProfileByUserId(userId);
       if (!profile) {
         return res.json([]);
@@ -2121,7 +2151,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current seller's inquiries
   app.get("/api/me/seller-inquiries", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const profile = await storage.getSellerProfileByUserId(userId);
       if (!profile) {
         return res.json([]);
@@ -2136,7 +2167,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current seller's subscription
   app.get("/api/me/subscription", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const profile = await storage.getSellerProfileByUserId(userId);
       if (!profile) {
         return res.json(null);
@@ -2151,7 +2183,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current user's payments
   app.get("/api/me/payments", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const payments = await storage.getPayments(userId);
       res.json(payments);
     } catch (error) {
@@ -2162,7 +2195,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current seller's reviews
   app.get("/api/me/reviews", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const profile = await storage.getSellerProfileByUserId(userId);
       if (!profile) {
         return res.json([]);
@@ -2228,7 +2262,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/properties/:id/photos", isAuthenticated, async (req: any, res: Response) => {
     try {
       const { ObjectStorageService } = await import("./objectStorage");
-      const userId = req.user.claims.sub;
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const propertyId = req.params.id;
       const { photoURLs } = req.body;
 

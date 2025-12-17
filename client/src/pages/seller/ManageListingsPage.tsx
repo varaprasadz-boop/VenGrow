@@ -59,7 +59,7 @@ export default function ManageListingsPage() {
 
   const submitForReviewMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("POST", `/api/properties/${id}/submit-for-review`);
+      return apiRequest("POST", `/api/properties/${id}/submit-for-approval`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/me/properties"] });

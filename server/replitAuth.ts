@@ -168,19 +168,22 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  // If not on Replit, skip Replit-specific auth checks
-  // and rely on local session auth
+  // First, check local session auth (email/password login)
+  // This works both on and off Replit
+  const localUser = (req.session as any)?.localUser;
+  if (localUser?.id) {
+    return next();
+  }
+
+  // If not on Replit, and no local session, reject
   if (!isRunningOnReplit()) {
-    const localUser = (req.session as any)?.localUser;
-    if (localUser?.id) {
-      return next();
-    }
     return res.status(401).json({ message: "Unauthorized" });
   }
 
+  // On Replit, check OIDC/Passport auth
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!req.isAuthenticated() || !user?.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
