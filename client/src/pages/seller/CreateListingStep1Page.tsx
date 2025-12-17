@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -26,6 +26,7 @@ const projectStages = [
 ];
 
 export default function CreateListingStep1Page() {
+  const [, navigate] = useLocation();
   const [formData, setFormData] = useState({
     categoryId: "",
     subcategoryId: "",
@@ -91,6 +92,8 @@ export default function CreateListingStep1Page() {
   const handleNext = () => {
     if (!isFormValid) return;
     console.log("Step 1 data:", formData);
+    localStorage.setItem("createListingStep1", JSON.stringify(formData));
+    navigate("/seller/listings/create/step2");
   };
 
   return (

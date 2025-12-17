@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import {
 import { ArrowRight, ArrowLeft } from "lucide-react";
 
 export default function CreateListingStep2Page() {
+  const [, navigate] = useLocation();
   const [formData, setFormData] = useState({
     bedrooms: "",
     bathrooms: "",
@@ -404,13 +405,20 @@ export default function CreateListingStep2Page() {
 
               {/* Navigation */}
               <div className="flex justify-between pt-6">
-                <Link href="/seller/create-listing/step1">
+                <Link href="/seller/listings/create/step1">
                   <Button variant="outline" type="button" data-testid="button-back">
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back
                   </Button>
                 </Link>
-                <Button type="button" data-testid="button-next">
+                <Button 
+                  type="button" 
+                  data-testid="button-next"
+                  onClick={() => {
+                    localStorage.setItem("createListingStep2", JSON.stringify(formData));
+                    navigate("/seller/listings/create/step3");
+                  }}
+                >
                   Next: Photos & Videos
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>

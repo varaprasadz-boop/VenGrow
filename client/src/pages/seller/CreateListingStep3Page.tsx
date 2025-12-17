@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowRight, ArrowLeft, Upload, X, Image as ImageIcon } from "lucide-react";
 
 export default function CreateListingStep3Page() {
+  const [, navigate] = useLocation();
   const [photos, setPhotos] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState("");
 
@@ -172,13 +173,20 @@ export default function CreateListingStep3Page() {
 
               {/* Navigation */}
               <div className="flex justify-between pt-6">
-                <Link href="/seller/create-listing/step2">
+                <Link href="/seller/listings/create/step2">
                   <Button variant="outline" type="button" data-testid="button-back">
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back
                   </Button>
                 </Link>
-                <Button type="button" data-testid="button-next">
+                <Button 
+                  type="button" 
+                  data-testid="button-next"
+                  onClick={() => {
+                    localStorage.setItem("createListingStep3", JSON.stringify({ photos, videoUrl }));
+                    navigate("/seller/listings/create/step4");
+                  }}
+                >
                   Next: Contact & Preview
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
