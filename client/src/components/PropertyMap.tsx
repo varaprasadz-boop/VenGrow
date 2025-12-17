@@ -1,33 +1,16 @@
-import { useEffect, useRef, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Maximize2, Minimize2 } from "lucide-react";
+import { MapPin, Maximize2, Minimize2, Loader2 } from "lucide-react";
 import type { Property } from "@shared/schema";
-import "leaflet/dist/leaflet.css";
 
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-});
-
-const customIcon = new L.Icon({
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
 interface PropertyMapProps {
   properties?: Property[];
-  center?: [number, number];
+  center?: { lat: number; lng: number };
   zoom?: number;
   height?: string;
   showPropertyCards?: boolean;
@@ -35,17 +18,16 @@ interface PropertyMapProps {
   singleProperty?: boolean;
 }
 
-function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center, zoom);
-  }, [center, zoom, map]);
-  return null;
-}
+const mapContainerStyle = {
+  width: "100%",
+  height: "100%",
+};
+
+const defaultCenter = { lat: 19.076, lng: 72.8777 };
 
 export default function PropertyMap({
   properties = [],
-  center = [19.076, 72.8777],
+  center = defaultCenter,
   zoom = 11,
   height = "400px",
   showPropertyCards = true,
@@ -53,7 +35,21 @@ export default function PropertyMap({
   singleProperty = false,
 }: PropertyMapProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+  });
+
+  const onLoad = useCallback((map: google.maps.Map) => {
+    setMap(map);
+  }, []);
+
+  const onUnmount = useCallback(() => {
+    setMap(null);
+  }, []);
 
   const toggleFullscreen = () => {
     if (!mapContainerRef.current) return;
@@ -78,11 +74,11 @@ export default function PropertyMap({
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  const getPropertyCoordinates = (property: Property): [number, number] | null => {
+  const getPropertyCoordinates = (property: Property): { lat: number; lng: number } | null => {
     const lat = property.latitude ? parseFloat(String(property.latitude)) : null;
     const lng = property.longitude ? parseFloat(String(property.longitude)) : null;
     if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
-      return [lat, lng];
+      return { lat, lng };
     }
     return null;
   };
@@ -97,6 +93,38 @@ export default function PropertyMap({
   };
 
   const propertiesWithCoords = properties.filter((p) => getPropertyCoordinates(p) !== null);
+
+  useEffect(() => {
+    if (map && propertiesWithCoords.length > 0) {
+      const bounds = new google.maps.LatLngBounds();
+      propertiesWithCoords.forEach((property) => {
+        const coords = getPropertyCoordinates(property);
+        if (coords) {
+          bounds.extend(coords);
+        }
+      });
+      map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
+    }
+  }, [map, propertiesWithCoords]);
+
+  if (loadError) {
+    return (
+      <Card className="flex items-center justify-center text-center" style={{ height }}>
+        <div className="p-8">
+          <MapPin className="h-12 w-12 text-destructive mx-auto mb-4 opacity-50" />
+          <p className="text-destructive">Failed to load Google Maps</p>
+        </div>
+      </Card>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <Card className="flex items-center justify-center" style={{ height }}>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </Card>
+    );
+  }
 
   if (propertiesWithCoords.length === 0 && !singleProperty) {
     return (
@@ -119,69 +147,76 @@ export default function PropertyMap({
       <Button
         variant="secondary"
         size="icon"
-        className="absolute top-2 right-2 z-[1000]"
+        className="absolute top-2 right-2 z-10"
         onClick={toggleFullscreen}
         data-testid="button-fullscreen-map"
       >
         {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
       </Button>
 
-      <MapContainer
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
         center={mapCenter}
         zoom={zoom}
-        style={{ height: "100%", width: "100%" }}
-        scrollWheelZoom={true}
+        onLoad={onLoad}
+        onUnmount={onUnmount}
+        options={{
+          streetViewControl: false,
+          mapTypeControl: true,
+          fullscreenControl: false,
+        }}
       >
-        <ChangeView center={mapCenter} zoom={zoom} />
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-
         {propertiesWithCoords.map((property) => {
           const coords = getPropertyCoordinates(property)!;
           return (
-            <Marker key={property.id} position={coords} icon={customIcon}>
-              {showPropertyCards && (
-                <Popup>
-                  <div className="min-w-48 p-1">
-                    <h4 className="font-semibold text-sm mb-1">{property.title}</h4>
-                    <p className="text-lg font-bold text-primary mb-1">
-                      {formatPrice(property.price)}
-                    </p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-                      <MapPin className="h-3 w-3" />
-                      <span>
-                        {property.locality}, {property.city}
-                      </span>
-                    </div>
-                    <div className="flex gap-1 flex-wrap mb-2">
-                      {property.bedrooms && (
-                        <Badge variant="outline" className="text-xs">
-                          {property.bedrooms} BHK
-                        </Badge>
-                      )}
-                      <Badge variant="outline" className="text-xs">
-                        {property.area} sqft
-                      </Badge>
-                    </div>
-                    {onPropertyClick && (
-                      <Button
-                        size="sm"
-                        className="w-full"
-                        onClick={() => onPropertyClick(property)}
-                        data-testid={`button-view-property-${property.id}`}
-                      >
-                        View Details
-                      </Button>
-                    )}
-                  </div>
-                </Popup>
-              )}
-            </Marker>
+            <Marker
+              key={property.id}
+              position={coords}
+              onClick={() => setSelectedProperty(property)}
+            />
           );
         })}
-      </MapContainer>
+
+        {selectedProperty && showPropertyCards && (
+          <InfoWindow
+            position={getPropertyCoordinates(selectedProperty)!}
+            onCloseClick={() => setSelectedProperty(null)}
+          >
+            <div className="min-w-48 p-1">
+              <h4 className="font-semibold text-sm mb-1">{selectedProperty.title}</h4>
+              <p className="text-lg font-bold text-primary mb-1">
+                {formatPrice(selectedProperty.price)}
+              </p>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+                <MapPin className="h-3 w-3" />
+                <span>
+                  {selectedProperty.locality}, {selectedProperty.city}
+                </span>
+              </div>
+              <div className="flex gap-1 flex-wrap mb-2">
+                {selectedProperty.bedrooms && (
+                  <Badge variant="outline" className="text-xs">
+                    {selectedProperty.bedrooms} BHK
+                  </Badge>
+                )}
+                <Badge variant="outline" className="text-xs">
+                  {selectedProperty.area} sqft
+                </Badge>
+              </div>
+              {onPropertyClick && (
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={() => onPropertyClick(selectedProperty)}
+                  data-testid={`button-view-property-${selectedProperty.id}`}
+                >
+                  View Details
+                </Button>
+              )}
+            </div>
+          </InfoWindow>
+        )}
+      </GoogleMap>
     </div>
   );
 }

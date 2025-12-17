@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { useState, useCallback, useEffect } from "react";
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Bed, Bath, Square, MapPin, ExternalLink } from "lucide-react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { Bed, Bath, Square, MapPin, ExternalLink, Loader2 } from "lucide-react";
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
 interface PropertyMarker {
   id: string;
@@ -30,29 +30,13 @@ interface PropertyMapViewProps {
   className?: string;
 }
 
-const defaultIcon = L.divIcon({
-  html: `<div class="relative flex items-center justify-center">
-    <div class="absolute w-8 h-8 bg-primary rounded-full shadow-lg flex items-center justify-center text-white font-bold text-xs">
-      ₹
-    </div>
-  </div>`,
-  className: "custom-marker-icon",
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32],
-});
+const mapContainerStyle = {
+  width: "100%",
+  height: "100%",
+  minHeight: "500px",
+};
 
-const featuredIcon = L.divIcon({
-  html: `<div class="relative flex items-center justify-center">
-    <div class="absolute w-10 h-10 bg-yellow-500 rounded-full shadow-lg flex items-center justify-center text-white font-bold text-sm animate-pulse">
-      ★
-    </div>
-  </div>`,
-  className: "custom-marker-icon",
-  iconSize: [40, 40],
-  iconAnchor: [20, 40],
-  popupAnchor: [0, -40],
-});
+const defaultCenter = { lat: 20.5937, lng: 78.9629 };
 
 function formatPrice(price: number, isRent: boolean = false): string {
   if (isRent) {
@@ -67,22 +51,7 @@ function formatPrice(price: number, isRent: boolean = false): string {
   return `₹${price.toLocaleString("en-IN")}`;
 }
 
-function MapBoundsUpdater({ properties }: { properties: PropertyMarker[] }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (properties.length > 0) {
-      const bounds = L.latLngBounds(
-        properties.map((p) => [p.lat, p.lng])
-      );
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
-    }
-  }, [properties, map]);
-
-  return null;
-}
-
-function PropertyPopup({ property }: { property: PropertyMarker }) {
+function PropertyInfoContent({ property }: { property: PropertyMarker }) {
   const isRentOrLease = property.transactionType === "Rent" || property.transactionType === "Lease";
 
   return (
@@ -147,18 +116,60 @@ function PropertyPopup({ property }: { property: PropertyMarker }) {
 }
 
 export default function PropertyMapView({ properties, className = "" }: PropertyMapViewProps) {
-  const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<PropertyMarker | null>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
 
-  const defaultCenter: [number, number] = [20.5937, 78.9629];
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+  });
 
   const validProperties = properties.filter(
-    (p) => typeof p.lat === "number" && typeof p.lng === "number"
+    (p) => typeof p.lat === "number" && typeof p.lng === "number" && !isNaN(p.lat) && !isNaN(p.lng)
   );
 
-  const center: [number, number] =
-    validProperties.length > 0
-      ? [validProperties[0].lat, validProperties[0].lng]
-      : defaultCenter;
+  const center = validProperties.length > 0
+    ? { lat: validProperties[0].lat, lng: validProperties[0].lng }
+    : defaultCenter;
+
+  const onLoad = useCallback((map: google.maps.Map) => {
+    setMap(map);
+  }, []);
+
+  const onUnmount = useCallback(() => {
+    setMap(null);
+  }, []);
+
+  useEffect(() => {
+    if (map && validProperties.length > 0) {
+      const bounds = new google.maps.LatLngBounds();
+      validProperties.forEach((property) => {
+        bounds.extend({ lat: property.lat, lng: property.lng });
+      });
+      map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
+    }
+  }, [map, validProperties]);
+
+  if (loadError) {
+    return (
+      <div className={`flex items-center justify-center bg-muted rounded-lg ${className}`} style={{ minHeight: "500px" }}>
+        <div className="text-center">
+          <MapPin className="h-12 w-12 mx-auto text-destructive mb-4" />
+          <h3 className="font-semibold mb-2">Failed to Load Map</h3>
+          <p className="text-sm text-muted-foreground">
+            There was an error loading Google Maps
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className={`flex items-center justify-center bg-muted rounded-lg ${className}`} style={{ minHeight: "500px" }}>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (validProperties.length === 0) {
     return (
@@ -180,54 +191,44 @@ export default function PropertyMapView({ properties, className = "" }: Property
       style={{ minHeight: "500px" }}
       data-testid="map-container"
     >
-      <style>
-        {`
-          .custom-marker-icon {
-            background: transparent !important;
-            border: none !important;
-          }
-          .leaflet-popup-content-wrapper {
-            padding: 0 !important;
-            border-radius: 8px !important;
-            overflow: hidden !important;
-          }
-          .leaflet-popup-content {
-            margin: 0 !important;
-            width: auto !important;
-          }
-          .leaflet-popup-tip {
-            background: white !important;
-          }
-        `}
-      </style>
-      <MapContainer
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
         center={center}
         zoom={10}
-        style={{ height: "100%", width: "100%", minHeight: "500px" }}
-        className="z-0"
+        onLoad={onLoad}
+        onUnmount={onUnmount}
+        options={{
+          streetViewControl: false,
+          mapTypeControl: true,
+          fullscreenControl: true,
+        }}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <MapBoundsUpdater properties={validProperties} />
         {validProperties.map((property) => (
           <Marker
             key={property.id}
-            position={[property.lat, property.lng]}
-            icon={property.isFeatured ? featuredIcon : defaultIcon}
-            eventHandlers={{
-              click: () => setSelectedProperty(property.id),
+            position={{ lat: property.lat, lng: property.lng }}
+            onClick={() => setSelectedProperty(property)}
+            icon={property.isFeatured ? {
+              url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='18' fill='%23eab308' stroke='%23fff' stroke-width='2'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='%23fff' font-size='18' font-weight='bold'%3E★%3C/text%3E%3C/svg%3E",
+              scaledSize: new google.maps.Size(40, 40),
+            } : {
+              url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%2316a34a' stroke='%23fff' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='%23fff' font-size='12' font-weight='bold'%3E₹%3C/text%3E%3C/svg%3E",
+              scaledSize: new google.maps.Size(32, 32),
             }}
-          >
-            <Popup>
-              <PropertyPopup property={property} />
-            </Popup>
-          </Marker>
+          />
         ))}
-      </MapContainer>
 
-      <div className="absolute bottom-4 left-4 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-muted-foreground">
+        {selectedProperty && (
+          <InfoWindow
+            position={{ lat: selectedProperty.lat, lng: selectedProperty.lng }}
+            onCloseClick={() => setSelectedProperty(null)}
+          >
+            <PropertyInfoContent property={selectedProperty} />
+          </InfoWindow>
+        )}
+      </GoogleMap>
+
+      <div className="absolute bottom-4 left-4 z-10 bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-muted-foreground">
         {validProperties.length} properties shown on map
       </div>
     </div>

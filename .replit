@@ -46,3 +46,4 @@ integrations = ["javascript_log_in_with_replit:1.0.0", "javascript_object_storag
 [userenv.shared]
 SUPERADMIN_EMAIL = "superadmin@vengrow.com"
 SUPERADMIN_PASSWORD_HASH = "$2b$10$wlib6zAbkkt5culQBodk/.xa.6F2yfOxPz0mkhe168bhrU/EVQI4O"
+VITE_GOOGLE_MAPS_API_KEY = "${GOOGLE_API_KEY}"

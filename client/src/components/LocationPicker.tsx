@@ -1,29 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
-import L from "leaflet";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { GoogleMap, useJsApiLoader, Marker, Autocomplete } from "@react-google-maps/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Search, MapPin, Crosshair, Loader2 } from "lucide-react";
-import "leaflet/dist/leaflet.css";
+import { MapPin, Crosshair, Loader2 } from "lucide-react";
 
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-});
-
-const customIcon = new L.Icon({
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+const libraries: ("places")[] = ["places"];
 
 interface LocationPickerProps {
   latitude?: number;
@@ -34,76 +18,27 @@ interface LocationPickerProps {
   defaultCity?: string;
 }
 
-interface NominatimResult {
-  lat: string;
-  lon: string;
-  display_name: string;
-  address?: {
-    city?: string;
-    state?: string;
-    postcode?: string;
-    suburb?: string;
-    neighbourhood?: string;
-  };
-}
-
-const indianCityCenters: Record<string, [number, number]> = {
-  Mumbai: [19.076, 72.8777],
-  Delhi: [28.6139, 77.209],
-  Bangalore: [12.9716, 77.5946],
-  Hyderabad: [17.385, 78.4867],
-  Chennai: [13.0827, 80.2707],
-  Kolkata: [22.5726, 88.3639],
-  Pune: [18.5204, 73.8567],
-  Ahmedabad: [23.0225, 72.5714],
-  Jaipur: [26.9124, 75.7873],
-  Lucknow: [26.8467, 80.9462],
-  Gurgaon: [28.4595, 77.0266],
-  Noida: [28.5355, 77.391],
-  Thane: [19.2183, 72.9781],
-  Goa: [15.2993, 74.124],
+const indianCityCenters: Record<string, { lat: number; lng: number }> = {
+  Mumbai: { lat: 19.076, lng: 72.8777 },
+  Delhi: { lat: 28.6139, lng: 77.209 },
+  Bangalore: { lat: 12.9716, lng: 77.5946 },
+  Hyderabad: { lat: 17.385, lng: 78.4867 },
+  Chennai: { lat: 13.0827, lng: 80.2707 },
+  Kolkata: { lat: 22.5726, lng: 88.3639 },
+  Pune: { lat: 18.5204, lng: 73.8567 },
+  Ahmedabad: { lat: 23.0225, lng: 72.5714 },
+  Jaipur: { lat: 26.9124, lng: 75.7873 },
+  Lucknow: { lat: 26.8467, lng: 80.9462 },
+  Gurgaon: { lat: 28.4595, lng: 77.0266 },
+  Noida: { lat: 28.5355, lng: 77.391 },
+  Thane: { lat: 19.2183, lng: 72.9781 },
+  Goa: { lat: 15.2993, lng: 74.124 },
 };
 
-function MapClickHandler({ onLocationChange }: { onLocationChange: (lat: number, lng: number) => void }) {
-  useMapEvents({
-    click: (e) => {
-      onLocationChange(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
-
-function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView([lat, lng], map.getZoom());
-  }, [lat, lng, map]);
-  return null;
-}
-
-function LocateControl({ onLocate }: { onLocate: (lat: number, lng: number) => void }) {
-  const map = useMap();
-  
-  const handleLocate = () => {
-    map.locate({ setView: true, maxZoom: 16 });
-    map.on("locationfound", (e) => {
-      onLocate(e.latlng.lat, e.latlng.lng);
-    });
-  };
-
-  return (
-    <Button
-      type="button"
-      variant="secondary"
-      size="icon"
-      className="absolute bottom-20 right-2 z-[1000]"
-      onClick={handleLocate}
-      data-testid="button-locate-me"
-    >
-      <Crosshair className="h-4 w-4" />
-    </Button>
-  );
-}
+const mapContainerStyle = {
+  width: "100%",
+  height: "100%",
+};
 
 export default function LocationPicker({
   latitude,
@@ -114,69 +49,116 @@ export default function LocationPicker({
   defaultCity = "Mumbai",
 }: LocationPickerProps) {
   const defaultCenter = indianCityCenters[defaultCity] || indianCityCenters.Mumbai;
-  const [position, setPosition] = useState<[number, number] | null>(
-    latitude && longitude ? [latitude, longitude] : null
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
+    latitude && longitude ? { lat: latitude, lng: longitude } : null
   );
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showResults, setShowResults] = useState(false);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries,
+  });
 
   useEffect(() => {
     if (latitude && longitude) {
-      setPosition([latitude, longitude]);
+      setPosition({ lat: latitude, lng: longitude });
     }
   }, [latitude, longitude]);
 
-  const handleMapClick = useCallback((lat: number, lng: number) => {
-    setPosition([lat, lng]);
-    onLocationChange(lat, lng);
+  const onLoad = useCallback((map: google.maps.Map) => {
+    setMap(map);
+  }, []);
+
+  const onUnmount = useCallback(() => {
+    setMap(null);
+  }, []);
+
+  const handleMapClick = useCallback((e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      const lat = e.latLng.lat();
+      const lng = e.latLng.lng();
+      setPosition({ lat, lng });
+      onLocationChange(lat, lng);
+    }
   }, [onLocationChange]);
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  const handleMarkerDragEnd = useCallback((e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      const lat = e.latLng.lat();
+      const lng = e.latLng.lng();
+      setPosition({ lat, lng });
+      onLocationChange(lat, lng);
+    }
+  }, [onLocationChange]);
+
+  const handleLocateMe = () => {
+    if (!navigator.geolocation) return;
     
-    setIsSearching(true);
-    setShowResults(true);
-    
-    try {
-      const query = `${searchQuery}, India`;
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=in&limit=5`,
-        {
-          headers: {
-            "Accept-Language": "en",
-          },
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude: lat, longitude: lng } = position.coords;
+        setPosition({ lat, lng });
+        onLocationChange(lat, lng);
+        if (map) {
+          map.panTo({ lat, lng });
+          map.setZoom(15);
         }
-      );
-      const data: NominatimResult[] = await response.json();
-      setSearchResults(data);
-    } catch (error) {
-      console.error("Search error:", error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
+        setIsLocating(false);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  const onAutocompleteLoad = (autocomplete: google.maps.places.Autocomplete) => {
+    autocompleteRef.current = autocomplete;
+  };
+
+  const onPlaceChanged = () => {
+    if (autocompleteRef.current) {
+      const place = autocompleteRef.current.getPlace();
+      if (place.geometry?.location) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        setPosition({ lat, lng });
+        onLocationChange(lat, lng);
+        if (map) {
+          map.panTo({ lat, lng });
+          map.setZoom(15);
+        }
+        if (onAddressSelect && place.formatted_address) {
+          onAddressSelect(place.formatted_address);
+        }
+      }
     }
   };
 
-  const handleResultSelect = (result: NominatimResult) => {
-    const lat = parseFloat(result.lat);
-    const lng = parseFloat(result.lon);
-    setPosition([lat, lng]);
-    onLocationChange(lat, lng);
-    if (onAddressSelect) {
-      onAddressSelect(result.display_name);
-    }
-    setShowResults(false);
-    setSearchQuery(result.display_name);
-  };
+  if (loadError) {
+    return (
+      <Card className="p-4">
+        <div className="flex items-center justify-center h-48">
+          <p className="text-destructive">Failed to load Google Maps</p>
+        </div>
+      </Card>
+    );
+  }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleSearch();
-    }
-  };
+  if (!isLoaded) {
+    return (
+      <Card className="p-4">
+        <div className="flex items-center justify-center h-48">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-4 space-y-4">
@@ -186,47 +168,23 @@ export default function LocationPicker({
           Search Location
         </Label>
         <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <Input
-              type="text"
-              placeholder="Search for address, locality, landmark..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onFocus={() => searchResults.length > 0 && setShowResults(true)}
-              data-testid="input-location-search"
-            />
-            {showResults && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border rounded-md shadow-lg max-h-60 overflow-y-auto">
-                {searchResults.map((result, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    className="w-full text-left px-3 py-2 hover-elevate text-sm border-b last:border-b-0"
-                    onClick={() => handleResultSelect(result)}
-                    data-testid={`button-search-result-${index}`}
-                  >
-                    <div className="flex items-start gap-2">
-                      <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                      <span className="line-clamp-2">{result.display_name}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="flex-1">
+            <Autocomplete
+              onLoad={onAutocompleteLoad}
+              onPlaceChanged={onPlaceChanged}
+              options={{
+                componentRestrictions: { country: "in" },
+                types: ["geocode", "establishment"],
+              }}
+            >
+              <Input
+                ref={inputRef}
+                type="text"
+                placeholder="Search for address, locality, landmark..."
+                data-testid="input-location-search"
+              />
+            </Autocomplete>
           </div>
-          <Button 
-            type="button"
-            onClick={handleSearch}
-            disabled={isSearching}
-            data-testid="button-search-location"
-          >
-            {isSearching ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-          </Button>
         </div>
         <p className="text-xs text-muted-foreground">
           Click on the map to set the exact location, or search for an address above
@@ -234,47 +192,54 @@ export default function LocationPicker({
       </div>
 
       <div className="relative rounded-lg overflow-hidden" style={{ height }}>
-        <MapContainer
+        <GoogleMap
+          mapContainerStyle={mapContainerStyle}
           center={position || defaultCenter}
           zoom={position ? 15 : 12}
-          style={{ height: "100%", width: "100%" }}
-          scrollWheelZoom={true}
+          onLoad={onLoad}
+          onUnmount={onUnmount}
+          onClick={handleMapClick}
+          options={{
+            streetViewControl: false,
+            mapTypeControl: true,
+            fullscreenControl: false,
+          }}
         >
-          {position && <RecenterMap lat={position[0]} lng={position[1]} />}
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <MapClickHandler onLocationChange={handleMapClick} />
-          <LocateControl onLocate={handleMapClick} />
-          
           {position && (
             <Marker
               position={position}
-              icon={customIcon}
               draggable={true}
-              eventHandlers={{
-                dragend: (e) => {
-                  const marker = e.target;
-                  const pos = marker.getLatLng();
-                  setPosition([pos.lat, pos.lng]);
-                  onLocationChange(pos.lat, pos.lng);
-                },
-              }}
+              onDragEnd={handleMarkerDragEnd}
             />
           )}
-        </MapContainer>
+        </GoogleMap>
+
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          className="absolute bottom-20 right-2 z-10"
+          onClick={handleLocateMe}
+          disabled={isLocating}
+          data-testid="button-locate-me"
+        >
+          {isLocating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Crosshair className="h-4 w-4" />
+          )}
+        </Button>
       </div>
 
       {position && (
         <div className="flex items-center gap-4 text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
           <div className="flex items-center gap-1">
             <span className="font-medium">Lat:</span>
-            <span data-testid="text-latitude">{position[0].toFixed(6)}</span>
+            <span data-testid="text-latitude">{position.lat.toFixed(6)}</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="font-medium">Lng:</span>
-            <span data-testid="text-longitude">{position[1].toFixed(6)}</span>
+            <span data-testid="text-longitude">{position.lng.toFixed(6)}</span>
           </div>
         </div>
       )}
