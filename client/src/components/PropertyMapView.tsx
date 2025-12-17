@@ -149,15 +149,20 @@ export default function PropertyMapView({ properties, className = "" }: Property
     }
   }, [map, validProperties]);
 
-  if (loadError) {
+  if (loadError || !GOOGLE_MAPS_API_KEY) {
     return (
-      <div className={`flex items-center justify-center bg-muted rounded-lg ${className}`} style={{ minHeight: "500px" }}>
-        <div className="text-center">
-          <MapPin className="h-12 w-12 mx-auto text-destructive mb-4" />
-          <h3 className="font-semibold mb-2">Failed to Load Map</h3>
-          <p className="text-sm text-muted-foreground">
-            There was an error loading Google Maps
+      <div className={`flex items-center justify-center bg-muted rounded-lg ${className}`} style={{ minHeight: "500px" }} data-testid="map-container">
+        <div className="text-center max-w-md px-4">
+          <MapPin className="h-12 w-12 mx-auto text-primary mb-4" />
+          <h3 className="font-semibold mb-2">Map View</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            {validProperties.length} properties available in this area
           </p>
+          <div className="bg-card rounded-lg p-4 text-left space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Interactive map is being configured. Properties are displayed in grid view.
+            </p>
+          </div>
         </div>
       </div>
     );

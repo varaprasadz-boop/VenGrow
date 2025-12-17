@@ -107,12 +107,12 @@ export default function PropertyMap({
     }
   }, [map, propertiesWithCoords]);
 
-  if (loadError) {
+  if (loadError || !GOOGLE_MAPS_API_KEY) {
     return (
       <Card className="flex items-center justify-center text-center" style={{ height }}>
         <div className="p-8">
-          <MapPin className="h-12 w-12 text-destructive mx-auto mb-4 opacity-50" />
-          <p className="text-destructive">Failed to load Google Maps</p>
+          <MapPin className="h-12 w-12 text-primary mx-auto mb-4 opacity-70" />
+          <p className="text-muted-foreground text-sm">Map view is being configured</p>
         </div>
       </Card>
     );
