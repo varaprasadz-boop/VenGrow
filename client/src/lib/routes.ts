@@ -235,6 +235,7 @@ export const sellerRoutes: RouteConfig[] = [
   { path: "/seller/listings/expired", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Expired Listings" },
   { path: "/seller/manage-listings", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Manage Listings" },
   { path: "/seller/create-property", component: lazy(() => import("@/pages/seller/CreatePropertyPage")), requireAuth: true, roles: ["seller", "admin"], title: "Create Property" },
+  { path: "/seller/create-listing", component: lazy(() => import("@/pages/seller/CreateListingStep1Page")), requireAuth: true, roles: ["seller", "admin"], title: "Create Listing" },
   { path: "/seller/create-listing/step1", component: lazy(() => import("@/pages/seller/CreateListingStep1Page")), requireAuth: true, roles: ["seller", "admin"], title: "Create Listing - Step 1" },
   { path: "/seller/create-listing/step2", component: lazy(() => import("@/pages/seller/CreateListingStep2Page")), requireAuth: true, roles: ["seller", "admin"], title: "Create Listing - Step 2" },
   { path: "/seller/create-listing/step3", component: lazy(() => import("@/pages/seller/CreateListingStep3Page")), requireAuth: true, roles: ["seller", "admin"], title: "Create Listing - Step 3" },

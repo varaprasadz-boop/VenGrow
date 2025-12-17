@@ -64,7 +64,12 @@ A color system based on CSS custom properties provides semantic color tokens and
 
 ### Interactive Maps
 
-A PropertyMapView component uses Leaflet with OpenStreetMap tiles, offering grid, list, and map views for property listings. Interactive markers with popups display property details, and the map auto-fits bounds to show all properties.
+All map components use Google Maps API via @react-google-maps/api:
+- **PropertyMapView**: Grid, list, and map views for property listings with custom markers and info windows
+- **PropertyMap**: Property detail page map with location display
+- **LocationPicker**: Seller listing creation with Google Places Autocomplete and draggable markers
+
+Requires VITE_GOOGLE_MAPS_API_KEY secret and Maps JavaScript API + Places API enabled in Google Cloud Console. Graceful fallback UI displays when API is not configured.
 
 ### Verified Builders Section
 
