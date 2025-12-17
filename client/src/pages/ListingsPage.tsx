@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import FilterSidebar from "@/components/FilterSidebar";
@@ -8,7 +9,7 @@ import PropertyCard from "@/components/PropertyCard";
 import PropertyMapView from "@/components/PropertyMapView";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Filter, Grid3x3, List, Map } from "lucide-react";
+import { Filter, Grid3x3, List, Map, Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -16,12 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import heroImage from '@assets/generated_images/luxury_indian_apartment_building.png';
-import apartmentImage from '@assets/generated_images/modern_apartment_interior_india.png';
-import villaImage from '@assets/generated_images/independent_villa_with_garden.png';
-import commercialImage from '@assets/generated_images/commercial_office_building_india.png';
-import plotImage from '@assets/generated_images/residential_plot_ready_construction.png';
-import kitchenImage from '@assets/generated_images/modern_kitchen_interior_apartment.png';
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Property } from "@shared/schema";
+import defaultPropertyImage from '@assets/generated_images/luxury_indian_apartment_building.png';
 
 export default function ListingsPage() {
   const [location] = useLocation();
@@ -42,136 +40,40 @@ export default function ListingsPage() {
     return "All Properties";
   }, [location]);
 
-  // TODO: Remove mock data
-  const allProperties = [
-    {
-      id: "1",
-      title: "Luxury 3BHK Apartment in Prime Location",
-      price: 8500000,
-      location: "Bandra West, Mumbai",
-      imageUrl: heroImage,
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 1450,
-      propertyType: "Apartment",
-      isFeatured: true,
-      isVerified: true,
-      sellerType: "Builder" as const,
-      transactionType: "Sale" as const,
-      lat: 19.0596,
-      lng: 72.8295,
-    },
-    {
-      id: "2",
-      title: "Spacious 2BHK Flat with Modern Amenities",
-      price: 45000,
-      location: "Koramangala, Bangalore",
-      imageUrl: apartmentImage,
-      bedrooms: 2,
-      bathrooms: 2,
-      area: 1200,
-      propertyType: "Apartment",
-      isVerified: true,
-      sellerType: "Individual" as const,
-      transactionType: "Rent" as const,
-      lat: 12.9352,
-      lng: 77.6245,
-    },
-    {
-      id: "3",
-      title: "Beautiful Independent Villa with Garden",
-      price: 12500000,
-      location: "Whitefield, Bangalore",
-      imageUrl: villaImage,
-      bedrooms: 4,
-      bathrooms: 3,
-      area: 2800,
-      propertyType: "Villa",
-      isVerified: true,
-      sellerType: "Broker" as const,
-      transactionType: "Sale" as const,
-      lat: 12.9698,
-      lng: 77.7500,
-    },
-    {
-      id: "4",
-      title: "Modern Commercial Office Space",
-      price: 15000000,
-      location: "Cyber City, Gurgaon",
-      imageUrl: commercialImage,
-      area: 3500,
-      propertyType: "Commercial",
-      isVerified: true,
-      sellerType: "Builder" as const,
-      transactionType: "Sale" as const,
-      lat: 28.4947,
-      lng: 77.0889,
-    },
-    {
-      id: "5",
-      title: "Residential Plot in Developing Area",
-      price: 3500000,
-      location: "Electronic City, Bangalore",
-      imageUrl: plotImage,
-      area: 2400,
-      propertyType: "Plot",
-      isVerified: false,
-      sellerType: "Individual" as const,
-      transactionType: "Sale" as const,
-      lat: 12.8456,
-      lng: 77.6603,
-    },
-    {
-      id: "6",
-      title: "Fully Furnished 3BHK Premium Apartment",
-      price: 75000,
-      location: "Powai, Mumbai",
-      imageUrl: kitchenImage,
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 1650,
-      propertyType: "Apartment",
-      isFeatured: true,
-      isVerified: true,
-      sellerType: "Broker" as const,
-      transactionType: "Rent" as const,
-      lat: 19.1176,
-      lng: 72.9060,
-    },
-    {
-      id: "7",
-      title: "Commercial Showroom for Long-term Lease",
-      price: 150000,
-      location: "MG Road, Bangalore",
-      imageUrl: commercialImage,
-      area: 2000,
-      propertyType: "Commercial",
-      isVerified: true,
-      sellerType: "Builder" as const,
-      transactionType: "Lease" as const,
-      lat: 12.9756,
-      lng: 77.6091,
-    },
-    {
-      id: "8",
-      title: "Industrial Warehouse on Lease",
-      price: 200000,
-      location: "Bhiwandi, Mumbai",
-      imageUrl: plotImage,
-      area: 5000,
-      propertyType: "Commercial",
-      isVerified: true,
-      sellerType: "Individual" as const,
-      transactionType: "Lease" as const,
-      lat: 19.3000,
-      lng: 73.0587,
-    },
-  ];
+  // Fetch real properties from the API
+  const { data: propertiesData, isLoading } = useQuery<Property[]>({
+    queryKey: ["/api/properties"],
+  });
+
+  // Transform API data for PropertyCard component
+  const allProperties = useMemo(() => {
+    if (!propertiesData) return [];
+    return propertiesData.map(property => ({
+      id: property.id,
+      title: property.title,
+      price: property.price,
+      location: `${property.locality || ''}, ${property.city || ''}`.replace(/^, |, $/g, '') || 'Location not specified',
+      imageUrl: defaultPropertyImage,
+      bedrooms: property.bedrooms || undefined,
+      bathrooms: property.bathrooms || undefined,
+      area: property.area || 0,
+      propertyType: property.propertyType || "Property",
+      isFeatured: property.isFeatured || false,
+      isVerified: property.isVerified || false,
+      sellerType: "Builder" as "Individual" | "Broker" | "Builder",
+      transactionType: (property.transactionType || "Sale") as "Sale" | "Lease" | "Rent",
+      lat: property.latitude ? parseFloat(property.latitude) : 19.0596,
+      lng: property.longitude ? parseFloat(property.longitude) : 72.8295,
+      projectStage: property.projectStage || undefined,
+      subcategory: property.subcategoryId || undefined,
+      ageOfProperty: property.ageOfProperty ? String(property.ageOfProperty) : undefined,
+    }));
+  }, [propertiesData]);
   
   const filteredProperties = useMemo(() => {
     if (!transactionTypeFromPath) return allProperties;
     return allProperties.filter(p => p.transactionType === transactionTypeFromPath);
-  }, [transactionTypeFromPath]);
+  }, [transactionTypeFromPath, allProperties]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -264,11 +166,20 @@ export default function ListingsPage() {
               </div>
 
               {/* Properties Display */}
-              {viewType === 'map' ? (
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="ml-2 text-muted-foreground">Loading properties...</span>
+                </div>
+              ) : viewType === 'map' ? (
                 <PropertyMapView 
                   properties={filteredProperties} 
                   className="h-[600px]" 
                 />
+              ) : filteredProperties.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No properties found matching your criteria.</p>
+                </div>
               ) : (
                 <>
                   <div className={

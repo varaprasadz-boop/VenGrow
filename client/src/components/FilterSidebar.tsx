@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Filter, X, Search, MapPin, Calendar, Building2, Layers, Milestone } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Filter, X, Search, MapPin, Calendar, Building2, Layers, Milestone, Bookmark, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -19,7 +19,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { PropertyCategory, PropertySubcategory } from "@shared/schema";
 
 interface FilterSidebarProps {
@@ -35,6 +47,8 @@ const projectStages = [
 ];
 
 export default function FilterSidebar({ onApplyFilters, initialCategory }: FilterSidebarProps) {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [priceRange, setPriceRange] = useState([0, 20000000]);
   const [selectedTransactionTypes, setSelectedTransactionTypes] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || "all");
@@ -46,6 +60,59 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
   const [selectedLocality, setSelectedLocality] = useState<string>("all");
   const [selectedPropertyAge, setSelectedPropertyAge] = useState<string[]>([]);
   const [corporateSearch, setCorporateSearch] = useState<string>("");
+  const [saveSearchOpen, setSaveSearchOpen] = useState(false);
+  const [searchName, setSearchName] = useState("");
+
+  const saveSearchMutation = useMutation({
+    mutationFn: async () => {
+      const filters = {
+        minPrice: priceRange[0],
+        maxPrice: priceRange[1],
+        transactionTypes: selectedTransactionTypes,
+        category: selectedCategory,
+        subcategories: selectedSubcategories,
+        projectStages: selectedProjectStages,
+        bedrooms: selectedBHK,
+        sellerTypes: selectedSeller,
+        city: selectedCity !== "all" ? selectedCity : undefined,
+        locality: selectedLocality !== "all" ? selectedLocality : undefined,
+        propertyAge: selectedPropertyAge,
+        builder: corporateSearch || undefined,
+      };
+      
+      return await apiRequest("POST", "/api/saved-searches", {
+        userId: user?.id,
+        name: searchName,
+        filters,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Search saved successfully!" });
+      setSaveSearchOpen(false);
+      setSearchName("");
+      queryClient.invalidateQueries({ queryKey: ["/api/me/saved-searches"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to save search", variant: "destructive" });
+    },
+  });
+
+  const handleSaveSearch = () => {
+    if (!searchName.trim()) {
+      toast({ title: "Please enter a name for your search", variant: "destructive" });
+      return;
+    }
+    saveSearchMutation.mutate();
+  };
+
+  const generateSearchName = () => {
+    const parts: string[] = [];
+    if (selectedCategory !== "all") parts.push(selectedCategory);
+    if (selectedCity !== "all") parts.push(selectedCity);
+    if (selectedBHK.length > 0) parts.push(`${selectedBHK.join('/')} BHK`);
+    if (selectedTransactionTypes.length > 0) parts.push(selectedTransactionTypes.join('/'));
+    return parts.length > 0 ? parts.join(' - ') : "My Search"
+  };
 
   const { data: categories = [] } = useQuery<PropertyCategory[]>({
     queryKey: ["/api/property-categories"],
@@ -504,9 +571,65 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
         </AccordionItem>
       </Accordion>
 
-      <Button className="w-full" onClick={handleApply} data-testid="button-apply-filters">
-        Apply Filters
-      </Button>
+      <div className="space-y-2">
+        <Button className="w-full" onClick={handleApply} data-testid="button-apply-filters">
+          Apply Filters
+        </Button>
+        
+        {user && (
+          <Dialog open={saveSearchOpen} onOpenChange={setSaveSearchOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => setSearchName(generateSearchName())}
+                data-testid="button-save-search"
+              >
+                <Bookmark className="h-4 w-4 mr-2" />
+                Save Search
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Save this search</DialogTitle>
+                <DialogDescription>
+                  Give your search a name to easily find it later. You'll receive alerts when new properties match your criteria.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Label htmlFor="search-name">Search Name</Label>
+                <Input
+                  id="search-name"
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
+                  placeholder="e.g., 3BHK in Mumbai"
+                  className="mt-2"
+                  data-testid="input-search-name"
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSaveSearchOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSaveSearch}
+                  disabled={saveSearchMutation.isPending}
+                  data-testid="button-confirm-save-search"
+                >
+                  {saveSearchMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Search"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
     </div>
   );
 }

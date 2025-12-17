@@ -1115,9 +1115,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create inquiry
   app.post("/api/inquiries", async (req: Request, res: Response) => {
     try {
-      const inquiry = await storage.createInquiry(req.body);
+      const { propertyId, userId, name, email, phone, message } = req.body;
+      
+      if (!propertyId) {
+        return res.status(400).json({ error: "Property ID is required" });
+      }
+      
+      // Get the property to find the sellerId
+      const property = await storage.getProperty(propertyId);
+      if (!property) {
+        return res.status(404).json({ error: "Property not found" });
+      }
+      
+      // Create the inquiry with seller lookup
+      const inquiryData = {
+        propertyId,
+        buyerId: userId || "guest",
+        sellerId: property.sellerId,
+        message: message || `Inquiry from ${name}`,
+        buyerPhone: phone,
+        buyerEmail: email,
+        sourceType: "form" as const,
+      };
+      
+      const inquiry = await storage.createInquiry(inquiryData);
       res.status(201).json(inquiry);
     } catch (error) {
+      console.error("Failed to create inquiry:", error);
       res.status(500).json({ error: "Failed to create inquiry" });
     }
   });
@@ -1167,6 +1191,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete saved search" });
+    }
+  });
+
+  // Update saved search (toggle alerts)
+  app.patch("/api/saved-searches/:id", async (req: Request, res: Response) => {
+    try {
+      const search = await storage.updateSavedSearch(req.params.id, req.body);
+      if (!search) {
+        return res.status(404).json({ error: "Saved search not found" });
+      }
+      res.json(search);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update saved search" });
     }
   });
 

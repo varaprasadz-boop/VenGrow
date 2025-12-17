@@ -89,6 +89,7 @@ export interface IStorage {
   getSavedSearches(userId: string): Promise<SavedSearch[]>;
   createSavedSearch(userId: string, name: string, filters: Record<string, unknown>): Promise<SavedSearch>;
   deleteSavedSearch(id: string): Promise<boolean>;
+  updateSavedSearch(id: string, data: { alertEnabled?: boolean; name?: string }): Promise<SavedSearch | undefined>;
   
   getChatThreads(userId: string): Promise<ChatThread[]>;
   getChatThread(id: string): Promise<ChatThread | undefined>;
@@ -518,6 +519,11 @@ export class DatabaseStorage implements IStorage {
   async deleteSavedSearch(id: string): Promise<boolean> {
     await db.delete(savedSearches).where(eq(savedSearches.id, id));
     return true;
+  }
+
+  async updateSavedSearch(id: string, data: { alertEnabled?: boolean; name?: string }): Promise<SavedSearch | undefined> {
+    const [updated] = await db.update(savedSearches).set(data).where(eq(savedSearches.id, id)).returning();
+    return updated;
   }
 
   async getChatThreads(userId: string): Promise<ChatThread[]> {
