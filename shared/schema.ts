@@ -112,6 +112,7 @@ export const sellerSubscriptions = pgTable("seller_subscriptions", {
 export const properties = pgTable("properties", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   sellerId: varchar("seller_id").notNull().references(() => sellerProfiles.id),
+  projectId: varchar("project_id"),
   title: text("title").notNull(),
   description: text("description"),
   propertyType: propertyTypeEnum("property_type").notNull(),
@@ -119,6 +120,7 @@ export const properties = pgTable("properties", {
   categoryId: varchar("category_id"),
   subcategoryId: varchar("subcategory_id"),
   projectStage: projectStageEnum("project_stage"),
+  youtubeVideoUrl: text("youtube_video_url"),
   price: integer("price").notNull(),
   pricePerSqft: integer("price_per_sqft"),
   area: integer("area").notNull(),
@@ -555,6 +557,77 @@ export const siteSettings = pgTable("site_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Verified Builders - for homepage showcase and landing pages (Builder/Corporate only)
+export const verifiedBuilders = pgTable("verified_builders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyName: text("company_name").notNull(),
+  slug: text("slug").notNull().unique(),
+  logoUrl: text("logo_url"),
+  bannerImage: text("banner_image"),
+  description: text("description"),
+  aboutText: text("about_text"),
+  establishedYear: integer("established_year"),
+  website: text("website"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  sellerId: varchar("seller_id").references(() => sellerProfiles.id),
+  propertyCount: integer("property_count").notNull().default(0),
+  isVerified: boolean("is_verified").notNull().default(false),
+  showOnHomepage: boolean("show_on_homepage").notNull().default(true),
+  hasLandingPage: boolean("has_landing_page").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Projects - for Builder/Broker/Corporate project listings (Sale only)
+export const projectStatusEnum = pgEnum("project_status", ["draft", "submitted", "under_review", "approved", "live", "rejected", "completed"]);
+
+export const projects = pgTable("projects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sellerId: varchar("seller_id").notNull().references(() => sellerProfiles.id),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  bannerImage: text("banner_image"),
+  galleryImages: jsonb("gallery_images").$type<string[]>(),
+  youtubeVideoUrl: text("youtube_video_url"),
+  address: text("address"),
+  locality: text("locality"),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  pincode: text("pincode"),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
+  projectStage: projectStageEnum("project_stage").notNull().default("under_construction"),
+  launchDate: timestamp("launch_date"),
+  completionDate: timestamp("completion_date"),
+  reraNumber: text("rera_number"),
+  totalUnits: integer("total_units"),
+  availableUnits: integer("available_units"),
+  priceRangeMin: integer("price_range_min"),
+  priceRangeMax: integer("price_range_max"),
+  areaRangeMin: integer("area_range_min"),
+  areaRangeMax: integer("area_range_max"),
+  amenities: jsonb("amenities").$type<string[]>(),
+  highlights: jsonb("highlights").$type<string[]>(),
+  specifications: jsonb("specifications").$type<{ category: string; items: string[] }[]>(),
+  floorPlans: jsonb("floor_plans").$type<{ name: string; area: number; price: number; imageUrl?: string }[]>(),
+  status: projectStatusEnum("status").notNull().default("draft"),
+  isFeatured: boolean("is_featured").notNull().default(false),
+  viewCount: integer("view_count").notNull().default(0),
+  inquiryCount: integer("inquiry_count").notNull().default(0),
+  approvedAt: timestamp("approved_at"),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -788,3 +861,26 @@ export type PropertyCategory = typeof propertyCategories.$inferSelect;
 
 export type InsertPropertySubcategory = z.infer<typeof insertPropertySubcategorySchema>;
 export type PropertySubcategory = typeof propertySubcategories.$inferSelect;
+
+export const insertVerifiedBuilderSchema = createInsertSchema(verifiedBuilders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  propertyCount: true,
+});
+
+export const insertProjectSchema = createInsertSchema(projects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  viewCount: true,
+  inquiryCount: true,
+  approvedAt: true,
+  approvedBy: true,
+});
+
+export type InsertVerifiedBuilder = z.infer<typeof insertVerifiedBuilderSchema>;
+export type VerifiedBuilder = typeof verifiedBuilders.$inferSelect;
+
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+export type Project = typeof projects.$inferSelect;

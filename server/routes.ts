@@ -3175,6 +3175,339 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================
+  // VERIFIED BUILDERS (PUBLIC + ADMIN)
+  // ============================================
+  
+  // Public: Get active verified builders for homepage
+  app.get("/api/verified-builders", async (req: Request, res: Response) => {
+    try {
+      const showOnHomepage = req.query.homepage === "true";
+      const builders = await storage.getVerifiedBuilders({ 
+        isActive: true, 
+        showOnHomepage: showOnHomepage || undefined 
+      });
+      res.json(builders);
+    } catch (error) {
+      console.error("Error fetching verified builders:", error);
+      res.status(500).json({ message: "Failed to fetch verified builders" });
+    }
+  });
+  
+  // Public: Get builder landing page by slug
+  app.get("/api/verified-builders/slug/:slug", async (req: Request, res: Response) => {
+    try {
+      const builder = await storage.getVerifiedBuilderBySlug(req.params.slug);
+      if (!builder) {
+        return res.status(404).json({ message: "Builder not found" });
+      }
+      res.json(builder);
+    } catch (error) {
+      console.error("Error fetching builder:", error);
+      res.status(500).json({ message: "Failed to fetch builder" });
+    }
+  });
+  
+  // Public: Get builder by ID
+  app.get("/api/verified-builders/:id", async (req: Request, res: Response) => {
+    try {
+      const builder = await storage.getVerifiedBuilder(req.params.id);
+      if (!builder) {
+        return res.status(404).json({ message: "Builder not found" });
+      }
+      res.json(builder);
+    } catch (error) {
+      console.error("Error fetching builder:", error);
+      res.status(500).json({ message: "Failed to fetch builder" });
+    }
+  });
+  
+  // Admin: Get all verified builders for management
+  app.get("/api/admin/verified-builders", async (req: any, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser?.isSuperAdmin) {
+        return res.status(401).json({ message: "Unauthorized - Admin access required" });
+      }
+      const builders = await storage.getVerifiedBuilders();
+      res.json(builders);
+    } catch (error) {
+      console.error("Error fetching verified builders:", error);
+      res.status(500).json({ message: "Failed to fetch verified builders" });
+    }
+  });
+  
+  // Admin: Create verified builder
+  app.post("/api/admin/verified-builders", async (req: any, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser?.isSuperAdmin) {
+        return res.status(401).json({ message: "Unauthorized - Admin access required" });
+      }
+      const builder = await storage.createVerifiedBuilder(req.body);
+      res.status(201).json(builder);
+    } catch (error) {
+      console.error("Error creating verified builder:", error);
+      res.status(500).json({ message: "Failed to create verified builder" });
+    }
+  });
+  
+  // Admin: Update verified builder
+  app.patch("/api/admin/verified-builders/:id", async (req: any, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser?.isSuperAdmin) {
+        return res.status(401).json({ message: "Unauthorized - Admin access required" });
+      }
+      const builder = await storage.updateVerifiedBuilder(req.params.id, req.body);
+      if (!builder) {
+        return res.status(404).json({ message: "Builder not found" });
+      }
+      res.json(builder);
+    } catch (error) {
+      console.error("Error updating verified builder:", error);
+      res.status(500).json({ message: "Failed to update verified builder" });
+    }
+  });
+  
+  // Admin: Delete verified builder
+  app.delete("/api/admin/verified-builders/:id", async (req: any, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser?.isSuperAdmin) {
+        return res.status(401).json({ message: "Unauthorized - Admin access required" });
+      }
+      await storage.deleteVerifiedBuilder(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting verified builder:", error);
+      res.status(500).json({ message: "Failed to delete verified builder" });
+    }
+  });
+
+  // ============================================
+  // PROJECTS (PUBLIC + SELLER + ADMIN)
+  // ============================================
+  
+  // Public: Get projects with filters
+  app.get("/api/projects", async (req: Request, res: Response) => {
+    try {
+      const filters: any = {
+        status: 'live', // Only show live/approved projects publicly
+      };
+      
+      if (req.query.city) filters.city = req.query.city as string;
+      if (req.query.state) filters.state = req.query.state as string;
+      if (req.query.projectStage) filters.projectStage = req.query.projectStage as string;
+      if (req.query.minPrice) filters.minPrice = parseInt(req.query.minPrice as string);
+      if (req.query.maxPrice) filters.maxPrice = parseInt(req.query.maxPrice as string);
+      if (req.query.sellerId) filters.sellerId = req.query.sellerId as string;
+      if (req.query.featured === "true") filters.isFeatured = true;
+      if (req.query.search) filters.search = req.query.search as string;
+      if (req.query.limit) filters.limit = parseInt(req.query.limit as string);
+      if (req.query.offset) filters.offset = parseInt(req.query.offset as string);
+      
+      const projects = await storage.getProjects(filters);
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      res.status(500).json({ message: "Failed to fetch projects" });
+    }
+  });
+  
+  // Public: Get project by slug
+  app.get("/api/projects/slug/:slug", async (req: Request, res: Response) => {
+    try {
+      const project = await storage.getProjectBySlug(req.params.slug);
+      if (!project || project.status !== 'live') {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      res.json(project);
+    } catch (error) {
+      console.error("Error fetching project:", error);
+      res.status(500).json({ message: "Failed to fetch project" });
+    }
+  });
+  
+  // Public: Get project by ID
+  app.get("/api/projects/:id", async (req: Request, res: Response) => {
+    try {
+      const project = await storage.getProject(req.params.id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      res.json(project);
+    } catch (error) {
+      console.error("Error fetching project:", error);
+      res.status(500).json({ message: "Failed to fetch project" });
+    }
+  });
+  
+  // Public: Get properties in a project
+  app.get("/api/projects/:id/properties", async (req: Request, res: Response) => {
+    try {
+      const properties = await storage.getPropertiesByProject(req.params.id);
+      res.json(properties);
+    } catch (error) {
+      console.error("Error fetching project properties:", error);
+      res.status(500).json({ message: "Failed to fetch project properties" });
+    }
+  });
+  
+  // Seller: Get my projects
+  app.get("/api/seller/projects", async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile) {
+        return res.status(403).json({ message: "Seller profile required" });
+      }
+      
+      // Only Broker, Builder, and Corporate can create projects
+      if (!['broker', 'builder', 'corporate'].includes(sellerProfile.sellerType)) {
+        return res.status(403).json({ message: "Only Brokers, Builders, and Corporate sellers can manage projects" });
+      }
+      
+      const projects = await storage.getProjectsBySeller(sellerProfile.id);
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching seller projects:", error);
+      res.status(500).json({ message: "Failed to fetch projects" });
+    }
+  });
+  
+  // Seller: Create project
+  app.post("/api/seller/projects", async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile) {
+        return res.status(403).json({ message: "Seller profile required" });
+      }
+      
+      if (!['broker', 'builder', 'corporate'].includes(sellerProfile.sellerType)) {
+        return res.status(403).json({ message: "Only Brokers, Builders, and Corporate sellers can create projects" });
+      }
+      
+      const projectData = {
+        ...req.body,
+        sellerId: sellerProfile.id,
+        status: 'draft',
+      };
+      
+      const project = await storage.createProject(projectData);
+      res.status(201).json(project);
+    } catch (error) {
+      console.error("Error creating project:", error);
+      res.status(500).json({ message: "Failed to create project" });
+    }
+  });
+  
+  // Seller: Update project
+  app.patch("/api/seller/projects/:id", async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile) {
+        return res.status(403).json({ message: "Seller profile required" });
+      }
+      
+      const project = await storage.getProject(req.params.id);
+      if (!project || project.sellerId !== sellerProfile.id) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const updated = await storage.updateProject(req.params.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating project:", error);
+      res.status(500).json({ message: "Failed to update project" });
+    }
+  });
+  
+  // Seller: Delete project
+  app.delete("/api/seller/projects/:id", async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile) {
+        return res.status(403).json({ message: "Seller profile required" });
+      }
+      
+      const project = await storage.getProject(req.params.id);
+      if (!project || project.sellerId !== sellerProfile.id) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      await storage.deleteProject(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      res.status(500).json({ message: "Failed to delete project" });
+    }
+  });
+  
+  // Admin: Get all projects for moderation
+  app.get("/api/admin/projects", async (req: any, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser?.isSuperAdmin) {
+        return res.status(401).json({ message: "Unauthorized - Admin access required" });
+      }
+      
+      const filters: any = {};
+      if (req.query.status) filters.status = req.query.status as string;
+      if (req.query.sellerId) filters.sellerId = req.query.sellerId as string;
+      
+      const projects = await storage.getProjects(filters);
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      res.status(500).json({ message: "Failed to fetch projects" });
+    }
+  });
+  
+  // Admin: Update project (approve/reject)
+  app.patch("/api/admin/projects/:id", async (req: any, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser?.isSuperAdmin) {
+        return res.status(401).json({ message: "Unauthorized - Admin access required" });
+      }
+      
+      const updateData = { ...req.body };
+      if (req.body.status === 'live') {
+        updateData.approvedAt = new Date();
+        updateData.approvedBy = 'superadmin';
+      }
+      
+      const project = await storage.updateProject(req.params.id, updateData);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      res.json(project);
+    } catch (error) {
+      console.error("Error updating project:", error);
+      res.status(500).json({ message: "Failed to update project" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // ============================================

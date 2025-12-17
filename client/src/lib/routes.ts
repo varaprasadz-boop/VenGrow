@@ -29,6 +29,12 @@ export const publicRoutes: RouteConfig[] = [
   { path: "/property/:id", component: lazy(() => import("@/pages/PropertyDetailPage")), title: "Property Details" },
   { path: "/packages", component: lazy(() => import("@/pages/PackagesPage")), title: "Pricing Plans" },
   
+  // Builders & Projects (Public)
+  { path: "/builders", component: lazy(() => import("@/pages/BuildersListPage")), title: "Verified Builders" },
+  { path: "/builder/:slug", component: lazy(() => import("@/pages/BuilderLandingPage")), title: "Builder" },
+  { path: "/projects", component: lazy(() => import("@/pages/ProjectsListPage")), title: "Projects" },
+  { path: "/project/:slug", component: lazy(() => import("@/pages/ProjectDetailPage")), title: "Project Details" },
+  
   // Static Pages
   { path: "/about", component: lazy(() => import("@/pages/static/AboutPage")), title: "About Us" },
   { path: "/contact", component: lazy(() => import("@/pages/static/ContactPage")), title: "Contact Us" },

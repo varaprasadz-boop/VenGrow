@@ -88,7 +88,7 @@ export default function VerifiedBuildersPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-      const res = await apiRequest("PUT", `/api/admin/verified-builders/${id}`, data);
+      const res = await apiRequest("PATCH", `/api/admin/verified-builders/${id}`, data);
       return res.json();
     },
     onSuccess: () => {

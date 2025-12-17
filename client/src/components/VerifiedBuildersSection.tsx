@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
-import { BadgeCheck, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { BadgeCheck, ArrowRight, ChevronLeft, ChevronRight, Building2, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import type { VerifiedBuilder } from "@shared/schema";
 
 import builderImg1 from "@assets/stock_images/corporate_office_bui_2f340793.jpg";
 import builderImg2 from "@assets/stock_images/corporate_office_bui_8f6c9c5a.jpg";
@@ -11,55 +13,38 @@ import builderImg4 from "@assets/stock_images/corporate_office_bui_998dee1f.jpg"
 import builderImg5 from "@assets/stock_images/corporate_office_bui_3c3196e3.jpg";
 import builderImg6 from "@assets/stock_images/corporate_office_bui_cd677e1c.jpg";
 
-const verifiedBuilders = [
-  {
-    id: "1",
-    companyName: "Prestige Group",
-    logoUrl: builderImg1,
-    propertyCount: 156,
-    slug: "prestige-group",
-  },
-  {
-    id: "2",
-    companyName: "Godrej Properties",
-    logoUrl: builderImg2,
-    propertyCount: 134,
-    slug: "godrej-properties",
-  },
-  {
-    id: "3",
-    companyName: "DLF Limited",
-    logoUrl: builderImg3,
-    propertyCount: 98,
-    slug: "dlf-limited",
-  },
-  {
-    id: "4",
-    companyName: "Sobha Developers",
-    logoUrl: builderImg4,
-    propertyCount: 87,
-    slug: "sobha-developers",
-  },
-  {
-    id: "5",
-    companyName: "Brigade Group",
-    logoUrl: builderImg5,
-    propertyCount: 76,
-    slug: "brigade-group",
-  },
-  {
-    id: "6",
-    companyName: "Mahindra Lifespaces",
-    logoUrl: builderImg6,
-    propertyCount: 65,
-    slug: "mahindra-lifespaces",
-  },
+const fallbackBuilders = [
+  { id: "1", companyName: "Prestige Group", logoUrl: builderImg1, propertyCount: 156, slug: "prestige-group" },
+  { id: "2", companyName: "Godrej Properties", logoUrl: builderImg2, propertyCount: 134, slug: "godrej-properties" },
+  { id: "3", companyName: "DLF Limited", logoUrl: builderImg3, propertyCount: 98, slug: "dlf-limited" },
+  { id: "4", companyName: "Sobha Developers", logoUrl: builderImg4, propertyCount: 87, slug: "sobha-developers" },
+  { id: "5", companyName: "Brigade Group", logoUrl: builderImg5, propertyCount: 76, slug: "brigade-group" },
+  { id: "6", companyName: "Mahindra Lifespaces", logoUrl: builderImg6, propertyCount: 65, slug: "mahindra-lifespaces" },
 ];
 
 export default function VerifiedBuildersSection() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const { data: apiBuilders, isLoading } = useQuery<VerifiedBuilder[]>({
+    queryKey: ["/api/verified-builders", { homepage: true }],
+    queryFn: async () => {
+      const response = await fetch("/api/verified-builders?homepage=true");
+      if (!response.ok) throw new Error("Failed to fetch builders");
+      return response.json();
+    },
+  });
+
+  const builders = apiBuilders && apiBuilders.length > 0 
+    ? apiBuilders.map(b => ({
+        id: b.id,
+        companyName: b.companyName,
+        logoUrl: b.logoUrl || fallbackBuilders[0].logoUrl,
+        propertyCount: b.propertyCount || 0,
+        slug: b.slug,
+      }))
+    : fallbackBuilders;
 
   const checkScrollButtons = () => {
     if (scrollContainerRef.current) {
@@ -76,7 +61,7 @@ export default function VerifiedBuildersSection() {
       container.addEventListener("scroll", checkScrollButtons);
       return () => container.removeEventListener("scroll", checkScrollButtons);
     }
-  }, []);
+  }, [builders]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -104,6 +89,16 @@ export default function VerifiedBuildersSection() {
       scrollContainerRef.current.scrollBy({ left: 200, behavior: "smooth" });
     }
   };
+
+  if (isLoading) {
+    return (
+      <section className="py-16 bg-muted/30" data-testid="section-verified-builders">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-16 bg-muted/30" data-testid="section-verified-builders">
@@ -141,7 +136,7 @@ export default function VerifiedBuildersSection() {
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             data-testid="carousel-verified-builders"
           >
-            {verifiedBuilders.map((builder) => (
+            {builders.map((builder) => (
               <Link 
                 key={builder.id} 
                 href={`/builder/${builder.slug}`}
@@ -154,14 +149,18 @@ export default function VerifiedBuildersSection() {
                 >
                   <div className="flex flex-col items-center justify-center gap-3">
                     <div 
-                      className="h-20 w-20 rounded-lg overflow-hidden"
+                      className="h-20 w-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center"
                       data-testid={`img-builder-logo-${builder.id}`}
                     >
-                      <img 
-                        src={builder.logoUrl} 
-                        alt={builder.companyName}
-                        className="w-full h-full object-cover"
-                      />
+                      {builder.logoUrl ? (
+                        <img 
+                          src={builder.logoUrl} 
+                          alt={builder.companyName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Building2 className="h-8 w-8 text-muted-foreground" />
+                      )}
                     </div>
                     
                     <div>

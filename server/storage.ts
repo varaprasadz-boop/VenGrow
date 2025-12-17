@@ -17,13 +17,15 @@ import {
   type PopularCity, type NavigationLink, type PropertyTypeManaged, type SiteSetting,
   type EmailTemplate,
   type PropertyCategory, type PropertySubcategory,
+  type VerifiedBuilder, type InsertVerifiedBuilder,
+  type Project, type InsertProject,
   users, sellerProfiles, packages, properties, propertyImages, propertyDocuments,
   inquiries, favorites, savedSearches, propertyViews,
   chatThreads, chatMessages, notifications, payments, reviews,
   adminApprovals, auditLogs, systemSettings, sellerSubscriptions, propertyAlerts,
   propertyApprovalRequests, faqItems, staticPages, banners, platformSettings,
   popularCities, navigationLinks, propertyTypesManaged, siteSettings, emailTemplates,
-  propertyCategories, propertySubcategories
+  propertyCategories, propertySubcategories, verifiedBuilders, projects
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, like, or, sql, gte, lte, inArray } from "drizzle-orm";
@@ -202,6 +204,39 @@ export interface IStorage {
   createPropertySubcategory(data: Omit<PropertySubcategory, 'id' | 'createdAt' | 'updatedAt'>): Promise<PropertySubcategory>;
   updatePropertySubcategory(id: string, data: Partial<PropertySubcategory>): Promise<PropertySubcategory | undefined>;
   deletePropertySubcategory(id: string): Promise<boolean>;
+  
+  // Verified Builders (Builder/Corporate landing pages)
+  getVerifiedBuilders(filters?: { showOnHomepage?: boolean; isActive?: boolean }): Promise<VerifiedBuilder[]>;
+  getVerifiedBuilder(id: string): Promise<VerifiedBuilder | undefined>;
+  getVerifiedBuilderBySlug(slug: string): Promise<VerifiedBuilder | undefined>;
+  getVerifiedBuilderBySellerId(sellerId: string): Promise<VerifiedBuilder | undefined>;
+  createVerifiedBuilder(data: InsertVerifiedBuilder): Promise<VerifiedBuilder>;
+  updateVerifiedBuilder(id: string, data: Partial<InsertVerifiedBuilder>): Promise<VerifiedBuilder | undefined>;
+  deleteVerifiedBuilder(id: string): Promise<boolean>;
+  
+  // Projects (for Broker/Builder/Corporate)
+  getProjects(filters?: ProjectFilters): Promise<Project[]>;
+  getProject(id: string): Promise<Project | undefined>;
+  getProjectBySlug(slug: string): Promise<Project | undefined>;
+  getProjectsBySeller(sellerId: string): Promise<Project[]>;
+  createProject(data: InsertProject): Promise<Project>;
+  updateProject(id: string, data: Partial<InsertProject>): Promise<Project | undefined>;
+  deleteProject(id: string): Promise<boolean>;
+  getPropertiesByProject(projectId: string): Promise<Property[]>;
+}
+
+export interface ProjectFilters {
+  city?: string;
+  state?: string;
+  projectStage?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  status?: string;
+  sellerId?: string;
+  isFeatured?: boolean;
+  search?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export interface PropertyFilters {
@@ -1283,6 +1318,143 @@ export class DatabaseStorage implements IStorage {
   async deletePropertySubcategory(id: string): Promise<boolean> {
     await db.delete(propertySubcategories).where(eq(propertySubcategories.id, id));
     return true;
+  }
+
+  // Verified Builders
+  async getVerifiedBuilders(filters?: { showOnHomepage?: boolean; isActive?: boolean }): Promise<VerifiedBuilder[]> {
+    let conditions = [];
+    if (filters?.isActive !== undefined) {
+      conditions.push(eq(verifiedBuilders.isActive, filters.isActive));
+    }
+    if (filters?.showOnHomepage !== undefined) {
+      conditions.push(eq(verifiedBuilders.showOnHomepage, filters.showOnHomepage));
+    }
+    if (conditions.length > 0) {
+      return db.select().from(verifiedBuilders).where(and(...conditions)).orderBy(verifiedBuilders.sortOrder);
+    }
+    return db.select().from(verifiedBuilders).orderBy(verifiedBuilders.sortOrder);
+  }
+
+  async getVerifiedBuilder(id: string): Promise<VerifiedBuilder | undefined> {
+    const [builder] = await db.select().from(verifiedBuilders).where(eq(verifiedBuilders.id, id));
+    return builder;
+  }
+
+  async getVerifiedBuilderBySlug(slug: string): Promise<VerifiedBuilder | undefined> {
+    const [builder] = await db.select().from(verifiedBuilders).where(eq(verifiedBuilders.slug, slug));
+    return builder;
+  }
+
+  async getVerifiedBuilderBySellerId(sellerId: string): Promise<VerifiedBuilder | undefined> {
+    const [builder] = await db.select().from(verifiedBuilders).where(eq(verifiedBuilders.sellerId, sellerId));
+    return builder;
+  }
+
+  async createVerifiedBuilder(data: InsertVerifiedBuilder): Promise<VerifiedBuilder> {
+    const [builder] = await db.insert(verifiedBuilders).values(data).returning();
+    return builder;
+  }
+
+  async updateVerifiedBuilder(id: string, data: Partial<InsertVerifiedBuilder>): Promise<VerifiedBuilder | undefined> {
+    const [builder] = await db.update(verifiedBuilders)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(verifiedBuilders.id, id))
+      .returning();
+    return builder;
+  }
+
+  async deleteVerifiedBuilder(id: string): Promise<boolean> {
+    await db.delete(verifiedBuilders).where(eq(verifiedBuilders.id, id));
+    return true;
+  }
+
+  // Projects
+  async getProjects(filters?: ProjectFilters): Promise<Project[]> {
+    let conditions = [];
+    
+    if (filters?.city) {
+      conditions.push(eq(projects.city, filters.city));
+    }
+    if (filters?.state) {
+      conditions.push(eq(projects.state, filters.state));
+    }
+    if (filters?.projectStage) {
+      conditions.push(eq(projects.projectStage, filters.projectStage as any));
+    }
+    if (filters?.status) {
+      conditions.push(eq(projects.status, filters.status as any));
+    }
+    if (filters?.sellerId) {
+      conditions.push(eq(projects.sellerId, filters.sellerId));
+    }
+    if (filters?.isFeatured !== undefined) {
+      conditions.push(eq(projects.isFeatured, filters.isFeatured));
+    }
+    if (filters?.minPrice) {
+      conditions.push(gte(projects.priceRangeMin, filters.minPrice));
+    }
+    if (filters?.maxPrice) {
+      conditions.push(lte(projects.priceRangeMax, filters.maxPrice));
+    }
+    if (filters?.search) {
+      conditions.push(or(
+        like(projects.name, `%${filters.search}%`),
+        like(projects.city, `%${filters.search}%`),
+        like(projects.locality, `%${filters.search}%`)
+      ));
+    }
+    
+    let query = db.select().from(projects);
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    query = query.orderBy(desc(projects.createdAt)) as any;
+    
+    if (filters?.limit) {
+      query = query.limit(filters.limit) as any;
+    }
+    if (filters?.offset) {
+      query = query.offset(filters.offset) as any;
+    }
+    
+    return query;
+  }
+
+  async getProject(id: string): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    return project;
+  }
+
+  async getProjectBySlug(slug: string): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.slug, slug));
+    return project;
+  }
+
+  async getProjectsBySeller(sellerId: string): Promise<Project[]> {
+    return db.select().from(projects).where(eq(projects.sellerId, sellerId)).orderBy(desc(projects.createdAt));
+  }
+
+  async createProject(data: InsertProject): Promise<Project> {
+    const [project] = await db.insert(projects).values(data).returning();
+    return project;
+  }
+
+  async updateProject(id: string, data: Partial<InsertProject>): Promise<Project | undefined> {
+    const [project] = await db.update(projects)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(projects.id, id))
+      .returning();
+    return project;
+  }
+
+  async deleteProject(id: string): Promise<boolean> {
+    await db.delete(projects).where(eq(projects.id, id));
+    return true;
+  }
+
+  async getPropertiesByProject(projectId: string): Promise<Property[]> {
+    return db.select().from(properties).where(eq(properties.projectId, projectId)).orderBy(desc(properties.createdAt));
   }
 }
 
