@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { seedDatabase } from "./seed";
+import { seedCMSContent } from "./seed-cms";
 import { insertPropertySchema, insertInquirySchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -429,6 +430,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(pkg);
     } catch (error) {
       res.status(500).json({ error: "Failed to get package" });
+    }
+  });
+
+  // ============================================
+  // PUBLIC CMS ROUTES (No auth required)
+  // ============================================
+
+  // Get all FAQs (public)
+  app.get("/api/faqs", async (req: Request, res: Response) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const faqs = category 
+        ? await storage.getFaqItemsByCategory(category)
+        : await storage.getFaqItems();
+      res.json(faqs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get FAQs" });
+    }
+  });
+
+  // Get popular cities (public)
+  app.get("/api/cities", async (req: Request, res: Response) => {
+    try {
+      const cities = await storage.getPopularCities();
+      res.json(cities);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get cities" });
+    }
+  });
+
+  // Get property categories with subcategories (public)
+  app.get("/api/categories", async (req: Request, res: Response) => {
+    try {
+      const categories = await storage.getPropertyCategories();
+      const subcategories = await storage.getPropertySubcategories();
+      
+      // Attach subcategories to each category
+      const categoriesWithSubs = categories.map(cat => ({
+        ...cat,
+        subcategories: subcategories.filter(sub => sub.categoryId === cat.id)
+      }));
+      
+      res.json(categoriesWithSubs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get categories" });
+    }
+  });
+
+  // Get property subcategories (public)
+  app.get("/api/subcategories", async (req: Request, res: Response) => {
+    try {
+      const categoryId = req.query.categoryId as string | undefined;
+      const subcategories = await storage.getPropertySubcategories(categoryId);
+      res.json(subcategories);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get subcategories" });
+    }
+  });
+
+  // Get banners (public)
+  app.get("/api/banners", async (req: Request, res: Response) => {
+    try {
+      const position = req.query.position as string | undefined;
+      const banners = await storage.getBanners(position);
+      res.json(banners);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get banners" });
+    }
+  });
+
+  // Get navigation links (public)
+  app.get("/api/navigation", async (req: Request, res: Response) => {
+    try {
+      const position = req.query.position as string | undefined;
+      const section = req.query.section as string | undefined;
+      const links = await storage.getNavigationLinks(position, section);
+      res.json(links);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get navigation" });
+    }
+  });
+
+  // Get static page by slug (public)
+  app.get("/api/pages/:slug", async (req: Request, res: Response) => {
+    try {
+      const page = await storage.getStaticPageBySlug(req.params.slug);
+      if (!page) {
+        return res.status(404).json({ error: "Page not found" });
+      }
+      res.json(page);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get page" });
+    }
+  });
+
+  // Get site settings (public - non-sensitive only)
+  app.get("/api/site-settings", async (req: Request, res: Response) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const settings = await storage.getSiteSettings(category);
+      // Filter out sensitive settings
+      const publicSettings = settings.filter(s => 
+        !s.key.includes('secret') && 
+        !s.key.includes('password') && 
+        !s.key.includes('api_key')
+      );
+      res.json(publicSettings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get settings" });
     }
   });
 
@@ -2397,6 +2507,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   };
+
+  // --- Admin Seed Routes ---
+  app.post("/api/admin/seed-cms", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await seedCMSContent();
+      res.json({ success: true, message: "CMS content seeded successfully" });
+    } catch (error) {
+      console.error("CMS seed error:", error);
+      res.status(500).json({ error: "Failed to seed CMS content" });
+    }
+  });
+
+  app.post("/api/admin/seed-all", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await seedDatabase();
+      await seedCMSContent();
+      res.json({ success: true, message: "All data seeded successfully" });
+    } catch (error) {
+      console.error("Full seed error:", error);
+      res.status(500).json({ error: "Failed to seed data" });
+    }
+  });
+
+  // --- Admin FAQ CRUD ---
+  app.get("/api/admin/faqs", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const faqs = await storage.getFaqItems();
+      res.json(faqs);
+    } catch (error) {
+      console.error("Error fetching FAQs:", error);
+      res.status(500).json({ message: "Failed to fetch FAQs" });
+    }
+  });
+
+  app.post("/api/admin/faqs", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const faq = await storage.createFaqItem(req.body);
+      res.status(201).json(faq);
+    } catch (error) {
+      console.error("Error creating FAQ:", error);
+      res.status(500).json({ message: "Failed to create FAQ" });
+    }
+  });
+
+  app.put("/api/admin/faqs/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const faq = await storage.updateFaqItem(req.params.id, req.body);
+      if (!faq) return res.status(404).json({ message: "FAQ not found" });
+      res.json(faq);
+    } catch (error) {
+      console.error("Error updating FAQ:", error);
+      res.status(500).json({ message: "Failed to update FAQ" });
+    }
+  });
+
+  app.delete("/api/admin/faqs/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteFaqItem(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting FAQ:", error);
+      res.status(500).json({ message: "Failed to delete FAQ" });
+    }
+  });
 
   // --- Popular Cities Admin CRUD ---
   app.get("/api/admin/popular-cities", isAdminAuthenticated, async (req: Request, res: Response) => {
