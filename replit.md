@@ -115,9 +115,31 @@ The platform features an expanded hierarchical property categorization system wi
 - FilterSidebar displays category and subcategory filters with project stage for applicable categories
 - PropertyCard displays project stage and subcategory badges
 
+### Location Standardization System
+
+The platform uses standardized location dropdowns to prevent data inconsistencies:
+
+**Data Source (indianLocations.ts):**
+- Complete coverage of all 28 Indian states + 8 Union Territories
+- Major cities for each state with room for expansion
+- Helper functions: getStateByName, getCitiesByState, getStateByCode
+
+**Reusable Components (location-select.tsx):**
+- **StateSelect**: Dropdown for all states/UTs with (UT) indicator
+- **CitySelect**: Cascading city dropdown filtered by selected state, with "Other" option for custom entries
+- **PinCodeInput**: 6-digit numeric-only validation with progress feedback
+- **PhoneInput**: +91 prefix with 99999-99999 formatting
+- **PriceInput**: Rupee prefix with Indian number formatting (Lac/Cr display)
+
+**Implementation:**
+- Seller CreateListingStep1Page uses StateSelect, CitySelect, PinCodeInput
+- BrokerRegisterPage and IndividualRegisterPage use all location components
+- FilterSidebar uses StateSelect and CitySelect with cascading state→city selection
+- All components support inline validation and error messaging
+
 ### Enhanced FilterSidebar
 
-The filter sidebar includes advanced options for transaction type (Buy/Lease/Rent), location (city/locality), property category/subcategory selection, project stage (for applicable categories), property age, builder/developer search, and seller type, all with robust test attributes.
+The filter sidebar includes advanced options for transaction type (Buy/Lease/Rent), location (state/city with cascading dropdowns), property category/subcategory selection, project stage (for applicable categories), property age, builder/developer search, and seller type, all with robust test attributes.
 
 ### Seller Dashboard Components
 
