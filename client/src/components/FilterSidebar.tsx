@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { StateSelect, CitySelect } from "@/components/ui/location-select";
 import type { PropertyCategory, PropertySubcategory } from "@shared/schema";
 
 interface FilterSidebarProps {
@@ -56,8 +57,9 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
   const [selectedProjectStages, setSelectedProjectStages] = useState<string[]>([]);
   const [selectedBHK, setSelectedBHK] = useState<string[]>([]);
   const [selectedSeller, setSelectedSeller] = useState<string[]>([]);
-  const [selectedCity, setSelectedCity] = useState<string>("all");
-  const [selectedLocality, setSelectedLocality] = useState<string>("all");
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [selectedLocality, setSelectedLocality] = useState<string>("");
   const [selectedPropertyAge, setSelectedPropertyAge] = useState<string[]>([]);
   const [corporateSearch, setCorporateSearch] = useState<string>("");
   const [saveSearchOpen, setSaveSearchOpen] = useState(false);
@@ -74,8 +76,9 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
         projectStages: selectedProjectStages,
         bedrooms: selectedBHK,
         sellerTypes: selectedSeller,
-        city: selectedCity !== "all" ? selectedCity : undefined,
-        locality: selectedLocality !== "all" ? selectedLocality : undefined,
+        state: selectedState || undefined,
+        city: selectedCity || undefined,
+        locality: selectedLocality || undefined,
         propertyAge: selectedPropertyAge,
         builder: corporateSearch || undefined,
       };
@@ -184,8 +187,9 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
     setSelectedProjectStages([]);
     setSelectedBHK([]);
     setSelectedSeller([]);
-    setSelectedCity("all");
-    setSelectedLocality("all");
+    setSelectedState("");
+    setSelectedCity("");
+    setSelectedLocality("");
     setSelectedPropertyAge([]);
     setCorporateSearch("");
     console.log('Filters cleared');
@@ -200,6 +204,7 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
       projectStages: selectedProjectStages,
       bhk: selectedBHK,
       sellerTypes: selectedSeller,
+      state: selectedState,
       city: selectedCity,
       locality: selectedLocality,
       propertyAge: selectedPropertyAge,
@@ -207,19 +212,6 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
     };
     onApplyFilters?.(filters);
     console.log('Filters applied:', filters);
-  };
-
-  const cities = [
-    "Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai", 
-    "Kolkata", "Pune", "Ahmedabad", "Gurgaon", "Noida"
-  ];
-
-  const localities: Record<string, string[]> = {
-    Mumbai: ["Bandra", "Andheri", "Powai", "Worli", "Juhu", "Goregaon"],
-    Bangalore: ["Koramangala", "Whitefield", "HSR Layout", "Indiranagar", "Electronic City"],
-    Delhi: ["Connaught Place", "Dwarka", "Rohini", "Saket", "Vasant Kunj"],
-    Pune: ["Koregaon Park", "Baner", "Hinjewadi", "Kharadi", "Wakad"],
-    Gurgaon: ["DLF Phase 1", "Sector 56", "Golf Course Road", "Sohna Road"],
   };
 
   const corporateBuilders = [
@@ -244,7 +236,8 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
     selectedBHK.length + 
     selectedSeller.length + 
     selectedPropertyAge.length + 
-    (selectedCity !== "all" ? 1 : 0) + 
+    (selectedState ? 1 : 0) +
+    (selectedCity ? 1 : 0) + 
     (corporateSearch ? 1 : 0);
 
   return (
@@ -380,36 +373,40 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
           </AccordionTrigger>
           <AccordionContent className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">City</Label>
-              <Select value={selectedCity} onValueChange={(value) => {
-                setSelectedCity(value);
-                setSelectedLocality("all");
-              }}>
-                <SelectTrigger data-testid="select-city">
-                  <SelectValue placeholder="Select city" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Cities</SelectItem>
-                  {cities.map((city) => (
-                    <SelectItem key={city} value={city}>{city}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-xs text-muted-foreground">State</Label>
+              <StateSelect
+                value={selectedState}
+                onValueChange={(value) => {
+                  setSelectedState(value);
+                  setSelectedCity("");
+                  setSelectedLocality("");
+                }}
+                placeholder="All States"
+                data-testid="select-state"
+              />
             </div>
-            {selectedCity !== "all" && localities[selectedCity] && (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">City</Label>
+              <CitySelect
+                value={selectedCity}
+                onValueChange={(value) => {
+                  setSelectedCity(value);
+                  setSelectedLocality("");
+                }}
+                stateValue={selectedState}
+                placeholder="All Cities"
+                data-testid="select-city"
+              />
+            </div>
+            {selectedCity && (
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Locality</Label>
-                <Select value={selectedLocality} onValueChange={setSelectedLocality}>
-                  <SelectTrigger data-testid="select-locality">
-                    <SelectValue placeholder="Select locality" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Localities</SelectItem>
-                    {localities[selectedCity].map((locality) => (
-                      <SelectItem key={locality} value={locality}>{locality}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  placeholder="Enter locality"
+                  value={selectedLocality}
+                  onChange={(e) => setSelectedLocality(e.target.value)}
+                  data-testid="input-locality"
+                />
               </div>
             )}
           </AccordionContent>
