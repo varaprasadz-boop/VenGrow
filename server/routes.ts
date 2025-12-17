@@ -713,8 +713,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let property;
       
       if (requiresPendingChanges) {
+        // Sanitize input - remove ALL protected/system fields that shouldn't be edited via pendingChanges
+        // This is a comprehensive blocklist of all admin/system fields from the properties schema
+        const protectedFields = [
+          'id', 'sellerId', 'status', 'workflowStatus', 'isVerified', 'isFeatured',
+          'viewCount', 'inquiryCount', 'favoriteCount', 'publishedAt', 'expiresAt',
+          'approvedAt', 'approvedBy', 'pendingChanges', 'rejectionReason',
+          'createdAt', 'updatedAt'
+        ];
+        const sanitizedBody = { ...req.body };
+        protectedFields.forEach(field => delete sanitizedBody[field]);
+        
         // Merge new edits with any existing pending changes
-        let existingPending = {};
+        let existingPending: Record<string, any> = {};
         if (currentProperty.pendingChanges) {
           try {
             existingPending = typeof currentProperty.pendingChanges === 'string' 
@@ -725,13 +736,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        const mergedPending = { ...existingPending, ...req.body };
+        const mergedPending = { ...existingPending, ...sanitizedBody };
         
         // Only update workflowStatus and store pending changes
         // Do NOT apply actual edits until admin approves
         const updateData = {
-          workflowStatus: "needs_reapproval",
-          pendingChanges: JSON.stringify(mergedPending),
+          workflowStatus: "needs_reapproval" as const,
+          pendingChanges: mergedPending as Record<string, unknown>,
         };
         property = await storage.updateProperty(propertyId, updateData);
         
@@ -907,13 +918,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If property has pending changes (re-approval), apply them now
       if (property?.pendingChanges) {
         try {
-          const pendingChanges = typeof property.pendingChanges === 'string' 
-            ? JSON.parse(property.pendingChanges) 
-            : property.pendingChanges;
+          // pendingChanges is already a jsonb object, no need to parse
+          const pendingChanges = { ...(property.pendingChanges as Record<string, unknown>) };
+          
+          // Sanitize pending changes - remove ALL protected/system fields as extra security
+          const protectedFields = [
+            'id', 'sellerId', 'status', 'workflowStatus', 'isVerified', 'isFeatured',
+            'viewCount', 'inquiryCount', 'favoriteCount', 'publishedAt', 'expiresAt',
+            'approvedAt', 'approvedBy', 'pendingChanges', 'rejectionReason',
+            'createdAt', 'updatedAt'
+          ];
+          protectedFields.forEach(field => delete pendingChanges[field]);
+          
           // Merge pending changes into the update
           updateData = { ...updateData, ...pendingChanges };
         } catch (e) {
-          console.error("Failed to parse pending changes:", e);
+          console.error("Failed to process pending changes:", e);
         }
       }
       
