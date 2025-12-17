@@ -41,6 +41,20 @@ const budgetRanges = [
   { value: "above-5cr", label: "Above ₹5 Cr" },
 ];
 
+const defaultCategories = [
+  { name: "Apartments", icon: "Building2", description: "Flats & apartments" },
+  { name: "Villas", icon: "Home", description: "Independent villas" },
+  { name: "Plots", icon: "Map", description: "Residential plots" },
+  { name: "Houses", icon: "House", description: "Independent houses" },
+  { name: "Commercial", icon: "Building", description: "Office & shops" },
+  { name: "Luxury", icon: "Crown", description: "Premium properties" },
+  { name: "Projects", icon: "Briefcase", description: "New projects" },
+  { name: "Joint Venture", icon: "Handshake", description: "JV opportunities" },
+  { name: "PG/Hostel", icon: "Users", description: "Shared living" },
+  { name: "Farm Land", icon: "Trees", description: "Agricultural land" },
+  { name: "Rush Deal", icon: "Zap", description: "Quick sale" },
+];
+
 export default function HeroSection({ onSearch }: HeroSectionProps) {
   const [location, setLocation] = useState("");
   const [propertyType, setPropertyType] = useState("all");
@@ -78,13 +92,27 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
           </p>
         </div>
 
-        {categoriesLoading ? (
-          <div className="flex items-center justify-center mb-10 py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 mb-10">
-            {categories.slice(0, 11).map((category) => {
+        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 mb-10">
+          {categoriesLoading ? (
+            // Show skeleton placeholders immediately
+            defaultCategories.map((category, index) => {
+              const IconComponent = iconMap[category.icon] || Building2;
+              return (
+                <div 
+                  key={index}
+                  className="bg-card border rounded-lg p-2 sm:p-4 text-center opacity-60"
+                  data-testid={`card-category-skeleton-${index}`}
+                >
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-1.5 sm:mb-3 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <IconComponent className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
+                  </div>
+                  <h3 className="font-medium text-[10px] sm:text-sm text-foreground line-clamp-1">{category.name}</h3>
+                  <p className="text-xs text-muted-foreground mt-1 hidden sm:block">{category.description}</p>
+                </div>
+              );
+            })
+          ) : (
+            categories.slice(0, 11).map((category) => {
               const IconComponent = iconMap[category.icon || "Building2"] || Building2;
               return (
                 <Link 
@@ -104,9 +132,9 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
                   </div>
                 </Link>
               );
-            })}
-          </div>
-        )}
+            })
+          )}
+        </div>
 
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-center gap-6 mb-4">

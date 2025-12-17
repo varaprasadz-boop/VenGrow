@@ -94,74 +94,78 @@ export default function ListingsPage() {
 
             {/* Main Content */}
             <div className="flex-1 space-y-6">
-              {/* Header */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="font-serif font-bold text-3xl mb-2" data-testid="heading-page-title">{pageTitle}</h1>
-                  <p className="text-muted-foreground">
-                    {filteredProperties.length} properties found
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {/* View Type Toggle */}
-                  <div className="hidden sm:flex border rounded-lg p-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={`h-8 w-8 ${viewType === 'grid' ? 'bg-accent' : ''}`}
-                      onClick={() => setViewType('grid')}
-                      data-testid="button-view-grid"
-                    >
-                      <Grid3x3 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={`h-8 w-8 ${viewType === 'list' ? 'bg-accent' : ''}`}
-                      onClick={() => setViewType('list')}
-                      data-testid="button-view-list"
-                    >
-                      <List className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={`h-8 w-8 ${viewType === 'map' ? 'bg-accent' : ''}`}
-                      onClick={() => setViewType('map')}
-                      data-testid="button-view-map"
-                    >
-                      <Map className="h-4 w-4" />
-                    </Button>
+              {/* Header - Stacked on mobile, side-by-side on desktop */}
+              <div className="space-y-4 sm:space-y-0">
+                {/* Title Row - Always on its own line on mobile */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <h1 className="font-serif font-bold text-2xl sm:text-3xl" data-testid="heading-page-title">{pageTitle}</h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {filteredProperties.length} properties found
+                    </p>
                   </div>
 
-                  {/* Sort */}
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-40" data-testid="select-sort">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="newest">Newest First</SelectItem>
-                      <SelectItem value="price-low">Price: Low to High</SelectItem>
-                      <SelectItem value="price-high">Price: High to Low</SelectItem>
-                      <SelectItem value="featured">Featured First</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {/* Mobile Filter */}
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button variant="outline" className="lg:hidden" data-testid="button-mobile-filters">
-                        <Filter className="h-4 w-4 mr-2" />
-                        Filters
+                  {/* Controls Row - Below title on mobile */}
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    {/* View Type Toggle */}
+                    <div className="hidden sm:flex border rounded-lg p-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-8 w-8 ${viewType === 'grid' ? 'bg-accent' : ''}`}
+                        onClick={() => setViewType('grid')}
+                        data-testid="button-view-grid"
+                      >
+                        <Grid3x3 className="h-4 w-4" />
                       </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-80">
-                      <div className="mt-8">
-                        <FilterSidebar />
-                      </div>
-                    </SheetContent>
-                  </Sheet>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-8 w-8 ${viewType === 'list' ? 'bg-accent' : ''}`}
+                        onClick={() => setViewType('list')}
+                        data-testid="button-view-list"
+                      >
+                        <List className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-8 w-8 ${viewType === 'map' ? 'bg-accent' : ''}`}
+                        onClick={() => setViewType('map')}
+                        data-testid="button-view-map"
+                      >
+                        <Map className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Sort */}
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="w-32 sm:w-40" data-testid="select-sort">
+                        <SelectValue placeholder="Sort by" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Newest First</SelectItem>
+                        <SelectItem value="price-low">Price: Low to High</SelectItem>
+                        <SelectItem value="price-high">Price: High to Low</SelectItem>
+                        <SelectItem value="featured">Featured First</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Mobile Filter */}
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <Button variant="outline" className="lg:hidden" data-testid="button-mobile-filters">
+                          <Filter className="h-4 w-4 mr-2" />
+                          Filters
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent side="left" className="w-80">
+                        <div className="mt-8">
+                          <FilterSidebar />
+                        </div>
+                      </SheetContent>
+                    </Sheet>
+                  </div>
                 </div>
               </div>
 
