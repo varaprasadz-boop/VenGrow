@@ -1,9 +1,13 @@
 import { db } from "./db";
 import { 
   users, sellerProfiles, properties, propertyImages, propertyCategories, propertySubcategories,
-  packages
+  packages, sellerSubscriptions
 } from "@shared/schema";
 import { eq, sql, inArray, like } from "drizzle-orm";
+import { hashPassword } from "./auth-utils";
+
+// Default password for all test sellers: TestSeller@123
+const TEST_SELLER_PASSWORD = "TestSeller@123";
 
 const CITIES_DATA = [
   {
@@ -389,6 +393,10 @@ export async function seedPropertiesComprehensive() {
           console.log("  Deleted test properties");
         }
         
+        // Delete seller subscriptions
+        await db.delete(sellerSubscriptions).where(inArray(sellerSubscriptions.sellerId, testSellerIds));
+        console.log("  Deleted test seller subscriptions");
+        
         // Delete seller profiles
         await db.delete(sellerProfiles).where(inArray(sellerProfiles.userId, testUserIds));
         console.log("  Deleted test seller profiles");
@@ -435,6 +443,9 @@ export async function seedPropertiesComprehensive() {
     const sellerProfiles_created: any[] = [];
     let sellerIndex = 0;
     
+    // Hash password once for all test sellers
+    const passwordHash = await hashPassword(TEST_SELLER_PASSWORD);
+    
     for (const city of CITIES_DATA) {
       for (const sellerType of SELLER_TYPES) {
         sellerIndex++;
@@ -443,12 +454,14 @@ export async function seedPropertiesComprehensive() {
           sellerType === "broker" ? 
           `${city.name} Realty Services` : null;
         
-        // Create user
+        // Create user with password for email/password auth
         const [user] = await db.insert(users).values({
           email: `seller${sellerIndex}@vengrow.test`,
-          name: sellerType === "builder" ? companyName : 
-                `Seller ${sellerIndex} - ${city.name}`,
+          firstName: sellerType === "builder" ? companyName : `Seller ${sellerIndex}`,
+          lastName: city.name,
           phone: `+91 98765${String(sellerIndex).padStart(5, '0')}`,
+          passwordHash: passwordHash,
+          authProvider: "local",
           role: "seller",
           isActive: true,
           isEmailVerified: true,
@@ -471,11 +484,25 @@ export async function seedPropertiesComprehensive() {
           reviewCount: randomInt(5, 100),
         } as any).returning();
 
+        // Create subscription for this seller
+        const subscriptionEndDate = new Date();
+        subscriptionEndDate.setFullYear(subscriptionEndDate.getFullYear() + 1);
+        
+        await db.insert(sellerSubscriptions).values({
+          sellerId: seller.id,
+          packageId: seedPackage.id,
+          startDate: new Date(),
+          endDate: subscriptionEndDate,
+          listingsUsed: 0,
+          featuredUsed: 0,
+          isActive: true,
+        });
+
         sellerProfiles_created.push({ ...seller, city });
       }
     }
 
-    console.log(`Created ${sellerProfiles_created.length} seller profiles across ${CITIES_DATA.length} cities`);
+    console.log(`Created ${sellerProfiles_created.length} seller profiles with subscriptions across ${CITIES_DATA.length} cities`);
 
     // Create properties for each category and city
     let totalProperties = 0;
