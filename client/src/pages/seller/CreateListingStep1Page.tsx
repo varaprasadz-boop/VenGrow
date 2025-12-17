@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { StateSelect, CitySelect, PinCodeInput, PriceInput } from "@/components/ui/location-select";
 import { ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import type { PropertyCategory, PropertySubcategory } from "@shared/schema";
 
@@ -265,19 +266,18 @@ export default function CreateListingStep1Page() {
               <div className="space-y-2">
                 <Label htmlFor="price">Price *</Label>
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">Rs.</span>
-                  <Input
-                    id="price"
-                    type="number"
-                    placeholder={formData.transactionType === "rent" || formData.transactionType === "lease" ? "45000" : "8500000"}
-                    value={formData.price}
-                    onChange={(e) =>
-                      setFormData({ ...formData, price: e.target.value })
-                    }
-                    data-testid="input-price"
-                  />
+                  <div className="flex-1">
+                    <PriceInput
+                      value={formData.price}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, price: value })
+                      }
+                      placeholder={formData.transactionType === "rent" || formData.transactionType === "lease" ? "45000" : "8500000"}
+                      data-testid="input-price"
+                    />
+                  </div>
                   {(formData.transactionType === "rent" || formData.transactionType === "lease") && (
-                    <span className="text-muted-foreground">/month</span>
+                    <span className="text-muted-foreground whitespace-nowrap">/month</span>
                   )}
                 </div>
               </div>
@@ -301,6 +301,29 @@ export default function CreateListingStep1Page() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
+                      <Label htmlFor="state">State *</Label>
+                      <StateSelect
+                        value={formData.state}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, state: value, city: "" })
+                        }
+                        data-testid="select-state"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City *</Label>
+                      <CitySelect
+                        value={formData.city}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, city: value })
+                        }
+                        stateValue={formData.state}
+                        data-testid="select-city"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
                       <Label htmlFor="locality">Locality *</Label>
                       <Input
                         id="locality"
@@ -314,39 +337,11 @@ export default function CreateListingStep1Page() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="city">City *</Label>
-                      <Input
-                        id="city"
-                        placeholder="e.g., Mumbai"
-                        value={formData.city}
-                        onChange={(e) =>
-                          setFormData({ ...formData, city: e.target.value })
-                        }
-                        data-testid="input-city"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="state">State *</Label>
-                      <Input
-                        id="state"
-                        placeholder="e.g., Maharashtra"
-                        value={formData.state}
-                        onChange={(e) =>
-                          setFormData({ ...formData, state: e.target.value })
-                        }
-                        data-testid="input-state"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
                       <Label htmlFor="pincode">PIN Code *</Label>
-                      <Input
-                        id="pincode"
-                        placeholder="400001"
+                      <PinCodeInput
                         value={formData.pincode}
-                        onChange={(e) =>
-                          setFormData({ ...formData, pincode: e.target.value })
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, pincode: value })
                         }
                         data-testid="input-pincode"
                       />

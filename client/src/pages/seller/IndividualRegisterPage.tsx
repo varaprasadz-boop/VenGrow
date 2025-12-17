@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { StateSelect, CitySelect, PinCodeInput, PhoneInput } from "@/components/ui/location-select";
 
 export default function IndividualRegisterPage() {
   const [formData, setFormData] = useState({
@@ -90,30 +91,23 @@ export default function IndividualRegisterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number *</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+91 98765 43210"
+                  <PhoneInput
                     value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, phone: value })
                     }
                     data-testid="input-phone"
-                    required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="city">City *</Label>
-                  <Input
-                    id="city"
-                    placeholder="Mumbai"
-                    value={formData.city}
-                    onChange={(e) =>
-                      setFormData({ ...formData, city: e.target.value })
+                  <Label htmlFor="state">State *</Label>
+                  <StateSelect
+                    value={formData.state}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, state: value, city: "" })
                     }
-                    data-testid="input-city"
-                    required
+                    data-testid="select-state"
                   />
                 </div>
               </div>
@@ -140,30 +134,25 @@ export default function IndividualRegisterPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="state">State *</Label>
-                    <Input
-                      id="state"
-                      placeholder="Maharashtra"
-                      value={formData.state}
-                      onChange={(e) =>
-                        setFormData({ ...formData, state: e.target.value })
+                    <Label htmlFor="city">City *</Label>
+                    <CitySelect
+                      value={formData.city}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, city: value })
                       }
-                      data-testid="input-state"
-                      required
+                      stateValue={formData.state}
+                      data-testid="select-city"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="pincode">PIN Code *</Label>
-                    <Input
-                      id="pincode"
-                      placeholder="400001"
+                    <PinCodeInput
                       value={formData.pincode}
-                      onChange={(e) =>
-                        setFormData({ ...formData, pincode: e.target.value })
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, pincode: value })
                       }
                       data-testid="input-pincode"
-                      required
                     />
                   </div>
                 </div>
