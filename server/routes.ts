@@ -695,13 +695,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update property
-  app.patch("/api/properties/:id", async (req: Request, res: Response) => {
+  app.patch("/api/properties/:id", async (req: any, res: Response) => {
     try {
-      const property = await storage.updateProperty(req.params.id, req.body);
-      if (!property) {
+      const propertyId = req.params.id;
+      
+      // Get current property to check status
+      const currentProperty = await storage.getProperty(propertyId);
+      if (!currentProperty) {
         return res.status(404).json({ error: "Property not found" });
       }
-      res.json(property);
+      
+      // If property is approved, live, needs_reapproval, or submitted, editing should go to pendingChanges
+      // Edits are stored in pendingChanges but NOT applied until admin re-approves
+      const protectedStatuses = ["approved", "live", "needs_reapproval", "submitted"];
+      const requiresPendingChanges = protectedStatuses.includes(currentProperty.workflowStatus || "");
+      
+      let property;
+      
+      if (requiresPendingChanges) {
+        // Merge new edits with any existing pending changes
+        let existingPending = {};
+        if (currentProperty.pendingChanges) {
+          try {
+            existingPending = typeof currentProperty.pendingChanges === 'string' 
+              ? JSON.parse(currentProperty.pendingChanges) 
+              : currentProperty.pendingChanges;
+          } catch (e) {
+            existingPending = {};
+          }
+        }
+        
+        const mergedPending = { ...existingPending, ...req.body };
+        
+        // Only update workflowStatus and store pending changes
+        // Do NOT apply actual edits until admin approves
+        const updateData = {
+          workflowStatus: "needs_reapproval",
+          pendingChanges: JSON.stringify(mergedPending),
+        };
+        property = await storage.updateProperty(propertyId, updateData);
+        
+        res.json({
+          ...property,
+          needsReapproval: true,
+          message: "Changes saved as pending. Please resubmit for admin approval. Your live listing remains unchanged until approved."
+        });
+      } else {
+        // For draft or other statuses, apply changes directly
+        property = await storage.updateProperty(propertyId, req.body);
+        
+        res.json({
+          ...property,
+          needsReapproval: false
+        });
+      }
     } catch (error) {
       res.status(500).json({ error: "Failed to update property" });
     }
@@ -845,13 +892,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         decidedAt: new Date(),
       });
       
-      // Update property to live status
-      await storage.updateProperty(approval.propertyId, {
+      // Get the property to check for pending changes
+      const property = await storage.getProperty(approval.propertyId);
+      
+      // Build update data - apply pending changes if this is a re-approval
+      let updateData: any = {
         workflowStatus: "live",
         status: "active",
         approvedAt: new Date(),
         approvedBy: "superadmin",
-      });
+        pendingChanges: null, // Clear pending changes after approval
+      };
+      
+      // If property has pending changes (re-approval), apply them now
+      if (property?.pendingChanges) {
+        try {
+          const pendingChanges = typeof property.pendingChanges === 'string' 
+            ? JSON.parse(property.pendingChanges) 
+            : property.pendingChanges;
+          // Merge pending changes into the update
+          updateData = { ...updateData, ...pendingChanges };
+        } catch (e) {
+          console.error("Failed to parse pending changes:", e);
+        }
+      }
+      
+      // Update property to live status (with pending changes applied if any)
+      await storage.updateProperty(approval.propertyId, updateData);
       
       res.json({ 
         success: true, 
