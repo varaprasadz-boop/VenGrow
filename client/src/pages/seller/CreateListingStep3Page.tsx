@@ -7,6 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, ArrowLeft, Upload, X, Image as ImageIcon } from "lucide-react";
 
+function isValidYouTubeUrl(url: string): boolean {
+  if (!url) return true;
+  const patterns = [
+    /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[\w-]+/,
+    /^https?:\/\/youtu\.be\/[\w-]+/,
+    /^https?:\/\/(www\.)?youtube\.com\/embed\/[\w-]+/,
+  ];
+  return patterns.some(pattern => pattern.test(url));
+}
+
 export default function CreateListingStep3Page() {
   const [, navigate] = useLocation();
   const [photos, setPhotos] = useState<string[]>([]);
@@ -129,30 +139,41 @@ export default function CreateListingStep3Page() {
                 </div>
               </div>
 
-              {/* Video Upload */}
+              {/* YouTube Video */}
               <div>
-                <Label className="text-base">Property Video (Optional)</Label>
+                <Label className="text-base">YouTube Video (Optional)</Label>
                 <p className="text-sm text-muted-foreground mt-1 mb-4">
-                  Add a video tour or YouTube link
+                  Add a YouTube video link to showcase your property with a virtual tour or walkthrough
                 </p>
 
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-12 text-center">
-                  <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
-                    <Upload className="h-8 w-8 text-primary" />
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-4 rounded-lg border">
+                    <div className="h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/20">
+                      <svg className="h-6 w-6 text-red-600" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        placeholder="Paste YouTube link (e.g., https://youtube.com/watch?v=...)"
+                        className="w-full px-4 py-2 border rounded-lg text-sm"
+                        value={videoUrl}
+                        onChange={(e) => setVideoUrl(e.target.value)}
+                        data-testid="input-youtube-url"
+                      />
+                      {videoUrl && !isValidYouTubeUrl(videoUrl) && (
+                        <p className="text-xs text-destructive mt-1">
+                          Please enter a valid YouTube URL
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <h3 className="font-semibold mb-2">Upload video or add YouTube link</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    MP4 up to 50MB
-                  </p>
-                  <div className="max-w-md mx-auto">
-                    <input
-                      type="text"
-                      placeholder="Or paste YouTube URL here"
-                      className="w-full px-4 py-2 border rounded-lg text-sm"
-                      value={videoUrl}
-                      onChange={(e) => setVideoUrl(e.target.value)}
-                      data-testid="input-video-url"
-                    />
+                  
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Supported formats:</strong> youtube.com/watch?v=, youtu.be/, youtube.com/embed/
+                    </p>
                   </div>
                 </div>
               </div>
@@ -183,7 +204,7 @@ export default function CreateListingStep3Page() {
                   type="button" 
                   data-testid="button-next"
                   onClick={() => {
-                    localStorage.setItem("createListingStep3", JSON.stringify({ photos, videoUrl }));
+                    localStorage.setItem("createListingStep3", JSON.stringify({ photos, youtubeVideoUrl: videoUrl }));
                     navigate("/seller/listings/create/step4");
                   }}
                 >
