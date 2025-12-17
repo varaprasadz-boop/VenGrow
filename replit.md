@@ -10,21 +10,27 @@ Preferred communication style: Simple, everyday language.
 
 ## Test Credentials
 
+**IMPORTANT: Use these credentials for all testing. Do not create new test accounts.**
+
 **Test Seller Account:**
 - Email: `testseller@vengrow.com`
 - Password: `Test@123`
 - User ID: `56eff86c-3819-41e5-a36e-ee7c9c462ccf`
 - Has active Basic subscription (valid until Jan 2026)
 - Seller Type: Broker
+- Login via: `/login`
 
 **Test Buyer Account:**
 - Email: `testbuyer@vengrow.com`
 - Password: `Test@123`
 - User ID: `828bcfaa-11df-48c1-a523-7e5105d0bca2`
+- Login via: `/login`
 
-**Admin Account:**
-- Email: `admin@vengrow.com`
-- Admin login via `/admin/login`
+**Super Admin Account:**
+- Email: `superadmin@vengrow.com`
+- Password: `Pa$$word@11`
+- Login via: `/admin/login`
+- Full admin privileges for moderation, CMS, and settings
 
 ## System Architecture
 
