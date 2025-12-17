@@ -30,7 +30,42 @@ import {
   Calendar,
   Compass,
   Loader2,
+  Play,
 } from "lucide-react";
+
+function YouTubeEmbed({ url }: { url: string }) {
+  const getVideoId = (url: string) => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?\/]+)/,
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  };
+
+  const videoId = getVideoId(url);
+  if (!videoId) return null;
+
+  return (
+    <Card className="p-6" data-testid="youtube-video-section">
+      <h2 className="font-semibold text-xl mb-4 flex items-center gap-2">
+        <Play className="h-5 w-5" />
+        Property Video
+      </h2>
+      <div className="aspect-video rounded-lg overflow-hidden bg-black">
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}`}
+          title="Property Video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="w-full h-full"
+        />
+      </div>
+    </Card>
+  );
+}
 
 export default function PropertyDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -293,6 +328,11 @@ export default function PropertyDetailPage() {
                   </div>
                 )}
               </div>
+
+              {/* YouTube Video Embed */}
+              {property.youtubeVideoUrl && (
+                <YouTubeEmbed url={property.youtubeVideoUrl} />
+              )}
 
               {/* Title & Price */}
               <div className="space-y-4">
