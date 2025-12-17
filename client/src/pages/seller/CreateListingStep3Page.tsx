@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, ArrowLeft, Upload, X, Image as ImageIcon } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 function isValidYouTubeUrl(url: string): boolean {
   if (!url) return true;
@@ -21,6 +22,7 @@ export default function CreateListingStep3Page() {
   const [, navigate] = useLocation();
   const [photos, setPhotos] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState("");
+  const { toast } = useToast();
 
   const handlePhotoUpload = () => {
     console.log("Photo upload triggered");
@@ -204,6 +206,14 @@ export default function CreateListingStep3Page() {
                   type="button" 
                   data-testid="button-next"
                   onClick={() => {
+                    if (videoUrl && !isValidYouTubeUrl(videoUrl)) {
+                      toast({
+                        title: "Invalid YouTube URL",
+                        description: "Please enter a valid YouTube link or leave the field empty.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
                     localStorage.setItem("createListingStep3", JSON.stringify({ photos, youtubeVideoUrl: videoUrl }));
                     navigate("/seller/listings/create/step4");
                   }}
