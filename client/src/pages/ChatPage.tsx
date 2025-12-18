@@ -131,7 +131,7 @@ export default function ChatPage() {
             <p className="text-muted-foreground mb-4">
               Please sign in to access your messages
             </p>
-            <Button asChild data-testid="button-login">
+            <Button asChild data-testid="button-chat-login">
               <a href="/login">Sign In</a>
             </Button>
           </Card>
