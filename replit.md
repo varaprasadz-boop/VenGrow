@@ -2,7 +2,7 @@
 
 ## Overview
 
-VenGrow is a comprehensive real estate marketplace platform tailored for the Indian market. It facilitates connections between property buyers, sellers, and brokers by offering robust property listings, advanced search functionalities, inquiry management, and streamlined transaction processes. The platform emphasizes verified sellers, package-based listing subscriptions, and role-based dashboards, aspiring to become a leading solution in the Indian real estate sector. Key capabilities include managing property listings, facilitating buyer-seller interactions, and providing administrative tools for platform oversight.
+VenGrow is a comprehensive real estate marketplace platform for the Indian market, connecting property buyers, sellers, and brokers. It offers property listings, advanced search, inquiry management, and streamlined transactions. The platform features verified sellers, package-based listing subscriptions, and role-based dashboards, aiming to be a leading solution in Indian real estate. Its core capabilities include property management, facilitating buyer-seller interactions, and providing administrative oversight.
 
 ## User Preferences
 
@@ -10,213 +10,28 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend
+### UI/UX
+The frontend is built with React 18, TypeScript, Vite, Wouter for routing, and TanStack Query for server state. It uses shadcn/ui and Tailwind CSS for a mobile-first, responsive design with custom CSS variables for theming, component composition, and custom hooks. This ensures a consistent UI and role-based rendering, including automatic dark mode and accessibility via Radix UI primitives. Interactive maps are integrated using Google Maps API and Google Places Autocomplete.
 
-The frontend is built with React 18, TypeScript, Vite, Wouter for routing, and TanStack Query for server state. It uses shadcn/ui and Tailwind CSS for a mobile-first, responsive design. State management leverages React Query and react-hook-form with Zod. The design system employs custom CSS variables for theming, component composition, and custom hooks, ensuring consistent UI and role-based rendering.
+### Technical Implementation
+The backend uses Node.js and Express.js with TypeScript, featuring a RESTful API and an abstracted storage interface. PostgreSQL, hosted on Neon serverless, is the primary database, managed by Drizzle ORM for type-safe queries and migrations. Authentication supports multi-role users (buyer, seller, admin) with Google OAuth and email/password, intent-based registration, and session management via Express-session with a PostgreSQL store. Role-based access control is implemented both client-side and server-side.
 
-### Backend
-
-The backend utilizes Node.js and Express.js with TypeScript, featuring a RESTful API design. It's built with an abstracted storage interface, currently in-memory, but designed for future integration with Drizzle ORM and PostgreSQL.
-
-### Data Storage
-
-PostgreSQL, hosted on Neon serverless, is the primary database, managed by Drizzle ORM for type-safe queries and migrations. The schema is defined in shared files, using UUIDs for primary keys, with Drizzle Kit handling migrations.
-
-### Authentication & Authorization
-
-The platform features a multi-role authentication system supporting Google OAuth and email/password logins for users, and separate admin authentication. User registration is intent-based (buyer or seller), with granular seller types (Individual, Broker, Corporate). Session management uses Express-session with a PostgreSQL store. Role-based access control is implemented both client-side (ProtectedRoute) and server-side.
-
-### Core Features & Workflows
-
--   **Property Approval Workflow**: Properties progress through states like draft, submitted, under_review, approved, and rejected, managed by an admin moderation queue.
--   **Package & Subscription System**: Tiered subscription packages (Free, Basic, Premium, Enterprise) dictate listing limits, integrated with Razorpay for payments and automatic subscription creation.
--   **Design System & Theming**: A CSS custom property-based color system provides semantic tokens and automatic dark mode. Accessibility is ensured via Radix UI primitives.
--   **Interactive Maps**: Google Maps API (@react-google-maps/api) is used for various map components, including property views, detail pages, and location selection, with Google Places Autocomplete.
--   **Verified Builders Section**: A homepage section highlights corporate builders, linking to their filtered listings.
--   **Transaction Types**: Supports Buy (Sale), Lease, and Rent, consistently displayed across the UI.
--   **Property Categorization**: A hierarchical system with 11 main categories and 63 subcategories, including project stage filters for relevant categories.
--   **Location Standardization**: Uses standardized dropdowns for Indian states, cities, and PIN codes, enhancing data consistency.
--   **Enhanced FilterSidebar**: Advanced filtering options including transaction type, location, property category/subcategory, project stage, property age, builder search, and seller type.
--   **Seller Dashboard**: Includes an ApprovalStatusTracker for property workflow visualization and management, with lead and appointment management planned.
--   **Property Listing Details**: Captures Possession Status, New Construction, Furnishing Status, and Property Age.
--   **Admin CMS**: A reusable AdminDataTable component powers content management for various platform entities.
--   **Routing**: Client-side routing with Wouter for public, authenticated, and administrative routes, including sticky header, mobile menu, and breadcrumbs.
+### Core Features
+-   **Property Management:** Includes an admin moderation queue with a workflow (draft, submitted, under_review, approved, rejected), hierarchical categorization (11 main, 63 subcategories), and detailed listing options (possession status, furnishing, age).
+-   **Seller Tools:** Features tiered subscription packages (Free, Basic, Premium, Enterprise) integrated with Razorpay, a Seller Dashboard with an Approval Status Tracker, lead and appointment management, and project management capabilities for Builders/Brokers.
+-   **Buyer & Search Features:** Advanced FilterSidebar (transaction type, location, category, project stage, property age, builder, seller type), Saved Searches, Favorites, and a Buyer Dashboard.
+-   **Communication & Interaction:** Inquiry forms, real-time chat, appointment scheduling, and a notification system.
+-   **Admin Tools:** A reusable AdminDataTable component for content management (users, listings, projects, verified builders), and comprehensive analytics.
+-   **Location & Standardization:** Standardized dropdowns for Indian states, cities, and PIN codes.
+-   **Routing:** Client-side routing with Wouter for public, authenticated, and administrative sections, including sticky headers, mobile menus, and breadcrumbs.
 
 ## External Dependencies
 
-### UI Component Library
--   @radix-ui/* primitives
--   shadcn/ui
-
-### Styling & Design
--   Tailwind CSS
--   class-variance-authority
--   clsx, tailwind-merge
--   PostCSS
-
-### Database & ORM
--   @neondatabase/serverless
--   drizzle-orm, drizzle-zod
--   ws
--   connect-pg-simple
-
-### Form Handling
--   react-hook-form
--   @hookform/resolvers
--   Zod
-
-### Date & Time
--   date-fns
-
-### Development Tools
--   tsx, esbuild, vite
--   @replit/vite-plugin-*
-
-### Utilities
--   nanoid
--   lucide-react
--   cmdk
-
-### Payment Gateway
--   Razorpay
-
-### Mapping & Location Services
--   Google Maps API (@react-google-maps/api)
--   Google Places Autocomplete
-
----
-
-## 🎯 IMPLEMENTATION ROADMAP (Master Plan)
-
-**Last Updated:** December 2024
-
-This is the complete implementation plan for VenGrow. Reference this for all remaining features.
-
----
-
-### ✅ COMPLETED FEATURES
-
-| Feature | Status |
-|---------|--------|
-| User authentication (buyer/seller/admin roles) | ✅ Done |
-| Property listings with categories/subcategories | ✅ Done |
-| Property search & filters | ✅ Done |
-| Property detail pages with inquiry form | ✅ Done |
-| Seller registration & packages | ✅ Done |
-| Razorpay payment integration | ✅ Done |
-| Admin property moderation | ✅ Done |
-| Google Maps integration | ✅ Done |
-| Builder landing pages (BuildersListPage, BuilderLandingPage) | ✅ Done |
-| Projects catalog (ProjectsListPage, ProjectDetailPage) | ✅ Done |
-| YouTube video embedding on properties | ✅ Done |
-| **Inquiries system** (schema, API, frontend form) | ✅ Done |
-| **Favorites** (schema, API, FavoritesPage) | ✅ Done |
-| **Buyer Dashboard** (BuyerDashboardPage with stats) | ✅ Done |
-| **Seller Leads Dashboard** (LeadManagementPage with hot/warm/cold) | ✅ Done |
-| **Saved Searches** (schema, API, SavedSearchesPage) | ✅ Done |
-| **Chat schema** (chatThreads, chatMessages tables) | ✅ Done |
-| **Notifications schema** (notifications table) | ✅ Done |
-| **Appointments system** (schema, API with auth, Schedule Visit button, Seller/Buyer dashboards) | ✅ Done |
-
----
-
-### 📋 PHASE 2: Appointments & Real-Time Communication
-
-**Goal:** Enable property visit scheduling and real-time messaging.
-
-| Task ID | Feature | Description | Priority | Status |
-|---------|---------|-------------|----------|--------|
-| P2.1 | Appointments Schema | Create `appointments` table (buyerId, sellerId, propertyId, dateTime, status, notes) | Critical | ✅ Done |
-| P2.2 | Appointments Storage & API | CRUD for appointments, status updates with authorization | Critical | ✅ Done |
-| P2.3 | Schedule Visit Button | On property page, opens date/time picker modal | Critical | ✅ Done |
-| P2.4 | Seller Appointments Dashboard | `/seller/visits` - Tabs view, accept/reject/reschedule | Critical | ✅ Done |
-| P2.5 | Buyer Appointments View | List scheduled visits in buyer dashboard | High | ✅ Done |
-| P2.6 | Chat Storage & API | WebSocket integration for real-time messaging | High | ✅ Done |
-| P2.7 | Chat UI Component | Conversation list, message thread, send message | High | ✅ Done |
-| P2.8 | Notifications Bell Icon | Header notification icon with unread count, dropdown | High | ✅ Done |
-
----
-
-### 📋 PHASE 3: Seller Tools & Project Management
-
-**Goal:** Empower sellers (Builders/Brokers) to manage their projects.
-
-| Task ID | Feature | Description | Priority | Status |
-|---------|---------|-------------|----------|--------|
-| P3.1 | Seller Project Create Page | `/seller/projects/create` - Form for builders/brokers to add projects (Sale only) | Critical | ✅ Done |
-| P3.2 | Seller Project Edit Page | `/seller/projects/:id/edit` - Edit existing projects | Critical | ✅ Done |
-| P3.3 | Seller Projects List | `/seller/projects` - Manage all seller's projects | Critical | ✅ Done |
-| P3.4 | Link Properties to Projects | When creating listing, option to link to seller's project | High | ✅ Done |
-| P3.5 | Lead CRM Features | Notes on leads, follow-up reminders, conversion tracking | Medium | ✅ Done |
-| P3.6 | Seller Analytics Dashboard | Views count, inquiry count, conversion rate charts | Medium | ✅ Done |
-| P3.7 | Subscription Quota Enforcement | Check listing limits before allowing new listings | High | ✅ Done |
-
----
-
-### 📋 PHASE 4: Admin Governance
-
-**Goal:** Complete admin tooling for platform management.
-
-| Task ID | Feature | Description | Priority | Status |
-|---------|---------|-------------|----------|--------|
-| P4.1 | Admin Verified Builders CRUD | `/admin/verified-builders` - Full management UI | Critical | ✅ Done |
-| P4.2 | Admin Projects Moderation | `/admin/projects` - Approve/reject seller-submitted projects with status workflow | Critical | ✅ Done |
-| P4.3 | Admin User Management | `/admin/users` - View/suspend/unsuspend users with confirmation dialogs | High | ✅ Done |
-| P4.4 | Admin Analytics Dashboard | Real-time platform stats from database: users, listings, inquiries, projects | Medium | ✅ Done |
-| P4.5 | Audit Logging | Track admin actions (suspensions, project approvals/rejections) with database integration | Medium | ✅ Done |
-
----
-
-### 📋 PHASE 5: Platform Polish & Production Readiness
-
-**Goal:** Finalize for production launch.
-
-| Task ID | Feature | Description | Priority | Status |
-|---------|---------|-------------|----------|--------|
-| P5.1 | Email Notifications | Send emails for inquiries, appointments, status changes (optional SMTP - logs to console if not configured) | High | ✅ Done |
-| P5.2 | Razorpay Webhooks | Handle payment success/failure webhooks properly (keys optional for testing later) | High | ✅ Done |
-| P5.3 | Invoice/Payment History | Sellers can view payment history and download invoices at `/seller/payments` | Medium | ✅ Done |
-| P5.4 | SEO Meta Tags | Dynamic titles, descriptions via reusable SEO component on key pages | Medium | ✅ Done |
-| P5.5 | Mobile Responsiveness Audit | Pages already have responsive breakpoint classes throughout | Medium | ✅ Done |
-| P5.6 | Error Handling & 404 Pages | ErrorBoundary component, NotFoundPage, ForbiddenPage, ServerErrorPage, MaintenancePage | Medium | ✅ Done |
-
----
-
-### 📊 PROGRESS TRACKER
-
-| Phase | Tasks | Completed | Remaining |
-|-------|-------|-----------|-----------|
-| Phase 1: Core Engagement | 10 | 10 | 0 ✅ |
-| Phase 2: Appointments & Chat | 8 | 8 | 0 ✅ |
-| Phase 3: Seller Tools | 7 | 7 | 0 ✅ |
-| Phase 4: Admin Governance | 5 | 5 | 0 ✅ |
-| Phase 5: Polish | 6 | 6 | 0 ✅ |
-| **TOTAL** | **36** | **36** | **0** |
-
----
-
-### 🔧 TECHNICAL NOTES
-
-**Database Tables to Create:**
-- None - All required tables exist
-
-**Already Existing Tables:**
-- `inquiries` - Buyer property inquiries/leads with CRM fields (sellerNotes, followUpDate, leadTemperature, conversionStatus) ✅
-- `appointments` - Property visit scheduling ✅
-- `favorites` - User saved properties ✅
-- `saved_searches` - User saved filter combinations ✅
-- `chat_threads` & `chat_messages` - Messaging ✅
-- `notifications` - In-app notifications ✅
-- `property_views` - View tracking ✅
-- `verified_builders` - Builder profiles ✅
-- `projects` - Real estate projects ✅
-
-**Key Constraints:**
-- Projects feature: Only for Builder/Corporate AND Agent/Broker sellers (NOT Individual)
-- Projects: Sale transactions only (no Lease/Rent)
-- Builder landing pages: Only for Builder/Corporate seller types
-
-**Test Credentials:**
-- Buyer: testbuyer@vengrow.com / Test@123
-- Seller: testseller@vengrow.com / Test@123
-- Admin: superadmin@vengrow.com / Pa$$word@11
+-   **UI Component Libraries:** @radix-ui/* primitives, shadcn/ui
+-   **Styling & Design:** Tailwind CSS, class-variance-authority, clsx, tailwind-merge, PostCSS
+-   **Database & ORM:** @neondatabase/serverless, drizzle-orm, drizzle-zod, ws, connect-pg-simple
+-   **Form Handling:** react-hook-form, @hookform/resolvers, Zod
+-   **Date & Time:** date-fns
+-   **Utilities:** nanoid, lucide-react, cmdk
+-   **Payment Gateway:** Razorpay
+-   **Mapping & Location Services:** Google Maps API (@react-google-maps/api), Google Places Autocomplete
