@@ -2288,6 +2288,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update inquiry CRM fields (notes, follow-up, temperature, conversion)
+  app.patch("/api/inquiries/:id/crm", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.status(403).json({ error: "Seller profile not found" });
+      }
+
+      const inquiry = await storage.getInquiry(req.params.id);
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+
+      if (inquiry.sellerId !== profile.id) {
+        return res.status(403).json({ error: "Not authorized to update this inquiry" });
+      }
+
+      const { sellerNotes, followUpDate, leadTemperature, conversionStatus } = req.body;
+      
+      const updateData: Record<string, unknown> = {};
+      if (sellerNotes !== undefined) updateData.sellerNotes = sellerNotes;
+      if (followUpDate !== undefined) updateData.followUpDate = followUpDate ? new Date(followUpDate) : null;
+      if (leadTemperature !== undefined) updateData.leadTemperature = leadTemperature;
+      if (conversionStatus !== undefined) updateData.conversionStatus = conversionStatus;
+
+      const updated = await storage.updateInquiry(req.params.id, updateData as Partial<import("@shared/schema").InsertInquiry>);
+      res.json({ success: true, inquiry: updated });
+    } catch (error) {
+      console.error("Error updating inquiry CRM:", error);
+      res.status(500).json({ error: "Failed to update inquiry" });
+    }
+  });
+
   // Get current seller's subscription
   app.get("/api/me/subscription", isAuthenticated, async (req: any, res: Response) => {
     try {

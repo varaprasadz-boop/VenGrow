@@ -194,6 +194,10 @@ export const inquiries = pgTable("inquiries", {
   preferredContactTime: text("preferred_contact_time"),
   sellerResponse: text("seller_response"),
   respondedAt: timestamp("responded_at"),
+  sellerNotes: text("seller_notes"),
+  followUpDate: timestamp("follow_up_date"),
+  leadTemperature: text("lead_temperature"),
+  conversionStatus: text("conversion_status"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

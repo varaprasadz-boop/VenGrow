@@ -8,6 +8,7 @@ export interface AuthUser extends Partial<User> {
   lastName?: string;
   role?: "buyer" | "seller" | "admin";
   isSuperAdmin?: boolean;
+  sellerType?: "individual" | "broker" | "builder";
 }
 
 export function useAuth() {

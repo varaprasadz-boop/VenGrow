@@ -334,6 +334,11 @@ export const sellerRoutes: RouteConfig[] = [
   { path: "/seller/customer-reviews", component: lazy(() => import("@/pages/seller/CustomerReviewsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Customer Reviews" },
   { path: "/seller/calendar", component: lazy(() => import("@/pages/seller/CalendarPage")), requireAuth: true, roles: ["seller", "admin"], title: "Calendar" },
   
+  // Projects Management (Builders/Brokers only)
+  { path: "/seller/projects", component: lazy(() => import("@/pages/seller/SellerProjectsPage")), requireAuth: true, roles: ["seller", "admin"], title: "My Projects" },
+  { path: "/seller/projects/create", component: lazy(() => import("@/pages/seller/ProjectCreatePage")), requireAuth: true, roles: ["seller", "admin"], title: "Create Project" },
+  { path: "/seller/projects/:id/edit", component: lazy(() => import("@/pages/seller/ProjectEditPage")), requireAuth: true, roles: ["seller", "admin"], title: "Edit Project" },
+  
   // Team Management
   { path: "/seller/team", component: lazy(() => import("@/pages/seller/TeamManagementPage")), requireAuth: true, roles: ["seller", "admin"], title: "Team" },
   { path: "/seller/team-members", component: lazy(() => import("@/pages/seller/TeamMembersPage")), requireAuth: true, roles: ["seller", "admin"], title: "Team Members" },

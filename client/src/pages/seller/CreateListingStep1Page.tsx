@@ -16,8 +16,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StateSelect, CitySelect, PinCodeInput, PriceInput } from "@/components/ui/location-select";
-import { ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
-import type { PropertyCategory, PropertySubcategory } from "@shared/schema";
+import { ArrowRight, ArrowLeft, Loader2, Building2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import type { PropertyCategory, PropertySubcategory, Project } from "@shared/schema";
 
 const projectStages = [
   { value: "pre_launch", label: "Pre-launch" },
@@ -28,6 +29,7 @@ const projectStages = [
 
 export default function CreateListingStep1Page() {
   const [, navigate] = useLocation();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     categoryId: "",
     subcategoryId: "",
@@ -41,7 +43,10 @@ export default function CreateListingStep1Page() {
     state: "",
     pincode: "",
     locality: "",
+    projectId: "",
   });
+
+  const canHaveProjects = user?.sellerType && ["builder", "broker"].includes(user.sellerType);
 
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<PropertyCategory[]>({
     queryKey: ["/api/property-categories"],
@@ -50,6 +55,15 @@ export default function CreateListingStep1Page() {
   const { data: allSubcategories = [] } = useQuery<PropertySubcategory[]>({
     queryKey: ["/api/property-subcategories"],
   });
+
+  const { data: sellerProjects = [] } = useQuery<Project[]>({
+    queryKey: ["/api/projects/my-projects"],
+    enabled: canHaveProjects,
+  });
+
+  const liveProjects = useMemo(() => {
+    return sellerProjects.filter(p => p.status === "live");
+  }, [sellerProjects]);
 
   const selectedCategory = useMemo(() => {
     return categories.find(c => c.id === formData.categoryId);
@@ -232,6 +246,36 @@ export default function CreateListingStep1Page() {
                   </div>
                 )}
               </div>
+
+              {canHaveProjects && formData.transactionType === "sale" && liveProjects.length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="projectId" className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Link to Project (Optional)
+                  </Label>
+                  <Select
+                    value={formData.projectId}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, projectId: value === "none" ? "" : value })
+                    }
+                  >
+                    <SelectTrigger id="projectId" data-testid="select-project">
+                      <SelectValue placeholder="Select a project to link this property" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No project (standalone listing)</SelectItem>
+                      {liveProjects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name} - {project.city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Link this property to one of your projects. Properties linked to projects appear on the project page.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="title">Property Title *</Label>

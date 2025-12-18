@@ -1,10 +1,11 @@
-import { useState, useEffect, lazy, Suspense, useCallback } from "react";
+import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { useAuth } from "@/hooks/useAuth";
 
 const LocationPicker = lazy(() => import("@/components/LocationPicker"));
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { UploadResult } from "@uppy/core";
+import type { Project } from "@shared/schema";
 import {
   Select,
   SelectContent,
@@ -42,6 +44,7 @@ import {
   Home,
   Loader2,
   Save,
+  Building2,
 } from "lucide-react";
 import {
   Alert,
@@ -80,6 +83,7 @@ interface PropertyFormData {
   contactEmail: string;
   agreedToTerms: boolean;
   verifiedInfo: boolean;
+  projectId: string;
 }
 
 const STEPS = [
@@ -139,6 +143,7 @@ const INDIAN_STATES = [
 export default function CreatePropertyPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<PropertyFormData>({
     propertyType: "",
@@ -171,6 +176,7 @@ export default function CreatePropertyPage() {
     contactEmail: "",
     agreedToTerms: false,
     verifiedInfo: false,
+    projectId: "",
   });
 
   const { data: canCreateData, isLoading: checkingLimit } = useQuery<{
@@ -179,6 +185,17 @@ export default function CreatePropertyPage() {
   }>({
     queryKey: ["/api/subscriptions/can-create-listing"],
   });
+
+  const canHaveProjects = user?.sellerType && ["builder", "broker"].includes(user.sellerType);
+
+  const { data: sellerProjects = [] } = useQuery<Project[]>({
+    queryKey: ["/api/projects/my-projects"],
+    enabled: canHaveProjects,
+  });
+
+  const liveProjects = useMemo(() => {
+    return sellerProjects.filter(p => p.status === "live");
+  }, [sellerProjects]);
 
   const { data: subscriptionData, isLoading: loadingSubscription } = useQuery<{
     subscription?: { id: string; listingsUsed: number };
@@ -338,6 +355,7 @@ export default function CreatePropertyPage() {
       longitude: formData.longitude ? parseFloat(formData.longitude) : null,
       amenities: formData.amenities,
       highlights: formData.highlights,
+      projectId: formData.projectId || null,
     };
 
     createPropertyMutation.mutate(propertyData);
@@ -504,6 +522,34 @@ export default function CreatePropertyPage() {
                     </Select>
                   </div>
                 </div>
+
+                {canHaveProjects && formData.transactionType === "sale" && liveProjects.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="projectId" className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Link to Project (Optional)
+                    </Label>
+                    <Select
+                      value={formData.projectId}
+                      onValueChange={(value) => updateField("projectId", value === "none" ? "" : value)}
+                    >
+                      <SelectTrigger id="projectId" data-testid="select-project">
+                        <SelectValue placeholder="Select a project to link this property" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No project (standalone listing)</SelectItem>
+                        {liveProjects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.name} - {project.city}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Link this property to one of your projects. Properties linked to projects appear on the project page.
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="title">Property Title *</Label>
