@@ -16,11 +16,13 @@ import {
   CheckCircle,
   XCircle,
   Bell,
+  CalendarDays,
+  Calendar,
 } from "lucide-react";
 import PropertyCard from "@/components/PropertyCard";
 import { useAuth } from "@/hooks/useAuth";
-import { formatDistanceToNow } from "date-fns";
-import type { Property, Inquiry, SavedSearch } from "@shared/schema";
+import { formatDistanceToNow, format, parseISO, isAfter, isToday } from "date-fns";
+import type { Property, Inquiry, SavedSearch, Appointment } from "@shared/schema";
 
 interface DashboardStats {
   favoritesCount: number;
@@ -62,6 +64,31 @@ export default function BuyerDashboardPage() {
     queryKey: ["/api/me/saved-searches"],
     enabled: !!user,
   });
+
+  const { data: appointments = [], isLoading: appointmentsLoading } = useQuery<Appointment[]>({
+    queryKey: ["/api/me/appointments"],
+    enabled: !!user,
+  });
+
+  const upcomingAppointments = appointments.filter(
+    (a) => (a.status === "pending" || a.status === "confirmed") && 
+           (isAfter(parseISO(String(a.scheduledDate)), new Date()) || isToday(parseISO(String(a.scheduledDate))))
+  ).slice(0, 3);
+
+  const getAppointmentStatusColor = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500";
+      case "confirmed":
+        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500";
+      case "completed":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-500";
+      case "cancelled":
+        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-500";
+      default:
+        return "";
+    }
+  };
 
   const stats = [
     {
@@ -324,6 +351,56 @@ export default function BuyerDashboardPage() {
                   <div className="text-center py-4 text-muted-foreground text-sm">
                     <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No saved searches</p>
+                  </div>
+                )}
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4 gap-4">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4" />
+                    Upcoming Visits
+                  </h3>
+                </div>
+                {appointmentsLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2].map((i) => (
+                      <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                    ))}
+                  </div>
+                ) : upcomingAppointments.length > 0 ? (
+                  <div className="space-y-3">
+                    {upcomingAppointments.map((appointment) => (
+                      <div
+                        key={appointment.id}
+                        className="p-3 rounded-lg border hover-elevate"
+                        data-testid={`card-appointment-${appointment.id}`}
+                      >
+                        <div className="flex items-start justify-between mb-2 gap-2">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">
+                              {format(parseISO(String(appointment.scheduledDate)), "MMM d")}
+                            </span>
+                          </div>
+                          <Badge className={getAppointmentStatusColor(appointment.status)}>
+                            {appointment.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {appointment.scheduledTime}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No scheduled visits</p>
+                    <Link href="/properties">
+                      <Button variant="ghost" size="sm" className="mt-2">Browse Properties</Button>
+                    </Link>
                   </div>
                 )}
               </Card>

@@ -21,6 +21,7 @@ export const projectStageEnum = pgEnum("project_stage", ["pre_launch", "launch",
 export const listingStatusEnum = pgEnum("listing_status", ["draft", "pending", "active", "sold", "rented", "expired", "rejected"]);
 export const inquiryStatusEnum = pgEnum("inquiry_status", ["pending", "replied", "closed"]);
 export const inquirySourceEnum = pgEnum("inquiry_source", ["form", "chat", "call"]);
+export const appointmentStatusEnum = pgEnum("appointment_status", ["pending", "confirmed", "completed", "cancelled", "rescheduled"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "completed", "failed", "refunded"]);
 export const verificationStatusEnum = pgEnum("verification_status", ["pending", "verified", "rejected"]);
 export const notificationTypeEnum = pgEnum("notification_type", ["inquiry", "message", "payment", "listing", "system", "alert"]);
@@ -254,6 +255,28 @@ export const notifications = pgTable("notifications", {
   data: jsonb("data").$type<Record<string, unknown>>(),
   isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const appointments = pgTable("appointments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  propertyId: varchar("property_id").notNull().references(() => properties.id),
+  buyerId: varchar("buyer_id").notNull().references(() => users.id),
+  sellerId: varchar("seller_id").notNull().references(() => sellerProfiles.id),
+  scheduledDate: timestamp("scheduled_date").notNull(),
+  scheduledTime: text("scheduled_time").notNull(),
+  status: appointmentStatusEnum("status").notNull().default("pending"),
+  buyerName: text("buyer_name"),
+  buyerPhone: text("buyer_phone"),
+  buyerEmail: text("buyer_email"),
+  notes: text("notes"),
+  sellerNotes: text("seller_notes"),
+  cancelReason: text("cancel_reason"),
+  rescheduledFrom: timestamp("rescheduled_from"),
+  confirmedAt: timestamp("confirmed_at"),
+  completedAt: timestamp("completed_at"),
+  cancelledAt: timestamp("cancelled_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const payments = pgTable("payments", {
@@ -690,6 +713,15 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   createdAt: true,
 });
 
+export const insertAppointmentSchema = createInsertSchema(appointments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  confirmedAt: true,
+  completedAt: true,
+  cancelledAt: true,
+});
+
 export const insertPaymentSchema = createInsertSchema(payments).omit({
   id: true,
   createdAt: true,
@@ -731,6 +763,9 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
+
+export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
+export type Appointment = typeof appointments.$inferSelect;
 
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;

@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Property } from "@shared/schema";
 import PropertyMap from "@/components/PropertyMap";
 import {
@@ -31,6 +33,8 @@ import {
   Compass,
   Loader2,
   Play,
+  CalendarDays,
+  Clock,
 } from "lucide-react";
 
 function YouTubeEmbed({ url }: { url: string }) {
@@ -78,6 +82,15 @@ export default function PropertyDetailPage() {
   const [inquiryEmail, setInquiryEmail] = useState("");
   const [inquiryPhone, setInquiryPhone] = useState("");
   const [inquiryMessage, setInquiryMessage] = useState("");
+  
+  // Schedule visit modal state
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [visitDate, setVisitDate] = useState("");
+  const [visitTime, setVisitTime] = useState("");
+  const [visitName, setVisitName] = useState("");
+  const [visitPhone, setVisitPhone] = useState("");
+  const [visitEmail, setVisitEmail] = useState("");
+  const [visitNotes, setVisitNotes] = useState("");
 
   // Fetch property details
   const { data: property, isLoading: propertyLoading } = useQuery<Property>({
@@ -173,6 +186,84 @@ export default function PropertyDetailPage() {
     }
     
     inquiryMutation.mutate();
+  };
+
+  // Schedule visit mutation
+  const scheduleVisitMutation = useMutation({
+    mutationFn: async () => {
+      if (!property) throw new Error("Property not found");
+      
+      return await apiRequest("POST", "/api/appointments", {
+        propertyId: id,
+        scheduledDate: visitDate,
+        scheduledTime: visitTime,
+        buyerName: visitName,
+        buyerPhone: visitPhone,
+        buyerEmail: visitEmail,
+        notes: visitNotes,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Visit scheduled!",
+        description: "The seller will confirm your visit request soon.",
+      });
+      setShowScheduleModal(false);
+      setVisitDate("");
+      setVisitTime("");
+      setVisitName("");
+      setVisitPhone("");
+      setVisitEmail("");
+      setVisitNotes("");
+      queryClient.invalidateQueries({ queryKey: ["/api/me/appointments"] });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to schedule visit",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleScheduleVisit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to schedule a visit.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!visitDate || !visitTime || !visitName.trim() || !visitPhone.trim()) {
+      toast({
+        title: "Please fill in required fields",
+        description: "Date, time, name, and phone are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    scheduleVisitMutation.mutate();
+  };
+
+  const openScheduleModal = () => {
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to schedule a visit.",
+        variant: "destructive",
+      });
+      return;
+    }
+    // Pre-fill with user data
+    setVisitName(`${user.firstName || ''} ${user.lastName || ''}`.trim());
+    setVisitEmail(user.email || '');
+    setVisitPhone(user.phone || '');
+    setShowScheduleModal(true);
   };
 
   const handleFavoriteClick = () => {
@@ -565,10 +656,138 @@ export default function PropertyDetailPage() {
                   </Button>
                 </form>
               </Card>
+              
+              {/* Schedule Visit Card */}
+              <Card className="p-6">
+                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5" />
+                  Schedule a Visit
+                </h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  Book a visit to see this property in person
+                </p>
+                <Button 
+                  className="w-full" 
+                  onClick={openScheduleModal}
+                  data-testid="button-schedule-visit"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Schedule Property Visit
+                </Button>
+              </Card>
             </div>
           </div>
         </div>
       </main>
+
+      {/* Schedule Visit Modal */}
+      <Dialog open={showScheduleModal} onOpenChange={setShowScheduleModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5" />
+              Schedule Property Visit
+            </DialogTitle>
+            <DialogDescription>
+              Choose a date and time for your property visit. The seller will confirm your request.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleScheduleVisit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="visit-date">Date *</Label>
+                <Input
+                  id="visit-date"
+                  type="date"
+                  value={visitDate}
+                  onChange={(e) => setVisitDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  data-testid="input-visit-date"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="visit-time">Time *</Label>
+                <Select value={visitTime} onValueChange={setVisitTime}>
+                  <SelectTrigger data-testid="select-visit-time">
+                    <SelectValue placeholder="Select time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="09:00 AM">09:00 AM</SelectItem>
+                    <SelectItem value="10:00 AM">10:00 AM</SelectItem>
+                    <SelectItem value="11:00 AM">11:00 AM</SelectItem>
+                    <SelectItem value="12:00 PM">12:00 PM</SelectItem>
+                    <SelectItem value="02:00 PM">02:00 PM</SelectItem>
+                    <SelectItem value="03:00 PM">03:00 PM</SelectItem>
+                    <SelectItem value="04:00 PM">04:00 PM</SelectItem>
+                    <SelectItem value="05:00 PM">05:00 PM</SelectItem>
+                    <SelectItem value="06:00 PM">06:00 PM</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="visit-name">Your Name *</Label>
+              <Input
+                id="visit-name"
+                placeholder="Your full name"
+                value={visitName}
+                onChange={(e) => setVisitName(e.target.value)}
+                data-testid="input-visit-name"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="visit-phone">Phone *</Label>
+                <Input
+                  id="visit-phone"
+                  type="tel"
+                  placeholder="+91 98765 43210"
+                  value={visitPhone}
+                  onChange={(e) => setVisitPhone(e.target.value)}
+                  data-testid="input-visit-phone"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="visit-email">Email</Label>
+                <Input
+                  id="visit-email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={visitEmail}
+                  onChange={(e) => setVisitEmail(e.target.value)}
+                  data-testid="input-visit-email"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="visit-notes">Notes (optional)</Label>
+              <Textarea
+                id="visit-notes"
+                placeholder="Any specific requirements or questions..."
+                rows={3}
+                value={visitNotes}
+                onChange={(e) => setVisitNotes(e.target.value)}
+                data-testid="textarea-visit-notes"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowScheduleModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={scheduleVisitMutation.isPending} data-testid="button-confirm-schedule">
+                {scheduleVisitMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Scheduling...
+                  </>
+                ) : (
+                  "Schedule Visit"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>

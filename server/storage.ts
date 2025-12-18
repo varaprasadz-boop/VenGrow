@@ -19,8 +19,9 @@ import {
   type PropertyCategory, type PropertySubcategory,
   type VerifiedBuilder, type InsertVerifiedBuilder,
   type Project, type InsertProject,
+  type Appointment, type InsertAppointment,
   users, sellerProfiles, packages, properties, propertyImages, propertyDocuments,
-  inquiries, favorites, savedSearches, propertyViews,
+  inquiries, favorites, savedSearches, propertyViews, appointments,
   chatThreads, chatMessages, notifications, payments, reviews,
   adminApprovals, auditLogs, systemSettings, sellerSubscriptions, propertyAlerts,
   propertyApprovalRequests, faqItems, staticPages, banners, platformSettings,
@@ -106,6 +107,16 @@ export interface IStorage {
   markNotificationAsRead(id: string): Promise<void>;
   markAllNotificationsAsRead(userId: string): Promise<void>;
   deleteNotification(id: string): Promise<boolean>;
+  
+  getAppointment(id: string): Promise<Appointment | undefined>;
+  getAppointmentsByBuyer(buyerId: string): Promise<Appointment[]>;
+  getAppointmentsBySeller(sellerId: string): Promise<Appointment[]>;
+  getAppointmentsByProperty(propertyId: string): Promise<Appointment[]>;
+  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
+  updateAppointment(id: string, data: Partial<InsertAppointment>): Promise<Appointment | undefined>;
+  cancelAppointment(id: string, reason?: string): Promise<Appointment | undefined>;
+  confirmAppointment(id: string): Promise<Appointment | undefined>;
+  completeAppointment(id: string): Promise<Appointment | undefined>;
   
   getPayments(userId: string): Promise<Payment[]>;
   getAllPayments(): Promise<Payment[]>;
@@ -625,6 +636,57 @@ export class DatabaseStorage implements IStorage {
   async deleteNotification(id: string): Promise<boolean> {
     const result = await db.delete(notifications).where(eq(notifications.id, id));
     return true;
+  }
+
+  async getAppointment(id: string): Promise<Appointment | undefined> {
+    const [appointment] = await db.select().from(appointments).where(eq(appointments.id, id));
+    return appointment;
+  }
+
+  async getAppointmentsByBuyer(buyerId: string): Promise<Appointment[]> {
+    return db.select().from(appointments).where(eq(appointments.buyerId, buyerId)).orderBy(desc(appointments.scheduledDate));
+  }
+
+  async getAppointmentsBySeller(sellerId: string): Promise<Appointment[]> {
+    return db.select().from(appointments).where(eq(appointments.sellerId, sellerId)).orderBy(desc(appointments.scheduledDate));
+  }
+
+  async getAppointmentsByProperty(propertyId: string): Promise<Appointment[]> {
+    return db.select().from(appointments).where(eq(appointments.propertyId, propertyId)).orderBy(desc(appointments.scheduledDate));
+  }
+
+  async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
+    const [created] = await db.insert(appointments).values(appointment).returning();
+    return created;
+  }
+
+  async updateAppointment(id: string, data: Partial<InsertAppointment>): Promise<Appointment | undefined> {
+    const [updated] = await db.update(appointments).set({ ...data, updatedAt: new Date() }).where(eq(appointments.id, id)).returning();
+    return updated;
+  }
+
+  async cancelAppointment(id: string, reason?: string): Promise<Appointment | undefined> {
+    const [updated] = await db.update(appointments)
+      .set({ status: 'cancelled', cancelReason: reason, cancelledAt: new Date(), updatedAt: new Date() })
+      .where(eq(appointments.id, id))
+      .returning();
+    return updated;
+  }
+
+  async confirmAppointment(id: string): Promise<Appointment | undefined> {
+    const [updated] = await db.update(appointments)
+      .set({ status: 'confirmed', confirmedAt: new Date(), updatedAt: new Date() })
+      .where(eq(appointments.id, id))
+      .returning();
+    return updated;
+  }
+
+  async completeAppointment(id: string): Promise<Appointment | undefined> {
+    const [updated] = await db.update(appointments)
+      .set({ status: 'completed', completedAt: new Date(), updatedAt: new Date() })
+      .where(eq(appointments.id, id))
+      .returning();
+    return updated;
   }
 
   async getPayments(userId: string): Promise<Payment[]> {

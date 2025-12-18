@@ -2333,6 +2333,191 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================
+  // APPOINTMENTS ROUTES
+  // ============================================
+
+  // Get buyer's appointments
+  app.get("/api/me/appointments", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const appointments = await storage.getAppointmentsByBuyer(userId);
+      res.json(appointments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get appointments" });
+    }
+  });
+
+  // Get seller's appointments
+  app.get("/api/me/seller-appointments", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json([]);
+      }
+      const appointments = await storage.getAppointmentsBySeller(profile.id);
+      res.json(appointments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get appointments" });
+    }
+  });
+
+  // Create appointment (schedule a visit)
+  app.post("/api/appointments", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const { propertyId, scheduledDate, scheduledTime, notes, buyerName, buyerPhone, buyerEmail } = req.body;
+      
+      if (!propertyId || !scheduledDate || !scheduledTime) {
+        return res.status(400).json({ error: "Property ID, date and time are required" });
+      }
+      
+      // Get property to find seller
+      const property = await storage.getProperty(propertyId);
+      if (!property) {
+        return res.status(404).json({ error: "Property not found" });
+      }
+      
+      const appointment = await storage.createAppointment({
+        propertyId,
+        buyerId: userId,
+        sellerId: property.sellerId,
+        scheduledDate: new Date(scheduledDate),
+        scheduledTime,
+        notes,
+        buyerName,
+        buyerPhone,
+        buyerEmail,
+        status: 'pending',
+      });
+      
+      // Create notification for seller
+      const sellerProfile = await storage.getSellerProfile(property.sellerId);
+      if (sellerProfile) {
+        await storage.createNotification({
+          userId: sellerProfile.userId,
+          type: 'inquiry',
+          title: 'New Visit Request',
+          message: `A buyer has requested to visit ${property.title}`,
+          data: { appointmentId: appointment.id, propertyId },
+        });
+      }
+      
+      res.status(201).json(appointment);
+    } catch (error) {
+      console.error("Error creating appointment:", error);
+      res.status(500).json({ error: "Failed to create appointment" });
+    }
+  });
+
+  // Get single appointment
+  app.get("/api/appointments/:id", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const appointment = await storage.getAppointment(req.params.id);
+      if (!appointment) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+      res.json(appointment);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get appointment" });
+    }
+  });
+
+  // Update appointment (reschedule)
+  app.patch("/api/appointments/:id", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const appointment = await storage.getAppointment(req.params.id);
+      if (!appointment) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+      
+      const { scheduledDate, scheduledTime, notes, sellerNotes, status } = req.body;
+      
+      const updateData: any = {};
+      if (scheduledDate) {
+        updateData.scheduledDate = new Date(scheduledDate);
+        updateData.rescheduledFrom = appointment.scheduledDate;
+        updateData.status = 'rescheduled';
+      }
+      if (scheduledTime) updateData.scheduledTime = scheduledTime;
+      if (notes) updateData.notes = notes;
+      if (sellerNotes) updateData.sellerNotes = sellerNotes;
+      
+      const updated = await storage.updateAppointment(req.params.id, updateData);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update appointment" });
+    }
+  });
+
+  // Confirm appointment (seller action)
+  app.post("/api/appointments/:id/confirm", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const appointment = await storage.getAppointment(req.params.id);
+      if (!appointment) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+      
+      const confirmed = await storage.confirmAppointment(req.params.id);
+      
+      // Notify buyer
+      await storage.createNotification({
+        userId: appointment.buyerId,
+        type: 'inquiry',
+        title: 'Visit Confirmed',
+        message: `Your property visit has been confirmed for ${appointment.scheduledTime}`,
+        data: { appointmentId: appointment.id },
+      });
+      
+      res.json(confirmed);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to confirm appointment" });
+    }
+  });
+
+  // Cancel appointment
+  app.post("/api/appointments/:id/cancel", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const { reason } = req.body;
+      const cancelled = await storage.cancelAppointment(req.params.id, reason);
+      
+      if (!cancelled) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+      
+      res.json(cancelled);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to cancel appointment" });
+    }
+  });
+
+  // Complete appointment (mark as done)
+  app.post("/api/appointments/:id/complete", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const completed = await storage.completeAppointment(req.params.id);
+      if (!completed) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+      res.json(completed);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to complete appointment" });
+    }
+  });
+
+  // ============================================
   // OBJECT STORAGE / FILE UPLOAD ROUTES
   // ============================================
 
