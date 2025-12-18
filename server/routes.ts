@@ -2861,10 +2861,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get real counts from database
       const allUsers = await storage.getAllUsers({});
-      const allProperties = await storage.getAllProperties({});
+      const allProperties = await storage.getProperties({});
       const allInquiries = await storage.getAllInquiries({});
       const allSellers = await storage.getAllSellerProfiles({});
-      const allProjects = await storage.getAllProjects({});
+      const allProjects = await storage.getProjects({});
 
       const totalUsers = allUsers.length;
       const buyers = allUsers.filter(u => u.role === "buyer").length;
@@ -2876,7 +2876,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pendingListings = allProperties.filter(p => p.workflowStatus === "submitted" || p.workflowStatus === "under_review").length;
       
       const totalInquiries = allInquiries.length;
-      const pendingInquiries = allInquiries.filter(i => i.status === "pending" || i.status === "new").length;
+      const pendingInquiries = allInquiries.filter(i => i.status === "pending").length;
       
       const verifiedSellers = allSellers.filter(s => s.verificationStatus === "verified").length;
       const pendingVerifications = allSellers.filter(s => s.verificationStatus === "pending").length;
