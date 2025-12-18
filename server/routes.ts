@@ -2427,7 +2427,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update appointment (reschedule)
+  // Update appointment (reschedule) - seller action
   app.patch("/api/appointments/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = getAuthenticatedUserId(req);
@@ -2436,6 +2436,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const appointment = await storage.getAppointment(req.params.id);
       if (!appointment) {
         return res.status(404).json({ error: "Appointment not found" });
+      }
+      
+      // Authorization: verify seller ownership or buyer ownership
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      const user = await storage.getUser(userId);
+      const isOwner = appointment.buyerId === userId || 
+                      (sellerProfile && appointment.sellerId === sellerProfile.id) ||
+                      user?.role === 'admin';
+      if (!isOwner) {
+        return res.status(403).json({ error: "Not authorized to update this appointment" });
       }
       
       const { scheduledDate, scheduledTime, notes, sellerNotes, status } = req.body;
@@ -2468,6 +2478,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Appointment not found" });
       }
       
+      // Authorization: only seller or admin can confirm
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      const user = await storage.getUser(userId);
+      const isSeller = (sellerProfile && appointment.sellerId === sellerProfile.id) || user?.role === 'admin';
+      if (!isSeller) {
+        return res.status(403).json({ error: "Only the seller can confirm this appointment" });
+      }
+      
       const confirmed = await storage.confirmAppointment(req.params.id);
       
       // Notify buyer
@@ -2485,18 +2503,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Cancel appointment
+  // Cancel appointment (buyer or seller can cancel)
   app.post("/api/appointments/:id/cancel", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = getAuthenticatedUserId(req);
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       
-      const { reason } = req.body;
-      const cancelled = await storage.cancelAppointment(req.params.id, reason);
-      
-      if (!cancelled) {
+      const appointment = await storage.getAppointment(req.params.id);
+      if (!appointment) {
         return res.status(404).json({ error: "Appointment not found" });
       }
+      
+      // Authorization: buyer, seller, or admin can cancel
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      const user = await storage.getUser(userId);
+      const canCancel = appointment.buyerId === userId || 
+                        (sellerProfile && appointment.sellerId === sellerProfile.id) ||
+                        user?.role === 'admin';
+      if (!canCancel) {
+        return res.status(403).json({ error: "Not authorized to cancel this appointment" });
+      }
+      
+      const { reason } = req.body;
+      const cancelled = await storage.cancelAppointment(req.params.id, reason);
       
       res.json(cancelled);
     } catch (error) {
@@ -2504,13 +2533,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Complete appointment (mark as done)
+  // Complete appointment (seller action)
   app.post("/api/appointments/:id/complete", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const completed = await storage.completeAppointment(req.params.id);
-      if (!completed) {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const appointment = await storage.getAppointment(req.params.id);
+      if (!appointment) {
         return res.status(404).json({ error: "Appointment not found" });
       }
+      
+      // Authorization: only seller or admin can mark complete
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      const user = await storage.getUser(userId);
+      const isSeller = (sellerProfile && appointment.sellerId === sellerProfile.id) || user?.role === 'admin';
+      if (!isSeller) {
+        return res.status(403).json({ error: "Only the seller can complete this appointment" });
+      }
+      
+      const completed = await storage.completeAppointment(req.params.id);
       res.json(completed);
     } catch (error) {
       res.status(500).json({ error: "Failed to complete appointment" });

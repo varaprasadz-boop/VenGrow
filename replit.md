@@ -116,6 +116,7 @@ This is the complete implementation plan for VenGrow. Reference this for all rem
 | **Saved Searches** (schema, API, SavedSearchesPage) | ✅ Done |
 | **Chat schema** (chatThreads, chatMessages tables) | ✅ Done |
 | **Notifications schema** (notifications table) | ✅ Done |
+| **Appointments system** (schema, API with auth, Schedule Visit button, Seller/Buyer dashboards) | ✅ Done |
 
 ---
 
@@ -125,11 +126,11 @@ This is the complete implementation plan for VenGrow. Reference this for all rem
 
 | Task ID | Feature | Description | Priority | Status |
 |---------|---------|-------------|----------|--------|
-| P2.1 | Appointments Schema | Create `appointments` table (buyerId, sellerId, propertyId, dateTime, status, notes) | Critical | ⏳ Pending |
-| P2.2 | Appointments Storage & API | CRUD for appointments, status updates | Critical | ⏳ Pending |
-| P2.3 | Schedule Visit Button | On property page, opens date/time picker modal | Critical | ⏳ Pending |
-| P2.4 | Seller Appointments Dashboard | `/seller/appointments` - Calendar view, accept/reject/reschedule | Critical | ⏳ Pending |
-| P2.5 | Buyer Appointments View | List scheduled visits in buyer dashboard | High | ⏳ Pending |
+| P2.1 | Appointments Schema | Create `appointments` table (buyerId, sellerId, propertyId, dateTime, status, notes) | Critical | ✅ Done |
+| P2.2 | Appointments Storage & API | CRUD for appointments, status updates with authorization | Critical | ✅ Done |
+| P2.3 | Schedule Visit Button | On property page, opens date/time picker modal | Critical | ✅ Done |
+| P2.4 | Seller Appointments Dashboard | `/seller/visits` - Tabs view, accept/reject/reschedule | Critical | ✅ Done |
+| P2.5 | Buyer Appointments View | List scheduled visits in buyer dashboard | High | ✅ Done |
 | P2.6 | Chat Storage & API | WebSocket integration for real-time messaging (schema exists) | High | ⏳ Pending |
 | P2.7 | Chat UI Component | Conversation list, message thread, send message | High | ⏳ Pending |
 | P2.8 | Notifications Bell Icon | Header notification icon with unread count, dropdown (schema exists) | High | ⏳ Pending |
@@ -186,11 +187,11 @@ This is the complete implementation plan for VenGrow. Reference this for all rem
 | Phase | Tasks | Completed | Remaining |
 |-------|-------|-----------|-----------|
 | Phase 1: Core Engagement | 10 | 10 | 0 ✅ |
-| Phase 2: Appointments & Chat | 8 | 0 | 8 |
+| Phase 2: Appointments & Chat | 8 | 5 | 3 |
 | Phase 3: Seller Tools | 7 | 0 | 7 |
 | Phase 4: Admin Governance | 5 | 0 | 5 |
 | Phase 5: Polish | 6 | 0 | 6 |
-| **TOTAL** | **36** | **10** | **26** |
+| **TOTAL** | **36** | **15** | **21** |
 
 ---
 
