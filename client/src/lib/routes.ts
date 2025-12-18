@@ -380,6 +380,7 @@ export const adminRoutes: RouteConfig[] = [
   { path: "/admin/rejected-properties", component: lazy(() => import("@/pages/admin/RejectedPropertiesPage")), requireAuth: true, roles: ["admin"], title: "Rejected Properties" },
   { path: "/admin/review-queue", component: lazy(() => import("@/pages/admin/ReviewQueuePage")), requireAuth: true, roles: ["admin"], title: "Review Queue" },
   { path: "/admin/bulk-actions", component: lazy(() => import("@/pages/admin/BulkActionsPage")), requireAuth: true, roles: ["admin"], title: "Bulk Actions" },
+  { path: "/admin/projects", component: lazy(() => import("@/pages/admin/ProjectsModerationPage")), requireAuth: true, roles: ["admin"], title: "Projects Moderation" },
   
   // Inquiries Management  
   { path: "/admin/inquiries", component: lazy(() => import("@/pages/admin/InquiriesPage")), requireAuth: true, roles: ["admin"], title: "All Inquiries" },

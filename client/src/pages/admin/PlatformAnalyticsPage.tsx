@@ -1,94 +1,145 @@
+import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users,
   Building,
-  DollarSign,
-  TrendingUp,
-  Eye,
   MessageSquare,
+  TrendingUp,
+  UserCheck,
   Download,
   Calendar,
+  AlertCircle,
+  RefreshCw,
+  FolderKanban,
+  ShieldCheck,
 } from "lucide-react";
 
+interface AnalyticsData {
+  users: {
+    total: number;
+    buyers: number;
+    sellers: number;
+    active: number;
+  };
+  listings: {
+    total: number;
+    live: number;
+    pending: number;
+  };
+  inquiries: {
+    total: number;
+    pending: number;
+  };
+  sellers: {
+    total: number;
+    verified: number;
+    pendingVerification: number;
+  };
+  projects: {
+    total: number;
+    live: number;
+  };
+  topCities: Array<{
+    city: string;
+    listings: number;
+    percentage: number;
+  }>;
+}
+
 export default function PlatformAnalyticsPage() {
+  const { data: analytics, isLoading, isError, refetch } = useQuery<AnalyticsData>({
+    queryKey: ["/api/admin/analytics"],
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header isLoggedIn={true} userType="admin" />
+        <main className="flex-1">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Skeleton className="h-10 w-64 mb-2" />
+            <Skeleton className="h-6 w-48 mb-8" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-32 w-full" />
+              ))}
+            </div>
+            <Skeleton className="h-12 w-96 mb-6" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (isError || !analytics) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header isLoggedIn={true} userType="admin" />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center p-8">
+            <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
+            <h2 className="text-xl font-semibold mb-2">Failed to Load Analytics</h2>
+            <p className="text-muted-foreground mb-4">
+              There was an error loading analytics data. Please try again.
+            </p>
+            <Button onClick={() => refetch()} data-testid="button-retry">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   const stats = [
     {
       label: "Total Users",
-      value: "52,345",
-      change: "+8.2%",
-      trend: "up",
+      value: analytics.users.total.toLocaleString(),
+      subtext: `${analytics.users.buyers} buyers, ${analytics.users.sellers} sellers`,
       icon: Users,
+      color: "blue",
     },
     {
       label: "Active Listings",
-      value: "10,234",
-      change: "+12.5%",
-      trend: "up",
+      value: analytics.listings.live.toLocaleString(),
+      subtext: `${analytics.listings.pending} pending approval`,
       icon: Building,
+      color: "green",
     },
     {
-      label: "Monthly Revenue",
-      value: "₹12.5 L",
-      change: "+18.3%",
-      trend: "up",
-      icon: DollarSign,
+      label: "Total Inquiries",
+      value: analytics.inquiries.total.toLocaleString(),
+      subtext: `${analytics.inquiries.pending} pending response`,
+      icon: MessageSquare,
+      color: "purple",
     },
     {
-      label: "Total Views",
-      value: "2.5M",
-      change: "+25.1%",
-      trend: "up",
-      icon: Eye,
+      label: "Live Projects",
+      value: analytics.projects.live.toLocaleString(),
+      subtext: `${analytics.projects.total} total projects`,
+      icon: FolderKanban,
+      color: "orange",
     },
   ];
 
-  const topCities = [
-    { city: "Mumbai", listings: 2345, percentage: 23 },
-    { city: "Delhi", listings: 1987, percentage: 19 },
-    { city: "Bangalore", listings: 1654, percentage: 16 },
-    { city: "Pune", listings: 1234, percentage: 12 },
-    { city: "Hyderabad", listings: 987, percentage: 10 },
-  ];
-
-  const topSellers = [
-    {
-      name: "Prestige Estates",
-      listings: 145,
-      revenue: "₹4.2L",
-      views: "125K",
-    },
-    {
-      name: "DLF Properties",
-      listings: 123,
-      revenue: "₹3.8L",
-      views: "98K",
-    },
-    {
-      name: "Godrej Properties",
-      listings: 98,
-      revenue: "₹3.1L",
-      views: "87K",
-    },
-    {
-      name: "Lodha Group",
-      listings: 87,
-      revenue: "₹2.9L",
-      views: "76K",
-    },
-  ];
-
-  const monthlyRevenue = [
-    { month: "Jun", revenue: 8.5 },
-    { month: "Jul", revenue: 9.2 },
-    { month: "Aug", revenue: 10.1 },
-    { month: "Sep", revenue: 9.8 },
-    { month: "Oct", revenue: 11.3 },
-    { month: "Nov", revenue: 12.5 },
-  ];
+  const colorClasses: Record<string, string> = {
+    blue: "bg-blue-100 dark:bg-blue-900/20 text-blue-600",
+    green: "bg-green-100 dark:bg-green-900/20 text-green-600",
+    purple: "bg-purple-100 dark:bg-purple-900/20 text-purple-600",
+    orange: "bg-orange-100 dark:bg-orange-900/20 text-orange-600",
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -96,20 +147,23 @@ export default function PlatformAnalyticsPage() {
 
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>
               <h1 className="font-serif font-bold text-3xl mb-2">
                 Platform Analytics
               </h1>
               <p className="text-muted-foreground">
-                Comprehensive insights and metrics
+                Real-time insights and metrics
               </p>
             </div>
             <div className="flex gap-3">
+              <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
               <Button variant="outline" data-testid="button-date-range">
                 <Calendar className="h-4 w-4 mr-2" />
-                Last 30 Days
+                All Time
               </Button>
               <Button data-testid="button-export-analytics">
                 <Download className="h-4 w-4 mr-2" />
@@ -118,19 +172,18 @@ export default function PlatformAnalyticsPage() {
             </div>
           </div>
 
-          {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {stats.map((stat, index) => (
-              <Card key={index} className="p-6">
+              <Card key={index} className="p-6" data-testid={`card-stat-${index}`}>
                 <div className="flex items-start justify-between mb-3">
-                  <div className="p-3 rounded-lg bg-primary/10">
-                    <stat.icon className="h-6 w-6 text-primary" />
+                  <div className={`p-3 rounded-lg ${colorClasses[stat.color]}`}>
+                    <stat.icon className="h-6 w-6" />
                   </div>
-                  <span className="text-sm text-green-600">{stat.change}</span>
                 </div>
                 <div>
                   <p className="text-3xl font-bold font-serif mb-1">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  <p className="text-sm font-medium mb-1">{stat.label}</p>
+                  <p className="text-xs text-muted-foreground">{stat.subtext}</p>
                 </div>
               </Card>
             ))}
@@ -141,131 +194,147 @@ export default function PlatformAnalyticsPage() {
               <TabsTrigger value="overview" data-testid="tab-overview">
                 Overview
               </TabsTrigger>
-              <TabsTrigger value="revenue" data-testid="tab-revenue">
-                Revenue
-              </TabsTrigger>
               <TabsTrigger value="users" data-testid="tab-users">
                 Users
               </TabsTrigger>
               <TabsTrigger value="listings" data-testid="tab-listings">
                 Listings
               </TabsTrigger>
+              <TabsTrigger value="sellers" data-testid="tab-sellers">
+                Sellers
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Revenue Chart */}
-                <Card className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="font-semibold text-lg">Monthly Revenue Trend</h3>
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div className="space-y-4">
-                    {monthlyRevenue.map((item, index) => (
-                      <div key={index}>
-                        <div className="flex items-center justify-between mb-2 text-sm">
-                          <span className="font-medium">{item.month}</span>
-                          <span className="text-primary">₹{item.revenue}L</span>
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full"
-                            style={{ width: `${(item.revenue / 15) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-
-                {/* Top Cities */}
                 <Card className="p-6">
                   <h3 className="font-semibold text-lg mb-6">Top Cities by Listings</h3>
-                  <div className="space-y-4">
-                    {topCities.map((city, index) => (
-                      <div key={index}>
-                        <div className="flex items-center justify-between mb-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg font-bold text-primary">
-                              #{index + 1}
+                  {analytics.topCities.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No listing data available</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {analytics.topCities.map((city, index) => (
+                        <div key={index}>
+                          <div className="flex items-center justify-between mb-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-bold text-primary">
+                                #{index + 1}
+                              </span>
+                              <span className="font-medium">{city.city}</span>
+                            </div>
+                            <span className="text-muted-foreground">
+                              {city.listings} listings ({city.percentage}%)
                             </span>
-                            <span className="font-medium">{city.city}</span>
                           </div>
-                          <span className="text-muted-foreground">
-                            {city.listings} listings
-                          </span>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary rounded-full"
+                              style={{ width: `${Math.min(city.percentage * 2, 100)}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full"
-                            style={{ width: `${city.percentage * 4}%` }}
-                          />
-                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+
+                <Card className="p-6">
+                  <h3 className="font-semibold text-lg mb-6">Platform Summary</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Users className="h-5 w-5 text-blue-600" />
+                        <span>Active Users</span>
                       </div>
-                    ))}
+                      <span className="font-bold">{analytics.users.active}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <ShieldCheck className="h-5 w-5 text-green-600" />
+                        <span>Verified Sellers</span>
+                      </div>
+                      <span className="font-bold">{analytics.sellers.verified}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Building className="h-5 w-5 text-purple-600" />
+                        <span>Total Listings</span>
+                      </div>
+                      <span className="font-bold">{analytics.listings.total}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <TrendingUp className="h-5 w-5 text-orange-600" />
+                        <span>Pending Verifications</span>
+                      </div>
+                      <span className="font-bold">{analytics.sellers.pendingVerification}</span>
+                    </div>
                   </div>
                 </Card>
               </div>
-
-              {/* Top Sellers */}
-              <Card className="p-6">
-                <h3 className="font-semibold text-lg mb-6">Top Performing Sellers</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-3 text-sm font-semibold">Rank</th>
-                        <th className="text-left p-3 text-sm font-semibold">Seller</th>
-                        <th className="text-center p-3 text-sm font-semibold">Listings</th>
-                        <th className="text-center p-3 text-sm font-semibold">Revenue</th>
-                        <th className="text-center p-3 text-sm font-semibold">Views</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topSellers.map((seller, index) => (
-                        <tr key={index} className="border-b last:border-0">
-                          <td className="p-3">
-                            <span className="text-lg font-bold text-primary">
-                              #{index + 1}
-                            </span>
-                          </td>
-                          <td className="p-3 font-medium">{seller.name}</td>
-                          <td className="p-3 text-center">{seller.listings}</td>
-                          <td className="p-3 text-center text-primary font-semibold">
-                            {seller.revenue}
-                          </td>
-                          <td className="p-3 text-center text-muted-foreground">
-                            {seller.views}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="revenue">
-              <Card className="p-6">
-                <p className="text-center text-muted-foreground py-16">
-                  Detailed revenue analytics coming soon
-                </p>
-              </Card>
             </TabsContent>
 
             <TabsContent value="users">
               <Card className="p-6">
-                <p className="text-center text-muted-foreground py-16">
-                  User analytics coming soon
-                </p>
+                <h3 className="font-semibold text-lg mb-6">User Breakdown</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg text-center">
+                    <p className="text-3xl font-bold text-blue-600">{analytics.users.total}</p>
+                    <p className="text-sm text-muted-foreground">Total Users</p>
+                  </div>
+                  <div className="p-4 bg-green-50 dark:bg-green-900/10 rounded-lg text-center">
+                    <p className="text-3xl font-bold text-green-600">{analytics.users.buyers}</p>
+                    <p className="text-sm text-muted-foreground">Buyers</p>
+                  </div>
+                  <div className="p-4 bg-purple-50 dark:bg-purple-900/10 rounded-lg text-center">
+                    <p className="text-3xl font-bold text-purple-600">{analytics.users.sellers}</p>
+                    <p className="text-sm text-muted-foreground">Sellers</p>
+                  </div>
+                  <div className="p-4 bg-orange-50 dark:bg-orange-900/10 rounded-lg text-center">
+                    <p className="text-3xl font-bold text-orange-600">{analytics.users.active}</p>
+                    <p className="text-sm text-muted-foreground">Active Users</p>
+                  </div>
+                </div>
               </Card>
             </TabsContent>
 
             <TabsContent value="listings">
               <Card className="p-6">
-                <p className="text-center text-muted-foreground py-16">
-                  Listing analytics coming soon
-                </p>
+                <h3 className="font-semibold text-lg mb-6">Listing Statistics</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg text-center">
+                    <p className="text-3xl font-bold text-blue-600">{analytics.listings.total}</p>
+                    <p className="text-sm text-muted-foreground">Total Listings</p>
+                  </div>
+                  <div className="p-4 bg-green-50 dark:bg-green-900/10 rounded-lg text-center">
+                    <p className="text-3xl font-bold text-green-600">{analytics.listings.live}</p>
+                    <p className="text-sm text-muted-foreground">Live Listings</p>
+                  </div>
+                  <div className="p-4 bg-orange-50 dark:bg-orange-900/10 rounded-lg text-center">
+                    <p className="text-3xl font-bold text-orange-600">{analytics.listings.pending}</p>
+                    <p className="text-sm text-muted-foreground">Pending Approval</p>
+                  </div>
+                </div>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="sellers">
+              <Card className="p-6">
+                <h3 className="font-semibold text-lg mb-6">Seller Statistics</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg text-center">
+                    <p className="text-3xl font-bold text-blue-600">{analytics.sellers.total}</p>
+                    <p className="text-sm text-muted-foreground">Total Sellers</p>
+                  </div>
+                  <div className="p-4 bg-green-50 dark:bg-green-900/10 rounded-lg text-center">
+                    <p className="text-3xl font-bold text-green-600">{analytics.sellers.verified}</p>
+                    <p className="text-sm text-muted-foreground">Verified</p>
+                  </div>
+                  <div className="p-4 bg-orange-50 dark:bg-orange-900/10 rounded-lg text-center">
+                    <p className="text-3xl font-bold text-orange-600">{analytics.sellers.pendingVerification}</p>
+                    <p className="text-sm text-muted-foreground">Pending Verification</p>
+                  </div>
+                </div>
               </Card>
             </TabsContent>
           </Tabs>

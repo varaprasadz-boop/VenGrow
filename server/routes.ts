@@ -118,13 +118,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid email or password" });
       }
       
-      // Set admin session
+      // Set admin session with a fixed admin id for audit logging
       (req.session as any).adminUser = {
+        id: "superadmin",
         email,
         role: "admin",
         isSuperAdmin: true,
         loginAt: new Date().toISOString(),
       };
+      
+      // Explicitly save session before responding
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err: any) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
       
       res.json({
         success: true,
@@ -362,6 +371,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(users);
     } catch (error) {
       res.status(500).json({ error: "Failed to get users" });
+    }
+  });
+
+  // Admin: Update user (suspend/unsuspend)
+  app.patch("/api/admin/users/:id", async (req: any, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser?.isSuperAdmin) {
+        return res.status(401).json({ message: "Unauthorized - Admin access required" });
+      }
+      
+      const { id } = req.params;
+      const { isActive, role } = req.body;
+      
+      const oldUser = await storage.getUser(id);
+      if (!oldUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const updateData: Record<string, any> = {};
+      if (typeof isActive === "boolean") updateData.isActive = isActive;
+      if (role) updateData.role = role;
+      
+      const user = await storage.updateUser(id, updateData);
+      
+      // Log the action
+      const action = typeof isActive === "boolean" 
+        ? (isActive ? "User Unsuspended" : "User Suspended")
+        : "User Updated";
+      await storage.createAuditLog({
+        userId: adminUser.id,
+        action,
+        entityType: "user",
+        entityId: id,
+        oldData: { isActive: oldUser.isActive, role: oldUser.role },
+        newData: updateData,
+        ipAddress: req.ip || null,
+        userAgent: req.get("user-agent") || null,
+      });
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Failed to update user" });
     }
   });
 
@@ -2798,6 +2851,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: Get real-time platform analytics
+  app.get("/api/admin/analytics", async (req: any, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser?.isSuperAdmin) {
+        return res.status(401).json({ message: "Unauthorized - Admin access required" });
+      }
+
+      // Get real counts from database
+      const allUsers = await storage.getAllUsers({});
+      const allProperties = await storage.getAllProperties({});
+      const allInquiries = await storage.getAllInquiries({});
+      const allSellers = await storage.getAllSellerProfiles({});
+      const allProjects = await storage.getAllProjects({});
+
+      const totalUsers = allUsers.length;
+      const buyers = allUsers.filter(u => u.role === "buyer").length;
+      const sellers = allUsers.filter(u => u.role === "seller").length;
+      const activeUsers = allUsers.filter(u => u.isActive).length;
+      
+      const totalListings = allProperties.length;
+      const liveListings = allProperties.filter(p => p.workflowStatus === "live" || p.workflowStatus === "approved").length;
+      const pendingListings = allProperties.filter(p => p.workflowStatus === "submitted" || p.workflowStatus === "under_review").length;
+      
+      const totalInquiries = allInquiries.length;
+      const pendingInquiries = allInquiries.filter(i => i.status === "pending" || i.status === "new").length;
+      
+      const verifiedSellers = allSellers.filter(s => s.verificationStatus === "verified").length;
+      const pendingVerifications = allSellers.filter(s => s.verificationStatus === "pending").length;
+      
+      const totalProjects = allProjects.length;
+      const liveProjects = allProjects.filter(p => p.status === "approved" || p.status === "live").length;
+
+      // City breakdown from properties
+      const cityBreakdown: Record<string, number> = {};
+      allProperties.forEach(p => {
+        const city = p.city || "Unknown";
+        cityBreakdown[city] = (cityBreakdown[city] || 0) + 1;
+      });
+      const topCities = Object.entries(cityBreakdown)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([city, count], index) => ({
+          city,
+          listings: count,
+          percentage: Math.round((count / totalListings) * 100) || 0,
+        }));
+
+      res.json({
+        users: {
+          total: totalUsers,
+          buyers,
+          sellers,
+          active: activeUsers,
+        },
+        listings: {
+          total: totalListings,
+          live: liveListings,
+          pending: pendingListings,
+        },
+        inquiries: {
+          total: totalInquiries,
+          pending: pendingInquiries,
+        },
+        sellers: {
+          total: allSellers.length,
+          verified: verifiedSellers,
+          pendingVerification: pendingVerifications,
+        },
+        projects: {
+          total: totalProjects,
+          live: liveProjects,
+        },
+        topCities,
+      });
+    } catch (error) {
+      console.error("Error fetching admin analytics:", error);
+      res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
   // ============================================
   // DYNAMIC CONTENT API ROUTES
   // ============================================
@@ -3754,6 +3888,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Unauthorized - Admin access required" });
       }
       
+      const oldProject = await storage.getProject(req.params.id);
+      if (!oldProject) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
       const updateData = { ...req.body };
       if (req.body.status === 'live') {
         updateData.approvedAt = new Date();
@@ -3761,9 +3900,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const project = await storage.updateProject(req.params.id, updateData);
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
-      }
+      
+      // Log the action
+      let action = "Project Updated";
+      if (req.body.status === 'live') action = "Project Approved";
+      else if (req.body.status === 'rejected') action = "Project Rejected";
+      else if (req.body.status === 'under_review') action = "Project Marked Under Review";
+      
+      await storage.createAuditLog({
+        userId: adminUser.id,
+        action,
+        entityType: "project",
+        entityId: req.params.id,
+        oldData: { status: oldProject.status, name: oldProject.name },
+        newData: { status: req.body.status, rejectionReason: req.body.rejectionReason },
+        ipAddress: req.ip || null,
+        userAgent: req.get("user-agent") || null,
+      });
+      
       res.json(project);
     } catch (error) {
       console.error("Error updating project:", error);

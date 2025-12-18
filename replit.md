@@ -159,11 +159,11 @@ This is the complete implementation plan for VenGrow. Reference this for all rem
 
 | Task ID | Feature | Description | Priority | Status |
 |---------|---------|-------------|----------|--------|
-| P4.1 | Admin Verified Builders CRUD | `/admin/verified-builders` - Full management UI (route exists, needs implementation) | Critical | ⏳ Pending |
-| P4.2 | Admin Projects Moderation | `/admin/projects` - Approve/reject seller-submitted projects | Critical | ⏳ Pending |
-| P4.3 | Admin User Management | `/admin/users` - View/edit/suspend users | High | ⏳ Pending |
-| P4.4 | Admin Analytics Dashboard | Platform stats: users, listings, inquiries, revenue | Medium | ⏳ Pending |
-| P4.5 | Audit Logging | Track admin actions (approvals, rejections, edits) | Medium | ⏳ Pending |
+| P4.1 | Admin Verified Builders CRUD | `/admin/verified-builders` - Full management UI | Critical | ✅ Done |
+| P4.2 | Admin Projects Moderation | `/admin/projects` - Approve/reject seller-submitted projects with status workflow | Critical | ✅ Done |
+| P4.3 | Admin User Management | `/admin/users` - View/suspend/unsuspend users with confirmation dialogs | High | ✅ Done |
+| P4.4 | Admin Analytics Dashboard | Real-time platform stats from database: users, listings, inquiries, projects | Medium | ✅ Done |
+| P4.5 | Audit Logging | Track admin actions (suspensions, project approvals/rejections) with database integration | Medium | ✅ Done |
 
 ---
 
@@ -189,9 +189,9 @@ This is the complete implementation plan for VenGrow. Reference this for all rem
 | Phase 1: Core Engagement | 10 | 10 | 0 ✅ |
 | Phase 2: Appointments & Chat | 8 | 8 | 0 ✅ |
 | Phase 3: Seller Tools | 7 | 7 | 0 ✅ |
-| Phase 4: Admin Governance | 5 | 0 | 5 |
+| Phase 4: Admin Governance | 5 | 5 | 0 ✅ |
 | Phase 5: Polish | 6 | 0 | 6 |
-| **TOTAL** | **36** | **25** | **11** |
+| **TOTAL** | **36** | **30** | **6** |
 
 ---
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
@@ -9,9 +10,17 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Search,
   MoreVertical,
   UserX,
+  UserCheck,
   Eye,
   Mail,
   Calendar,
@@ -26,15 +35,51 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow, format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
 
 export default function UserManagementPage() {
   const [selectedTab, setSelectedTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"suspend" | "unsuspend" | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: users = [], isLoading, isError, refetch } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
   });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/admin/users/${id}`, { isActive });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: confirmAction === "suspend" ? "User Suspended" : "User Unsuspended",
+        description: `${selectedUser?.firstName || selectedUser?.email} has been ${confirmAction === "suspend" ? "suspended" : "unsuspended"}.`,
+      });
+      setSelectedUser(null);
+      setConfirmAction(null);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update user status.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleConfirmAction = () => {
+    if (!selectedUser || !confirmAction) return;
+    updateUserMutation.mutate({
+      id: selectedUser.id,
+      isActive: confirmAction === "unsuspend",
+    });
+  };
 
   const filterUsers = () => {
     let filtered = users;
@@ -112,17 +157,70 @@ export default function UserManagementPage() {
 
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <h1 className="font-serif font-bold text-3xl mb-2">
-              User Management
-            </h1>
-            <p className="text-muted-foreground">
-              Manage all platform users
-            </p>
+          <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+            <div>
+              <h1 className="font-serif font-bold text-3xl mb-2">
+                User Management
+              </h1>
+              <p className="text-muted-foreground">
+                Manage all platform users
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
+                  <Users className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold" data-testid="text-total-users">{users.length}</p>
+                  <p className="text-sm text-muted-foreground">Total Users</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20">
+                  <Users className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold" data-testid="text-buyers-count">{buyerCount}</p>
+                  <p className="text-sm text-muted-foreground">Buyers</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/20">
+                  <Users className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold" data-testid="text-sellers-count">{sellerCount}</p>
+                  <p className="text-sm text-muted-foreground">Sellers</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/20">
+                  <UserX className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold" data-testid="text-suspended-count">{suspendedCount}</p>
+                  <p className="text-sm text-muted-foreground">Suspended</p>
+                </div>
+              </div>
+            </Card>
           </div>
 
           <div className="mb-6">
-            <div className="relative">
+            <div className="relative max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 placeholder="Search by name or email..."
@@ -231,13 +329,26 @@ export default function UserManagementPage() {
                                 Send Email
                               </DropdownMenuItem>
                               {user.isActive ? (
-                                <DropdownMenuItem className="text-destructive">
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setConfirmAction("suspend");
+                                  }}
+                                  data-testid={`button-suspend-${user.id}`}
+                                >
                                   <UserX className="h-4 w-4 mr-2" />
                                   Suspend User
                                 </DropdownMenuItem>
                               ) : (
-                                <DropdownMenuItem>
-                                  <UserX className="h-4 w-4 mr-2" />
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setConfirmAction("unsuspend");
+                                  }}
+                                  data-testid={`button-unsuspend-${user.id}`}
+                                >
+                                  <UserCheck className="h-4 w-4 mr-2" />
                                   Unsuspend User
                                 </DropdownMenuItem>
                               )}
@@ -253,6 +364,44 @@ export default function UserManagementPage() {
           </Tabs>
         </div>
       </main>
+
+      <Dialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {confirmAction === "suspend" ? "Suspend User" : "Unsuspend User"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>
+              Are you sure you want to {confirmAction} this user?
+            </p>
+            <p className="font-semibold mt-2">
+              {selectedUser?.firstName || selectedUser?.lastName
+                ? `${selectedUser.firstName || ""} ${selectedUser.lastName || ""}`.trim()
+                : selectedUser?.email}
+            </p>
+            {confirmAction === "suspend" && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Suspended users will not be able to log in or access the platform.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmAction(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant={confirmAction === "suspend" ? "destructive" : "default"}
+              onClick={handleConfirmAction}
+              disabled={updateUserMutation.isPending}
+              data-testid="button-confirm-action"
+            >
+              {updateUserMutation.isPending ? "Processing..." : confirmAction === "suspend" ? "Suspend User" : "Unsuspend User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>
