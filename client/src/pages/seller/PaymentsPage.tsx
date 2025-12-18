@@ -21,6 +21,7 @@ import {
   XCircle,
   RefreshCw,
   AlertCircle,
+  Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { Payment } from "@shared/schema";
@@ -29,9 +30,55 @@ function formatPrice(amount: number): string {
   return `₹${amount.toLocaleString("en-IN")}`;
 }
 
+function downloadInvoice(payment: Payment) {
+  const invoiceContent = `
+INVOICE
+=======
+
+VenGrow - Real Estate Marketplace
+---------------------------------
+
+Invoice Number: INV-${payment.id.slice(0, 8).toUpperCase()}
+Date: ${format(new Date(payment.createdAt!), "dd MMM yyyy")}
+Status: ${payment.status.toUpperCase()}
+
+---------------------------------
+PAYMENT DETAILS
+---------------------------------
+Payment ID: ${payment.id}
+${payment.razorpayPaymentId ? `Razorpay ID: ${payment.razorpayPaymentId}` : ''}
+Method: ${payment.paymentMethod || 'Online'}
+
+---------------------------------
+AMOUNT
+---------------------------------
+Amount: ${formatPrice(payment.amount)}
+Currency: ${payment.currency || 'INR'}
+
+---------------------------------
+Description: ${payment.description || 'Package Purchase'}
+
+---------------------------------
+Thank you for your business!
+Visit us at: https://vengrow.com
+
+For support: support@vengrow.com
+`;
+
+  const blob = new Blob([invoiceContent], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `VenGrow-Invoice-${payment.id.slice(0, 8).toUpperCase()}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export default function PaymentsPage() {
   const { data: payments = [], isLoading, isError, refetch } = useQuery<Payment[]>({
-    queryKey: ["/api/seller/payments"],
+    queryKey: ["/api/me/payments"],
   });
 
   const getStatusBadge = (status: string) => {
@@ -132,12 +179,13 @@ export default function PaymentsPage() {
                     <TableHead>Method</TableHead>
                     <TableHead className="text-center">Status</TableHead>
                     <TableHead className="text-center">Date</TableHead>
+                    <TableHead className="text-center">Invoice</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {payments.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         No payment history
                       </TableCell>
                     </TableRow>
@@ -160,6 +208,18 @@ export default function PaymentsPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           {format(new Date(payment.createdAt), "MMM d, yyyy")}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {payment.status === "completed" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => downloadInvoice(payment)}
+                              data-testid={`button-download-invoice-${payment.id}`}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))

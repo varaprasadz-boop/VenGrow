@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import FilterSidebar from "@/components/FilterSidebar";
 import ListingsFilterHeader from "@/components/ListingsFilterHeader";
 import PropertyCard from "@/components/PropertyCard";
@@ -77,6 +78,10 @@ export default function ListingsPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <SEO 
+        title={pageTitle}
+        description={`Browse ${pageTitle.toLowerCase()} across India. Find verified apartments, villas, plots, and commercial properties from trusted sellers on VenGrow.`}
+      />
       <Header />
       
       {/* Filter Header with Selected Filters */}

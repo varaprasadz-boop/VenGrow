@@ -7,11 +7,9 @@ export default function ForbiddenPage() {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <div className="max-w-md w-full text-center">
         <div className="mb-8">
-          <Link href="/">
-            <a className="inline-flex items-center gap-2 mb-6">
-              <Building2 className="h-8 w-8 text-primary" />
-              <span className="font-serif font-bold text-2xl">VenGrow</span>
-            </a>
+          <Link href="/" className="inline-flex items-center gap-2 mb-6">
+            <Building2 className="h-8 w-8 text-primary" />
+            <span className="font-serif font-bold text-2xl">VenGrow</span>
           </Link>
           
           <div className="inline-flex h-32 w-32 items-center justify-center rounded-full bg-destructive/10 mb-6">

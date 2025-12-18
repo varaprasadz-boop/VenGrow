@@ -3,6 +3,7 @@ import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { PropertySEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -354,6 +355,12 @@ export default function PropertyDetailPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <PropertySEO
+        title={property.title}
+        location={`${property.locality || property.city}, ${property.state}`}
+        price={property.price}
+        imageUrl={(property as any).images?.[0]}
+      />
       <Header isLoggedIn={!!user} userType={user?.role || "buyer"} />
       
       <main className="flex-1">

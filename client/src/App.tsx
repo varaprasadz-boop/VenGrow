@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import SellerLayout from "@/components/layouts/SellerLayout";
 import BuyerLayout from "@/components/layouts/BuyerLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const NotFound = lazy(() => import("@/pages/not-found"));
 
@@ -68,12 +69,14 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

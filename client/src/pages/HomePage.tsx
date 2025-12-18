@@ -7,6 +7,7 @@ import StatsSection from "@/components/StatsSection";
 import VerifiedBuildersSection from "@/components/VerifiedBuildersSection";
 import TestimonialsSection from "@/components/TestimonialsSection";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -240,6 +241,11 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <SEO 
+        title="Home"
+        description="VenGrow - India's trusted verified property marketplace. Buy, sell, or rent apartments, villas, plots, and commercial spaces from verified sellers across India."
+        ogType="website"
+      />
       <Header />
       
       <main className="flex-1">

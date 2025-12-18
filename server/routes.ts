@@ -8,6 +8,7 @@ import { insertPropertySchema, insertInquirySchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { verifySuperadminCredentials, hashPassword, verifyPassword, validateEmail, validatePhone } from "./auth-utils";
+import * as emailService from "./email";
 
 const connectedClients = new Map<string, Set<WebSocket>>();
 
@@ -1192,6 +1193,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const inquiry = await storage.createInquiry(inquiryData);
+      
+      // Send email notification to seller (async, don't wait)
+      const sellerProfile = await storage.getSellerProfile(property.sellerId);
+      if (sellerProfile) {
+        const sellerUser = await storage.getUser(sellerProfile.userId);
+        if (sellerUser?.email) {
+          emailService.sendInquiryNotification(
+            sellerUser.email,
+            sellerProfile.companyName || sellerUser.firstName || "Seller",
+            property.title,
+            name || "Buyer",
+            email || "",
+            phone || "",
+            message || ""
+          ).catch(err => console.log("[Email] Inquiry notification error:", err));
+        }
+      }
+      
       res.status(201).json(inquiry);
     } catch (error) {
       console.error("Failed to create inquiry:", error);
@@ -1699,6 +1718,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Dummy payment error:", error);
       res.status(500).json({ success: false, message: "Payment processing failed. Please try again." });
+    }
+  });
+
+  // ============================================
+  // RAZORPAY WEBHOOK
+  // ============================================
+  
+  app.post("/api/razorpay/webhook", async (req: Request, res: Response) => {
+    try {
+      const crypto = await import("crypto");
+      const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+      
+      // If webhook secret not configured, log and acknowledge
+      if (!webhookSecret) {
+        console.log("[Razorpay Webhook] Secret not configured, skipping verification");
+        console.log("[Razorpay Webhook] Event:", req.body?.event);
+        return res.json({ status: "ok", message: "Webhook received (no secret configured)" });
+      }
+      
+      // Verify webhook signature
+      const signature = req.headers["x-razorpay-signature"] as string;
+      const body = JSON.stringify(req.body);
+      const expectedSignature = crypto
+        .createHmac("sha256", webhookSecret)
+        .update(body)
+        .digest("hex");
+      
+      if (signature !== expectedSignature) {
+        console.log("[Razorpay Webhook] Invalid signature");
+        return res.status(400).json({ error: "Invalid signature" });
+      }
+      
+      const event = req.body.event;
+      const payload = req.body.payload;
+      
+      console.log("[Razorpay Webhook] Received event:", event);
+      
+      switch (event) {
+        case "payment.captured":
+        case "payment.authorized": {
+          const payment = payload?.payment?.entity;
+          if (payment) {
+            const orderId = payment.order_id;
+            const paymentId = payment.id;
+            
+            // Find and update our payment record
+            const payments = await storage.getAllPayments();
+            const dbPayment = payments.find(p => p.razorpayOrderId === orderId);
+            
+            if (dbPayment) {
+              await storage.updatePayment(dbPayment.id, {
+                status: "completed",
+                razorpayPaymentId: paymentId,
+              });
+              
+              // Send success email
+              const user = await storage.getUser(dbPayment.userId);
+              if (user?.email) {
+                const pkg = dbPayment.packageId ? await storage.getPackage(dbPayment.packageId) : null;
+                emailService.sendPaymentNotification(
+                  user.email,
+                  user.firstName || "Seller",
+                  `₹${dbPayment.amount}`,
+                  pkg?.name || "Package",
+                  true
+                ).catch(err => console.log("[Email] Payment notification error:", err));
+              }
+            }
+          }
+          break;
+        }
+        
+        case "payment.failed": {
+          const payment = payload?.payment?.entity;
+          if (payment) {
+            const orderId = payment.order_id;
+            const errorDesc = payment.error_description || "Payment failed";
+            
+            const payments = await storage.getAllPayments();
+            const dbPayment = payments.find(p => p.razorpayOrderId === orderId);
+            
+            if (dbPayment) {
+              await storage.updatePayment(dbPayment.id, {
+                status: "failed",
+              });
+              
+              // Send failure email
+              const user = await storage.getUser(dbPayment.userId);
+              if (user?.email) {
+                const pkg = dbPayment.packageId ? await storage.getPackage(dbPayment.packageId) : null;
+                emailService.sendPaymentNotification(
+                  user.email,
+                  user.firstName || "Seller",
+                  `₹${dbPayment.amount}`,
+                  pkg?.name || "Package",
+                  false,
+                  errorDesc
+                ).catch(err => console.log("[Email] Payment notification error:", err));
+              }
+            }
+          }
+          break;
+        }
+        
+        case "subscription.activated":
+        case "subscription.charged": {
+          console.log("[Razorpay Webhook] Subscription event:", event);
+          break;
+        }
+        
+        default:
+          console.log("[Razorpay Webhook] Unhandled event:", event);
+      }
+      
+      res.json({ status: "ok" });
+    } catch (error) {
+      console.error("[Razorpay Webhook] Error:", error);
+      res.status(500).json({ error: "Webhook processing failed" });
     }
   });
 
@@ -2494,6 +2631,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `A buyer has requested to visit ${property.title}`,
           data: { appointmentId: appointment.id, propertyId },
         });
+        
+        // Send email notification to seller (async)
+        const sellerUser = await storage.getUser(sellerProfile.userId);
+        if (sellerUser?.email) {
+          const dateTime = `${new Date(scheduledDate).toLocaleDateString('en-IN')} at ${scheduledTime}`;
+          emailService.sendAppointmentNotification(
+            sellerUser.email,
+            sellerProfile.companyName || sellerUser.firstName || "Seller",
+            property.title,
+            dateTime,
+            buyerName || "Buyer",
+            true
+          ).catch(err => console.log("[Email] Appointment notification error:", err));
+        }
       }
       
       res.status(201).json(appointment);

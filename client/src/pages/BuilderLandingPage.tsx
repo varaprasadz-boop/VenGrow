@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { BuilderSEO } from "@/components/SEO";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,12 @@ export default function BuilderLandingPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <BuilderSEO
+        name={builder.companyName}
+        location={builder.city || undefined}
+        projectCount={builder.propertyCount || 0}
+        imageUrl={builder.logoUrl || undefined}
+      />
       <Header />
       
       <main className="flex-1">
