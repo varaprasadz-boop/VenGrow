@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, ArrowLeft, Upload, X, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 function isValidYouTubeUrl(url: string): boolean {
   if (!url) return true;
@@ -20,9 +21,56 @@ function isValidYouTubeUrl(url: string): boolean {
 
 export default function CreateListingStep3Page() {
   const [, navigate] = useLocation();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [photos, setPhotos] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState("");
+  const [dataValidated, setDataValidated] = useState(false);
   const { toast } = useToast();
+
+  // Check for previous steps data and auth
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to continue.",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
+    if (!authLoading && isAuthenticated) {
+      const step1Data = localStorage.getItem("createListingStep1");
+      const step2Data = localStorage.getItem("createListingStep2");
+      
+      if (!step1Data || !step2Data) {
+        toast({
+          title: "Missing Data",
+          description: "Please complete previous steps first.",
+          variant: "destructive",
+        });
+        navigate("/seller/listings/create/step1");
+        return;
+      }
+      setDataValidated(true);
+    }
+  }, [authLoading, isAuthenticated, navigate, toast]);
+
+  // Show loading state while checking auth and validating data
+  if (authLoading || !dataValidated) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
+            <p className="mt-2 text-muted-foreground">Loading...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   const handlePhotoUpload = () => {
     console.log("Photo upload triggered");
@@ -35,7 +83,7 @@ export default function CreateListingStep3Page() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+      <Header />
 
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

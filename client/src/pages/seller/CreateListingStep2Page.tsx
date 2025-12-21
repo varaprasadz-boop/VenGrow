@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -14,10 +14,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowRight, ArrowLeft } from "lucide-react";
+import { ArrowRight, ArrowLeft, AlertCircle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const amenitiesList = [
+  "Swimming Pool",
+  "Gym",
+  "Garden",
+  "Power Backup",
+  "Lift",
+  "Security",
+  "Play Area",
+  "Club House",
+  "Intercom",
+  "Gas Pipeline",
+  "Park",
+  "Water Storage",
+];
 
 export default function CreateListingStep2Page() {
   const [, navigate] = useLocation();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const [step1Data, setStep1Data] = useState<any>(null);
   const [formData, setFormData] = useState({
     bedrooms: "",
     bathrooms: "",
@@ -37,20 +58,35 @@ export default function CreateListingStep2Page() {
     amenities: [] as string[],
   });
 
-  const amenitiesList = [
-    "Swimming Pool",
-    "Gym",
-    "Garden",
-    "Power Backup",
-    "Lift",
-    "Security",
-    "Play Area",
-    "Club House",
-    "Intercom",
-    "Gas Pipeline",
-    "Park",
-    "Water Storage",
-  ];
+  // Check for Step 1 data and auth
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to continue.",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const savedData = localStorage.getItem("createListingStep1");
+      if (!savedData) {
+        toast({
+          title: "Missing Data",
+          description: "Please complete Step 1 first.",
+          variant: "destructive",
+        });
+        navigate("/seller/listings/create/step1");
+        return;
+      }
+      setStep1Data(JSON.parse(savedData));
+    } catch (error) {
+      console.error("Error loading step 1 data:", error);
+      navigate("/seller/listings/create/step1");
+    }
+  }, [authLoading, isAuthenticated, navigate, toast]);
 
   const toggleAmenity = (amenity: string) => {
     setFormData({
@@ -61,9 +97,25 @@ export default function CreateListingStep2Page() {
     });
   };
 
+  // Show loading state while checking auth and step data
+  if (authLoading || !step1Data) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
+            <p className="mt-2 text-muted-foreground">Loading...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+      <Header />
 
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

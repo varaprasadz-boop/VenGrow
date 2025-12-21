@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
@@ -16,8 +16,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StateSelect, CitySelect, PinCodeInput, PriceInput } from "@/components/ui/location-select";
-import { ArrowRight, ArrowLeft, Loader2, Building2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, Loader2, Building2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { PropertyCategory, PropertySubcategory, Project } from "@shared/schema";
 
 const projectStages = [
@@ -29,7 +31,8 @@ const projectStages = [
 
 export default function CreateListingStep1Page() {
   const [, navigate] = useLocation();
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     categoryId: "",
     subcategoryId: "",
@@ -46,13 +49,38 @@ export default function CreateListingStep1Page() {
     projectId: "",
   });
 
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to create a listing.",
+        variant: "destructive",
+      });
+      navigate("/login");
+    }
+  }, [authLoading, isAuthenticated, navigate, toast]);
+
   const canHaveProjects = user?.sellerType && ["builder", "broker"].includes(user.sellerType);
 
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery<PropertyCategory[]>({
+  // Check if seller can create more listings
+  interface CanCreateResponse {
+    success: boolean;
+    canCreate: boolean;
+    message?: string;
+    remainingListings?: number;
+  }
+  
+  const { data: canCreateData, isLoading: quotaLoading, error: quotaError } = useQuery<CanCreateResponse>({
+    queryKey: ["/api/subscriptions/can-create-listing"],
+    enabled: isAuthenticated,
+  });
+
+  const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useQuery<PropertyCategory[]>({
     queryKey: ["/api/property-categories"],
   });
 
-  const { data: allSubcategories = [] } = useQuery<PropertySubcategory[]>({
+  const { data: allSubcategories = [], error: subcategoriesError } = useQuery<PropertySubcategory[]>({
     queryKey: ["/api/property-subcategories"],
   });
 
@@ -60,6 +88,9 @@ export default function CreateListingStep1Page() {
     queryKey: ["/api/projects/my-projects"],
     enabled: canHaveProjects,
   });
+
+  const canCreateListing = canCreateData?.canCreate ?? false;
+  const remainingListings = canCreateData?.remainingListings ?? 0;
 
   const liveProjects = useMemo(() => {
     return sellerProjects.filter(p => p.status === "live");
@@ -111,12 +142,80 @@ export default function CreateListingStep1Page() {
     navigate("/seller/listings/create/step2");
   };
 
+  // Show loading state
+  if (authLoading || quotaLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+            <p className="mt-2 text-muted-foreground">Loading...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Show quota exceeded message
+  if (!canCreateListing && canCreateData) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1">
+          <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <Card className="p-8 text-center">
+              <AlertCircle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+              <h1 className="font-serif font-bold text-2xl mb-4">Listing Quota Exhausted</h1>
+              <p className="text-muted-foreground mb-6">
+                {canCreateData.message || "You've used all your available listing slots. Upgrade your package to create more listings."}
+              </p>
+              <div className="flex gap-4 justify-center">
+                <Link href="/seller/dashboard">
+                  <Button variant="outline">Back to Dashboard</Button>
+                </Link>
+                <Link href="/seller/packages/buy">
+                  <Button>Upgrade Package</Button>
+                </Link>
+              </div>
+            </Card>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+      <Header />
 
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Quota Warning */}
+          {remainingListings <= 2 && remainingListings > 0 && (
+            <Alert className="mb-6 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+                You have {remainingListings} listing{remainingListings === 1 ? '' : 's'} remaining in your current package.{' '}
+                <Link href="/seller/packages/buy" className="underline font-medium">
+                  Upgrade now
+                </Link>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Error alerts */}
+          {(categoriesError || subcategoriesError || quotaError) && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Failed to load some data. Please refresh the page or try again later.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
