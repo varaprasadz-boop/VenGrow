@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { Link } from "wouter";
+import { useState, useEffect } from "react";
+import { Link, useLocation as useWouterLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, Heart, User, Home, ChevronDown, Plus } from "lucide-react";
+import { Menu, Heart, User, Home, ChevronDown, Plus, LogOut, LayoutDashboard, MessageSquare, Settings, Building2, MapPin } from "lucide-react";
 import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import {
   Sheet,
@@ -16,6 +16,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/NotificationBell";
+import { useAuth } from "@/hooks/useAuth";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useLocation as useLocationContext, SUPPORTED_CITIES } from "@/contexts/LocationContext";
 
 interface HeaderProps {
   isLoggedIn?: boolean;
@@ -30,21 +33,52 @@ const navigationLinks = [
   { label: "Projects", url: "/projects" },
 ];
 
-const cities = [
-  "Mumbai",
-  "Delhi",
-  "Bangalore",
-  "Hyderabad",
-  "Chennai",
-  "Pune",
-  "Kolkata",
-  "Ahmedabad",
-];
+export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserType, userId: propUserId }: HeaderProps) {
+  const { user, isAuthenticated, logout } = useAuth();
+  const [, setWouterLocation] = useWouterLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Use LocationContext for city management
+  let locationContext: ReturnType<typeof useLocationContext> | null = null;
+  try {
+    locationContext = useLocationContext();
+  } catch {
+    // LocationProvider not available, use fallback
+  }
+  
+  const selectedCity = locationContext?.selectedCity?.name || "Mumbai";
+  const cities = locationContext?.supportedCities || SUPPORTED_CITIES;
+  
+  // Use auth hook values, fall back to props for backward compatibility
+  const isLoggedIn = propIsLoggedIn !== undefined ? propIsLoggedIn : isAuthenticated;
+  const userType = propUserType || (user?.role as "buyer" | "seller" | "admin") || "buyer";
+  const userId = propUserId || user?.id;
 
-export default function Header({ isLoggedIn = false, userType = "buyer", userId }: HeaderProps) {
-  const [selectedCity, setSelectedCity] = useState("Mumbai");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _ = selectedCity; // City selector UI only for now
+  const handleCitySelect = (cityName: string) => {
+    if (locationContext) {
+      const city = cities.find(c => c.name === cityName);
+      if (city) {
+        locationContext.setSelectedCity(city);
+      }
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setMobileMenuOpen(false);
+  };
+
+  const getDashboardUrl = () => {
+    if (userType === "admin") return "/admin/dashboard";
+    if (userType === "seller") return "/seller/dashboard";
+    return "/buyer/dashboard";
+  };
+
+  const getProfileUrl = () => {
+    if (userType === "admin") return "/admin/settings";
+    if (userType === "seller") return "/seller/profile";
+    return "/profile";
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -69,14 +103,18 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
                   <ChevronDown className="ml-1 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-40">
+              <DropdownMenuContent align="start" className="w-48 max-h-64 overflow-y-auto">
                 {cities.map((city) => (
                   <DropdownMenuItem 
-                    key={city} 
-                    onClick={() => setSelectedCity(city)}
-                    data-testid={`city-option-${city.toLowerCase()}`}
+                    key={city.name} 
+                    onClick={() => handleCitySelect(city.name)}
+                    className={selectedCity === city.name ? "bg-accent" : ""}
+                    data-testid={`city-option-${city.name.toLowerCase()}`}
                   >
-                    {city}
+                    <div className="flex flex-col">
+                      <span>{city.name}</span>
+                      <span className="text-xs text-muted-foreground">{city.state}</span>
+                    </div>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -94,11 +132,13 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
           </nav>
 
           <nav className="hidden md:flex items-center gap-2">
-            <Link href="/login">
-              <Button variant="outline" size="sm" data-testid="button-post-property">
-                Post Property <span className="text-primary font-bold italic ml-1">FREE</span>
-              </Button>
-            </Link>
+            {userType === "seller" || !isLoggedIn ? (
+              <Link href={isLoggedIn ? "/seller/create-listing" : "/login"}>
+                <Button variant="outline" size="sm" data-testid="button-post-property">
+                  Post Property <span className="text-primary font-bold italic ml-1">FREE</span>
+                </Button>
+              </Link>
+            ) : null}
             {!isLoggedIn ? (
               <>
                 <Link href="/login">
@@ -119,7 +159,10 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
                 )}
                 {userType === "seller" && (
                   <Link href="/seller/create-listing">
-                    <Button data-testid="button-create-listing">Create Listing</Button>
+                    <Button data-testid="button-create-listing">
+                      <Plus className="h-4 w-4 mr-1" />
+                      Create Listing
+                    </Button>
                   </Link>
                 )}
                 {userId && <NotificationBell userId={userId} />}
@@ -130,20 +173,73 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem data-testid="menu-item-dashboard">
-                      <User className="mr-2 h-4 w-4" />
-                      Dashboard
-                    </DropdownMenuItem>
-                    <DropdownMenuItem data-testid="menu-item-profile">
-                      Profile
-                    </DropdownMenuItem>
-                    {userType === "buyer" && (
-                      <DropdownMenuItem data-testid="menu-item-inquiries">
-                        My Inquiries
+                    <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground capitalize">
+                      {userType} Account
+                    </div>
+                    <DropdownMenuSeparator />
+                    <Link href={getDashboardUrl()}>
+                      <DropdownMenuItem data-testid="menu-item-dashboard">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        Dashboard
                       </DropdownMenuItem>
+                    </Link>
+                    <Link href={getProfileUrl()}>
+                      <DropdownMenuItem data-testid="menu-item-profile">
+                        <User className="mr-2 h-4 w-4" />
+                        Profile
+                      </DropdownMenuItem>
+                    </Link>
+                    {userType === "buyer" && (
+                      <>
+                        <Link href="/buyer/inquiries">
+                          <DropdownMenuItem data-testid="menu-item-inquiries">
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            My Inquiries
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link href="/favorites">
+                          <DropdownMenuItem data-testid="menu-item-favorites">
+                            <Heart className="mr-2 h-4 w-4" />
+                            Favorites
+                          </DropdownMenuItem>
+                        </Link>
+                      </>
+                    )}
+                    {userType === "seller" && (
+                      <>
+                        <Link href="/seller/listings">
+                          <DropdownMenuItem data-testid="menu-item-listings">
+                            <Building2 className="mr-2 h-4 w-4" />
+                            My Listings
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link href="/seller/leads">
+                          <DropdownMenuItem data-testid="menu-item-leads">
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Leads
+                          </DropdownMenuItem>
+                        </Link>
+                      </>
+                    )}
+                    {userType === "admin" && (
+                      <>
+                        <Link href="/admin/users">
+                          <DropdownMenuItem data-testid="menu-item-users">
+                            <User className="mr-2 h-4 w-4" />
+                            User Management
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link href="/admin/listing-moderation">
+                          <DropdownMenuItem data-testid="menu-item-moderation">
+                            <Building2 className="mr-2 h-4 w-4" />
+                            Moderation
+                          </DropdownMenuItem>
+                        </Link>
+                      </>
                     )}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem data-testid="menu-item-logout">
+                    <DropdownMenuItem onClick={handleLogout} data-testid="menu-item-logout">
+                      <LogOut className="mr-2 h-4 w-4" />
                       Logout
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -153,65 +249,189 @@ export default function Header({ isLoggedIn = false, userType = "buyer", userId 
           </nav>
 
           <div className="flex md:hidden items-center gap-2">
-            <Sheet>
+            {isLoggedIn && userId && <NotificationBell userId={userId} />}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" data-testid="button-mobile-menu">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent>
-                <nav className="flex flex-col gap-4 mt-8">
-                  <Link href="/">
-                    <Button variant="ghost" className="w-full justify-start" data-testid="button-nav-home">
-                      <Home className="mr-2 h-4 w-4" />
-                      Home
-                    </Button>
-                  </Link>
-                  
-                  {navigationLinks.map((link) => (
-                    <Link key={link.label} href={link.url}>
-                      <Button variant="ghost" className="w-full justify-start" data-testid={`button-nav-${link.label.toLowerCase()}`}>
-                        {link.label}
-                      </Button>
-                    </Link>
-                  ))}
-
-                  {!isLoggedIn ? (
-                    <>
-                      <Link href="/login">
-                        <Button variant="ghost" className="w-full justify-start" data-testid="button-nav-login">Login</Button>
-                      </Link>
-                      <Link href="/register">
-                        <Button className="w-full" data-testid="button-nav-register">Sign Up</Button>
-                      </Link>
-                    </>
-                  ) : (
-                    <>
-                      <Link href="/dashboard">
-                        <Button variant="ghost" className="w-full justify-start" data-testid="button-nav-dashboard">
-                          <User className="mr-2 h-4 w-4" />
-                          Dashboard
+              <SheetContent className="flex flex-col h-full p-0">
+                <div className="flex-1 overflow-y-auto">
+                  <ScrollArea className="h-full">
+                    <nav className="flex flex-col gap-2 p-6 pt-12">
+                      {isLoggedIn && (
+                        <div className="mb-4 pb-4 border-b">
+                          <p className="text-sm text-muted-foreground mb-1">Logged in as</p>
+                          <p className="font-medium capitalize">{userType}</p>
+                          {user?.email && (
+                            <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                          )}
+                        </div>
+                      )}
+                      
+                      <Link href="/" onClick={() => setMobileMenuOpen(false)}>
+                        <Button variant="ghost" className="w-full justify-start" data-testid="button-nav-home">
+                          <Home className="mr-2 h-4 w-4" />
+                          Home
                         </Button>
                       </Link>
-                      {userType === "buyer" && (
-                        <Link href="/favorites">
-                          <Button variant="ghost" className="w-full justify-start" data-testid="button-nav-favorites">
-                            <Heart className="mr-2 h-4 w-4" />
-                            Favorites
+                      
+                      {navigationLinks.map((link) => (
+                        <Link key={link.label} href={link.url} onClick={() => setMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start" data-testid={`button-nav-${link.label.toLowerCase()}`}>
+                            {link.label}
                           </Button>
                         </Link>
+                      ))}
+
+                      <div className="my-2 border-t pt-2" />
+                      
+                      {/* City Selection */}
+                      <div className="px-2 py-1">
+                        <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          Select City
+                        </p>
+                        <div className="grid grid-cols-2 gap-1">
+                          {cities.slice(0, 8).map((city) => (
+                            <Button
+                              key={city.name}
+                              variant={selectedCity === city.name ? "default" : "outline"}
+                              size="sm"
+                              className="w-full text-xs"
+                              onClick={() => handleCitySelect(city.name)}
+                            >
+                              {city.name}
+                            </Button>
+                          ))}
+                        </div>
+                        {locationContext && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full mt-2 text-xs text-muted-foreground"
+                            onClick={() => locationContext.setShowCityPicker(true)}
+                          >
+                            View All Cities
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="my-2 border-t pt-2" />
+
+                      {!isLoggedIn ? (
+                        <>
+                          <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                            <Button variant="ghost" className="w-full justify-start" data-testid="button-nav-login">Login</Button>
+                          </Link>
+                          <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
+                            <Button className="w-full" data-testid="button-nav-register">Sign Up</Button>
+                          </Link>
+                        </>
+                      ) : (
+                        <>
+                          <Link href={getDashboardUrl()} onClick={() => setMobileMenuOpen(false)}>
+                            <Button variant="ghost" className="w-full justify-start" data-testid="button-nav-dashboard">
+                              <LayoutDashboard className="mr-2 h-4 w-4" />
+                              Dashboard
+                            </Button>
+                          </Link>
+                          
+                          {userType === "buyer" && (
+                            <>
+                              <Link href="/favorites" onClick={() => setMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start" data-testid="button-nav-favorites">
+                                  <Heart className="mr-2 h-4 w-4" />
+                                  Favorites
+                                </Button>
+                              </Link>
+                              <Link href="/buyer/inquiries" onClick={() => setMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start" data-testid="button-nav-inquiries">
+                                  <MessageSquare className="mr-2 h-4 w-4" />
+                                  My Inquiries
+                                </Button>
+                              </Link>
+                              <Link href="/buyer/visits" onClick={() => setMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">
+                                  Scheduled Visits
+                                </Button>
+                              </Link>
+                            </>
+                          )}
+                          
+                          {userType === "seller" && (
+                            <>
+                              <Link href="/seller/listings" onClick={() => setMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">
+                                  <Building2 className="mr-2 h-4 w-4" />
+                                  My Listings
+                                </Button>
+                              </Link>
+                              <Link href="/seller/create-listing" onClick={() => setMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Create Listing
+                                </Button>
+                              </Link>
+                              <Link href="/seller/leads" onClick={() => setMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">
+                                  <MessageSquare className="mr-2 h-4 w-4" />
+                                  Leads
+                                </Button>
+                              </Link>
+                            </>
+                          )}
+                          
+                          {userType === "admin" && (
+                            <>
+                              <Link href="/admin/users" onClick={() => setMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">
+                                  <User className="mr-2 h-4 w-4" />
+                                  User Management
+                                </Button>
+                              </Link>
+                              <Link href="/admin/listing-moderation" onClick={() => setMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">
+                                  <Building2 className="mr-2 h-4 w-4" />
+                                  Property Moderation
+                                </Button>
+                              </Link>
+                              <Link href="/admin/projects" onClick={() => setMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">
+                                  Project Moderation
+                                </Button>
+                              </Link>
+                            </>
+                          )}
+                          
+                          <Link href={getProfileUrl()} onClick={() => setMobileMenuOpen(false)}>
+                            <Button variant="ghost" className="w-full justify-start">
+                              <Settings className="mr-2 h-4 w-4" />
+                              Settings
+                            </Button>
+                          </Link>
+                          
+                          <div className="my-2 border-t pt-2" />
+                          
+                          <Button 
+                            variant="ghost" 
+                            className="w-full justify-start text-destructive hover:text-destructive" 
+                            onClick={handleLogout}
+                            data-testid="button-nav-logout"
+                          >
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Logout
+                          </Button>
+                        </>
                       )}
-                      <Button variant="ghost" className="w-full justify-start" data-testid="button-nav-logout">
-                        Logout
-                      </Button>
-                    </>
-                  )}
-                </nav>
+                    </nav>
+                  </ScrollArea>
+                </div>
               </SheetContent>
             </Sheet>
           </div>
         </div>
-
       </div>
     </header>
   );

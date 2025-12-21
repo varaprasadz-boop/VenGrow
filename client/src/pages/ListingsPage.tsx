@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
@@ -10,6 +10,7 @@ import PropertyCard from "@/components/PropertyCard";
 import PropertyMapView from "@/components/PropertyMapView";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Filter, Grid3x3, List, Map, Loader2 } from "lucide-react";
 import {
   Select,
@@ -18,14 +19,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { Property } from "@shared/schema";
 import defaultPropertyImage from '@assets/generated_images/luxury_indian_apartment_building.png';
+
+interface FilterState {
+  priceRange?: [number, number];
+  transactionTypes?: string[];
+  category?: string;
+  subcategories?: string[];
+  projectStages?: string[];
+  bhk?: string[];
+  sellerTypes?: string[];
+  state?: string;
+  city?: string;
+  locality?: string;
+  propertyAge?: string[];
+  corporateSearch?: string;
+}
 
 export default function ListingsPage() {
   const [location] = useLocation();
   const [viewType, setViewType] = useState<"grid" | "list" | "map">("grid");
   const [sortBy, setSortBy] = useState("newest");
+  const [filters, setFilters] = useState<FilterState>({});
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   
   const transactionTypeFromPath = useMemo(() => {
     if (location === "/buy" || location.startsWith("/buy?")) return "Sale";
@@ -40,6 +57,12 @@ export default function ListingsPage() {
     if (location === "/rent" || location.startsWith("/rent?")) return "Properties for Rent";
     return "All Properties";
   }, [location]);
+
+  // Handle filter application
+  const handleApplyFilters = useCallback((newFilters: FilterState) => {
+    setFilters(newFilters);
+    setMobileFilterOpen(false);
+  }, []);
 
   // Fetch real properties from the API
   const { data: propertiesData, isLoading } = useQuery<Property[]>({
@@ -61,20 +84,110 @@ export default function ListingsPage() {
       propertyType: property.propertyType || "Property",
       isFeatured: property.isFeatured || false,
       isVerified: property.isVerified || false,
-      sellerType: "Builder" as "Individual" | "Broker" | "Builder",
+      sellerType: ((property as any).sellerType || "Builder") as "Individual" | "Broker" | "Builder",
       transactionType: (property.transactionType || "Sale") as "Sale" | "Lease" | "Rent",
       lat: property.latitude ? parseFloat(property.latitude) : 19.0596,
       lng: property.longitude ? parseFloat(property.longitude) : 72.8295,
       projectStage: property.projectStage || undefined,
       subcategory: property.subcategoryId || undefined,
       ageOfProperty: property.ageOfProperty ? String(property.ageOfProperty) : undefined,
+      city: property.city,
+      state: property.state,
+      categoryId: property.categoryId,
     }));
   }, [propertiesData]);
   
+  // Apply filters to properties
   const filteredProperties = useMemo(() => {
-    if (!transactionTypeFromPath) return allProperties;
-    return allProperties.filter(p => p.transactionType === transactionTypeFromPath);
-  }, [transactionTypeFromPath, allProperties]);
+    let result = allProperties;
+    
+    // Transaction type from URL path
+    if (transactionTypeFromPath) {
+      result = result.filter(p => p.transactionType === transactionTypeFromPath);
+    }
+    
+    // Transaction type from filters
+    if (filters.transactionTypes && filters.transactionTypes.length > 0) {
+      result = result.filter(p => filters.transactionTypes!.includes(p.transactionType));
+    }
+    
+    // Price range filter
+    if (filters.priceRange) {
+      const [minPrice, maxPrice] = filters.priceRange;
+      result = result.filter(p => p.price >= minPrice && p.price <= maxPrice);
+    }
+    
+    // City filter
+    if (filters.city && filters.city !== "all") {
+      result = result.filter(p => 
+        p.city?.toLowerCase() === filters.city?.toLowerCase()
+      );
+    }
+    
+    // State filter
+    if (filters.state && filters.state !== "all") {
+      result = result.filter(p => 
+        p.state?.toLowerCase() === filters.state?.toLowerCase()
+      );
+    }
+    
+    // BHK filter
+    if (filters.bhk && filters.bhk.length > 0) {
+      result = result.filter(p => {
+        if (!p.bedrooms) return false;
+        return filters.bhk!.some(bhk => {
+          if (bhk === "5+") return p.bedrooms! >= 5;
+          return p.bedrooms === parseInt(bhk);
+        });
+      });
+    }
+    
+    // Seller type filter
+    if (filters.sellerTypes && filters.sellerTypes.length > 0) {
+      result = result.filter(p => 
+        filters.sellerTypes!.includes(p.sellerType)
+      );
+    }
+    
+    // Project stage filter
+    if (filters.projectStages && filters.projectStages.length > 0) {
+      result = result.filter(p => 
+        p.projectStage && filters.projectStages!.includes(p.projectStage)
+      );
+    }
+    
+    // Property age filter
+    if (filters.propertyAge && filters.propertyAge.length > 0) {
+      result = result.filter(p => {
+        if (!p.ageOfProperty) return filters.propertyAge!.includes("new");
+        const age = parseInt(p.ageOfProperty);
+        if (isNaN(age)) return filters.propertyAge!.includes("new");
+        if (age === 0) return filters.propertyAge!.includes("new");
+        if (age >= 1 && age <= 5) return filters.propertyAge!.includes("1-5");
+        if (age > 5) return filters.propertyAge!.includes("5+");
+        return false;
+      });
+    }
+    
+    // Sort properties
+    switch (sortBy) {
+      case "price-low":
+        result = [...result].sort((a, b) => a.price - b.price);
+        break;
+      case "price-high":
+        result = [...result].sort((a, b) => b.price - a.price);
+        break;
+      case "featured":
+        result = [...result].sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
+        break;
+      case "newest":
+      default:
+        // Keep original order (newest first from API)
+        break;
+    }
+    
+    return result;
+  }, [transactionTypeFromPath, allProperties, filters, sortBy]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -93,7 +206,7 @@ export default function ListingsPage() {
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block w-64 flex-shrink-0">
               <div className="sticky top-24">
-                <FilterSidebar />
+                <FilterSidebar onApplyFilters={handleApplyFilters} />
               </div>
             </aside>
 
@@ -157,17 +270,22 @@ export default function ListingsPage() {
                     </Select>
 
                     {/* Mobile Filter */}
-                    <Sheet>
+                    <Sheet open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
                       <SheetTrigger asChild>
                         <Button variant="outline" className="lg:hidden" data-testid="button-mobile-filters">
                           <Filter className="h-4 w-4 mr-2" />
                           Filters
                         </Button>
                       </SheetTrigger>
-                      <SheetContent side="left" className="w-80">
-                        <div className="mt-8">
-                          <FilterSidebar />
+                      <SheetContent side="left" className="w-80 p-0 flex flex-col h-full">
+                        <div className="p-4 border-b">
+                          <h2 className="font-semibold text-lg">Filters</h2>
                         </div>
+                        <ScrollArea className="flex-1">
+                          <div className="p-4">
+                            <FilterSidebar onApplyFilters={handleApplyFilters} />
+                          </div>
+                        </ScrollArea>
                       </SheetContent>
                     </Sheet>
                   </div>
@@ -188,6 +306,13 @@ export default function ListingsPage() {
               ) : filteredProperties.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">No properties found matching your criteria.</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => setFilters({})}
+                  >
+                    Clear Filters
+                  </Button>
                 </div>
               ) : (
                 <>

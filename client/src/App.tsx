@@ -10,6 +10,7 @@ import AdminLayout from "@/components/layouts/AdminLayout";
 import SellerLayout from "@/components/layouts/SellerLayout";
 import BuyerLayout from "@/components/layouts/BuyerLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LocationProvider } from "@/contexts/LocationContext";
 
 const NotFound = lazy(() => import("@/pages/not-found"));
 
@@ -72,8 +73,10 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <Toaster />
-          <Router />
+          <LocationProvider>
+            <Toaster />
+            <Router />
+          </LocationProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>
