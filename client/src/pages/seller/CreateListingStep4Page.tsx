@@ -150,6 +150,45 @@ export default function CreateListingStep4Page() {
     return subcategory?.name || "Unknown";
   };
 
+  // Map category and subcategory to property type enum value
+  const getPropertyType = (categoryId: string, subcategoryId: string | null): "apartment" | "villa" | "plot" | "commercial" | "farmhouse" | "penthouse" => {
+    const category = categories.find(c => c.id === categoryId);
+    const subcategory = subcategoryId ? allSubcategories.find(s => s.id === subcategoryId) : null;
+    
+    if (!category) return "apartment"; // Default fallback
+    
+    const categorySlug = category.slug;
+    const subcategorySlug = subcategory?.slug || "";
+    
+    // Check subcategory first for special cases
+    if (subcategorySlug === "penthouse") {
+      return "penthouse";
+    }
+    if (subcategorySlug === "farm-house" || subcategorySlug === "farmhouse") {
+      return "farmhouse";
+    }
+    
+    // Map based on category slug
+    switch (categorySlug) {
+      case "apartments":
+        return "apartment";
+      case "villas":
+        return "villa";
+      case "plots":
+        return "plot";
+      case "commercial":
+        return "commercial";
+      case "independent-house":
+        return "villa"; // Independent house maps to villa
+      case "new-projects":
+        return "apartment"; // New projects default to apartment
+      case "ultra-luxury":
+        return "penthouse"; // Ultra luxury defaults to penthouse
+      default:
+        return "apartment"; // Default fallback
+    }
+  };
+
   const formatPrice = (price: string) => {
     const num = parseInt(price);
     if (isNaN(num)) return "₹ --";
@@ -220,7 +259,7 @@ export default function CreateListingStep4Page() {
     const propertyData = {
       title: step1Data.title,
       description: step1Data.description,
-      propertyType: "residential" as const,
+      propertyType: getPropertyType(step1Data.categoryId, step1Data.subcategoryId || null),
       transactionType: step1Data.transactionType as "sale" | "rent" | "lease",
       categoryId: step1Data.categoryId,
       subcategoryId: step1Data.subcategoryId,
