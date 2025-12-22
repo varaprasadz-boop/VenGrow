@@ -245,7 +245,7 @@ export default function ManageListingsPage() {
               </p>
             </div>
             <Link href="/seller/listings/create/step1">
-              <Button size="lg" data-testid="button-create-listing">
+              <Button size="lg" data-testid="button-create-listing-manage">
                 <Plus className="h-5 w-5 mr-2" />
                 Create New Listing
               </Button>

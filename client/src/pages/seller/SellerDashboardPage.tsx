@@ -142,7 +142,7 @@ export default function SellerDashboardPage() {
               </p>
             </div>
             <Link href="/seller/listings/create/step1">
-              <Button size="lg" data-testid="button-create-listing">
+              <Button size="lg" data-testid="button-create-listing-dashboard">
                 <Plus className="h-5 w-5 mr-2" />
                 Create New Listing
               </Button>

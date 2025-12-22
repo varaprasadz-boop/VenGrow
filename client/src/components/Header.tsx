@@ -159,7 +159,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                 )}
                 {userType === "seller" && (
                   <Link href="/seller/create-listing">
-                    <Button data-testid="button-create-listing">
+                    <Button data-testid="button-create-listing-header">
                       <Plus className="h-4 w-4 mr-1" />
                       Create Listing
                     </Button>
