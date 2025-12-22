@@ -1,8 +1,7 @@
 import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
 import { Card } from "@/components/ui/card";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { useAuth } from "@/hooks/useAuth";
@@ -371,23 +370,20 @@ export default function CreatePropertyPage() {
 
   if (checkingLimit || loadingSubscription) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header isLoggedIn={true} userType="seller" />
+
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
             <p>Checking your subscription...</p>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
 
   if (!canCreateData?.canCreate) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header isLoggedIn={true} userType="seller" />
+
         <main className="flex-1">
           <div className="max-w-2xl mx-auto px-4 py-16">
             <Alert variant="destructive" className="mb-6">
@@ -416,14 +412,12 @@ export default function CreatePropertyPage() {
             </Card>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+
 
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -437,7 +431,7 @@ export default function CreatePropertyPage() {
                 </Badge>
               )}
             </div>
-            
+
             <div className="flex items-center gap-2 mb-2">
               {STEPS.map((step, index) => (
                 <div key={step.id} className="flex items-center flex-1">
@@ -1303,8 +1297,5 @@ export default function CreatePropertyPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
-    </div>
   );
 }

@@ -1,5 +1,4 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
@@ -16,8 +15,7 @@ export default function PropertyClonePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+
 
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -84,8 +82,5 @@ export default function PropertyClonePage() {
           </Button>
         </div>
       </main>
-
-      <Footer />
-    </div>
   );
 }

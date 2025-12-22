@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,8 +36,7 @@ export default function PackageSelectionPage() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+
 
       <main className="flex-1">
         <section className="py-16 bg-gradient-to-b from-primary/5 to-background">
@@ -287,8 +285,5 @@ export default function PackageSelectionPage() {
           </div>
         </section>
       </main>
-
-      <Footer />
-    </div>
   );
 }

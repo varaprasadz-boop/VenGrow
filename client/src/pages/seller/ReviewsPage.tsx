@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -30,8 +29,7 @@ export default function ReviewsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header isLoggedIn={true} userType="seller" />
+
         <main className="flex-1">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Skeleton className="h-10 w-64 mb-2" />
@@ -44,14 +42,12 @@ export default function ReviewsPage() {
             </div>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+
 
       <main className="flex-1">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -190,8 +186,5 @@ export default function ReviewsPage() {
           )}
         </div>
       </main>
-
-      <Footer />
-    </div>
   );
 }

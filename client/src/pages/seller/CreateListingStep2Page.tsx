@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,24 +98,17 @@ export default function CreateListingStep2Page() {
   // Show loading state while checking auth and step data
   if (authLoading || !step1Data) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
-            <p className="mt-2 text-muted-foreground">Loading...</p>
-          </div>
-        </main>
-        <Footer />
-      </div>
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
+          <p className="mt-2 text-muted-foreground">Loading...</p>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <main className="flex-1">
+    <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Progress */}
           <div className="mb-8">
@@ -478,9 +469,6 @@ export default function CreateListingStep2Page() {
             </form>
           </Card>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+    </main>
   );
 }

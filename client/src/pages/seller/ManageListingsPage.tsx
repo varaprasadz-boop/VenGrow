@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -102,7 +100,7 @@ export default function ManageListingsPage() {
   const getWorkflowStatusBadge = (property: Property) => {
     const workflowStatus = property.workflowStatus || "draft";
     const status = property.status;
-    
+
     const variants: Record<string, { className: string; label: string; icon: any }> = {
       draft: {
         className: "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400",
@@ -159,7 +157,7 @@ export default function ManageListingsPage() {
     if (status === "sold" || status === "rented" || (status as string) === "leased") {
       return variants[status as keyof typeof variants] || variants.draft;
     }
-    
+
     return variants[workflowStatus] || variants.draft;
   };
 
@@ -230,10 +228,7 @@ export default function ManageListingsPage() {
   const soldCount = listings.filter((l) => l.status === "sold" || l.status === "rented").length;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={!!user} userType="seller" />
-
-      <main className="flex-1">
+    <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>
@@ -497,9 +492,6 @@ export default function ManageListingsPage() {
             </TabsContent>
           </Tabs>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+    </main>
   );
 }

@@ -1,6 +1,4 @@
 import { useState } from "react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -197,9 +195,7 @@ export default function SiteSettingsPage() {
   const isMutating = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="admin" />
-
+    <>
       <main className="flex-1 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <AdminPageHeader
@@ -238,8 +234,6 @@ export default function SiteSettingsPage() {
           />
         </div>
       </main>
-
-      <Footer />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-md">
@@ -344,6 +338,6 @@ export default function SiteSettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

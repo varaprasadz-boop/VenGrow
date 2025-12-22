@@ -1,8 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,7 +68,7 @@ export default function CreateListingStep1Page() {
     message?: string;
     remainingListings?: number;
   }
-  
+
   const { data: canCreateData, isLoading: quotaLoading, error: quotaError } = useQuery<CanCreateResponse>({
     queryKey: ["/api/subscriptions/can-create-listing"],
     enabled: isAuthenticated,
@@ -145,53 +143,42 @@ export default function CreateListingStep1Page() {
   // Show loading state
   if (authLoading || quotaLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-            <p className="mt-2 text-muted-foreground">Loading...</p>
-          </div>
-        </main>
-        <Footer />
-      </div>
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="mt-2 text-muted-foreground">Loading...</p>
+        </div>
+      </main>
     );
   }
 
   // Show quota exceeded message
   if (!canCreateListing && canCreateData) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1">
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <Card className="p-8 text-center">
-              <AlertCircle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-              <h1 className="font-serif font-bold text-2xl mb-4">Listing Quota Exhausted</h1>
-              <p className="text-muted-foreground mb-6">
-                {canCreateData.message || "You've used all your available listing slots. Upgrade your package to create more listings."}
-              </p>
-              <div className="flex gap-4 justify-center">
-                <Link href="/seller/dashboard">
-                  <Button variant="outline">Back to Dashboard</Button>
-                </Link>
-                <Link href="/seller/packages/buy">
-                  <Button>Upgrade Package</Button>
-                </Link>
-              </div>
-            </Card>
-          </div>
-        </main>
-        <Footer />
-      </div>
+      <main className="flex-1">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <Card className="p-8 text-center">
+            <AlertCircle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+            <h1 className="font-serif font-bold text-2xl mb-4">Listing Quota Exhausted</h1>
+            <p className="text-muted-foreground mb-6">
+              {canCreateData.message || "You've used all your available listing slots. Upgrade your package to create more listings."}
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Link href="/seller/dashboard">
+                <Button variant="outline">Back to Dashboard</Button>
+              </Link>
+              <Link href="/seller/packages/buy">
+                <Button>Upgrade Package</Button>
+              </Link>
+            </div>
+          </Card>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <main className="flex-1">
+    <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Quota Warning */}
           {remainingListings <= 2 && remainingListings > 0 && (
@@ -508,9 +495,6 @@ export default function CreateListingStep1Page() {
             </form>
           </Card>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+    </main>
   );
 }

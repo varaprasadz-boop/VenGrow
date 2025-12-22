@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,10 +34,10 @@ export default function EarningsPage() {
 
   const completedPayments = payments.filter(p => p.status === "completed");
   const pendingPayments = payments.filter(p => p.status === "pending");
-  
+
   const totalEarnings = completedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
   const pendingAmount = pendingPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-  
+
   const currentMonth = new Date().getMonth();
   const thisMonthPayments = completedPayments.filter(p => {
     const paymentMonth = new Date(p.createdAt).getMonth();
@@ -48,8 +47,7 @@ export default function EarningsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header isLoggedIn={true} userType="seller" />
+
         <main className="flex-1">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Skeleton className="h-10 w-64 mb-2" />
@@ -62,14 +60,12 @@ export default function EarningsPage() {
             <Skeleton className="h-96 w-full" />
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+
 
       <main className="flex-1">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -199,8 +195,5 @@ export default function EarningsPage() {
           </Card>
         </div>
       </main>
-
-      <Footer />
-    </div>
   );
 }

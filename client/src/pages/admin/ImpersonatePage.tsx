@@ -1,5 +1,3 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,9 +11,6 @@ export default function ImpersonatePage() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="admin" />
-
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
@@ -84,8 +79,5 @@ export default function ImpersonatePage() {
           </Card>
         </div>
       </main>
-
-      <Footer />
-    </div>
-  );
+    );
 }

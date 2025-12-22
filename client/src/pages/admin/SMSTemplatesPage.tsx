@@ -1,5 +1,3 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,9 +40,6 @@ export default function SMSTemplatesPage() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="admin" />
-
       <main className="flex-1">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between mb-8">
@@ -105,8 +100,5 @@ export default function SMSTemplatesPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
-    </div>
-  );
+    );
 }

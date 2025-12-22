@@ -1,6 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -58,9 +56,7 @@ export default function PlatformAnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header isLoggedIn={true} userType="admin" />
-        <main className="flex-1">
+      <main className="flex-1">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Skeleton className="h-10 w-64 mb-2" />
             <Skeleton className="h-6 w-48 mb-8" />
@@ -76,16 +72,12 @@ export default function PlatformAnalyticsPage() {
             </div>
           </div>
         </main>
-        <Footer />
-      </div>
     );
   }
 
   if (isError || !analytics) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header isLoggedIn={true} userType="admin" />
-        <main className="flex-1 flex items-center justify-center">
+      <main className="flex-1 flex items-center justify-center">
           <div className="text-center p-8">
             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
             <h2 className="text-xl font-semibold mb-2">Failed to Load Analytics</h2>
@@ -98,8 +90,6 @@ export default function PlatformAnalyticsPage() {
             </Button>
           </div>
         </main>
-        <Footer />
-      </div>
     );
   }
 
@@ -142,9 +132,6 @@ export default function PlatformAnalyticsPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="admin" />
-
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
@@ -340,8 +327,5 @@ export default function PlatformAnalyticsPage() {
           </Tabs>
         </div>
       </main>
-
-      <Footer />
-    </div>
-  );
+    );
 }

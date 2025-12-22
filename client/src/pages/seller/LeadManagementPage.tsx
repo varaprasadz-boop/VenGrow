@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +44,7 @@ function getLeadStatus(inquiry: LeadWithDetails): LeadStatus {
   const createdAt = new Date(inquiry.createdAt);
   const now = new Date();
   const daysSinceInquiry = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
-  
+
   if (daysSinceInquiry <= 2) return "hot";
   if (daysSinceInquiry <= 7) return "warm";
   return "cold";
@@ -165,8 +164,7 @@ export default function LeadManagementPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header isLoggedIn={true} userType="seller" />
+
         <main className="flex-1">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Skeleton className="h-10 w-64 mb-2" />
@@ -184,14 +182,12 @@ export default function LeadManagementPage() {
             </div>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+
 
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -409,7 +405,7 @@ export default function LeadManagementPage() {
           <DialogHeader>
             <DialogTitle>Manage Lead</DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Lead Temperature</Label>
@@ -484,7 +480,6 @@ export default function LeadManagementPage() {
         </DialogContent>
       </Dialog>
 
-      <Footer />
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -102,8 +101,7 @@ export default function InquiriesPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+
 
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -168,7 +166,7 @@ export default function InquiriesPage() {
                     const buyerName = inquiry.buyer
                       ? `${inquiry.buyer.firstName || ""} ${inquiry.buyer.lastName || ""}`.trim() || "Anonymous"
                       : "Anonymous";
-                    
+
                     return (
                       <Card key={inquiry.id} className="p-6">
                         <div className="flex flex-col lg:flex-row lg:items-start gap-6">
@@ -291,8 +289,5 @@ export default function InquiriesPage() {
           </Tabs>
         </div>
       </main>
-
-      <Footer />
-    </div>
   );
 }

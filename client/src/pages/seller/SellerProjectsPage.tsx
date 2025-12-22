@@ -164,7 +164,7 @@ export default function SellerProjectsPage() {
               </div>
               <div className="p-4 space-y-3">
                 <h3 className="font-semibold text-lg line-clamp-1">{project.name}</h3>
-                
+
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4 shrink-0" />
                   <span className="line-clamp-1">{project.locality ? `${project.locality}, ` : ""}{project.city}, {project.state}</span>

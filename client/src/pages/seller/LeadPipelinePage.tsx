@@ -1,5 +1,4 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -54,8 +53,7 @@ export default function LeadPipelinePage() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+
 
       <main className="flex-1 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -95,8 +93,5 @@ export default function LeadPipelinePage() {
           </div>
         </div>
       </main>
-
-      <Footer />
-    </div>
   );
 }

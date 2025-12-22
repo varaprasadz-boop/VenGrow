@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -42,7 +40,7 @@ export default function CreateListingStep3Page() {
     if (!authLoading && isAuthenticated) {
       const step1Data = localStorage.getItem("createListingStep1");
       const step2Data = localStorage.getItem("createListingStep2");
-      
+
       if (!step1Data || !step2Data) {
         toast({
           title: "Missing Data",
@@ -59,16 +57,12 @@ export default function CreateListingStep3Page() {
   // Show loading state while checking auth and validating data
   if (authLoading || !dataValidated) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
-            <p className="mt-2 text-muted-foreground">Loading...</p>
-          </div>
-        </main>
-        <Footer />
-      </div>
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
+          <p className="mt-2 text-muted-foreground">Loading...</p>
+        </div>
+      </main>
     );
   }
 
@@ -82,10 +76,7 @@ export default function CreateListingStep3Page() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <main className="flex-1">
+    <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Progress */}
           <div className="mb-8">
@@ -219,7 +210,7 @@ export default function CreateListingStep3Page() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="p-4 bg-muted/50 rounded-lg">
                     <p className="text-sm text-muted-foreground">
                       <strong>Supported formats:</strong> youtube.com/watch?v=, youtu.be/, youtube.com/embed/
@@ -273,9 +264,6 @@ export default function CreateListingStep3Page() {
             </form>
           </Card>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+    </main>
   );
 }

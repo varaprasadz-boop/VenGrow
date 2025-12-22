@@ -1,5 +1,4 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
 import { Card } from "@/components/ui/card";
 import { TrendingUp, Search, Share2, Users } from "lucide-react";
 
@@ -36,8 +35,7 @@ export default function LeadSourcesPage() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+
 
       <main className="flex-1">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -90,8 +88,5 @@ export default function LeadSourcesPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
-    </div>
   );
 }

@@ -27,7 +27,7 @@ export default function PaymentPage() {
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [dummyPaymentProgress, setDummyPaymentProgress] = useState(0);
   const [dummyPaymentStep, setDummyPaymentStep] = useState("");
-  
+
   // Card form state for dummy payment
   const [cardNumber, setCardNumber] = useState("");
   const [expiryMonth, setExpiryMonth] = useState("");
@@ -82,7 +82,7 @@ export default function PaymentPage() {
       return response.json();
     },
   });
-  
+
   // Dummy payment mutation (for testing without Razorpay)
   const dummyPaymentMutation = useMutation({
     mutationFn: async (data: {
@@ -157,7 +157,7 @@ export default function PaymentPage() {
       });
       return;
     }
-    
+
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -167,7 +167,7 @@ export default function PaymentPage() {
       setTimeout(() => setLocation("/login"), 1500);
       return;
     }
-    
+
     // Basic validation
     if (!cardNumber || cardNumber.replace(/\s/g, "").length < 16) {
       toast({
@@ -177,7 +177,7 @@ export default function PaymentPage() {
       });
       return;
     }
-    
+
     if (!expiryMonth || !expiryYear) {
       toast({
         title: "Invalid Expiry Date",
@@ -186,7 +186,7 @@ export default function PaymentPage() {
       });
       return;
     }
-    
+
     if (!cvv || cvv.length < 3) {
       toast({
         title: "Invalid CVV",
@@ -198,7 +198,7 @@ export default function PaymentPage() {
 
     setIsProcessing(true);
     setDummyPaymentProgress(0);
-    
+
     // Simulate progress
     const steps = [
       { progress: 20, message: "Validating card details..." },
@@ -206,7 +206,7 @@ export default function PaymentPage() {
       { progress: 60, message: "Processing transaction..." },
       { progress: 80, message: "Verifying payment..." },
     ];
-    
+
     for (const step of steps) {
       setDummyPaymentProgress(step.progress);
       setDummyPaymentStep(step.message);
@@ -227,12 +227,12 @@ export default function PaymentPage() {
         setDummyPaymentProgress(100);
         setDummyPaymentStep("Payment confirmed!");
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         toast({
           title: "Payment Successful!",
           description: `Your ${selectedPackage.name} package has been activated.`,
         });
-        
+
         setTimeout(() => setLocation("/seller/dashboard"), 1500);
       } else {
         setIsProcessing(false);
@@ -503,7 +503,7 @@ export default function PaymentPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="cardName">Cardholder Name</Label>
@@ -515,7 +515,7 @@ export default function PaymentPage() {
                       data-testid="input-card-name"
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="cardNumber">Card Number</Label>
                     <div className="relative">
@@ -531,7 +531,7 @@ export default function PaymentPage() {
                       <CreditCard className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="expiryMonth">Month</Label>

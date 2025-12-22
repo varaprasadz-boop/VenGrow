@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,19 +66,19 @@ export default function CreateListingStep4Page() {
   const [, navigate] = useLocation();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
-  
+
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
   const [step2Data, setStep2Data] = useState<Step2Data | null>(null);
   const [step3Data, setStep3Data] = useState<Step3Data | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
-  
+
   const [contactData, setContactData] = useState({
     contactName: "",
     contactPhone: "",
     contactEmail: "",
     whatsappNumber: "",
   });
-  
+
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [verifiedInfo, setVerifiedInfo] = useState(false);
 
@@ -169,16 +167,16 @@ export default function CreateListingStep4Page() {
       localStorage.removeItem("createListingStep1");
       localStorage.removeItem("createListingStep2");
       localStorage.removeItem("createListingStep3");
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/seller/properties"] });
       queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] });
       queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/can-create-listing"] });
-      
+
       toast({
         title: "Listing Submitted",
         description: "Your property has been submitted for review. You'll be notified once approved.",
       });
-      
+
       navigate("/seller/dashboard");
     },
     onError: (error: any) => {
@@ -258,45 +256,34 @@ export default function CreateListingStep4Page() {
 
   if (authLoading || !dataLoaded) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-            <p className="mt-2 text-muted-foreground">Loading...</p>
-          </div>
-        </main>
-        <Footer />
-      </div>
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="mt-2 text-muted-foreground">Loading...</p>
+        </div>
+      </main>
     );
   }
 
   if (!step1Data || !step2Data || !step3Data) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <Card className="p-8 text-center max-w-md">
-            <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Missing Data</h2>
-            <p className="text-muted-foreground mb-4">
-              Please complete all previous steps before accessing this page.
-            </p>
-            <Link href="/seller/listings/create/step1">
-              <Button>Start Over</Button>
-            </Link>
-          </Card>
-        </main>
-        <Footer />
-      </div>
+      <main className="flex-1 flex items-center justify-center">
+        <Card className="p-8 text-center max-w-md">
+          <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
+          <h2 className="text-xl font-bold mb-2">Missing Data</h2>
+          <p className="text-muted-foreground mb-4">
+            Please complete all previous steps before accessing this page.
+          </p>
+          <Link href="/seller/listings/create/step1">
+            <Button>Start Over</Button>
+          </Link>
+        </Card>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <main className="flex-1">
+    <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
@@ -597,9 +584,6 @@ export default function CreateListingStep4Page() {
             </div>
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+    </main>
   );
 }

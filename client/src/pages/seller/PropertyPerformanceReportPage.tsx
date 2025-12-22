@@ -1,5 +1,4 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Eye, MessageCircle, Heart, Download } from "lucide-react";
@@ -43,8 +42,7 @@ export default function PropertyPerformanceReportPage() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="seller" />
+
 
       <main className="flex-1">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -179,8 +177,5 @@ export default function PropertyPerformanceReportPage() {
           </Card>
         </div>
       </main>
-
-      <Footer />
-    </div>
   );
 }

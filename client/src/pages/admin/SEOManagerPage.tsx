@@ -1,6 +1,4 @@
 import { useState } from "react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,9 +36,6 @@ export default function SEOManagerPage() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="admin" />
-
       <main className="flex-1">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
@@ -201,8 +196,5 @@ export default function SEOManagerPage() {
           </Card>
         </div>
       </main>
-
-      <Footer />
-    </div>
-  );
+    );
 }

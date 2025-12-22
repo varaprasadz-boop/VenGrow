@@ -145,7 +145,7 @@ export default function ProjectEditPage() {
     updateMutation.mutate(updateData);
   };
 
-  
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "live":

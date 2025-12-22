@@ -1,5 +1,3 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Server } from "lucide-react";
@@ -48,9 +46,6 @@ export default function ServerStatusPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="admin" />
-
       <main className="flex-1">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
@@ -113,8 +108,5 @@ export default function ServerStatusPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
-    </div>
-  );
+    );
 }

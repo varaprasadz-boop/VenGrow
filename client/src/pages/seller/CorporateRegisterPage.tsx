@@ -15,7 +15,7 @@ export default function CorporateRegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [brochureName, setBrochureName] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState({
     companyName: "",
     email: "",
@@ -93,7 +93,7 @@ export default function CorporateRegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Passwords don't match",
@@ -104,7 +104,7 @@ export default function CorporateRegisterPage() {
     }
 
     setIsLoading(true);
-    
+
     try {
       toast({
         title: "Registration Submitted",
