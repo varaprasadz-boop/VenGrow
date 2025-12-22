@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-
+import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,21 +23,24 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { format } from "date-fns";
+import type { Package } from "@shared/schema";
 
 interface Invoice {
   id: string;
   invoiceNumber: string;
-  subtotal: number;
-  gstRate: string;
-  gstAmount: number;
-  totalAmount: number;
-  packageDetails: { name: string };
-  pdfUrl: string | null;
-  invoiceDate: string;
-  paidAt: string | null;
+  sellerId: string;
+  packageId: string;
+  amount: number;
+  status: string;
+  paymentMethod: string;
+  transactionId: string | null;
+  createdAt: string;
 }
 
-function formatPrice(amount: number): string {
+function formatPrice(amount: number | undefined | null): string {
+  if (amount === undefined || amount === null || isNaN(amount)) {
+    return "₹0";
+  }
   return `₹${amount.toLocaleString("en-IN")}`;
 }
 
@@ -45,6 +48,20 @@ export default function SellerInvoicesPage() {
   const { data: invoices = [], isLoading, isError, refetch } = useQuery<Invoice[]>({
     queryKey: ["/api/seller/invoices"],
   });
+
+  // Fetch all packages to map packageId to package name
+  const { data: packages = [] } = useQuery<Package[]>({
+    queryKey: ["/api/packages"],
+  });
+
+  // Create a map of packageId to package name
+  const packageMap = useMemo(() => {
+    const map = new Map<string, string>();
+    packages.forEach(pkg => {
+      map.set(pkg.id, pkg.name);
+    });
+    return map;
+  }, [packages]);
 
   if (isLoading) {
     return (
@@ -71,7 +88,9 @@ export default function SellerInvoicesPage() {
     );
   }
 
-  const totalPaid = invoices.filter(i => i.paidAt).reduce((sum, i) => sum + i.totalAmount, 0);
+  const totalPaid = invoices
+    .filter(i => i.status === "completed" && i.amount != null)
+    .reduce((sum, i) => sum + (i.amount || 0), 0);
 
   return (
     <main className="flex-1 bg-muted/30">
@@ -112,7 +131,7 @@ export default function SellerInvoicesPage() {
           </div>
 
           <Card className="p-6">
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -127,8 +146,10 @@ export default function SellerInvoicesPage() {
                 <TableBody>
                   {invoices.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        No invoices yet
+                      <TableCell colSpan={6} className="text-center py-16">
+                        <Receipt className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                        <h3 className="font-semibold text-xl mb-2">No Invoices Yet</h3>
+                        <p className="text-muted-foreground">You don't have any invoices at the moment.</p>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -138,19 +159,19 @@ export default function SellerInvoicesPage() {
                           <span className="font-mono font-medium">{invoice.invoiceNumber}</span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{invoice.packageDetails?.name}</Badge>
+                          <Badge variant="outline">{packageMap.get(invoice.packageId) || "Unknown Package"}</Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <div>
-                            <p className="font-semibold">{formatPrice(invoice.totalAmount)}</p>
+                            <p className="font-semibold">{formatPrice(invoice.amount ?? 0)}</p>
                             <p className="text-xs text-muted-foreground">incl. GST</p>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          {format(new Date(invoice.invoiceDate), "MMM d, yyyy")}
+                          {invoice.createdAt ? format(new Date(invoice.createdAt), "MMM d, yyyy") : "N/A"}
                         </TableCell>
                         <TableCell className="text-center">
-                          {invoice.paidAt ? (
+                          {invoice.status === "completed" ? (
                             <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
                               <CheckCircle className="h-3 w-3 mr-1" />Paid
                             </Badge>
@@ -165,7 +186,7 @@ export default function SellerInvoicesPage() {
                             <Button variant="ghost" size="sm" data-testid={`button-view-${invoice.id}`}>
                               <Eye className="h-4 w-4" />
                             </Button>
-                            {invoice.pdfUrl && (
+                            {invoice.status === "completed" && (
                               <Button variant="ghost" size="sm" data-testid={`button-download-${invoice.id}`}>
                                 <Download className="h-4 w-4" />
                               </Button>

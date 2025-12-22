@@ -5,10 +5,23 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Star, Search, MapPin, TrendingUp } from "lucide-react";
 
+interface FeaturedListing {
+  id: string;
+  title: string;
+  seller: string;
+  location: string;
+  price: string;
+  views: number;
+  inquiries: number;
+  featuredSince: string;
+  daysRemaining: number;
+  position: number;
+}
+
 export default function FeaturedListingsPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const featuredListings = [
+  const allFeaturedListings: FeaturedListing[] = [
     {
       id: "1",
       title: "Luxury 3BHK Apartment in Prime Location",
@@ -47,6 +60,12 @@ export default function FeaturedListingsPage() {
     },
   ];
 
+  const filteredListings = allFeaturedListings.filter(listing =>
+    listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    listing.seller.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    listing.location.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -67,7 +86,7 @@ export default function FeaturedListingsPage() {
                   <Star className="h-6 w-6 text-yellow-600" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold">{featuredListings.length}</p>
+                  <p className="text-3xl font-bold">{allFeaturedListings.length}</p>
                   <p className="text-sm text-muted-foreground">
                     Active Featured
                   </p>
@@ -115,8 +134,19 @@ export default function FeaturedListingsPage() {
           </div>
 
           {/* Featured Listings */}
-          <div className="space-y-4">
-            {featuredListings.map((listing) => (
+          {filteredListings.length === 0 ? (
+            <Card className="p-16 text-center">
+              <Star className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="font-semibold text-xl mb-2">No Featured Listings Found</h3>
+              <p className="text-muted-foreground">
+                {searchQuery
+                  ? "Try adjusting your search criteria"
+                  : "No featured listings available at the moment."}
+              </p>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {filteredListings.map((listing) => (
               <Card key={listing.id} className="p-6">
                 <div className="flex items-start gap-4">
                   <div className="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/20 flex-shrink-0">
@@ -205,8 +235,9 @@ export default function FeaturedListingsPage() {
                   </div>
                 </div>
               </Card>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     );

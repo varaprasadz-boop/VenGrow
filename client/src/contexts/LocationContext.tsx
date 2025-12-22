@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { useLocation as useWouterLocation } from 'wouter';
 import {
   Dialog,
   DialogContent,
@@ -58,11 +59,26 @@ interface LocationContextType {
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
 
 export function LocationProvider({ children }: { children: ReactNode }) {
+  const [location] = useWouterLocation();
   const [selectedCity, setSelectedCityState] = useState<LocationCity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showCityPicker, setShowCityPicker] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('unknown');
   const [geoError, setGeoError] = useState<string | null>(null);
+
+  // Check if we're on a dashboard page (admin, seller, or buyer dashboard)
+  const isDashboardPage = location.startsWith('/admin') || 
+                          location.startsWith('/seller') || 
+                          location.startsWith('/buyer') || 
+                          location.startsWith('/dashboard') ||
+                          location.startsWith('/profile') ||
+                          location.startsWith('/settings') ||
+                          location.startsWith('/favorites') ||
+                          location.startsWith('/inquiries') ||
+                          location.startsWith('/invoices');
+  
+  // Only show city picker on landing page (home page)
+  const isLandingPage = location === '/' || location === '/home';
 
   // Find city by name
   const findCityByName = useCallback((name: string): LocationCity | null => {
@@ -185,8 +201,22 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     );
   }, [handleGeoSuccess, handleGeoError]);
 
-  // Initialize on mount
+  // Initialize on mount - only on landing page
   useEffect(() => {
+    // Don't show city picker on dashboard pages
+    if (isDashboardPage) {
+      setIsLoading(false);
+      // Still try to load saved city if available
+      const savedCity = localStorage.getItem(CITY_STORAGE_KEY);
+      if (savedCity) {
+        const city = findCityByName(savedCity);
+        if (city) {
+          setSelectedCityState(city);
+        }
+      }
+      return;
+    }
+
     // Check for saved city first
     const savedCity = localStorage.getItem(CITY_STORAGE_KEY);
     if (savedCity) {
@@ -203,13 +233,20 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     if (savedPermission === 'denied') {
       setPermissionStatus('denied');
       setIsLoading(false);
-      setShowCityPicker(true);
+      // Only show picker on landing page
+      if (isLandingPage) {
+        setShowCityPicker(true);
+      }
       return;
     }
 
-    // Request location
-    requestLocationPermission();
-  }, [findCityByName, requestLocationPermission]);
+    // Request location only on landing page
+    if (isLandingPage) {
+      requestLocationPermission();
+    } else {
+      setIsLoading(false);
+    }
+  }, [findCityByName, requestLocationPermission, isDashboardPage, isLandingPage]);
 
   return (
     <LocationContext.Provider
@@ -226,8 +263,12 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     >
       {children}
       
-      {/* City Picker Modal */}
-      <Dialog open={showCityPicker} onOpenChange={setShowCityPicker}>
+      {/* City Picker Modal - Only show on landing page */}
+      <Dialog open={showCityPicker && isLandingPage} onOpenChange={(open) => {
+        if (isLandingPage) {
+          setShowCityPicker(open);
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">

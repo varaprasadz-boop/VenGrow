@@ -212,7 +212,7 @@ export default function ListingModerationPage() {
                 <div className="text-center py-16">
                   <Building className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="font-semibold text-xl mb-2">
-                    No {selectedTab} approvals
+                    No {selectedTab === "pending" ? "Pending" : selectedTab === "approved" ? "Approved" : "Rejected"} Approvals
                   </h3>
                   <p className="text-muted-foreground">
                     {selectedTab === "pending" 

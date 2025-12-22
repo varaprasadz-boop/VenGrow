@@ -16,6 +16,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Search,
   MoreVertical,
   UserX,
@@ -245,31 +253,67 @@ export default function UserManagementPage() {
             </TabsList>
 
             <TabsContent value={selectedTab} className="mt-0">
-              {filteredUsers.length === 0 ? (
-                <div className="text-center py-16">
-                  <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="font-semibold text-xl mb-2">
-                    No users found
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {searchQuery
-                      ? "Try a different search term"
-                      : `No ${selectedTab} users`}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredUsers.map((user) => (
-                    <Card key={user.id} className="p-6" data-testid={`card-user-${user.id}`}>
-                      <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-                        <div className="flex-1 space-y-4">
-                          <div>
-                            <div className="flex items-start gap-3 mb-2 flex-wrap">
-                              <h3 className="font-semibold text-lg flex-1">
-                                {user.firstName || user.lastName 
-                                  ? `${user.firstName || ""} ${user.lastName || ""}`.trim() 
-                                  : user.email || "Unknown User"}
-                              </h3>
+              <Card className="p-6">
+                <div className="border rounded-lg overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead className="text-center">Joined</TableHead>
+                        <TableHead className="text-center">Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-16">
+                            <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                            <h3 className="font-semibold text-xl mb-2">
+                              No users found
+                            </h3>
+                            <p className="text-muted-foreground">
+                              {searchQuery
+                                ? "Try a different search term"
+                                : `No ${selectedTab} users`}
+                            </p>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredUsers.map((user) => (
+                          <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">
+                                  {user.firstName || user.lastName 
+                                    ? `${user.firstName || ""} ${user.lastName || ""}`.trim() 
+                                    : "Unknown User"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Last active: {formatDistanceToNow(new Date(user.updatedAt), { addSuffix: true })}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">{user.email || "No email"}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="capitalize">
+                                {user.role}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                                <Calendar className="h-4 w-4" />
+                                {format(new Date(user.createdAt), "MMM d, yyyy")}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
                               {!user.isActive ? (
                                 <Badge variant="destructive">Suspended</Badge>
                               ) : (
@@ -277,85 +321,66 @@ export default function UserManagementPage() {
                                   Active
                                 </Badge>
                               )}
-                            </div>
-                            <Badge variant="outline" className="mb-3 capitalize">
-                              {user.role}
-                            </Badge>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <Mail className="h-4 w-4" />
-                                {user.email || "No email"}
-                              </div>
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <Calendar className="h-4 w-4" />
-                                Joined {format(new Date(user.createdAt), "MMM d, yyyy")}
-                              </div>
-                            </div>
-                          </div>
-
-                          <p className="text-xs text-muted-foreground">
-                            Last active: {formatDistanceToNow(new Date(user.updatedAt), { addSuffix: true })}
-                          </p>
-                        </div>
-
-                        <div className="flex lg:flex-col gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 lg:flex-none"
-                            data-testid={`button-view-${user.id}`}
-                          >
-                            <Eye className="h-4 w-4 lg:mr-2" />
-                            <span className="hidden lg:inline">View Details</span>
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 lg:flex-none"
-                                data-testid={`button-more-${user.id}`}
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Mail className="h-4 w-4 mr-2" />
-                                Send Email
-                              </DropdownMenuItem>
-                              {user.isActive ? (
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => {
-                                    setSelectedUser(user);
-                                    setConfirmAction("suspend");
-                                  }}
-                                  data-testid={`button-suspend-${user.id}`}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  data-testid={`button-view-${user.id}`}
                                 >
-                                  <UserX className="h-4 w-4 mr-2" />
-                                  Suspend User
-                                </DropdownMenuItem>
-                              ) : (
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedUser(user);
-                                    setConfirmAction("unsuspend");
-                                  }}
-                                  data-testid={`button-unsuspend-${user.id}`}
-                                >
-                                  <UserCheck className="h-4 w-4 mr-2" />
-                                  Unsuspend User
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      data-testid={`button-more-${user.id}`}
+                                    >
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem>
+                                      <Mail className="h-4 w-4 mr-2" />
+                                      Send Email
+                                    </DropdownMenuItem>
+                                    {user.isActive ? (
+                                      <DropdownMenuItem
+                                        className="text-destructive"
+                                        onClick={() => {
+                                          setSelectedUser(user);
+                                          setConfirmAction("suspend");
+                                        }}
+                                        data-testid={`button-suspend-${user.id}`}
+                                      >
+                                        <UserX className="h-4 w-4 mr-2" />
+                                        Suspend User
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedUser(user);
+                                          setConfirmAction("unsuspend");
+                                        }}
+                                        data-testid={`button-unsuspend-${user.id}`}
+                                      >
+                                        <UserCheck className="h-4 w-4 mr-2" />
+                                        Unsuspend User
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
                 </div>
-              )}
+              </Card>
             </TabsContent>
           </Tabs>
         </div>

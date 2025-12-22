@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,33 +37,24 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
+import type { Package, SellerProfile, User } from "@shared/schema";
 
 interface Invoice {
   id: string;
   invoiceNumber: string;
   sellerId: string;
-  userId: string;
-  subtotal: number;
-  gstRate: string;
-  gstAmount: number;
-  totalAmount: number;
-  sellerDetails: {
-    name: string;
-    email?: string;
-    phone?: string;
-    gstin?: string;
-  };
-  packageDetails: {
-    name: string;
-    duration: number;
-  };
-  pdfUrl: string | null;
-  invoiceDate: string;
-  paidAt: string | null;
+  packageId: string;
+  amount: number;
+  status: string;
+  paymentMethod: string;
+  transactionId: string | null;
   createdAt: string;
 }
 
-function formatPrice(amount: number): string {
+function formatPrice(amount: number | undefined | null): string {
+  if (amount === undefined || amount === null || isNaN(amount)) {
+    return "₹0";
+  }
   if (amount >= 10000000) {
     return `₹${(amount / 10000000).toFixed(2)} Cr`;
   } else if (amount >= 100000) {
@@ -81,26 +73,71 @@ export default function InvoicesPage() {
     queryKey: ["/api/admin/invoices"],
   });
 
+  // Fetch all sellers to map sellerId to seller name
+  const { data: sellers = [] } = useQuery<SellerProfile[]>({
+    queryKey: ["/api/sellers"],
+  });
+
+  // Fetch all users to get seller emails
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["/api/admin/users"],
+  });
+
+  // Fetch all packages to map packageId to package name
+  const { data: packages = [] } = useQuery<Package[]>({
+    queryKey: ["/api/packages"],
+  });
+
+  // Create maps for seller, user, and package lookups
+  const sellerMap = useMemo(() => {
+    const map = new Map<string, SellerProfile>();
+    sellers.forEach(seller => {
+      map.set(seller.id, seller);
+    });
+    return map;
+  }, [sellers]);
+
+  const userMap = useMemo(() => {
+    const map = new Map<string, User>();
+    users.forEach(user => {
+      map.set(user.id, user);
+    });
+    return map;
+  }, [users]);
+
+  const packageMap = useMemo(() => {
+    const map = new Map<string, string>();
+    packages.forEach(pkg => {
+      map.set(pkg.id, pkg.name);
+    });
+    return map;
+  }, [packages]);
+
   const filteredInvoices = invoices.filter(invoice => {
+    const seller = sellerMap.get(invoice.sellerId);
+    const sellerName = seller?.companyName || "Unknown";
+    const sellerUser = seller ? userMap.get(seller.userId) : null;
+    const sellerEmail = sellerUser?.email || "";
+    
     const matchesSearch = 
-      invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      invoice.sellerDetails?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      invoice.sellerDetails?.email?.toLowerCase().includes(searchQuery.toLowerCase());
+      (invoice.invoiceNumber || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sellerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sellerEmail.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "paid" && invoice.paidAt) ||
-      (statusFilter === "pending" && !invoice.paidAt);
+      (statusFilter === "paid" && invoice.status === "completed") ||
+      (statusFilter === "pending" && invoice.status !== "completed");
 
     return matchesSearch && matchesStatus;
   });
 
   const totalRevenue = invoices
-    .filter(inv => inv.paidAt)
-    .reduce((sum, inv) => sum + inv.totalAmount, 0);
+    .filter(inv => inv.status === "completed" && inv.amount != null)
+    .reduce((sum, inv) => sum + (inv.amount || 0), 0);
 
   const pendingAmount = invoices
-    .filter(inv => !inv.paidAt)
-    .reduce((sum, inv) => sum + inv.totalAmount, 0);
+    .filter(inv => inv.status !== "completed" && inv.amount != null)
+    .reduce((sum, inv) => sum + (inv.amount || 0), 0);
 
   if (isLoading) {
     return (
@@ -202,7 +239,7 @@ export default function InvoicesPage() {
                   <CheckCircle className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{invoices.filter(i => i.paidAt).length}</p>
+                  <p className="text-2xl font-bold">{invoices.filter(i => i.status === "completed").length}</p>
                   <p className="text-sm text-muted-foreground">Paid Invoices</p>
                 </div>
               </div>
@@ -233,7 +270,7 @@ export default function InvoicesPage() {
               </Select>
             </div>
 
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -249,63 +286,76 @@ export default function InvoicesPage() {
                 <TableBody>
                   {filteredInvoices.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        No invoices found
+                      <TableCell colSpan={7} className="text-center py-16">
+                        <Receipt className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                        <h3 className="font-semibold text-xl mb-2">No Invoices Found</h3>
+                        <p className="text-muted-foreground">
+                          {searchQuery || statusFilter !== "all"
+                            ? "Try adjusting your search or filter criteria"
+                            : "No invoices have been created yet."}
+                        </p>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredInvoices.map((invoice) => (
-                      <TableRow key={invoice.id} data-testid={`row-invoice-${invoice.id}`}>
-                        <TableCell>
-                          <span className="font-mono font-medium">{invoice.invoiceNumber}</span>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{invoice.sellerDetails?.name || "Unknown"}</p>
-                            <p className="text-sm text-muted-foreground">{invoice.sellerDetails?.email}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{invoice.packageDetails?.name}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div>
-                            <p className="font-semibold">{formatPrice(invoice.totalAmount)}</p>
-                            <p className="text-xs text-muted-foreground">
-                              incl. GST {invoice.gstRate}%
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {format(new Date(invoice.invoiceDate), "MMM d, yyyy")}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {invoice.paidAt ? (
-                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Paid
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500">
-                              <Clock className="h-3 w-3 mr-1" />
-                              Pending
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm" data-testid={`button-view-${invoice.id}`}>
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            {invoice.pdfUrl && (
-                              <Button variant="ghost" size="sm" data-testid={`button-download-${invoice.id}`}>
-                                <Download className="h-4 w-4" />
-                              </Button>
+                    filteredInvoices.map((invoice) => {
+                      const seller = sellerMap.get(invoice.sellerId);
+                      const sellerName = seller?.companyName || "Unknown Seller";
+                      const sellerUser = seller ? userMap.get(seller.userId) : null;
+                      const sellerEmail = sellerUser?.email || "";
+                      
+                      return (
+                        <TableRow key={invoice.id} data-testid={`row-invoice-${invoice.id}`}>
+                          <TableCell>
+                            <span className="font-mono font-medium">{invoice.invoiceNumber}</span>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{sellerName}</p>
+                              <p className="text-sm text-muted-foreground">{sellerEmail || invoice.sellerId}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{packageMap.get(invoice.packageId) || "Unknown Package"}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div>
+                              <p className="font-semibold">{formatPrice(invoice.amount ?? 0)}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Payment: {invoice.paymentMethod || "N/A"}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {invoice.createdAt ? format(new Date(invoice.createdAt), "MMM d, yyyy") : "N/A"}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {invoice.status === "completed" ? (
+                              <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Paid
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Pending
+                              </Badge>
                             )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="sm" data-testid={`button-view-${invoice.id}`}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              {invoice.status === "completed" && (
+                                <Button variant="ghost" size="sm" data-testid={`button-download-${invoice.id}`}>
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>

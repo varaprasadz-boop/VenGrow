@@ -6,6 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -155,118 +163,110 @@ export default function SellerApprovalsPage() {
                 </p>
               </div>
             ) : (
-              <div className="bg-card rounded-lg border overflow-hidden">
-                <div className="hidden sm:grid sm:grid-cols-12 gap-4 px-4 py-3 bg-muted/50 text-sm font-medium text-muted-foreground border-b">
-                  <div className="col-span-4">Seller</div>
-                  <div className="col-span-2">Type</div>
-                  <div className="col-span-2">Status</div>
-                  <div className="col-span-2">Submitted</div>
-                  <div className="col-span-2 text-right">Actions</div>
-                </div>
-                <div className="divide-y">
-                  {filteredApprovals.map((approval) => {
-                    const Icon = sellerTypeIcons[approval.sellerType] || User;
-                    return (
-                      <div
-                        key={approval.id}
-                        className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 px-4 py-3 items-center hover:bg-muted/30 transition-colors"
-                        data-testid={`row-approval-${approval.id}`}
-                      >
-                        <div className="sm:col-span-4 flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-primary/10 hidden sm:flex">
-                            <Icon className="h-4 w-4 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">
-                              {approval.companyName || "Individual Seller"}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate sm:hidden">
-                              {approval.sellerType} • {format(new Date(approval.createdAt), "MMM d, yyyy")}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="sm:col-span-2 hidden sm:block">
-                          <Badge variant="outline" className="capitalize text-xs">
-                            {approval.sellerType}
-                          </Badge>
-                        </div>
-                        
-                        <div className="sm:col-span-2 hidden sm:block">
-                          {approval.verificationStatus === "pending" && (
-                            <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500 text-xs">
-                              <Clock className="h-3 w-3 mr-1" />
-                              Pending
+              <div className="bg-card rounded-lg border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[200px]">Seller</TableHead>
+                      <TableHead className="min-w-[100px]">Type</TableHead>
+                      <TableHead className="min-w-[120px]">Status</TableHead>
+                      <TableHead className="min-w-[120px]">Submitted</TableHead>
+                      <TableHead className="min-w-[200px] text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredApprovals.map((approval) => {
+                      const Icon = sellerTypeIcons[approval.sellerType] || User;
+                      return (
+                        <TableRow key={approval.id} data-testid={`row-approval-${approval.id}`}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-primary/10">
+                                <Icon className="h-4 w-4 text-primary" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">
+                                  {approval.companyName || "Individual Seller"}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize text-xs">
+                              {approval.sellerType}
                             </Badge>
-                          )}
-                          {approval.verificationStatus === "verified" && (
-                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500 text-xs">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Verified
-                            </Badge>
-                          )}
-                          {approval.verificationStatus === "rejected" && (
-                            <Badge variant="destructive" className="text-xs">
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Rejected
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="sm:col-span-2 hidden sm:block text-sm text-muted-foreground">
-                          {format(new Date(approval.createdAt), "MMM d, yyyy")}
-                        </div>
-                        
-                        <div className="sm:col-span-2 flex items-center justify-end gap-2">
-                          <Link href={`/admin/seller-approvals/${approval.id}`}>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              data-testid={`button-view-${approval.id}`}
-                            >
-                              <Eye className="h-4 w-4 sm:mr-1" />
-                              <span className="hidden sm:inline">View</span>
-                            </Button>
-                          </Link>
-                          {approval.verificationStatus === "pending" && (
-                            <>
-                              <Button
-                                size="sm"
-                                data-testid={`button-approve-${approval.id}`}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  updateVerificationMutation.mutate({ id: approval.id, status: "verified" });
-                                }}
-                                disabled={updateVerificationMutation.isPending}
-                              >
-                                <CheckCircle className="h-4 w-4 sm:mr-1" />
-                                <span className="hidden sm:inline">Approve</span>
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                data-testid={`button-reject-${approval.id}`}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  updateVerificationMutation.mutate({ id: approval.id, status: "rejected" });
-                                }}
-                                disabled={updateVerificationMutation.isPending}
-                              >
-                                <XCircle className="h-4 w-4 sm:mr-1" />
-                                <span className="hidden sm:inline">Reject</span>
-                              </Button>
-                            </>
-                          )}
-                          <Link href={`/admin/seller-approvals/${approval.id}`}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <ChevronRight className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                          </TableCell>
+                          <TableCell>
+                            {approval.verificationStatus === "pending" && (
+                              <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500 text-xs">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Pending
+                              </Badge>
+                            )}
+                            {approval.verificationStatus === "verified" && (
+                              <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500 text-xs">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Verified
+                              </Badge>
+                            )}
+                            {approval.verificationStatus === "rejected" && (
+                              <Badge variant="destructive" className="text-xs">
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Rejected
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {format(new Date(approval.createdAt), "MMM d, yyyy")}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Link href={`/admin/seller-approvals/${approval.id}`}>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  data-testid={`button-view-${approval.id}`}
+                                >
+                                  <Eye className="h-4 w-4 sm:mr-1" />
+                                  <span className="hidden sm:inline">View</span>
+                                </Button>
+                              </Link>
+                              {approval.verificationStatus === "pending" && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    data-testid={`button-approve-${approval.id}`}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      updateVerificationMutation.mutate({ id: approval.id, status: "verified" });
+                                    }}
+                                    disabled={updateVerificationMutation.isPending}
+                                  >
+                                    <CheckCircle className="h-4 w-4 sm:mr-1" />
+                                    <span className="hidden sm:inline">Approve</span>
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    data-testid={`button-reject-${approval.id}`}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      updateVerificationMutation.mutate({ id: approval.id, status: "rejected" });
+                                    }}
+                                    disabled={updateVerificationMutation.isPending}
+                                  >
+                                    <XCircle className="h-4 w-4 sm:mr-1" />
+                                    <span className="hidden sm:inline">Reject</span>
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </TabsContent>
