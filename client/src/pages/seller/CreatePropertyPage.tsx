@@ -377,7 +377,6 @@ export default function CreatePropertyPage() {
             <p>Checking your subscription...</p>
           </div>
         </main>
-      </div>
     );
   }
 
@@ -412,7 +411,6 @@ export default function CreatePropertyPage() {
             </Card>
           </div>
         </main>
-      </div>
     );
   }
 
