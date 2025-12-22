@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sidebar,
   SidebarContent,
@@ -145,8 +144,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </Link>
           </SidebarHeader>
 
-          <SidebarContent>
-            <ScrollArea className="h-full">
+          <SidebarContent className="overflow-y-auto">
               {/* Main */}
               <SidebarGroup>
                 <SidebarGroupContent>
@@ -174,7 +172,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <NavSection title="Communication" items={communicationItems} />
               <NavSection title="CMS Content" items={cmsContentItems} />
               <NavSection title="System" items={systemItems} />
-            </ScrollArea>
           </SidebarContent>
 
           <SidebarFooter className="border-t p-4">

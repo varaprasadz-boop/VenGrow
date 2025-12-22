@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sidebar,
   SidebarContent,
@@ -134,8 +133,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             </Link>
           </SidebarHeader>
 
-          <SidebarContent>
-            <ScrollArea className="h-full">
+          <SidebarContent className="overflow-y-auto">
               {/* Main Actions */}
               <SidebarGroup>
                 <SidebarGroupContent>
@@ -159,7 +157,6 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
               <NavSection title="Inquiries & Leads" items={inquiryItems} />
               <NavSection title="Packages & Payments" items={packageItems} />
               <NavSection title="Settings" items={settingsItems} />
-            </ScrollArea>
           </SidebarContent>
 
           <SidebarFooter className="border-t p-4">
