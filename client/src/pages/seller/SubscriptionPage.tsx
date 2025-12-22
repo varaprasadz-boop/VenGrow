@@ -59,7 +59,7 @@ export default function SubscriptionPage() {
             <p className="text-muted-foreground">
               Manage your package and billing
             </p>
-    
+          </div>
 
           {isLoading ? (
             <div className="space-y-8">
@@ -70,14 +70,14 @@ export default function SubscriptionPage() {
                     <Skeleton className="h-10 w-32" />
                     <Skeleton className="h-4 w-64" />
                     <Skeleton className="h-4 w-56" />
-            
+                  </div>
                   <div className="space-y-3">
                     <Skeleton className="h-10 w-32" />
                     <Skeleton className="h-10 w-32" />
-            
-          
+                  </div>
+                </div>
               </Card>
-      
+            </div>
           ) : !subscription ? (
             <Card className="p-8 text-center">
               <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
@@ -111,7 +111,7 @@ export default function SubscriptionPage() {
                           Expired
                         </Badge>
                       )}
-              
+                    </div>
                     <p className="text-3xl font-bold text-primary mb-4">
                       ₹{formatPrice(subscription.package?.price || 0)}/{subscription.package?.duration || 30} days
                     </p>
@@ -119,7 +119,7 @@ export default function SubscriptionPage() {
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
                         <span>Started: {format(new Date(subscription.startDate), "MMM d, yyyy")}</span>
-                
+                      </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <RefreshCw className="h-4 w-4" />
                         <span>
@@ -127,9 +127,9 @@ export default function SubscriptionPage() {
                             ? `Expires: ${format(new Date(subscription.endDate), "MMM d, yyyy")} (${daysLeft} days left)`
                             : `Expired on ${format(new Date(subscription.endDate), "MMM d, yyyy")}`}
                         </span>
-                
-              
-            
+                      </div>
+                    </div>
+                  </div>
 
                   <div className="flex flex-col gap-3">
                     <Link href="/seller/packages">
@@ -137,8 +137,8 @@ export default function SubscriptionPage() {
                         {isActive ? "Change Plan" : "Renew Subscription"}
                       </Button>
                     </Link>
-            
-          
+                  </div>
+                </div>
 
                 <div className="mt-6 pt-6 border-t">
                   <h3 className="font-semibold mb-4">Package Usage</h3>
@@ -149,7 +149,7 @@ export default function SubscriptionPage() {
                         <span className="text-sm font-medium">
                           {activeListings} / {listingLimit}
                         </span>
-                
+                      </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className={`h-full ${
@@ -159,13 +159,13 @@ export default function SubscriptionPage() {
                             width: `${Math.min(100, (activeListings / listingLimit) * 100)}%`,
                           }}
                         />
-                
+                      </div>
                       {activeListings >= listingLimit && (
                         <p className="text-xs text-red-600 mt-2">
                           You've reached your listing limit. Upgrade your plan to add more properties.
                         </p>
                       )}
-              
+                    </div>
                     {subscription.package?.featuredListings && subscription.package.featuredListings > 0 && (
                       <div>
                         <div className="flex items-center justify-between mb-2">
@@ -173,11 +173,11 @@ export default function SubscriptionPage() {
                           <span className="text-sm font-medium">
                             {subscription.package?.featuredListings || 0} available
                           </span>
-                  
-                
+                        </div>
+                      </div>
                     )}
-            
-          
+                  </div>
+                </div>
               </Card>
 
               <Card className="p-6 mb-8">
@@ -188,16 +188,16 @@ export default function SubscriptionPage() {
                       Update
                     </Button>
                   </Link>
-          
+                </div>
                 <div className="flex items-center gap-4 p-4 border rounded-lg">
                   <div className="p-3 rounded-lg bg-muted">
                     <CreditCard className="h-6 w-6" />
-            
+                  </div>
                   <div>
                     <p className="font-medium">Razorpay Payments</p>
                     <p className="text-sm text-muted-foreground">UPI, Cards, Net Banking & Wallets</p>
-            
-          
+                  </div>
+                </div>
               </Card>
 
               <Card className="p-6">
@@ -206,7 +206,7 @@ export default function SubscriptionPage() {
                   <div className="text-center py-8">
                     <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <p className="text-muted-foreground">No payment history yet</p>
-            
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     {payments.map((payment) => (
@@ -228,13 +228,13 @@ export default function SubscriptionPage() {
                             >
                               {payment.status === "completed" ? "Paid" : payment.status}
                             </Badge>
-                    
+                          </div>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <span>{format(new Date(payment.createdAt), "MMM d, yyyy")}</span>
                             <span>•</span>
                             <span>{payment.currency || "INR"}</span>
-                    
-                  
+                          </div>
+                        </div>
                         <div className="flex items-center gap-4">
                           <p className="font-semibold text-lg">₹{formatPrice(payment.amount)}</p>
                           <Button
@@ -245,15 +245,15 @@ export default function SubscriptionPage() {
                             <Download className="h-4 w-4 mr-2" />
                             Invoice
                           </Button>
-                  
-                
+                        </div>
+                      </div>
                     ))}
-            
+                  </div>
                 )}
               </Card>
             </>
           )}
-  
+        </div>
       </main>
   );
 }

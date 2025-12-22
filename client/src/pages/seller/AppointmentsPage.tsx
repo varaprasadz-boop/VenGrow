@@ -164,7 +164,7 @@ export default function AppointmentsPage() {
     const date = parseISO(String(appointment.scheduledDate));
     const isPast = isBefore(date, new Date()) && !isToday(date);
 
-  return (
+    return (
       <Card
         className={`p-4 hover-elevate cursor-pointer ${isPast ? "opacity-60" : ""}`}
         onClick={() => openDetails(appointment)}
@@ -184,7 +184,7 @@ export default function AppointmentsPage() {
                 <Clock className="h-3 w-3" />
                 {appointment.scheduledTime}
               </span>
-      
+            </div>
             <div className="flex items-center gap-4 text-sm">
               <span className="flex items-center gap-1">
                 <User className="h-4 w-4 text-muted-foreground" />
@@ -196,14 +196,14 @@ export default function AppointmentsPage() {
                   {appointment.buyerPhone}
                 </span>
               )}
-      
+            </div>
             {appointment.notes && (
               <p className="text-sm text-muted-foreground line-clamp-1">
                 <MessageSquare className="h-3 w-3 inline mr-1" />
                 {appointment.notes}
               </p>
             )}
-    
+          </div>
           <div className="flex gap-2">
             {appointment.status === "pending" && (
               <>
@@ -248,17 +248,17 @@ export default function AppointmentsPage() {
                 Mark Complete
               </Button>
             )}
-    
-  
+          </div>
+        </div>
       </Card>
     );
   };
 
   if (isLoading) {
-  return (
+    return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-
+      </div>
     );
   }
 
@@ -271,7 +271,7 @@ export default function AppointmentsPage() {
       <div>
         <h1 className="text-2xl font-bold" data-testid="text-page-title">Property Visits</h1>
         <p className="text-muted-foreground">Manage scheduled property visits from buyers</p>
-
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -279,36 +279,36 @@ export default function AppointmentsPage() {
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
               <CalendarDays className="h-5 w-5 text-blue-600 dark:text-blue-300" />
-      
+            </div>
             <div>
               <p className="text-2xl font-bold" data-testid="text-today-count">{todayCount}</p>
               <p className="text-sm text-muted-foreground">Today's Visits</p>
-      
-    
+            </div>
+          </div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
               <Calendar className="h-5 w-5 text-green-600 dark:text-green-300" />
-      
+            </div>
             <div>
               <p className="text-2xl font-bold" data-testid="text-upcoming-count">{upcomingCount}</p>
               <p className="text-sm text-muted-foreground">Upcoming</p>
-      
-    
+            </div>
+          </div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
               <Clock3 className="h-5 w-5 text-yellow-600 dark:text-yellow-300" />
-      
+            </div>
             <div>
               <p className="text-2xl font-bold" data-testid="text-pending-count">{pendingCount}</p>
               <p className="text-sm text-muted-foreground">Pending Approval</p>
-      
-    
+            </div>
+          </div>
         </Card>
-
+      </div>
 
       {/* Appointments Tabs */}
       <Tabs defaultValue="all" className="w-full">
@@ -381,7 +381,7 @@ export default function AppointmentsPage() {
                 <Badge className={statusColors[selectedAppointment.status]}>
                   {statusLabels[selectedAppointment.status]}
                 </Badge>
-        
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label className="text-muted-foreground">Date</Label>
@@ -389,22 +389,22 @@ export default function AppointmentsPage() {
                     <Calendar className="h-4 w-4" />
                     {format(parseISO(String(selectedAppointment.scheduledDate)), "EEE, MMM d, yyyy")}
                   </p>
-          
+                </div>
                 <div className="space-y-1">
                   <Label className="text-muted-foreground">Time</Label>
                   <p className="font-medium flex items-center gap-2">
                     <Clock className="h-4 w-4" />
                     {selectedAppointment.scheduledTime}
                   </p>
-          
-        
+                </div>
+              </div>
               <div className="space-y-1">
                 <Label className="text-muted-foreground">Buyer</Label>
                 <p className="font-medium flex items-center gap-2">
                   <User className="h-4 w-4" />
                   {selectedAppointment.buyerName}
                 </p>
-        
+              </div>
               {selectedAppointment.buyerPhone && (
                 <div className="space-y-1">
                   <Label className="text-muted-foreground">Phone</Label>
@@ -414,7 +414,7 @@ export default function AppointmentsPage() {
                       {selectedAppointment.buyerPhone}
                     </a>
                   </p>
-          
+                </div>
               )}
               {selectedAppointment.buyerEmail && (
                 <div className="space-y-1">
@@ -425,13 +425,13 @@ export default function AppointmentsPage() {
                       {selectedAppointment.buyerEmail}
                     </a>
                   </p>
-          
+                </div>
               )}
               {selectedAppointment.notes && (
                 <div className="space-y-1">
                   <Label className="text-muted-foreground">Buyer Notes</Label>
                   <p className="text-sm bg-muted p-3 rounded-md">{selectedAppointment.notes}</p>
-          
+                </div>
               )}
               <DialogFooter className="flex-col sm:flex-row gap-2">
                 {selectedAppointment.status === "pending" && (
@@ -476,7 +476,7 @@ export default function AppointmentsPage() {
                   </>
                 )}
               </DialogFooter>
-      
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -510,7 +510,7 @@ export default function AppointmentsPage() {
                   min={new Date().toISOString().split("T")[0]}
                   data-testid="input-reschedule-date"
                 />
-        
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="reschedule-time">New Time</Label>
                 <Input
@@ -521,8 +521,8 @@ export default function AppointmentsPage() {
                   onChange={(e) => setRescheduleTime(e.target.value)}
                   data-testid="input-reschedule-time"
                 />
-        
-      
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="seller-notes">Message to Buyer (optional)</Label>
               <Textarea
@@ -532,7 +532,7 @@ export default function AppointmentsPage() {
                 onChange={(e) => setSellerNotes(e.target.value)}
                 data-testid="textarea-seller-notes"
               />
-      
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowRescheduleModal(false)}>
                 Cancel

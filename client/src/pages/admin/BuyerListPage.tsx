@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import {
   Table,
   TableBody,
@@ -73,23 +72,14 @@ export default function BuyerListPage() {
 
   return (
       <main className="flex-1 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
-          <Breadcrumbs
-            homeHref="/admin/dashboard"
-            items={[
-              { label: "User Management", href: "/admin/users" },
-              { label: "Buyer Accounts" },
-            ]}
-            className="mb-4"
-          />
-
-          <div className="flex items-center gap-3 mb-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center gap-3 mb-8">
             <div className="p-2 rounded-lg bg-primary/10">
               <Users className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="font-serif font-bold text-2xl sm:text-3xl">Buyer Accounts</h1>
-              <p className="text-muted-foreground text-sm sm:text-base">View all registered buyers</p>
+              <h1 className="font-serif font-bold text-3xl">Buyer Accounts</h1>
+              <p className="text-muted-foreground">View all registered buyers</p>
             </div>
           </div>
 

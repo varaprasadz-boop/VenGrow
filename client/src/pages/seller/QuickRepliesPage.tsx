@@ -38,7 +38,7 @@ export default function QuickRepliesPage() {
             <p className="text-muted-foreground">
               Save time with pre-written message templates
             </p>
-    
+          </div>
 
           {/* Add New */}
           <Card className="p-6 mb-8">
@@ -54,7 +54,7 @@ export default function QuickRepliesPage() {
                   placeholder="/keyword"
                   data-testid="input-shortcut"
                 />
-        
+              </div>
               <div>
                 <Label htmlFor="message">Message</Label>
                 <Textarea
@@ -66,12 +66,12 @@ export default function QuickRepliesPage() {
                 <p className="text-xs text-muted-foreground mt-2">
                   Use {"{property_price}"}, {"{property_title}"} for dynamic content
                 </p>
-        
+              </div>
               <Button data-testid="button-create">
                 <Plus className="h-4 w-4 mr-2" />
                 Create
               </Button>
-      
+            </div>
           </Card>
 
           {/* Existing Replies */}
@@ -84,11 +84,11 @@ export default function QuickRepliesPage() {
                       <code className="px-2 py-1 bg-muted rounded text-sm font-mono">
                         {reply.shortcut}
                       </code>
-              
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       {reply.message}
                     </p>
-            
+                  </div>
                   <div className="flex gap-2 ml-4">
                     <Button
                       variant="outline"
@@ -104,12 +104,12 @@ export default function QuickRepliesPage() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-            
-          
+                  </div>
+                </div>
               </Card>
             ))}
-    
-  
+          </div>
+        </div>
       </main>
   );
 }

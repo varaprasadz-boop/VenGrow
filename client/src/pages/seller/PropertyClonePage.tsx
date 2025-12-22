@@ -27,7 +27,7 @@ export default function PropertyClonePage() {
             <p className="text-muted-foreground">
               Create a duplicate listing with the same details
             </p>
-    
+          </div>
 
           <Card className="p-6 mb-8">
             <h3 className="font-semibold text-lg mb-4">Original Property</h3>
@@ -35,32 +35,32 @@ export default function PropertyClonePage() {
               <div>
                 <p className="text-sm text-muted-foreground">Title</p>
                 <p className="font-medium">{property.title}</p>
-        
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Location</p>
                   <p className="font-medium">{property.location}</p>
-          
+                </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Price</p>
                   <p className="font-medium text-primary">{property.price}</p>
-          
-        
+                </div>
+              </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Bedrooms</p>
                   <p className="font-medium">{property.bedrooms}</p>
-          
+                </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Bathrooms</p>
                   <p className="font-medium">{property.bathrooms}</p>
-          
+                </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Area</p>
                   <p className="font-medium">{property.area}</p>
-          
-        
-      
+                </div>
+              </div>
+            </div>
           </Card>
 
           <Card className="p-6 mb-8 bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/20">
@@ -80,7 +80,7 @@ export default function PropertyClonePage() {
             <Copy className="h-4 w-4 mr-2" />
             Clone This Property
           </Button>
-  
+        </div>
       </main>
   );
 }

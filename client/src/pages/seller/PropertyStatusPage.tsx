@@ -44,28 +44,28 @@ export default function PropertyStatusPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-      return (
+        return (
           <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
             <CheckCircle className="h-3 w-3 mr-1" />
             Active
           </Badge>
         );
       case "pending_approval":
-      return (
+        return (
           <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500">
             <Clock className="h-3 w-3 mr-1" />
             Pending Approval
           </Badge>
         );
       case "rejected":
-      return (
+        return (
           <Badge variant="destructive">
             <XCircle className="h-3 w-3 mr-1" />
             Rejected
           </Badge>
         );
       case "expired":
-      return (
+        return (
           <Badge variant="outline">
             <AlertTriangle className="h-3 w-3 mr-1" />
             Expired
@@ -88,7 +88,7 @@ export default function PropertyStatusPage() {
             <p className="text-muted-foreground">
               Track the status of all your property listings
             </p>
-    
+          </div>
 
           <div className="space-y-4">
             {properties.map((property) => (
@@ -98,12 +98,12 @@ export default function PropertyStatusPage() {
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-semibold text-lg">{property.title}</h3>
                       {getStatusBadge(property.status)}
-              
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       {property.location}
                     </p>
-            
-          
+                  </div>
+                </div>
 
                 {property.status === "active" && (
                   <>
@@ -111,20 +111,20 @@ export default function PropertyStatusPage() {
                       <div className="p-3 bg-muted rounded-lg">
                         <p className="text-xs text-muted-foreground mb-1">Views</p>
                         <p className="font-semibold">{property.views}</p>
-                
+                      </div>
                       <div className="p-3 bg-muted rounded-lg">
                         <p className="text-xs text-muted-foreground mb-1">
                           Inquiries
                         </p>
                         <p className="font-semibold">{property.inquiries}</p>
-                
+                      </div>
                       <div className="p-3 bg-muted rounded-lg">
                         <p className="text-xs text-muted-foreground mb-1">
                           Days Left
                         </p>
                         <p className="font-semibold">7</p>
-                
-              
+                      </div>
+                    </div>
                     <p className="text-xs text-muted-foreground mb-4">
                       Listed on {property.listingDate} • Expires on{" "}
                       {property.expiryDate}
@@ -140,7 +140,7 @@ export default function PropertyStatusPage() {
                     <p className="text-xs text-muted-foreground mt-2">
                       Submitted on {property.submittedDate}
                     </p>
-            
+                  </div>
                 )}
 
                 {property.status === "rejected" && (
@@ -152,7 +152,7 @@ export default function PropertyStatusPage() {
                       <p className="text-xs text-muted-foreground mt-2">
                         Rejected on {property.rejectedDate}
                       </p>
-              
+                    </div>
                     <Button
                       variant="outline"
                       size="sm"
@@ -178,8 +178,8 @@ export default function PropertyStatusPage() {
                 )}
               </Card>
             ))}
-    
-  
+          </div>
+        </div>
       </main>
   );
 }

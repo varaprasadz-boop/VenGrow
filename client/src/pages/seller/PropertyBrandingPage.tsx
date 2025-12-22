@@ -20,7 +20,7 @@ export default function PropertyBrandingPage() {
             <p className="text-muted-foreground">
               Create a unique brand identity for your property
             </p>
-    
+          </div>
 
           <Card className="p-6 mb-8">
             <h3 className="font-semibold text-lg mb-6">Branding Details</h3>
@@ -35,7 +35,7 @@ export default function PropertyBrandingPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Create a memorable name for your property
                 </p>
-        
+              </div>
               <div>
                 <Label htmlFor="tagline">Tagline</Label>
                 <Input
@@ -43,7 +43,7 @@ export default function PropertyBrandingPage() {
                   defaultValue="Luxury Living at its Finest"
                   data-testid="input-tagline"
                 />
-        
+              </div>
               <div>
                 <Label htmlFor="story">Property Story</Label>
                 <Textarea
@@ -52,8 +52,8 @@ export default function PropertyBrandingPage() {
                   rows={4}
                   data-testid="input-story"
                 />
-        
-      
+              </div>
+            </div>
           </Card>
 
           <Card className="p-6 mb-8">
@@ -65,8 +65,8 @@ export default function PropertyBrandingPage() {
                   <p className="text-sm text-muted-foreground">
                     Upload logo (Max 2MB, PNG/SVG)
                   </p>
-          
-        
+                </div>
+              </div>
               <div>
                 <Label htmlFor="brandColor">Brand Color</Label>
                 <div className="flex items-center gap-4 mt-2">
@@ -80,15 +80,15 @@ export default function PropertyBrandingPage() {
                     className="w-16 h-12 rounded border-2"
                     style={{ backgroundColor: "#FF6B35" }}
                   />
-          
-        
-      
+                </div>
+              </div>
+            </div>
           </Card>
 
           <Button className="w-full" size="lg" data-testid="button-save">
             Save Branding
           </Button>
-  
+        </div>
       </main>
   );
 }

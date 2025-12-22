@@ -42,7 +42,7 @@ export default function TeamMembersPage() {
 
   const getRoleBadge = (role: string) => {
     if (role === "Admin") {
-    return (
+      return (
         <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-500">
           <Shield className="h-3 w-3 mr-1" />
           Admin
@@ -54,7 +54,7 @@ export default function TeamMembersPage() {
 
   const getStatusBadge = (status: string) => {
     if (status === "active") {
-    return (
+      return (
         <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
           Active
         </Badge>
@@ -76,12 +76,12 @@ export default function TeamMembersPage() {
               <p className="text-muted-foreground">
                 Manage your team and their access
               </p>
-      
+            </div>
             <Button data-testid="button-invite">
               <UserPlus className="h-4 w-4 mr-2" />
               Invite Member
             </Button>
-    
+          </div>
 
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -103,7 +103,7 @@ export default function TeamMembersPage() {
                 {members.reduce((sum, m) => sum + m.listingsManaged, 0)}
               </p>
             </Card>
-    
+          </div>
 
           {/* Members List */}
           <div className="space-y-4">
@@ -123,19 +123,19 @@ export default function TeamMembersPage() {
                           <h3 className="font-semibold text-lg">{member.name}</h3>
                           {getRoleBadge(member.role)}
                           {getStatusBadge(member.status)}
-                  
+                        </div>
                         <div className="space-y-1 text-sm text-muted-foreground">
                           <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4" />
                             <span>{member.email}</span>
-                    
+                          </div>
                           <div className="flex items-center gap-2">
                             <Phone className="h-4 w-4" />
                             <span>{member.phone}</span>
-                    
-                  
-                
-              
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div className="p-3 bg-muted rounded-lg">
@@ -143,7 +143,7 @@ export default function TeamMembersPage() {
                           Joined Date
                         </p>
                         <p className="font-medium text-sm">{member.joinedDate}</p>
-                
+                      </div>
                       <div className="p-3 bg-muted rounded-lg">
                         <p className="text-xs text-muted-foreground mb-1">
                           Listings Managed
@@ -151,8 +151,8 @@ export default function TeamMembersPage() {
                         <p className="font-medium text-sm">
                           {member.listingsManaged}
                         </p>
-                
-              
+                      </div>
+                    </div>
 
                     <div className="flex gap-2">
                       <Button
@@ -188,13 +188,13 @@ export default function TeamMembersPage() {
                           Deactivate
                         </Button>
                       )}
-              
-            
-          
+                    </div>
+                  </div>
+                </div>
               </Card>
             ))}
-    
-  
+          </div>
+        </div>
       </main>
   );
 }

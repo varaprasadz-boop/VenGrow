@@ -30,13 +30,13 @@ export default function MarketingCampaignsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-      return (
+        return (
           <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
             Active
           </Badge>
         );
       case "scheduled":
-      return (
+        return (
           <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-500">
             Scheduled
           </Badge>
@@ -60,11 +60,11 @@ export default function MarketingCampaignsPage() {
               <p className="text-muted-foreground">
                 Promote your properties and track performance
               </p>
-      
+            </div>
             <Button data-testid="button-create">
               Create Campaign
             </Button>
-    
+          </div>
 
           <div className="space-y-6">
             {campaigns.map((campaign) => (
@@ -74,12 +74,12 @@ export default function MarketingCampaignsPage() {
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-semibold text-lg">{campaign.name}</h3>
                       {getStatusBadge(campaign.status)}
-              
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       {campaign.property}
                     </p>
-            
-          
+                  </div>
+                </div>
 
                 {campaign.status === "active" && (
                   <>
@@ -88,33 +88,33 @@ export default function MarketingCampaignsPage() {
                         <div className="flex items-center gap-2 mb-2">
                           <Eye className="h-4 w-4 text-muted-foreground" />
                           <p className="text-xs text-muted-foreground">Reach</p>
-                  
+                        </div>
                         <p className="text-2xl font-bold">
                           {campaign.reach.toLocaleString()}
                         </p>
-                
+                      </div>
                       <div className="p-4 bg-muted rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <TrendingUp className="h-4 w-4 text-muted-foreground" />
                           <p className="text-xs text-muted-foreground">Clicks</p>
-                  
+                        </div>
                         <p className="text-2xl font-bold">{campaign.clicks}</p>
-                
+                      </div>
                       <div className="p-4 bg-muted rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <Users className="h-4 w-4 text-muted-foreground" />
                           <p className="text-xs text-muted-foreground">Leads</p>
-                  
+                        </div>
                         <p className="text-2xl font-bold">{campaign.leads}</p>
-                
+                      </div>
                       <div className="p-4 bg-muted rounded-lg">
                         <p className="text-xs text-muted-foreground mb-2">Budget</p>
                         <p className="text-lg font-bold">{campaign.budget}</p>
                         <p className="text-xs text-muted-foreground">
                           Spent: {campaign.spent}
                         </p>
-                
-              
+                      </div>
+                    </div>
                   </>
                 )}
 
@@ -123,7 +123,7 @@ export default function MarketingCampaignsPage() {
                     <p className="text-sm text-blue-900 dark:text-blue-400">
                       Campaign starts on {campaign.startDate} • Budget: {campaign.budget}
                     </p>
-            
+                  </div>
                 )}
 
                 <div className="flex gap-2">
@@ -143,11 +143,11 @@ export default function MarketingCampaignsPage() {
                       Pause
                     </Button>
                   )}
-          
+                </div>
               </Card>
             ))}
-    
-  
+          </div>
+        </div>
       </main>
   );
 }

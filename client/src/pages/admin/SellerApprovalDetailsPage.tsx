@@ -148,6 +148,7 @@ export default function SellerApprovalDetailsPage() {
         <Breadcrumbs
           homeHref="/admin/dashboard"
           items={[
+            { label: "User Management", href: "/admin/user-management" },
             { label: "Seller Approvals", href: "/admin/seller-approvals" },
             { label: sellerProfile.companyName || "Seller Details" },
           ]}

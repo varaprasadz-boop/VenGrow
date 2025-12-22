@@ -44,7 +44,7 @@ export default function AutoResponsesPage() {
             <p className="text-muted-foreground">
               Automate your responses to buyer inquiries
             </p>
-    
+          </div>
 
           <div className="space-y-6">
             {autoResponses.map((response) => (
@@ -57,12 +57,12 @@ export default function AutoResponsesPage() {
                     <p className="text-sm text-muted-foreground mb-4">
                       {response.description}
                     </p>
-            
+                  </div>
                   <Switch
                     defaultChecked={response.enabled}
                     data-testid={`switch-${response.id}`}
                   />
-          
+                </div>
 
                 <div>
                   <Label htmlFor={`template-${response.id}`}>
@@ -78,15 +78,15 @@ export default function AutoResponsesPage() {
                   <p className="text-xs text-muted-foreground mt-2">
                     Use {"{property_title}"} to insert property name dynamically
                   </p>
-          
+                </div>
               </Card>
             ))}
-    
+          </div>
 
           <Button className="w-full mt-8" size="lg" data-testid="button-save">
             Save Changes
           </Button>
-  
+        </div>
       </main>
   );
 }

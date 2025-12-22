@@ -31,7 +31,7 @@ export default function ListingSettingsPage() {
             <p className="text-muted-foreground">
               Configure how buyers interact with your listings
             </p>
-    
+          </div>
 
           {/* Visibility Settings */}
           <Card className="p-6 mb-6">
@@ -46,7 +46,7 @@ export default function ListingSettingsPage() {
                   <p className="text-sm text-muted-foreground">
                     Display your contact number on listings
                   </p>
-          
+                </div>
                 <Switch
                   id="show-phone"
                   checked={settings.showPhoneNumber}
@@ -55,7 +55,7 @@ export default function ListingSettingsPage() {
                   }
                   data-testid="switch-phone"
                 />
-        
+              </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -63,7 +63,7 @@ export default function ListingSettingsPage() {
                   <p className="text-sm text-muted-foreground">
                     Display your email on listings
                   </p>
-          
+                </div>
                 <Switch
                   id="show-email"
                   checked={settings.showEmail}
@@ -72,7 +72,7 @@ export default function ListingSettingsPage() {
                   }
                   data-testid="switch-email"
                 />
-        
+              </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -80,7 +80,7 @@ export default function ListingSettingsPage() {
                   <p className="text-sm text-muted-foreground">
                     Let buyers book property visits online
                   </p>
-          
+                </div>
                 <Switch
                   id="schedule-visit"
                   checked={settings.allowScheduleVisit}
@@ -89,8 +89,8 @@ export default function ListingSettingsPage() {
                   }
                   data-testid="switch-schedule"
                 />
-        
-      
+              </div>
+            </div>
           </Card>
 
           {/* Notification Settings */}
@@ -106,7 +106,7 @@ export default function ListingSettingsPage() {
                   <p className="text-sm text-muted-foreground">
                     Receive inquiry notifications via email
                   </p>
-          
+                </div>
                 <Switch
                   id="email-notif"
                   checked={settings.emailNotifications}
@@ -115,7 +115,7 @@ export default function ListingSettingsPage() {
                   }
                   data-testid="switch-email-notif"
                 />
-        
+              </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -123,7 +123,7 @@ export default function ListingSettingsPage() {
                   <p className="text-sm text-muted-foreground">
                     Receive inquiry notifications via SMS
                   </p>
-          
+                </div>
                 <Switch
                   id="sms-notif"
                   checked={settings.smsNotifications}
@@ -132,8 +132,8 @@ export default function ListingSettingsPage() {
                   }
                   data-testid="switch-sms-notif"
                 />
-        
-      
+              </div>
+            </div>
           </Card>
 
           {/* Auto Response */}
@@ -149,7 +149,7 @@ export default function ListingSettingsPage() {
                   <p className="text-sm text-muted-foreground">
                     Automatically send response to new inquiries
                   </p>
-          
+                </div>
                 <Switch
                   id="auto-response"
                   checked={settings.autoResponseEnabled}
@@ -158,7 +158,7 @@ export default function ListingSettingsPage() {
                   }
                   data-testid="switch-auto-response"
                 />
-        
+              </div>
 
               {settings.autoResponseEnabled && (
                 <div>
@@ -170,9 +170,9 @@ export default function ListingSettingsPage() {
                     placeholder="Thank you for your inquiry. I will get back to you within 24 hours..."
                     data-testid="textarea-auto-message"
                   />
-          
+                </div>
               )}
-      
+            </div>
           </Card>
 
           {/* Availability */}
@@ -188,7 +188,7 @@ export default function ListingSettingsPage() {
                   <p className="text-sm text-muted-foreground">
                     Available for property visits on weekends
                   </p>
-          
+                </div>
                 <Switch
                   id="weekend"
                   checked={settings.weekendAvailability}
@@ -197,7 +197,7 @@ export default function ListingSettingsPage() {
                   }
                   data-testid="switch-weekend"
                 />
-        
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -208,7 +208,7 @@ export default function ListingSettingsPage() {
                     defaultValue="09:00"
                     data-testid="input-start-time"
                   />
-          
+                </div>
                 <div>
                   <Label htmlFor="end-time">Available Until</Label>
                   <Input
@@ -217,9 +217,9 @@ export default function ListingSettingsPage() {
                     defaultValue="18:00"
                     data-testid="input-end-time"
                   />
-          
-        
-      
+                </div>
+              </div>
+            </div>
           </Card>
 
           <div className="flex gap-4">
@@ -229,8 +229,8 @@ export default function ListingSettingsPage() {
             <Button variant="outline" className="flex-1" data-testid="button-reset">
               Reset to Default
             </Button>
-    
-  
+          </div>
+        </div>
       </main>
   );
 }

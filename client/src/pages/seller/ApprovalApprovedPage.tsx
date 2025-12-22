@@ -15,12 +15,12 @@ export default function ApprovalApprovedPage() {
               <span className="font-serif font-bold text-2xl">VenGrow</span>
             </a>
           </Link>
-  
+        </div>
 
         <Card className="p-8 text-center">
           <div className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20 mb-6">
             <CheckCircle className="h-12 w-12 text-green-600" />
-    
+          </div>
 
           <h1 className="font-serif font-bold text-3xl mb-3">
             Congratulations! You're Verified
@@ -34,7 +34,7 @@ export default function ApprovalApprovedPage() {
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="h-5 w-5 text-primary" />
               <h3 className="font-semibold">Next Steps</h3>
-      
+            </div>
             <ol className="space-y-3 text-sm">
               <li className="flex gap-3">
                 <span className="flex-shrink-0 h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</span>
@@ -49,7 +49,7 @@ export default function ApprovalApprovedPage() {
                 <span className="text-muted-foreground pt-0.5">Start creating property listings and reach thousands of buyers</span>
               </li>
             </ol>
-    
+          </div>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
@@ -63,15 +63,15 @@ export default function ApprovalApprovedPage() {
                 Go to Dashboard
               </Button>
             </Link>
-    
+          </div>
         </Card>
 
         <div className="text-center mt-6">
           <p className="text-sm text-muted-foreground">
             Need assistance? <Link href="/contact"><a className="text-primary hover:underline">Contact our support team</a></Link>
           </p>
-  
-
+        </div>
+      </div>
     </div>
   );
 }

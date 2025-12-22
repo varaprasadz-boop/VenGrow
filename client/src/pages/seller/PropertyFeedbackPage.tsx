@@ -37,7 +37,7 @@ export default function PropertyFeedbackPage() {
             <p className="text-muted-foreground">
               Reviews and feedback from property visitors
             </p>
-    
+          </div>
 
           <div className="space-y-4">
             {feedback.map((item) => (
@@ -60,8 +60,8 @@ export default function PropertyFeedbackPage() {
                             }`}
                           />
                         ))}
-                
-              
+                      </div>
+                    </div>
                     <p className="text-sm text-muted-foreground mb-3">
                       {item.comment}
                     </p>
@@ -69,13 +69,13 @@ export default function PropertyFeedbackPage() {
                       <span>{item.property}</span>
                       <span>•</span>
                       <span>{item.date}</span>
-              
-            
-          
+                    </div>
+                  </div>
+                </div>
               </Card>
             ))}
-    
-  
+          </div>
+        </div>
       </main>
   );
 }

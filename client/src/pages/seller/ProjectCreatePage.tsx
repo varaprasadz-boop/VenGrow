@@ -127,8 +127,8 @@ export default function ProjectCreatePage() {
           <p className="text-muted-foreground">
             Add a new real estate project to your portfolio
           </p>
-  
-
+        </div>
+      </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit((data) => onSubmit(data, false))} className="space-y-6">
@@ -229,7 +229,7 @@ export default function ProjectCreatePage() {
                   </FormItem>
                 )}
               />
-      
+            </div>
           </Card>
 
           <Card className="p-6">
@@ -317,7 +317,7 @@ export default function ProjectCreatePage() {
                   </FormItem>
                 )}
               />
-      
+            </div>
           </Card>
 
           <Card className="p-6">
@@ -406,7 +406,7 @@ export default function ProjectCreatePage() {
                   </FormItem>
                 )}
               />
-      
+            </div>
           </Card>
 
           <Card className="p-6">
@@ -439,7 +439,7 @@ export default function ProjectCreatePage() {
                   </FormItem>
                 )}
               />
-      
+            </div>
           </Card>
 
           <div className="flex items-center justify-end gap-4 flex-wrap">
@@ -469,7 +469,7 @@ export default function ProjectCreatePage() {
               <Send className="h-4 w-4 mr-2" />
               Submit for Approval
             </Button>
-    
+          </div>
         </form>
       </Form>
     </div>

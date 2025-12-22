@@ -47,31 +47,31 @@ export default function SellerInvoicesPage() {
   });
 
   if (isLoading) {
-  return (
+    return (
 
-      <main className="flex-1 bg-muted/30">
+        <main className="flex-1 bg-muted/30">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Skeleton className="h-10 w-64 mb-8" />
             <Skeleton className="h-96 w-full" />
-    
-      </main>
-
+          </div>
+        </main>
+      </div>
     );
   }
 
   if (isError) {
-  return (
+    return (
 
-      <main className="flex-1 bg-muted/30 flex items-center justify-center">
+        <main className="flex-1 bg-muted/30 flex items-center justify-center">
           <div className="text-center p-8">
             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
             <h2 className="text-xl font-semibold mb-2">Failed to Load Invoices</h2>
             <Button onClick={() => refetch()} data-testid="button-retry">
               <RefreshCw className="h-4 w-4 mr-2" />Retry
             </Button>
-    
-      </main>
-
+          </div>
+        </main>
+      </div>
     );
   }
 
@@ -84,37 +84,37 @@ export default function SellerInvoicesPage() {
           <div className="flex items-center gap-3 mb-8">
             <div className="p-2 rounded-lg bg-primary/10">
               <Receipt className="h-6 w-6 text-primary" />
-      
+            </div>
             <div>
               <h1 className="font-serif font-bold text-3xl">My Invoices</h1>
               <p className="text-muted-foreground">View and download your invoices</p>
-      
-    
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <Card className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Receipt className="h-5 w-5 text-primary" />
-          
+                </div>
                 <div>
                   <p className="text-2xl font-bold">{invoices.length}</p>
                   <p className="text-sm text-muted-foreground">Total Invoices</p>
-          
-        
+                </div>
+              </div>
             </Card>
             <Card className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20">
                   <IndianRupee className="h-5 w-5 text-green-600" />
-          
+                </div>
                 <div>
                   <p className="text-2xl font-bold">{formatPrice(totalPaid)}</p>
                   <p className="text-sm text-muted-foreground">Total Paid</p>
-          
-        
+                </div>
+              </div>
             </Card>
-    
+          </div>
 
           <Card className="p-6">
             <div className="border rounded-lg overflow-hidden">
@@ -149,7 +149,7 @@ export default function SellerInvoicesPage() {
                           <div>
                             <p className="font-semibold">{formatPrice(invoice.totalAmount)}</p>
                             <p className="text-xs text-muted-foreground">incl. GST</p>
-                    
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           {format(new Date(invoice.invoiceDate), "MMM d, yyyy")}
@@ -175,16 +175,16 @@ export default function SellerInvoicesPage() {
                                 <Download className="h-4 w-4" />
                               </Button>
                             )}
-                    
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
                   )}
                 </TableBody>
               </Table>
-      
+            </div>
           </Card>
-  
+        </div>
       </main>
   );
 }

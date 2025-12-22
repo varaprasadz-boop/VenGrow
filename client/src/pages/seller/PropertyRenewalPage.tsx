@@ -33,7 +33,7 @@ export default function PropertyRenewalPage() {
             <p className="text-muted-foreground">
               Extend your property listing
             </p>
-    
+          </div>
 
           <Card className="p-6 mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -42,7 +42,7 @@ export default function PropertyRenewalPage() {
                 <p className="text-sm text-muted-foreground">
                   Current Package: {listing.package}
                 </p>
-        
+              </div>
               <Badge
                 className={
                   listing.daysLeft < 7
@@ -52,18 +52,18 @@ export default function PropertyRenewalPage() {
               >
                 {listing.daysLeft} days left
               </Badge>
-      
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-muted rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Total Views</p>
                 <p className="font-semibold text-xl">{listing.views}</p>
-        
+              </div>
               <div className="p-4 bg-muted rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Inquiries</p>
                 <p className="font-semibold text-xl">{listing.inquiries}</p>
-        
-      
+              </div>
+            </div>
           </Card>
 
           <div className="space-y-4 mb-8">
@@ -91,19 +91,19 @@ export default function PropertyRenewalPage() {
                           {option.savings}
                         </span>
                       )}
-              
-            
+                    </div>
+                  </div>
                   <Button
                     variant={option.popular ? "default" : "outline"}
                     data-testid={`button-renew-${index}`}
                   >
                     Select
                   </Button>
-          
+                </div>
               </Card>
             ))}
-    
-  
+          </div>
+        </div>
       </main>
   );
 }

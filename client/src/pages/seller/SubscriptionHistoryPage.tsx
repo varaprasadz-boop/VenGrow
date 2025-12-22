@@ -39,7 +39,7 @@ export default function SubscriptionHistoryPage() {
             <p className="text-muted-foreground">
               View all your past and current subscriptions
             </p>
-    
+          </div>
 
           <div className="space-y-4">
             {subscriptions.map((sub) => (
@@ -55,27 +55,27 @@ export default function SubscriptionHistoryPage() {
                       ) : (
                         <Badge variant="outline">Expired</Badge>
                       )}
-              
+                    </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div>
                         <p className="text-xs text-muted-foreground">Start Date</p>
                         <p className="font-medium">{sub.startDate}</p>
-                
+                      </div>
                       <div>
                         <p className="text-xs text-muted-foreground">End Date</p>
                         <p className="font-medium">{sub.endDate}</p>
-                
+                      </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Amount</p>
                         <p className="font-medium">{sub.amount}</p>
-                
+                      </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Listings</p>
                         <p className="font-medium">{sub.listings}</p>
-                
-              
-            
+                      </div>
+                    </div>
+                  </div>
 
                   <Button
                     variant="outline"
@@ -84,11 +84,11 @@ export default function SubscriptionHistoryPage() {
                   >
                     Download Invoice
                   </Button>
-          
+                </div>
               </Card>
             ))}
-    
-  
+          </div>
+        </div>
       </main>
   );
 }

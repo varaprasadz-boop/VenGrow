@@ -44,7 +44,7 @@ export default function ContractTemplatesPage() {
             <p className="text-muted-foreground">
               Ready-to-use legal document templates
             </p>
-    
+          </div>
 
           <div className="space-y-4">
             {templates.map((template) => (
@@ -53,12 +53,12 @@ export default function ContractTemplatesPage() {
                   <div className="flex items-start gap-4 flex-1">
                     <div className="p-3 rounded-lg bg-muted flex-shrink-0">
                       <FileText className="h-6 w-6 text-primary" />
-              
+                    </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="font-semibold text-lg">{template.name}</h3>
                         <Badge variant="outline">{template.category}</Badge>
-                
+                      </div>
                       <p className="text-sm text-muted-foreground mb-4">
                         {template.description}
                       </p>
@@ -66,9 +66,9 @@ export default function ContractTemplatesPage() {
                         <span>Updated {template.lastUpdated}</span>
                         <span>•</span>
                         <span>Used {template.usageCount} times</span>
-                
-              
-            
+                      </div>
+                    </div>
+                  </div>
                   <div className="flex gap-2 ml-4">
                     <Button
                       variant="outline"
@@ -91,12 +91,12 @@ export default function ContractTemplatesPage() {
                     >
                       <Download className="h-4 w-4" />
                     </Button>
-            
-          
+                  </div>
+                </div>
               </Card>
             ))}
-    
-  
+          </div>
+        </div>
       </main>
   );
 }

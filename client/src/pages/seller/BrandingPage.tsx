@@ -20,7 +20,7 @@ export default function BrandingPage() {
             <p className="text-muted-foreground">
               Customize your seller profile appearance
             </p>
-    
+          </div>
 
           <Card className="p-8 mb-8">
             <h3 className="font-semibold text-lg mb-6">Logo & Cover</h3>
@@ -31,8 +31,8 @@ export default function BrandingPage() {
                   <p className="text-sm text-muted-foreground">
                     Click to upload logo (Max 2MB)
                   </p>
-          
-        
+                </div>
+              </div>
 
               <div>
                 <Label htmlFor="cover">Cover Image</Label>
@@ -40,9 +40,9 @@ export default function BrandingPage() {
                   <p className="text-sm text-muted-foreground">
                     Click to upload cover image (Max 5MB)
                   </p>
-          
-        
-      
+                </div>
+              </div>
+            </div>
           </Card>
 
           <Card className="p-8 mb-8">
@@ -55,7 +55,7 @@ export default function BrandingPage() {
                   defaultValue="Raj Properties"
                   data-testid="input-company-name"
                 />
-        
+              </div>
 
               <div>
                 <Label htmlFor="tagline">Tagline</Label>
@@ -64,7 +64,7 @@ export default function BrandingPage() {
                   placeholder="Your company tagline"
                   data-testid="input-tagline"
                 />
-        
+              </div>
 
               <div>
                 <Label htmlFor="description">About Us</Label>
@@ -74,8 +74,8 @@ export default function BrandingPage() {
                   rows={4}
                   data-testid="textarea-description"
                 />
-        
-      
+              </div>
+            </div>
           </Card>
 
           <Card className="p-8">
@@ -88,7 +88,7 @@ export default function BrandingPage() {
                   placeholder="https://example.com"
                   data-testid="input-website"
                 />
-        
+              </div>
               <div>
                 <Label htmlFor="facebook">Facebook Page</Label>
                 <Input
@@ -96,7 +96,7 @@ export default function BrandingPage() {
                   placeholder="https://facebook.com/yourpage"
                   data-testid="input-facebook"
                 />
-        
+              </div>
               <div>
                 <Label htmlFor="instagram">Instagram Handle</Label>
                 <Input
@@ -104,14 +104,14 @@ export default function BrandingPage() {
                   placeholder="@yourbrand"
                   data-testid="input-instagram"
                 />
-        
-      
+              </div>
+            </div>
           </Card>
 
           <Button className="w-full mt-8" size="lg" data-testid="button-save">
             Save Branding
           </Button>
-  
+        </div>
       </main>
   );
 }

@@ -37,7 +37,7 @@ export default function SalesTargetsPage() {
             <p className="text-muted-foreground">
               Track your performance against targets
             </p>
-    
+          </div>
 
           {/* Targets */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -50,26 +50,26 @@ export default function SalesTargetsPage() {
                     <p className="text-4xl font-bold text-primary">
                       {target.achieved}
                     </p>
-            
+                  </div>
                   <div className="pb-2">
                     <p className="text-sm text-muted-foreground">of {target.target}</p>
-            
-          
+                  </div>
+                </div>
                 <div className="mb-2">
                   <div className="flex items-center justify-between text-sm mb-1">
                     <span className="text-muted-foreground">Progress</span>
                     <span className="font-semibold">{target.percentage}%</span>
-            
+                  </div>
                   <div className="h-3 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-primary"
                       style={{ width: `${target.percentage}%` }}
                     />
-            
-          
+                  </div>
+                </div>
               </Card>
             ))}
-    
+          </div>
 
           {/* Performance Chart */}
           <Card className="p-6">
@@ -79,9 +79,9 @@ export default function SalesTargetsPage() {
             </h3>
             <div className="h-64 flex items-center justify-center bg-muted rounded-lg">
               <span className="text-muted-foreground">Performance Chart</span>
-      
+            </div>
           </Card>
-  
+        </div>
       </main>
   );
 }

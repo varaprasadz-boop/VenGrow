@@ -34,7 +34,7 @@ export default function PropertyDuplicatePage() {
             <p className="text-muted-foreground">
               Review similar listings to avoid duplicates
             </p>
-    
+          </div>
 
           <Card className="p-6 mb-8 bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-900/20">
             <h3 className="font-semibold mb-2">Why This Matters</h3>
@@ -53,13 +53,13 @@ export default function PropertyDuplicatePage() {
                       <h3 className="font-semibold text-lg">{listing.title}</h3>
                       <div className="px-3 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500 rounded text-xs font-semibold">
                         {listing.similarity} Match
-                
-              
+                      </div>
+                    </div>
                     <div className="space-y-1 text-sm text-muted-foreground">
                       <p>{listing.location}</p>
                       <p className="font-semibold text-primary">{listing.price}</p>
-              
-            
+                    </div>
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
@@ -67,10 +67,10 @@ export default function PropertyDuplicatePage() {
                   >
                     View Details
                   </Button>
-          
+                </div>
               </Card>
             ))}
-    
+          </div>
 
           <div className="mt-8 flex gap-4">
             <Button
@@ -83,8 +83,8 @@ export default function PropertyDuplicatePage() {
             <Button className="flex-1" data-testid="button-proceed">
               This is Not a Duplicate
             </Button>
-    
-  
+          </div>
+        </div>
       </main>
   );
 }

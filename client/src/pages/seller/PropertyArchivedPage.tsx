@@ -39,7 +39,7 @@ export default function PropertyArchivedPage() {
             <p className="text-muted-foreground">
               View your previously listed properties
             </p>
-    
+          </div>
 
           <div className="space-y-4">
             {archivedProperties.map((property) => (
@@ -49,13 +49,13 @@ export default function PropertyArchivedPage() {
                     <span className="text-sm text-muted-foreground">
                       {property.images} photos
                     </span>
-            
+                  </div>
 
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-semibold text-lg">{property.title}</h3>
                       <Badge variant="outline">{property.reason}</Badge>
-              
+                    </div>
 
                     <p className="text-sm text-muted-foreground mb-3">
                       {property.location}
@@ -65,14 +65,14 @@ export default function PropertyArchivedPage() {
                       <div>
                         <p className="text-xs text-muted-foreground">Price</p>
                         <p className="font-semibold text-lg">{property.price}</p>
-                
+                      </div>
                       <div>
                         <p className="text-xs text-muted-foreground">
                           Archived On
                         </p>
                         <p className="font-medium">{property.archivedDate}</p>
-                
-              
+                      </div>
+                    </div>
 
                     <div className="flex gap-2">
                       <Button
@@ -89,13 +89,13 @@ export default function PropertyArchivedPage() {
                       >
                         Reactivate Listing
                       </Button>
-              
-            
-          
+                    </div>
+                  </div>
+                </div>
               </Card>
             ))}
-    
-  
+          </div>
+        </div>
       </main>
   );
 }

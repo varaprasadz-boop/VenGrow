@@ -48,98 +48,103 @@ export default function SellerCallInquiriesPage() {
 
   if (isLoading) {
     return (
-      <main className="flex-1 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Skeleton className="h-10 w-64 mb-8" />
-          <Skeleton className="h-96 w-full" />
-        </div>
-      </main>
+
+        <main className="flex-1 bg-muted/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Skeleton className="h-10 w-64 mb-8" />
+            <Skeleton className="h-96 w-full" />
+          </div>
+        </main>
+      </div>
     );
   }
 
   if (isError) {
     return (
-      <main className="flex-1 bg-muted/30 flex items-center justify-center">
-        <div className="text-center p-8">
-          <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
-          <h2 className="text-xl font-semibold mb-2">Failed to Load Call Requests</h2>
-          <Button onClick={() => refetch()} data-testid="button-retry">
-            <RefreshCw className="h-4 w-4 mr-2" />Retry
-          </Button>
-        </div>
-      </main>
+
+        <main className="flex-1 bg-muted/30 flex items-center justify-center">
+          <div className="text-center p-8">
+            <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
+            <h2 className="text-xl font-semibold mb-2">Failed to Load Call Requests</h2>
+            <Button onClick={() => refetch()} data-testid="button-retry">
+              <RefreshCw className="h-4 w-4 mr-2" />Retry
+            </Button>
+          </div>
+        </main>
+      </div>
     );
   }
 
   return (
-    <main className="flex-1 bg-muted/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/20">
-            <Phone className="h-6 w-6 text-purple-600" />
-          </div>
-          <div>
-            <h1 className="font-serif font-bold text-3xl">Call Requests</h1>
-            <p className="text-muted-foreground">Buyers who want a call back ({callInquiries.length})</p>
-          </div>
-        </div>
 
-        <Card className="p-6">
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Property</TableHead>
-                  <TableHead>Buyer</TableHead>
-                  <TableHead>Phone Number</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-center">Requested</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {callInquiries.length === 0 ? (
+      <main className="flex-1 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/20">
+              <Phone className="h-6 w-6 text-purple-600" />
+            </div>
+            <div>
+              <h1 className="font-serif font-bold text-3xl">Call Requests</h1>
+              <p className="text-muted-foreground">Buyers who want a call back ({callInquiries.length})</p>
+            </div>
+          </div>
+
+          <Card className="p-6">
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No call requests yet
-                    </TableCell>
+                    <TableHead>Property</TableHead>
+                    <TableHead>Buyer</TableHead>
+                    <TableHead>Phone Number</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-center">Requested</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  callInquiries.map((inquiry) => (
-                    <TableRow key={inquiry.id} data-testid={`row-inquiry-${inquiry.id}`}>
-                      <TableCell>
-                        <p className="font-medium">{inquiry.property?.title || "Unknown"}</p>
-                        <p className="text-sm text-muted-foreground">{inquiry.property?.city}</p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="font-medium">{inquiry.buyer?.firstName} {inquiry.buyer?.lastName}</p>
-                        <p className="text-sm text-muted-foreground">{inquiry.buyer?.email}</p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="font-mono font-medium">{inquiry.buyerPhone || inquiry.buyer?.phone || "-"}</p>
-                      </TableCell>
-                      <TableCell className="text-center">{getStatusBadge(inquiry.status)}</TableCell>
-                      <TableCell className="text-center text-sm">
-                        {formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" data-testid={`button-view-${inquiry.id}`}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" data-testid={`button-mark-called-${inquiry.id}`}>
-                            <CheckCircle className="h-4 w-4 mr-1" />Mark Called
-                          </Button>
-                        </div>
+                </TableHeader>
+                <TableBody>
+                  {callInquiries.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No call requests yet
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      </div>
-    </main>
+                  ) : (
+                    callInquiries.map((inquiry) => (
+                      <TableRow key={inquiry.id} data-testid={`row-inquiry-${inquiry.id}`}>
+                        <TableCell>
+                          <p className="font-medium">{inquiry.property?.title || "Unknown"}</p>
+                          <p className="text-sm text-muted-foreground">{inquiry.property?.city}</p>
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-medium">{inquiry.buyer?.firstName} {inquiry.buyer?.lastName}</p>
+                          <p className="text-sm text-muted-foreground">{inquiry.buyer?.email}</p>
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-mono font-medium">{inquiry.buyerPhone || inquiry.buyer?.phone || "-"}</p>
+                        </TableCell>
+                        <TableCell className="text-center">{getStatusBadge(inquiry.status)}</TableCell>
+                        <TableCell className="text-center text-sm">
+                          {formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true })}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="sm" data-testid={`button-view-${inquiry.id}`}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" data-testid={`button-mark-called-${inquiry.id}`}>
+                              <CheckCircle className="h-4 w-4 mr-1" />Mark Called
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </div>
+      </main>
   );
 }

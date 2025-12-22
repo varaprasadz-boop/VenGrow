@@ -122,13 +122,13 @@ export default function LeadManagementPage() {
       case "hot":
         return <Badge variant="destructive">Hot Lead</Badge>;
       case "warm":
-      return (
+        return (
           <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500">
             Warm Lead
           </Badge>
         );
       case "cold":
-      return (
+        return (
           <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-500">
             Cold Lead
           </Badge>
@@ -163,9 +163,9 @@ export default function LeadManagementPage() {
   const conversionRate = leads.length > 0 ? Math.round((convertedLeads / leads.length) * 100) : 0;
 
   if (isLoading) {
-  return (
+    return (
 
-      <main className="flex-1">
+        <main className="flex-1">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Skeleton className="h-10 w-64 mb-2" />
             <Skeleton className="h-6 w-48 mb-8" />
@@ -173,16 +173,16 @@ export default function LeadManagementPage() {
               {[1, 2, 3, 4].map((i) => (
                 <Skeleton key={i} className="h-24 w-full" />
               ))}
-      
+            </div>
             <Skeleton className="h-12 w-full mb-4" />
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-48 w-full" />
               ))}
-      
-    
-      </main>
-
+            </div>
+          </div>
+        </main>
+      </div>
     );
   }
 
@@ -198,57 +198,57 @@ export default function LeadManagementPage() {
             <p className="text-muted-foreground">
               Track and manage your property leads with CRM tools
             </p>
-    
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20">
                   <Users className="h-6 w-6 text-blue-600" />
-          
+                </div>
                 <div>
                   <p className="text-3xl font-bold" data-testid="text-total-leads">{leads.length}</p>
                   <p className="text-sm text-muted-foreground">Total Leads</p>
-          
-        
+                </div>
+              </div>
             </Card>
 
             <Card className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/20">
                   <TrendingUp className="h-6 w-6 text-red-600" />
-          
+                </div>
                 <div>
                   <p className="text-3xl font-bold" data-testid="text-hot-leads">{hotLeads}</p>
                   <p className="text-sm text-muted-foreground">Hot Leads</p>
-          
-        
+                </div>
+              </div>
             </Card>
 
             <Card className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-yellow-100 dark:bg-yellow-900/20">
                   <TrendingUp className="h-6 w-6 text-yellow-600" />
-          
+                </div>
                 <div>
                   <p className="text-3xl font-bold" data-testid="text-warm-leads">{warmLeads}</p>
                   <p className="text-sm text-muted-foreground">Warm Leads</p>
-          
-        
+                </div>
+              </div>
             </Card>
 
             <Card className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/20">
                   <CheckCircle2 className="h-6 w-6 text-green-600" />
-          
+                </div>
                 <div>
                   <p className="text-3xl font-bold" data-testid="text-conversion-rate">{conversionRate}%</p>
                   <p className="text-sm text-muted-foreground">Conversion Rate</p>
-          
-        
+                </div>
+              </div>
             </Card>
-    
+          </div>
 
           {leads.length === 0 ? (
             <Card className="p-8 text-center">
@@ -289,19 +289,19 @@ export default function LeadManagementPage() {
                             {getConversionBadge(lead.conversionStatus)}
                             <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
                               Score: {lead.score}
-                      
-                    
+                            </div>
+                          </div>
                           <div className="space-y-1 text-sm text-muted-foreground">
                             <div className="flex items-center gap-2">
                               <Mail className="h-4 w-4" />
                               <span>{lead.user?.email || lead.buyerEmail || "No email"}</span>
-                      
+                            </div>
                             <div className="flex items-center gap-2">
                               <Phone className="h-4 w-4" />
                               <span>{lead.buyerPhone || "No phone"}</span>
-                      
-                    
-                  
+                            </div>
+                          </div>
+                        </div>
                         <Button
                           variant="outline"
                           size="sm"
@@ -311,7 +311,7 @@ export default function LeadManagementPage() {
                           <Edit2 className="h-4 w-4 mr-2" />
                           Manage Lead
                         </Button>
-                
+                      </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
                         <div className="p-3 bg-muted rounded-lg">
@@ -321,11 +321,11 @@ export default function LeadManagementPage() {
                           <p className="font-medium text-sm">
                             {lead.property?.title || "Property Inquiry"}
                           </p>
-                  
+                        </div>
                         <div className="p-3 bg-muted rounded-lg">
                           <p className="text-xs text-muted-foreground mb-1">Source</p>
                           <p className="font-medium text-sm capitalize">{lead.sourceType || "Website"}</p>
-                  
+                        </div>
                         <div className="p-3 bg-muted rounded-lg">
                           <p className="text-xs text-muted-foreground mb-1">
                             Last Contact
@@ -333,7 +333,7 @@ export default function LeadManagementPage() {
                           <p className="font-medium text-sm">
                             {formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })}
                           </p>
-                  
+                        </div>
                         <div className="p-3 bg-muted rounded-lg">
                           <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
@@ -344,15 +344,15 @@ export default function LeadManagementPage() {
                               ? format(new Date(lead.followUpDate), "MMM d, yyyy")
                               : "Not set"}
                           </p>
-                  
-                
+                        </div>
+                      </div>
 
                       {lead.message && (
                         <div className="p-3 bg-muted/50 rounded-lg mb-4">
                           <p className="text-sm text-muted-foreground italic">
                             "{lead.message}"
                           </p>
-                  
+                        </div>
                       )}
 
                       {lead.sellerNotes && (
@@ -362,7 +362,7 @@ export default function LeadManagementPage() {
                             Your Notes
                           </p>
                           <p className="text-sm">{lead.sellerNotes}</p>
-                  
+                        </div>
                       )}
 
                       <div className="flex gap-2 flex-wrap">
@@ -390,14 +390,14 @@ export default function LeadManagementPage() {
                           <MessageSquare className="h-4 w-4 mr-2" />
                           Message
                         </Button>
-                
+                      </div>
                     </Card>
                   ))}
-          
+                </div>
               </TabsContent>
             </Tabs>
           )}
-  
+        </div>
       </main>
 
       <Dialog open={!!editingLead} onOpenChange={() => setEditingLead(null)}>
@@ -422,7 +422,7 @@ export default function LeadManagementPage() {
                   <SelectItem value="cold">Cold - Low Priority</SelectItem>
                 </SelectContent>
               </Select>
-      
+            </div>
 
             <div className="space-y-2">
               <Label>Conversion Status</Label>
@@ -441,7 +441,7 @@ export default function LeadManagementPage() {
                   <SelectItem value="lost">Lost</SelectItem>
                 </SelectContent>
               </Select>
-      
+            </div>
 
             <div className="space-y-2">
               <Label>Follow-up Date</Label>
@@ -451,7 +451,7 @@ export default function LeadManagementPage() {
                 onChange={(e) => setEditForm({ ...editForm, followUpDate: e.target.value })}
                 data-testid="input-follow-up-date"
               />
-      
+            </div>
 
             <div className="space-y-2">
               <Label>Notes</Label>
@@ -462,8 +462,8 @@ export default function LeadManagementPage() {
                 rows={4}
                 data-testid="textarea-seller-notes"
               />
-      
-    
+            </div>
+          </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingLead(null)}>

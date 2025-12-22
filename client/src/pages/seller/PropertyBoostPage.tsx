@@ -51,7 +51,7 @@ export default function PropertyBoostPage() {
             <p className="text-muted-foreground">
               Increase visibility and get more inquiries
             </p>
-    
+          </div>
 
           {/* Current Stats */}
           <div className="grid grid-cols-2 gap-6 mb-8">
@@ -59,25 +59,25 @@ export default function PropertyBoostPage() {
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20">
                   <Eye className="h-6 w-6 text-blue-600" />
-          
+                </div>
                 <div>
                   <p className="text-3xl font-bold">{property.currentViews}</p>
                   <p className="text-sm text-muted-foreground">Current Views</p>
-          
-        
+                </div>
+              </div>
             </Card>
             <Card className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/20">
                   <Users className="h-6 w-6 text-green-600" />
-          
+                </div>
                 <div>
                   <p className="text-3xl font-bold">{property.currentInquiries}</p>
                   <p className="text-sm text-muted-foreground">Total Inquiries</p>
-          
-        
+                </div>
+              </div>
             </Card>
-    
+          </div>
 
           {/* Boost Plans */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -93,7 +93,7 @@ export default function PropertyBoostPage() {
                 <div className="flex items-baseline gap-2 mb-6">
                   <span className="text-4xl font-bold text-primary">{plan.price}</span>
                   <span className="text-muted-foreground">/{plan.duration}</span>
-          
+                </div>
 
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((feature, index) => (
@@ -113,8 +113,8 @@ export default function PropertyBoostPage() {
                 </Button>
               </Card>
             ))}
-    
-  
+          </div>
+        </div>
       </main>
   );
 }

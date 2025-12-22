@@ -21,13 +21,13 @@ export default function ApprovalRejectedPage() {
               <span className="font-serif font-bold text-2xl">VenGrow</span>
             </a>
           </Link>
-  
+        </div>
 
         <Card className="p-8">
           <div className="text-center mb-8">
             <div className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20 mb-6">
               <XCircle className="h-12 w-12 text-red-600" />
-      
+            </div>
 
             <h1 className="font-serif font-bold text-3xl mb-3">
               Application Not Approved
@@ -35,14 +35,14 @@ export default function ApprovalRejectedPage() {
             <p className="text-muted-foreground">
               Unfortunately, we couldn't approve your seller account at this time.
             </p>
-    
+          </div>
 
           {/* Rejection Reasons */}
           <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-6 mb-8">
             <div className="flex items-center gap-2 mb-4">
               <AlertCircle className="h-5 w-5 text-destructive" />
               <h3 className="font-semibold">Reasons for Rejection</h3>
-      
+            </div>
             <ul className="space-y-2 text-sm">
               {rejectionReasons.map((reason, index) => (
                 <li key={index} className="flex items-start gap-2">
@@ -51,7 +51,7 @@ export default function ApprovalRejectedPage() {
                 </li>
               ))}
             </ul>
-    
+          </div>
 
           {/* What You Can Do */}
           <div className="bg-muted/50 rounded-lg p-6 mb-8">
@@ -74,7 +74,7 @@ export default function ApprovalRejectedPage() {
                 <span>Contact support if you need clarification</span>
               </li>
             </ul>
-    
+          </div>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
@@ -88,7 +88,7 @@ export default function ApprovalRejectedPage() {
                 Contact Support
               </Button>
             </Link>
-    
+          </div>
         </Card>
 
         <div className="text-center mt-6">
@@ -97,8 +97,8 @@ export default function ApprovalRejectedPage() {
               Return to Homepage
             </a>
           </Link>
-  
-
+        </div>
+      </div>
     </div>
   );
 }

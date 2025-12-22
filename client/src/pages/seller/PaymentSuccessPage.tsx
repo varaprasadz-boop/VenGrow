@@ -28,12 +28,12 @@ export default function PaymentSuccessPage() {
               <span className="font-serif font-bold text-2xl">VenGrow</span>
             </a>
           </Link>
-  
+        </div>
 
         <Card className="p-8 text-center">
           <div className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20 mb-6">
             <CheckCircle className="h-12 w-12 text-green-600" />
-    
+          </div>
 
           <h1 className="font-serif font-bold text-3xl mb-3">
             Payment Successful!
@@ -49,45 +49,45 @@ export default function PaymentSuccessPage() {
               <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
                 Completed
               </Badge>
-      
+            </div>
 
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Transaction ID</span>
                 <span className="font-mono">{transaction.id}</span>
-        
+              </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Date & Time</span>
                 <span>{transaction.date}</span>
-        
+              </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Package</span>
                 <span className="font-medium">{transaction.package}</span>
-        
+              </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Payment Method</span>
                 <span>{transaction.paymentMethod}</span>
-        
+              </div>
 
               <Separator />
 
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Package Amount</span>
                 <span>₹{transaction.amount}</span>
-        
+              </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">GST (18%)</span>
                 <span>₹{transaction.gst}</span>
-        
+              </div>
 
               <Separator />
 
               <div className="flex justify-between font-semibold text-base">
                 <span>Total Paid</span>
                 <span className="text-primary">₹{transaction.total}</span>
-        
-      
-    
+              </div>
+            </div>
+          </div>
 
           {/* Package Info */}
           <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-6 mb-8 text-left">
@@ -99,8 +99,8 @@ export default function PaymentSuccessPage() {
               <p className="text-muted-foreground">
                 Valid until: <strong>{transaction.validUntil}</strong>
               </p>
-      
-    
+            </div>
+          </div>
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -114,7 +114,7 @@ export default function PaymentSuccessPage() {
               <Download className="h-4 w-4 mr-2" />
               Download Invoice
             </Button>
-    
+          </div>
 
           <p className="text-sm text-muted-foreground">
             A confirmation email with your invoice has been sent to your registered email address
@@ -125,8 +125,8 @@ export default function PaymentSuccessPage() {
           <p className="text-sm text-muted-foreground">
             Need help? <Link href="/contact"><a className="text-primary hover:underline">Contact our support team</a></Link>
           </p>
-  
-
+        </div>
+      </div>
     </div>
   );
 }

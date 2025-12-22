@@ -59,7 +59,7 @@ export default function UpgradeAccountPage() {
             <p className="text-lg text-muted-foreground">
               Unlock premium features and grow your real estate business
             </p>
-    
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {plans.map((plan, index) => (
@@ -75,7 +75,7 @@ export default function UpgradeAccountPage() {
                       <Star className="h-3 w-3 mr-1" />
                       Most Popular
                     </Badge>
-            
+                  </div>
                 )}
 
                 {plan.current && (
@@ -83,7 +83,7 @@ export default function UpgradeAccountPage() {
                     <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500 px-4 py-1">
                       Current Plan
                     </Badge>
-            
+                  </div>
                 )}
 
                 <div className="text-center mb-8">
@@ -95,19 +95,19 @@ export default function UpgradeAccountPage() {
                       {plan.price}
                     </span>
                     <span className="text-muted-foreground">/{plan.period}</span>
-            
-          
+                  </div>
+                </div>
 
                 <div className="space-y-4 mb-8">
                   {plan.features.map((feature, idx) => (
                     <div key={idx} className="flex items-start gap-3">
                       <div className="p-1 rounded-full bg-green-100 dark:bg-green-900/20 flex-shrink-0 mt-0.5">
                         <Check className="h-3 w-3 text-green-600" />
-                
+                      </div>
                       <span className="text-sm">{feature}</span>
-              
+                    </div>
                   ))}
-          
+                </div>
 
                 <Button
                   className="w-full"
@@ -119,7 +119,7 @@ export default function UpgradeAccountPage() {
                 </Button>
               </Card>
             ))}
-    
+          </div>
 
           {/* Benefits */}
           <Card className="p-8 mt-12">
@@ -127,7 +127,7 @@ export default function UpgradeAccountPage() {
               <h2 className="font-serif font-bold text-2xl mb-4">
                 Why Upgrade?
               </h2>
-      
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
                 {
@@ -147,16 +147,16 @@ export default function UpgradeAccountPage() {
                 <div key={index} className="text-center">
                   <div className="inline-flex p-4 rounded-full bg-primary/10 mb-4">
                     <TrendingUp className="h-8 w-8 text-primary" />
-            
+                  </div>
                   <h3 className="font-semibold text-lg mb-2">{benefit.title}</h3>
                   <p className="text-sm text-muted-foreground">
                     {benefit.description}
                   </p>
-          
+                </div>
               ))}
-      
+            </div>
           </Card>
-  
+        </div>
       </main>
   );
 }

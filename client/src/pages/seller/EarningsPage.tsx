@@ -46,9 +46,9 @@ export default function EarningsPage() {
   const thisMonthTotal = thisMonthPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
   if (isLoading) {
-  return (
+    return (
 
-      <main className="flex-1">
+        <main className="flex-1">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Skeleton className="h-10 w-64 mb-2" />
             <Skeleton className="h-6 w-48 mb-8" />
@@ -56,11 +56,11 @@ export default function EarningsPage() {
               {[1, 2, 3, 4].map((i) => (
                 <Skeleton key={i} className="h-24 w-full" />
               ))}
-      
+            </div>
             <Skeleton className="h-96 w-full" />
-    
-      </main>
-
+          </div>
+        </main>
+      </div>
     );
   }
 
@@ -77,70 +77,70 @@ export default function EarningsPage() {
               <p className="text-muted-foreground">
                 Track your commissions and payouts
               </p>
-      
+            </div>
             <Button data-testid="button-withdraw" disabled={totalEarnings === 0}>
               <Download className="h-4 w-4 mr-2" />
               Withdraw Funds
             </Button>
-    
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-primary/20">
                   <IndianRupee className="h-6 w-6 text-primary" />
-          
+                </div>
                 <div>
                   <p className="text-3xl font-bold" data-testid="text-total-earnings">
                     ₹{formatPrice(totalEarnings)}
                   </p>
                   <p className="text-sm text-muted-foreground">Total Earnings</p>
-          
-        
+                </div>
+              </div>
             </Card>
 
             <Card className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/20">
                   <TrendingUp className="h-6 w-6 text-green-600" />
-          
+                </div>
                 <div>
                   <p className="text-3xl font-bold" data-testid="text-this-month">
                     ₹{formatPrice(thisMonthTotal)}
                   </p>
                   <p className="text-sm text-muted-foreground">This Month</p>
-          
-        
+                </div>
+              </div>
             </Card>
 
             <Card className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-yellow-100 dark:bg-yellow-900/20">
                   <Calendar className="h-6 w-6 text-yellow-600" />
-          
+                </div>
                 <div>
                   <p className="text-3xl font-bold" data-testid="text-pending">
                     ₹{formatPrice(pendingAmount)}
                   </p>
                   <p className="text-sm text-muted-foreground">Pending</p>
-          
-        
+                </div>
+              </div>
             </Card>
 
             <Card className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20">
                   <Download className="h-6 w-6 text-blue-600" />
-          
+                </div>
                 <div>
                   <p className="text-3xl font-bold" data-testid="text-withdrawn">
                     ₹0
                   </p>
                   <p className="text-sm text-muted-foreground">Withdrawn</p>
-          
-        
+                </div>
+              </div>
             </Card>
-    
+          </div>
 
           <Card className="p-6">
             <h3 className="font-semibold text-lg mb-6">Transaction History</h3>
@@ -151,7 +151,7 @@ export default function EarningsPage() {
                 <p className="text-muted-foreground">
                   Your payment transactions will appear here once you start receiving payments.
                 </p>
-        
+              </div>
             ) : (
               <div className="space-y-4">
                 {payments.map((payment) => (
@@ -178,22 +178,22 @@ export default function EarningsPage() {
                             {payment.status}
                           </Badge>
                         )}
-                
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {payment.razorpayOrderId ? "Razorpay" : "Payment"} • {format(new Date(payment.createdAt), "MMM d, yyyy")}
                       </p>
-              
+                    </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold font-serif text-primary">
                         ₹{(payment.amount || 0).toLocaleString("en-IN")}
                       </p>
-              
-            
+                    </div>
+                  </div>
                 ))}
-        
+              </div>
             )}
           </Card>
-  
+        </div>
       </main>
   );
 }

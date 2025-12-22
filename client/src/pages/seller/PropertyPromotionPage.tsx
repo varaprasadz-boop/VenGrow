@@ -71,7 +71,7 @@ export default function PropertyPromotionPage() {
             <p className="text-muted-foreground">
               Boost your property visibility and get more inquiries
             </p>
-    
+          </div>
 
           {/* Active Promotions */}
           {activePromotions.length > 0 && (
@@ -87,32 +87,32 @@ export default function PropertyPromotionPage() {
                           <Zap className="h-3 w-3 mr-1" />
                           {promo.package}
                         </Badge>
-                
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {promo.startDate} - {promo.endDate}
                       </p>
-              
-            
+                    </div>
+                  </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-muted rounded-lg">
                       <div className="flex items-center gap-2 mb-1">
                         <Eye className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">Views</span>
-                
+                      </div>
                       <p className="text-2xl font-bold">{promo.views}</p>
-              
+                    </div>
                     <div className="p-4 bg-muted rounded-lg">
                       <div className="flex items-center gap-2 mb-1">
                         <Target className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">Inquiries</span>
-                
+                      </div>
                       <p className="text-2xl font-bold">{promo.inquiries}</p>
-              
-            
+                    </div>
+                  </div>
                 </Card>
               ))}
-      
+            </div>
           )}
 
           {/* Promotion Packages */}
@@ -131,7 +131,7 @@ export default function PropertyPromotionPage() {
                       <Badge className="bg-primary text-primary-foreground px-4 py-1">
                         Most Popular
                       </Badge>
-              
+                    </div>
                   )}
 
                   <div className="text-center mb-8">
@@ -143,17 +143,17 @@ export default function PropertyPromotionPage() {
                         {pkg.price}
                       </span>
                       <span className="text-muted-foreground">/{pkg.duration}</span>
-              
-            
+                    </div>
+                  </div>
 
                   <div className="space-y-3 mb-8">
                     {pkg.features.map((feature, idx) => (
                       <div key={idx} className="flex items-start gap-2">
                         <TrendingUp className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                         <span className="text-sm">{feature}</span>
-                
+                      </div>
                     ))}
-            
+                  </div>
 
                   <Button
                     className="w-full"
@@ -164,9 +164,9 @@ export default function PropertyPromotionPage() {
                   </Button>
                 </Card>
               ))}
-      
-    
-  
+            </div>
+          </div>
+        </div>
       </main>
   );
 }

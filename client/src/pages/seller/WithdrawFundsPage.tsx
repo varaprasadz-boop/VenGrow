@@ -28,7 +28,7 @@ export default function WithdrawFundsPage() {
             <p className="text-muted-foreground">
               Transfer your earnings to your bank account
             </p>
-    
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Withdrawal Form */}
@@ -49,7 +49,7 @@ export default function WithdrawFundsPage() {
                     <p className="text-xs text-muted-foreground mt-1">
                       Minimum withdrawal: ₹{minWithdrawal.toLocaleString()}
                     </p>
-            
+                  </div>
 
                   <div>
                     <Label htmlFor="bank">Select Bank Account</Label>
@@ -66,7 +66,7 @@ export default function WithdrawFundsPage() {
                         </SelectItem>
                       </SelectContent>
                     </Select>
-            
+                  </div>
 
                   <div>
                     <Label htmlFor="note">Note (Optional)</Label>
@@ -75,8 +75,8 @@ export default function WithdrawFundsPage() {
                       placeholder="Add a note for this withdrawal"
                       data-testid="input-note"
                     />
-            
-          
+                  </div>
+                </div>
               </Card>
 
               <Card className="p-6 mt-6 bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-900/20">
@@ -90,10 +90,10 @@ export default function WithdrawFundsPage() {
                       <li>• No processing fees for withdrawals</li>
                       <li>• Ensure your bank details are correct</li>
                     </ul>
-            
-          
+                  </div>
+                </div>
               </Card>
-      
+            </div>
 
             {/* Summary */}
             <div className="lg:col-span-1">
@@ -106,31 +106,31 @@ export default function WithdrawFundsPage() {
                   <p className="text-4xl font-bold font-serif text-primary">
                     ₹{availableBalance.toLocaleString()}
                   </p>
-          
+                </div>
 
                 <div className="space-y-4 mb-6 p-4 bg-muted rounded-lg">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Withdrawal</span>
                     <span className="font-medium">₹0</span>
-            
+                  </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Processing Fee</span>
                     <span className="font-medium">₹0</span>
-            
+                  </div>
                   <div className="pt-4 border-t flex items-center justify-between">
                     <span className="font-semibold">You'll Receive</span>
                     <span className="font-semibold text-lg">₹0</span>
-            
-          
+                  </div>
+                </div>
 
                 <Button className="w-full" data-testid="button-withdraw">
                   <DollarSign className="h-4 w-4 mr-2" />
                   Withdraw Funds
                 </Button>
               </Card>
-      
-    
-  
+            </div>
+          </div>
+        </div>
       </main>
   );
 }

@@ -46,14 +46,14 @@ export default function LeadSourcesPage() {
             <p className="text-muted-foreground">
               Track where your inquiries are coming from
             </p>
-    
+          </div>
 
           {/* Chart */}
           <Card className="p-6 mb-8">
             <h3 className="font-semibold text-lg mb-6">Lead Distribution</h3>
             <div className="h-64 flex items-center justify-center bg-muted rounded-lg">
               <span className="text-muted-foreground">Lead Sources Chart</span>
-      
+            </div>
           </Card>
 
           {/* Source Breakdown */}
@@ -63,7 +63,7 @@ export default function LeadSourcesPage() {
                 <div className="flex items-start gap-4">
                   <div className="p-3 rounded-lg bg-primary/10 flex-shrink-0">
                     <source.icon className="h-6 w-6 text-primary" />
-            
+                  </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg mb-2">{source.name}</h3>
                     <div className="flex items-baseline gap-3 mb-3">
@@ -71,22 +71,22 @@ export default function LeadSourcesPage() {
                       <span className="text-sm text-green-600 font-medium">
                         {source.trend}
                       </span>
-              
+                    </div>
                     <div className="w-full bg-muted rounded-full h-2">
                       <div
                         className="bg-primary h-2 rounded-full"
                         style={{ width: `${source.percentage}%` }}
                       />
-              
+                    </div>
                     <p className="text-xs text-muted-foreground mt-2">
                       {source.percentage}% of total leads
                     </p>
-            
-          
+                  </div>
+                </div>
               </Card>
             ))}
-    
-  
+          </div>
+        </div>
       </main>
   );
 }

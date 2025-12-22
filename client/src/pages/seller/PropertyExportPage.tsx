@@ -38,7 +38,7 @@ export default function PropertyExportPage() {
             <p className="text-muted-foreground">
               Download property information in various formats
             </p>
-    
+          </div>
 
           <div className="space-y-4">
             {exportOptions.map((option) => (
@@ -52,7 +52,7 @@ export default function PropertyExportPage() {
                     <span className="text-xs px-2 py-1 bg-muted rounded font-mono">
                       .{option.format.toLowerCase()}
                     </span>
-            
+                  </div>
                   <Button
                     variant="outline"
                     data-testid={`button-export-${option.id}`}
@@ -60,11 +60,11 @@ export default function PropertyExportPage() {
                     <Download className="h-4 w-4 mr-2" />
                     Export
                   </Button>
-          
+                </div>
               </Card>
             ))}
-    
-  
+          </div>
+        </div>
       </main>
   );
 }

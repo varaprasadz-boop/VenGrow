@@ -338,25 +338,25 @@ export default function PaymentPage() {
   const isLoading = packagesLoading || statusLoading;
 
   if (isLoading) {
-  return (
+    return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
         <div className="w-full max-w-4xl">
           <div className="text-center mb-8">
             <Skeleton className="h-8 w-32 mx-auto mb-6" />
             <Skeleton className="h-10 w-64 mx-auto mb-2" />
             <Skeleton className="h-6 w-48 mx-auto" />
-    
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Skeleton className="lg:col-span-2 h-96" />
             <Skeleton className="h-64" />
-    
-  
-
+          </div>
+        </div>
+      </div>
     );
   }
 
   if (!packageId || !selectedPackage) {
-  return (
+    return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
         <Card className="p-8 text-center max-w-md">
           <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
@@ -370,7 +370,7 @@ export default function PaymentPage() {
             </Button>
           </Link>
         </Card>
-
+      </div>
     );
   }
 
@@ -379,7 +379,7 @@ export default function PaymentPage() {
 
   // Show processing animation for dummy payment
   if (isProcessing && dummyPaymentProgress > 0) {
-  return (
+    return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
         <Card className="p-8 text-center max-w-md w-full">
           <div className="mb-6">
@@ -390,9 +390,9 @@ export default function PaymentPage() {
               ) : (
                 <CreditCard className="absolute inset-0 m-auto h-10 w-10 text-muted-foreground animate-pulse" />
               )}
-      
+            </div>
             {dummyPaymentProgress === 100 && <Sparkles className="h-6 w-6 text-primary mx-auto mb-2" />}
-    
+          </div>
           <h2 className="font-serif font-bold text-2xl mb-2">
             {dummyPaymentProgress === 100 ? "Payment Complete!" : "Processing Payment"}
           </h2>
@@ -403,14 +403,14 @@ export default function PaymentPage() {
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Shield className="h-4 w-4" />
             <span>{useDummyPayment ? "Test Mode - No actual charges" : "Secure Payment"}</span>
-    
+          </div>
           {useDummyPayment && (
             <Badge variant="outline" className="mt-4">
               Test Payment
             </Badge>
           )}
         </Card>
-
+      </div>
     );
   }
 
@@ -438,7 +438,7 @@ export default function PaymentPage() {
           {useDummyPayment && (
             <Badge variant="secondary" className="mt-2">Test Mode</Badge>
           )}
-  
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2 p-8">
@@ -450,13 +450,13 @@ export default function PaymentPage() {
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <h3 className="font-semibold text-lg">{selectedPackage.name} Package</h3>
                     {selectedPackage.isPopular && <Badge>Most Popular</Badge>}
-            
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     Monthly subscription - {selectedPackage.listingLimit} listings
                   </p>
-          
+                </div>
                 <p className="font-semibold text-lg">₹{selectedPackage.price.toLocaleString("en-IN")}</p>
-        
+              </div>
 
               <div className="bg-muted/50 rounded-lg p-4">
                 <p className="text-sm font-medium mb-2">Package Includes:</p>
@@ -468,8 +468,8 @@ export default function PaymentPage() {
                     </li>
                   ))}
                 </ul>
-        
-      
+              </div>
+            </div>
 
             <Separator className="my-6" />
 
@@ -477,17 +477,17 @@ export default function PaymentPage() {
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Package Price</span>
                 <span>₹{selectedPackage.price.toLocaleString("en-IN")}</span>
-        
+              </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">GST (18%)</span>
                 <span>₹{gstAmount.toLocaleString("en-IN")}</span>
-        
+              </div>
               <Separator />
               <div className="flex justify-between font-semibold text-lg">
                 <span>Total Amount</span>
                 <span>₹{totalAmount.toLocaleString("en-IN")}</span>
-        
-      
+              </div>
+            </div>
 
             {useDummyPayment ? (
               <div className="mb-6">
@@ -500,9 +500,9 @@ export default function PaymentPage() {
                       <p className="text-xs text-yellow-700 dark:text-yellow-300">
                         Use test card <span className="font-mono font-semibold">4111 1111 1111 1111</span> with any future expiry and CVV
                       </p>
-              
-            
-          
+                    </div>
+                  </div>
+                </div>
 
                 <div className="space-y-4">
                   <div>
@@ -514,7 +514,7 @@ export default function PaymentPage() {
                       onChange={(e) => setCardName(e.target.value)}
                       data-testid="input-card-name"
                     />
-            
+                  </div>
 
                   <div>
                     <Label htmlFor="cardNumber">Card Number</Label>
@@ -529,8 +529,8 @@ export default function PaymentPage() {
                         data-testid="input-card-number"
                       />
                       <CreditCard className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              
-            
+                    </div>
+                  </div>
 
                   <div className="grid grid-cols-3 gap-4">
                     <div>
@@ -543,7 +543,7 @@ export default function PaymentPage() {
                         maxLength={2}
                         data-testid="input-expiry-month"
                       />
-              
+                    </div>
                     <div>
                       <Label htmlFor="expiryYear">Year</Label>
                       <Input
@@ -554,7 +554,7 @@ export default function PaymentPage() {
                         maxLength={4}
                         data-testid="input-expiry-year"
                       />
-              
+                    </div>
                     <div>
                       <Label htmlFor="cvv">CVV</Label>
                       <div className="relative">
@@ -569,11 +569,11 @@ export default function PaymentPage() {
                           data-testid="input-cvv"
                         />
                         <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                
-              
-            
-          
-        
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="mb-6">
                 <h3 className="font-semibold mb-4">Payment Method</h3>
@@ -581,19 +581,19 @@ export default function PaymentPage() {
                   <div className="flex items-center gap-3">
                     <div className="p-3 rounded-lg bg-primary/10">
                       <CreditCard className="h-6 w-6 text-primary" />
-              
+                    </div>
                     <div className="flex-1">
                       <p className="font-medium">Pay with Razorpay</p>
                       <p className="text-xs text-muted-foreground">
                         Credit/Debit Card, UPI, Net Banking, Wallets
                       </p>
-              
+                    </div>
                     <Badge variant="outline" className="bg-green-50 dark:bg-green-900/10">
                       Secure
                     </Badge>
-            
+                  </div>
                 </Card>
-        
+              </div>
             )}
 
             <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/20 rounded-lg mb-6">
@@ -607,8 +607,8 @@ export default function PaymentPage() {
                     ? "This is a test environment. No actual charges will be made."
                     : "Your payment information is encrypted and secure. We never store your card details."}
                 </p>
-        
-      
+              </div>
+            </div>
 
             <div className="flex gap-3 flex-wrap">
               <Link href="/seller/packages" className="flex-1">
@@ -632,7 +632,7 @@ export default function PaymentPage() {
                   `Pay ₹${totalAmount.toLocaleString("en-IN")}`
                 )}
               </Button>
-      
+            </div>
 
             <p className="text-xs text-center text-muted-foreground mt-4">
               By proceeding, you agree to our{" "}
@@ -653,25 +653,25 @@ export default function PaymentPage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Package</span>
                   <span className="font-medium">{selectedPackage.name}</span>
-          
+                </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Billing</span>
                   <span className="font-medium">Monthly</span>
-          
+                </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Listings</span>
                   <span className="font-medium">{selectedPackage.listingLimit}</span>
-          
+                </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Validity</span>
                   <span className="font-medium">{selectedPackage.duration} days</span>
-          
+                </div>
                 <Separator />
                 <div className="flex justify-between font-semibold">
                   <span>Total</span>
                   <span className="text-primary">₹{totalAmount.toLocaleString("en-IN")}</span>
-          
-        
+                </div>
+              </div>
             </Card>
 
             <Card className="p-6">
@@ -685,11 +685,11 @@ export default function PaymentPage() {
                     Contact Support
                   </Button>
                 </Link>
-        
+              </div>
             </Card>
-    
-  
-
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

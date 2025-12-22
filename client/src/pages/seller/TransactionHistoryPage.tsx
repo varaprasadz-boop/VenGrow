@@ -56,13 +56,13 @@ export default function TransactionHistoryPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
-      return (
+        return (
           <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
             Completed
           </Badge>
         );
       case "refunded":
-      return (
+        return (
           <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-500">
             Refunded
           </Badge>
@@ -102,12 +102,12 @@ export default function TransactionHistoryPage() {
               <p className="text-muted-foreground">
                 View all your payment transactions
               </p>
-      
+            </div>
             <Button data-testid="button-export">
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-    
+          </div>
 
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -120,7 +120,7 @@ export default function TransactionHistoryPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 data-testid="input-search"
               />
-      
+            </div>
             <Select value={filter} onValueChange={setFilter}>
               <SelectTrigger className="w-full sm:w-48" data-testid="select-filter">
                 <SelectValue placeholder="Filter by status" />
@@ -132,7 +132,7 @@ export default function TransactionHistoryPage() {
                 <SelectItem value="failed">Failed</SelectItem>
               </SelectContent>
             </Select>
-    
+          </div>
 
           {/* Transactions List */}
           <div className="space-y-4">
@@ -145,7 +145,7 @@ export default function TransactionHistoryPage() {
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold">{transaction.id}</h3>
                           {getStatusBadge(transaction.status)}
-                  
+                        </div>
                         <p className="text-sm text-muted-foreground mb-2">
                           {transaction.description}
                         </p>
@@ -153,32 +153,32 @@ export default function TransactionHistoryPage() {
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
                             <span>{transaction.date}</span>
-                    
+                          </div>
                           <div className="flex items-center gap-1">
                             <CreditCard className="h-4 w-4" />
                             <span>{transaction.method}</span>
-                    
-                  
-                
-              
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="grid grid-cols-3 gap-4 text-sm mb-4">
                       <div>
                         <p className="text-muted-foreground">Amount</p>
                         <p className="font-medium">₹{transaction.amount}</p>
-                
+                      </div>
                       <div>
                         <p className="text-muted-foreground">GST (18%)</p>
                         <p className="font-medium">₹{transaction.gst}</p>
-                
+                      </div>
                       <div>
                         <p className="text-muted-foreground">Total</p>
                         <p className="font-semibold text-lg">
                           ₹{transaction.total}
                         </p>
-                
-              
-            
+                      </div>
+                    </div>
+                  </div>
 
                   <div className="flex gap-2">
                     <Button
@@ -189,11 +189,11 @@ export default function TransactionHistoryPage() {
                       <Download className="h-4 w-4 mr-2" />
                       Invoice
                     </Button>
-            
-          
+                  </div>
+                </div>
               </Card>
             ))}
-    
+          </div>
 
           {filterTransactions().length === 0 && (
             <div className="text-center py-16">
@@ -206,9 +206,9 @@ export default function TransactionHistoryPage() {
                   ? "Try a different search term"
                   : "No transactions to display"}
               </p>
-      
+            </div>
           )}
-  
+        </div>
       </main>
   );
 }

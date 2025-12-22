@@ -51,7 +51,7 @@ export default function ReferralDashboardPage() {
             <p className="text-muted-foreground">
               Track your referrals and earnings
             </p>
-    
+          </div>
 
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -59,50 +59,50 @@ export default function ReferralDashboardPage() {
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20">
                   <Users className="h-6 w-6 text-blue-600" />
-          
+                </div>
                 <div>
                   <p className="text-3xl font-bold">{stats.totalReferrals}</p>
                   <p className="text-sm text-muted-foreground">Total Referrals</p>
-          
-        
+                </div>
+              </div>
             </Card>
 
             <Card className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/20">
                   <TrendingUp className="h-6 w-6 text-green-600" />
-          
+                </div>
                 <div>
                   <p className="text-3xl font-bold">{stats.activeReferrals}</p>
                   <p className="text-sm text-muted-foreground">Active</p>
-          
-        
+                </div>
+              </div>
             </Card>
 
             <Card className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-primary/10">
                   <DollarSign className="h-6 w-6 text-primary" />
-          
+                </div>
                 <div>
                   <p className="text-3xl font-bold">₹{stats.totalEarnings}</p>
                   <p className="text-sm text-muted-foreground">Total Earned</p>
-          
-        
+                </div>
+              </div>
             </Card>
 
             <Card className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-yellow-100 dark:bg-yellow-900/20">
                   <DollarSign className="h-6 w-6 text-yellow-600" />
-          
+                </div>
                 <div>
                   <p className="text-3xl font-bold">₹{stats.pendingEarnings}</p>
                   <p className="text-sm text-muted-foreground">Pending</p>
-          
-        
+                </div>
+              </div>
             </Card>
-    
+          </div>
 
           {/* Referral Link */}
           <Card className="p-6 mb-8 bg-gradient-to-br from-primary/5 to-primary/10">
@@ -118,7 +118,7 @@ export default function ReferralDashboardPage() {
                 <Copy className="h-4 w-4 mr-2" />
                 Copy
               </Button>
-      
+            </div>
           </Card>
 
           {/* Referrals List */}
@@ -138,12 +138,12 @@ export default function ReferralDashboardPage() {
                     <p className="text-xs text-muted-foreground">
                       Joined {referral.joinedDate}
                     </p>
-            
+                  </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="font-semibold">₹{referral.earnings}</p>
                       <p className="text-xs text-muted-foreground">Earned</p>
-              
+                    </div>
                     {referral.status === "active" ? (
                       <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
                         Active
@@ -153,12 +153,12 @@ export default function ReferralDashboardPage() {
                         Pending
                       </Badge>
                     )}
-            
-          
+                  </div>
+                </div>
               ))}
-      
+            </div>
           </Card>
-  
+        </div>
       </main>
   );
 }

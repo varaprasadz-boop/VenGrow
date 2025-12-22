@@ -24,10 +24,10 @@ export function Breadcrumbs({ items, homeHref, className = "" }: BreadcrumbsProp
           <Link href={homeHref}>
             <span className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer" data-testid="breadcrumb-home">
               <Home className="h-4 w-4" />
-              <span className="sr-only">Dashboard</span>
+              <span className="sr-only">Home</span>
             </span>
           </Link>
-          {items.length > 0 && <ChevronRight className="h-4 w-4 text-muted-foreground/50" />}
+          <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
         </>
       )}
       {items.map((item, index) => {

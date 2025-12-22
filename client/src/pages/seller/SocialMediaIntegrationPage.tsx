@@ -43,7 +43,7 @@ export default function SocialMediaIntegrationPage() {
             <p className="text-muted-foreground">
               Connect social accounts to promote your properties
             </p>
-    
+          </div>
 
           <div className="space-y-4">
             {platforms.map((platform) => (
@@ -60,7 +60,7 @@ export default function SocialMediaIntegrationPage() {
                       ) : (
                         <Badge variant="outline">Not Connected</Badge>
                       )}
-              
+                    </div>
                     <p className="text-sm text-muted-foreground mb-4">
                       {platform.description}
                     </p>
@@ -72,9 +72,9 @@ export default function SocialMediaIntegrationPage() {
                           data-testid={`switch-autopost-${platform.id}`}
                         />
                         <span className="text-sm">Auto-post new listings</span>
-                
+                      </div>
                     )}
-            
+                  </div>
 
                   <div className="ml-4">
                     {platform.connected ? (
@@ -89,11 +89,11 @@ export default function SocialMediaIntegrationPage() {
                         Connect
                       </Button>
                     )}
-            
-          
+                  </div>
+                </div>
               </Card>
             ))}
-    
+          </div>
 
           <Card className="p-6 mt-8 bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/20">
             <h3 className="font-semibold mb-2">Maximize Your Reach</h3>
@@ -102,7 +102,7 @@ export default function SocialMediaIntegrationPage() {
               Properties shared on social media get 3x more inquiries.
             </p>
           </Card>
-  
+        </div>
       </main>
   );
 }

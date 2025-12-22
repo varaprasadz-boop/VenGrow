@@ -115,7 +115,7 @@ export default function SellerApprovalsPage() {
         <Breadcrumbs
           homeHref="/admin/dashboard"
           items={[
-            { label: "User Management", href: "/admin/users" },
+            { label: "User Management", href: "/admin/user-management" },
             { label: "Seller Approvals" },
           ]}
           className="mb-4"

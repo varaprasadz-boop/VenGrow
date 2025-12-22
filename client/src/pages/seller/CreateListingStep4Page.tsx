@@ -255,18 +255,18 @@ export default function CreateListingStep4Page() {
   };
 
   if (authLoading || !dataLoaded) {
-  return (
+    return (
       <main className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
           <p className="mt-2 text-muted-foreground">Loading...</p>
-  
+        </div>
       </main>
     );
   }
 
   if (!step1Data || !step2Data || !step3Data) {
-  return (
+    return (
       <main className="flex-1 flex items-center justify-center">
         <Card className="p-8 text-center max-w-md">
           <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
@@ -289,24 +289,24 @@ export default function CreateListingStep4Page() {
             <div className="flex items-center gap-2 mb-4">
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
                 1
-        
+              </div>
               <div className="h-1 flex-1 bg-primary"></div>
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
                 2
-        
+              </div>
               <div className="h-1 flex-1 bg-primary"></div>
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
                 3
-        
+              </div>
               <div className="h-1 flex-1 bg-primary"></div>
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
                 4
-        
-      
+              </div>
+            </div>
             <p className="text-sm text-muted-foreground">
               Step 4 of 4: Contact Details & Review
             </p>
-    
+          </div>
 
           {createListingMutation.isError && (
             <Alert variant="destructive" className="mb-6">
@@ -334,7 +334,7 @@ export default function CreateListingStep4Page() {
                       onChange={(e) => setContactData({ ...contactData, contactName: e.target.value })}
                       data-testid="input-contact-name"
                     />
-            
+                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="contactPhone">Contact Phone *</Label>
@@ -351,8 +351,8 @@ export default function CreateListingStep4Page() {
                         onChange={(e) => setContactData({ ...contactData, contactPhone: e.target.value })}
                         data-testid="input-contact-phone"
                       />
-              
-            
+                    </div>
+                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="contactEmail">Contact Email *</Label>
@@ -364,7 +364,7 @@ export default function CreateListingStep4Page() {
                       onChange={(e) => setContactData({ ...contactData, contactEmail: e.target.value })}
                       data-testid="input-contact-email"
                     />
-            
+                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="whatsapp">WhatsApp Number (Optional)</Label>
@@ -381,11 +381,11 @@ export default function CreateListingStep4Page() {
                         onChange={(e) => setContactData({ ...contactData, whatsappNumber: e.target.value })}
                         data-testid="input-whatsapp"
                       />
-              
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       Buyers can contact you directly on WhatsApp
                     </p>
-            
+                  </div>
 
                   <Separator />
 
@@ -404,8 +404,8 @@ export default function CreateListingStep4Page() {
                         >
                           I verify that all the information provided is accurate and true
                         </Label>
-                
-              
+                      </div>
+                    </div>
 
                     <div className="flex items-start space-x-3">
                       <Checkbox 
@@ -432,10 +432,10 @@ export default function CreateListingStep4Page() {
                             </span>
                           </Link>
                         </Label>
-                
-              
-            
-          
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </Card>
 
               <div className="flex gap-3">
@@ -461,8 +461,8 @@ export default function CreateListingStep4Page() {
                     "Submit for Review"
                   )}
                 </Button>
-        
-      
+              </div>
+            </div>
 
             <div className="lg:col-span-1">
               <Card className="p-6 sticky top-4">
@@ -477,7 +477,7 @@ export default function CreateListingStep4Page() {
                     ) : (
                       <Building2 className="h-12 w-12 text-muted-foreground" />
                     )}
-            
+                  </div>
 
                   <div>
                     <div className="flex flex-wrap items-start gap-2 mb-2">
@@ -488,7 +488,7 @@ export default function CreateListingStep4Page() {
                         {step1Data.transactionType === "sale" ? "For Sale" : 
                          step1Data.transactionType === "lease" ? "For Lease" : "For Rent"}
                       </Badge>
-              
+                    </div>
                     <div className="flex flex-wrap items-center gap-2 mb-2">
                       {step1Data.locality && (
                         <Badge variant="secondary" className="text-xs" data-testid="badge-locality">
@@ -505,20 +505,20 @@ export default function CreateListingStep4Page() {
                           {step2Data.furnishing}
                         </Badge>
                       )}
-              
+                    </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
                       <MapPin className="h-4 w-4" />
                       <span className="line-clamp-1">
                         {[step1Data.locality, step1Data.city, step1Data.state].filter(Boolean).join(", ")}
                       </span>
-              
+                    </div>
                     <p className="text-2xl font-bold font-serif text-primary mb-4" data-testid="preview-price">
                       {formatPrice(step1Data.price)}
                       {(step1Data.transactionType === "rent" || step1Data.transactionType === "lease") && (
                         <span className="text-lg font-normal">/month</span>
                       )}
                     </p>
-            
+                  </div>
 
                   <Separator />
 
@@ -528,23 +528,23 @@ export default function CreateListingStep4Page() {
                         <Bed className="h-4 w-4 text-muted-foreground mb-1" />
                         <span className="font-medium">{step2Data.bedrooms}</span>
                         <span className="text-xs text-muted-foreground">Beds</span>
-                
+                      </div>
                     )}
                     {step2Data.bathrooms && (
                       <div className="flex flex-col items-center p-2 bg-muted/50 rounded-lg">
                         <Bath className="h-4 w-4 text-muted-foreground mb-1" />
                         <span className="font-medium">{step2Data.bathrooms}</span>
                         <span className="text-xs text-muted-foreground">Baths</span>
-                
+                      </div>
                     )}
                     {step2Data.area && (
                       <div className="flex flex-col items-center p-2 bg-muted/50 rounded-lg">
                         <Maximize className="h-4 w-4 text-muted-foreground mb-1" />
                         <span className="font-medium">{step2Data.area}</span>
                         <span className="text-xs text-muted-foreground">sqft</span>
-                
+                      </div>
                     )}
-            
+                  </div>
 
                   {step2Data.amenities.length > 0 && (
                     <div>
@@ -554,10 +554,10 @@ export default function CreateListingStep4Page() {
                           <div key={index} className="flex items-center gap-2 text-xs">
                             <CheckCircle className="h-3 w-3 text-green-600" />
                             <span>{amenity}</span>
-                    
+                          </div>
                         ))}
-                
-              
+                      </div>
+                    </div>
                   )}
 
                   <Separator />
@@ -569,21 +569,21 @@ export default function CreateListingStep4Page() {
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Phone className="h-4 w-4" />
                           <span>+91 {contactData.contactPhone}</span>
-                  
+                        </div>
                       )}
                       {contactData.contactEmail && (
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Mail className="h-4 w-4" />
                           <span className="truncate">{contactData.contactEmail}</span>
-                  
+                        </div>
                       )}
-              
-            
-          
+                    </div>
+                  </div>
+                </div>
               </Card>
-      
-    
-  
+            </div>
+          </div>
+        </div>
     </main>
   );
 }
