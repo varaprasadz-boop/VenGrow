@@ -367,6 +367,7 @@ export const adminRoutes: RouteConfig[] = [
   // Seller Management
   { path: "/admin/sellers", component: lazy(() => import("@/pages/admin/SellerListPage")), requireAuth: true, roles: ["admin"], title: "Seller List" },
   { path: "/admin/seller-approvals", component: lazy(() => import("@/pages/admin/SellerApprovalsPage")), requireAuth: true, roles: ["admin"], title: "Seller Approvals" },
+  { path: "/admin/seller-approvals/:id", component: lazy(() => import("@/pages/admin/SellerApprovalDetailsPage")), requireAuth: true, roles: ["admin"], title: "Seller Details" },
   { path: "/admin/verifications", component: lazy(() => import("@/pages/admin/VerificationsPage")), requireAuth: true, roles: ["admin"], title: "Verification Requests" },
   { path: "/admin/buyers", component: lazy(() => import("@/pages/admin/BuyerListPage")), requireAuth: true, roles: ["admin"], title: "Buyer Accounts" },
   
