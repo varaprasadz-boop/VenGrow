@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import {
   Building,
   Eye,
@@ -127,9 +128,15 @@ export default function SellerDashboardPage() {
   return (
     <main className="flex-1 bg-muted/30">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <Breadcrumbs
+            homeHref="/seller/dashboard"
+            items={[]}
+            className="mb-4"
+          />
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 mb-6">
             <div>
-              <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-1 sm:mb-2">
+              <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-1">
                 Welcome back{sellerProfile?.companyName ? `, ${sellerProfile.companyName}` : user?.firstName ? `, ${user.firstName}` : ''}!
               </h1>
               <p className="text-muted-foreground text-sm sm:text-base">

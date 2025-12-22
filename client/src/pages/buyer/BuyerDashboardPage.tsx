@@ -1,11 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import {
   Heart,
   MessageSquare,
@@ -171,16 +170,19 @@ export default function BuyerDashboardPage() {
   const recentFavorites = favorites.slice(0, 2);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={!!user} userType="buyer" />
-
       <main className="flex-1 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <h1 className="font-serif font-bold text-3xl mb-2">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <Breadcrumbs
+            homeHref="/buyer/dashboard"
+            items={[]}
+            className="mb-4"
+          />
+
+          <div className="mb-6">
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-1">
               Welcome back{user?.firstName ? `, ${user.firstName}` : ''}!
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm sm:text-base">
               Here's what's happening with your property search
             </p>
           </div>
@@ -432,8 +434,5 @@ export default function BuyerDashboardPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
-    </div>
   );
 }

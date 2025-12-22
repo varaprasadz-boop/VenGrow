@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -99,12 +98,10 @@ export default function SavedSearchesPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header isLoggedIn={!!user} userType="buyer" />
-        <main className="flex-1">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="mb-8">
-              <Skeleton className="h-8 w-48 mb-2" />
+        <main className="flex-1 bg-muted/30">
+          <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+            <div className="mb-6">
+              <Skeleton className="h-6 w-48 mb-2" />
               <Skeleton className="h-5 w-72" />
             </div>
             <div className="space-y-4">
@@ -114,25 +111,28 @@ export default function SavedSearchesPage() {
             </div>
           </div>
         </main>
-        <Footer />
-      </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={!!user} userType="buyer" />
+      <main className="flex-1 bg-muted/30">
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <Breadcrumbs
+            homeHref="/buyer/dashboard"
+            items={[
+              { label: "Saved Searches" },
+            ]}
+            className="mb-4"
+          />
 
-      <main className="flex-1">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 rounded-lg bg-primary/10">
-                <Search className="h-6 w-6 text-primary" />
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 sm:p-3 rounded-lg bg-primary/10">
+                <Search className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               </div>
               <div>
-                <h1 className="font-serif font-bold text-3xl">Saved Searches</h1>
-                <p className="text-muted-foreground">
+                <h1 className="font-serif font-bold text-2xl sm:text-3xl">Saved Searches</h1>
+                <p className="text-muted-foreground text-sm sm:text-base">
                   {searches.length === 0 
                     ? "No saved searches yet" 
                     : `${searches.length} saved ${searches.length === 1 ? 'search' : 'searches'}`}
@@ -255,8 +255,5 @@ export default function SavedSearchesPage() {
           )}
         </div>
       </main>
-
-      <Footer />
-    </div>
   );
 }

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import {
   Dialog,
   DialogContent,
@@ -21,10 +22,10 @@ import {
   UserCheck,
   Eye,
   Mail,
-  Calendar,
   Users,
   AlertCircle,
   RefreshCw,
+  ChevronRight,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,7 +33,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
 
@@ -107,49 +108,62 @@ export default function UserManagementPage() {
 
   if (isLoading) {
     return (
-      <main className="flex-1">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <Skeleton className="h-10 w-64 mb-2" />
-            <Skeleton className="h-6 w-48 mb-8" />
-            <Skeleton className="h-10 w-full mb-6" />
-            <Skeleton className="h-12 w-96 mb-6" />
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-40 w-full" />
-              ))}
-            </div>
+      <main className="flex-1 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <Skeleton className="h-5 w-48 mb-4" />
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-5 w-48 mb-6" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-20 w-full" />
+            ))}
           </div>
-        </main>
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        </div>
+      </main>
     );
   }
 
   if (isError) {
     return (
-      <main className="flex-1 flex items-center justify-center">
-          <div className="text-center p-8">
-            <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
-            <h2 className="text-xl font-semibold mb-2">Failed to Load Users</h2>
-            <p className="text-muted-foreground mb-4">
-              There was an error loading user data. Please try again.
-            </p>
-            <Button onClick={() => refetch()} data-testid="button-retry">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
-          </div>
-        </main>
+      <main className="flex-1 bg-muted/30 flex items-center justify-center">
+        <div className="text-center p-8">
+          <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
+          <h2 className="text-xl font-semibold mb-2">Failed to Load Users</h2>
+          <p className="text-muted-foreground mb-4">
+            There was an error loading user data. Please try again.
+          </p>
+          <Button onClick={() => refetch()} data-testid="button-retry">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      </main>
     );
   }
 
   return (
-      <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+    <>
+      <main className="flex-1 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <Breadcrumbs
+            homeHref="/admin/dashboard"
+            items={[
+              { label: "User Management" },
+            ]}
+            className="mb-4"
+          />
+
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <div>
-              <h1 className="font-serif font-bold text-3xl mb-2">
+              <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-1">
                 User Management
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm sm:text-base">
                 Manage all platform users
               </p>
             </div>
@@ -159,48 +173,48 @@ export default function UserManagementPage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
-                  <Users className="h-5 w-5 text-blue-600" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <Card className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold" data-testid="text-total-users">{users.length}</p>
-                  <p className="text-sm text-muted-foreground">Total Users</p>
+                  <p className="text-xl sm:text-2xl font-bold" data-testid="text-total-users">{users.length}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total Users</p>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20">
-                  <Users className="h-5 w-5 text-green-600" />
+            <Card className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-green-100 dark:bg-green-900/20">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold" data-testid="text-buyers-count">{buyerCount}</p>
-                  <p className="text-sm text-muted-foreground">Buyers</p>
+                  <p className="text-xl sm:text-2xl font-bold" data-testid="text-buyers-count">{buyerCount}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Buyers</p>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/20">
-                  <Users className="h-5 w-5 text-purple-600" />
+            <Card className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-purple-100 dark:bg-purple-900/20">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold" data-testid="text-sellers-count">{sellerCount}</p>
-                  <p className="text-sm text-muted-foreground">Sellers</p>
+                  <p className="text-xl sm:text-2xl font-bold" data-testid="text-sellers-count">{sellerCount}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Sellers</p>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/20">
-                  <UserX className="h-5 w-5 text-red-600" />
+            <Card className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-red-100 dark:bg-red-900/20">
+                  <UserX className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold" data-testid="text-suspended-count">{suspendedCount}</p>
-                  <p className="text-sm text-muted-foreground">Suspended</p>
+                  <p className="text-xl sm:text-2xl font-bold" data-testid="text-suspended-count">{suspendedCount}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Suspended</p>
                 </div>
               </div>
             </Card>
@@ -222,7 +236,7 @@ export default function UserManagementPage() {
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
             <TabsList className="mb-6">
               <TabsTrigger value="all" data-testid="tab-all">
-                All Users ({users.length})
+                All ({users.length})
               </TabsTrigger>
               <TabsTrigger value="buyers" data-testid="tab-buyers">
                 Buyers ({buyerCount})
@@ -249,62 +263,71 @@ export default function UserManagementPage() {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {filteredUsers.map((user) => (
-                    <Card key={user.id} className="p-6" data-testid={`card-user-${user.id}`}>
-                      <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-                        <div className="flex-1 space-y-4">
-                          <div>
-                            <div className="flex items-start gap-3 mb-2 flex-wrap">
-                              <h3 className="font-semibold text-lg flex-1">
-                                {user.firstName || user.lastName 
-                                  ? `${user.firstName || ""} ${user.lastName || ""}`.trim() 
-                                  : user.email || "Unknown User"}
-                              </h3>
-                              {!user.isActive ? (
-                                <Badge variant="destructive">Suspended</Badge>
-                              ) : (
-                                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
-                                  Active
-                                </Badge>
-                              )}
-                            </div>
-                            <Badge variant="outline" className="mb-3 capitalize">
-                              {user.role}
-                            </Badge>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <Mail className="h-4 w-4" />
-                                {user.email || "No email"}
-                              </div>
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <Calendar className="h-4 w-4" />
-                                Joined {format(new Date(user.createdAt), "MMM d, yyyy")}
-                              </div>
-                            </div>
+                <div className="bg-card rounded-lg border overflow-hidden">
+                  <div className="hidden sm:grid sm:grid-cols-12 gap-4 px-4 py-3 bg-muted/50 text-sm font-medium text-muted-foreground border-b">
+                    <div className="col-span-4">User</div>
+                    <div className="col-span-2">Role</div>
+                    <div className="col-span-2">Status</div>
+                    <div className="col-span-2">Joined</div>
+                    <div className="col-span-2 text-right">Actions</div>
+                  </div>
+                  <div className="divide-y">
+                    {filteredUsers.map((user) => (
+                      <div
+                        key={user.id}
+                        className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 px-4 py-3 items-center hover:bg-muted/30 transition-colors"
+                        data-testid={`row-user-${user.id}`}
+                      >
+                        <div className="sm:col-span-4 flex items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">
+                              {user.firstName || user.lastName
+                                ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+                                : user.email || "Unknown User"}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {user.email}
+                            </p>
+                            <p className="text-xs text-muted-foreground sm:hidden">
+                              {user.role} • {format(new Date(user.createdAt), "MMM d, yyyy")}
+                            </p>
                           </div>
-
-                          <p className="text-xs text-muted-foreground">
-                            Last active: {formatDistanceToNow(new Date(user.updatedAt), { addSuffix: true })}
-                          </p>
                         </div>
 
-                        <div className="flex lg:flex-col gap-2">
+                        <div className="sm:col-span-2 hidden sm:block">
+                          <Badge variant="outline" className="capitalize text-xs">
+                            {user.role}
+                          </Badge>
+                        </div>
+
+                        <div className="sm:col-span-2 hidden sm:block">
+                          {!user.isActive ? (
+                            <Badge variant="destructive" className="text-xs">Suspended</Badge>
+                          ) : (
+                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500 text-xs">
+                              Active
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="sm:col-span-2 hidden sm:block text-sm text-muted-foreground">
+                          {format(new Date(user.createdAt), "MMM d, yyyy")}
+                        </div>
+
+                        <div className="sm:col-span-2 flex items-center justify-end gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex-1 lg:flex-none"
                             data-testid={`button-view-${user.id}`}
                           >
-                            <Eye className="h-4 w-4 lg:mr-2" />
-                            <span className="hidden lg:inline">View Details</span>
+                            <Eye className="h-4 w-4 sm:mr-1" />
+                            <span className="hidden sm:inline">View</span>
                           </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 lg:flex-none"
                                 data-testid={`button-more-${user.id}`}
                               >
                                 <MoreVertical className="h-4 w-4" />
@@ -343,8 +366,8 @@ export default function UserManagementPage() {
                           </DropdownMenu>
                         </div>
                       </div>
-                    </Card>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </TabsContent>
@@ -389,5 +412,6 @@ export default function UserManagementPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </>
   );
 }

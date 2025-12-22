@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import {
   Alert,
   AlertDescription,
@@ -228,20 +229,28 @@ export default function ManageListingsPage() {
   const soldCount = listings.filter((l) => l.status === "sold" || l.status === "rented").length;
 
   return (
-    <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+    <main className="flex-1 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <Breadcrumbs
+            homeHref="/seller/dashboard"
+            items={[
+              { label: "Listings" },
+            ]}
+            className="mb-4"
+          />
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 mb-6">
             <div>
-              <h1 className="font-serif font-bold text-3xl mb-2">
+              <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-1">
                 Manage Listings
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm sm:text-base">
                 View and manage all your property listings
               </p>
             </div>
             <Link href="/seller/listings/create/step1">
-              <Button size="lg" data-testid="button-create-listing-manage">
-                <Plus className="h-5 w-5 mr-2" />
+              <Button size="default" data-testid="button-create-listing-manage">
+                <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 Create New Listing
               </Button>
             </Link>

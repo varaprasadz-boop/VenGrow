@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import {
   MessageSquare,
   Clock,
@@ -15,7 +14,7 @@ import {
   XCircle,
   Eye,
   Send,
-  ArrowLeft,
+  Home,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
@@ -100,19 +99,24 @@ export default function InquiriesPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={!!user} userType="buyer" />
+      <main className="flex-1 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <Breadcrumbs
+            homeHref="/buyer/dashboard"
+            items={[
+              { label: "Inquiries" },
+            ]}
+            className="mb-4"
+          />
 
-      <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 rounded-lg bg-primary/10">
-                <MessageSquare className="h-6 w-6 text-primary" />
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 sm:p-3 rounded-lg bg-primary/10">
+                <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               </div>
               <div>
-                <h1 className="font-serif font-bold text-3xl">My Inquiries</h1>
-                <p className="text-muted-foreground">
+                <h1 className="font-serif font-bold text-2xl sm:text-3xl">My Inquiries</h1>
+                <p className="text-muted-foreground text-sm sm:text-base">
                   {isLoading ? "Loading..." : "Track all your property inquiries"}
                 </p>
               </div>
@@ -228,7 +232,7 @@ export default function InquiriesPage() {
                   {selectedTab === "all" && (
                     <Link href="/properties">
                       <Button data-testid="button-browse-properties">
-                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        <Home className="h-4 w-4 mr-2" />
                         Browse Properties
                       </Button>
                     </Link>
@@ -239,8 +243,5 @@ export default function InquiriesPage() {
           </Tabs>
         </div>
       </main>
-
-      <Footer />
-    </div>
   );
 }

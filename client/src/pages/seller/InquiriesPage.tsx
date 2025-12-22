@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import {
   Search,
   Phone,
@@ -101,15 +102,21 @@ export default function InquiriesPage() {
   };
 
   return (
+      <main className="flex-1 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <Breadcrumbs
+            homeHref="/seller/dashboard"
+            items={[
+              { label: "Inquiries" },
+            ]}
+            className="mb-4"
+          />
 
-
-      <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <h1 className="font-serif font-bold text-3xl mb-2">
+          <div className="mb-6">
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-1">
               Buyer Inquiries
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm sm:text-base">
               Manage inquiries from potential buyers
             </p>
           </div>

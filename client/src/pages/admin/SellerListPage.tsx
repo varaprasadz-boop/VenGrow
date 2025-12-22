@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import {
   Table,
   TableBody,
@@ -177,13 +178,22 @@ export default function SellerListPage() {
 
   return (
       <main className="flex-1 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <Breadcrumbs
+            homeHref="/admin/dashboard"
+            items={[
+              { label: "User Management", href: "/admin/users" },
+              { label: "Seller Management" },
+            ]}
+            className="mb-4"
+          />
+
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <div>
-              <h1 className="font-serif font-bold text-3xl mb-2">
+              <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-1">
                 Seller Management
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm sm:text-base">
                 View and manage all registered sellers with their statistics
               </p>
             </div>
