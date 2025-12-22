@@ -452,6 +452,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: Get verification requests
+  app.get("/api/admin/verifications", async (req: any, res: Response) => {
+    try {
+      // Get all seller profiles that have verification documents
+      const sellers = await storage.getAllSellerProfiles({});
+      
+      // Filter sellers that have verification documents and transform to match frontend interface
+      const verificationRequests = await Promise.all(
+        sellers
+          .filter(seller => seller.verificationDocuments && Array.isArray(seller.verificationDocuments) && seller.verificationDocuments.length > 0)
+          .map(async (seller) => {
+            const user = await storage.getUser(seller.userId);
+            const sellerName = user 
+              ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email || "Unknown"
+              : "Unknown";
+            
+            return {
+              id: seller.id,
+              sellerId: seller.id,
+              sellerName: sellerName,
+              sellerType: seller.sellerType,
+              status: seller.verificationStatus,
+              documents: seller.verificationDocuments || [],
+              createdAt: seller.createdAt?.toISOString() || new Date().toISOString(),
+            };
+          })
+      );
+      
+      res.json(verificationRequests);
+    } catch (error) {
+      console.error("Error getting verification requests:", error);
+      res.status(500).json({ error: "Failed to get verification requests" });
+    }
+  });
+
   // ============================================
   // SELLER PROFILE ROUTES
   // ============================================
