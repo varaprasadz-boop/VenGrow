@@ -28,26 +28,36 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000;
+
   const pgStore = connectPg(session);
+
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
     createTableIfMissing: false,
-    ttl: sessionTtl,
+    ttl: sessionTtl / 1000,
     tableName: "sessions",
   });
+
+  const isProd = process.env.NODE_ENV === "production";
+
   return session({
-    secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production',
+    name: "sid",
+    secret: process.env.SESSION_SECRET!,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
       httpOnly: true,
-      // Only use secure cookies in production/Replit, not local dev
-      secure: isRunningOnReplit() || process.env.NODE_ENV === 'production',
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
       maxAge: sessionTtl,
+      domain: isProd ? `.${process.env.COOKIE_DOMAIN}` : undefined,
+      path: "/",
     },
   });
 }
+
 
 function updateUserSession(
   user: any,
