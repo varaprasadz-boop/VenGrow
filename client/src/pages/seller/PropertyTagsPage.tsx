@@ -37,7 +37,7 @@ export default function PropertyTagsPage() {
             <p className="text-muted-foreground">
               Add tags to improve discoverability
             </p>
-          </div>
+    
 
           <Card className="p-6 mb-8">
             <h3 className="font-semibold text-lg mb-6">Current Tags</h3>
@@ -52,7 +52,7 @@ export default function PropertyTagsPage() {
                   <X className="h-3 w-3 ml-2 cursor-pointer" />
                 </Badge>
               ))}
-            </div>
+      
 
             <div>
               <Label htmlFor="newTag">Add New Tag</Label>
@@ -66,8 +66,8 @@ export default function PropertyTagsPage() {
                   <Tag className="h-4 w-4 mr-2" />
                   Add
                 </Button>
-              </div>
-            </div>
+        
+      
           </Card>
 
           <Card className="p-6">
@@ -82,9 +82,9 @@ export default function PropertyTagsPage() {
                   {tag}
                 </Badge>
               ))}
-            </div>
+      
           </Card>
-        </div>
+  
       </main>
   );
 }

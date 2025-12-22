@@ -28,9 +28,9 @@ export default function ReviewsPage() {
     : 0;
 
   if (isLoading) {
-    return (
+  return (
 
-        <main className="flex-1">
+      <main className="flex-1">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Skeleton className="h-10 w-64 mb-2" />
             <Skeleton className="h-6 w-48 mb-8" />
@@ -39,10 +39,10 @@ export default function ReviewsPage() {
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-40 w-full" />
               ))}
-            </div>
-          </div>
-        </main>
-      </div>
+      
+    
+      </main>
+
     );
   }
 
@@ -58,7 +58,7 @@ export default function ReviewsPage() {
             <p className="text-muted-foreground">
               Feedback from your buyers
             </p>
-          </div>
+    
 
           {totalReviews === 0 ? (
             <Card className="p-8 text-center">
@@ -87,17 +87,17 @@ export default function ReviewsPage() {
                           }`}
                         />
                       ))}
-                    </div>
+              
                     <p className="text-sm text-muted-foreground">
                       Based on {totalReviews} review{totalReviews !== 1 ? "s" : ""}
                     </p>
-                  </div>
+            
 
                   <div className="flex-1 w-full">
                     {[5, 4, 3, 2, 1].map((rating) => {
                       const count = reviews.filter((r) => r.rating === rating).length;
                       const percentage = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
-                      return (
+                    return (
                         <div key={rating} className="flex items-center gap-3 mb-2">
                           <span className="text-sm w-8">{rating}★</span>
                           <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
@@ -105,15 +105,15 @@ export default function ReviewsPage() {
                               className="h-full bg-yellow-400"
                               style={{ width: `${percentage}%` }}
                             />
-                          </div>
+                    
                           <span className="text-sm text-muted-foreground w-12">
                             {count}
                           </span>
-                        </div>
+                  
                       );
                     })}
-                  </div>
-                </div>
+            
+          
               </Card>
 
               <div className="space-y-6">
@@ -134,11 +134,11 @@ export default function ReviewsPage() {
                             <p className="text-sm text-muted-foreground">
                               {review.property?.title || "Property"}
                             </p>
-                          </div>
+                    
                           <span className="text-sm text-muted-foreground">
                             {format(new Date(review.createdAt), "MMM d, yyyy")}
                           </span>
-                        </div>
+                  
 
                         <div className="flex gap-1 mb-3">
                           {[1, 2, 3, 4, 5].map((star) => (
@@ -151,7 +151,7 @@ export default function ReviewsPage() {
                               }`}
                             />
                           ))}
-                        </div>
+                  
 
                         {review.comment && (
                           <p className="text-muted-foreground mb-4" data-testid={`text-comment-${review.id}`}>
@@ -176,15 +176,15 @@ export default function ReviewsPage() {
                             <MessageSquare className="h-4 w-4 mr-2" />
                             Reply
                           </Button>
-                        </div>
-                      </div>
-                    </div>
+                  
+                
+              
                   </Card>
                 ))}
-              </div>
+        
             </>
           )}
-        </div>
+  
       </main>
   );
 }

@@ -369,50 +369,46 @@ export default function CreatePropertyPage() {
   };
 
   if (checkingLimit || loadingSubscription) {
-    return (
-
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p>Checking your subscription...</p>
-          </div>
-        </main>
-      </div>
+  return (
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Checking your subscription...</p>
+  
+      </main>
     );
   }
 
   if (!canCreateData?.canCreate) {
-    return (
-
-        <main className="flex-1">
-          <div className="max-w-2xl mx-auto px-4 py-16">
-            <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Listing Limit Reached</AlertTitle>
-              <AlertDescription>
-                {subscriptionData?.subscription 
-                  ? `You've used ${subscriptionData.subscription.listingsUsed} of ${subscriptionData.package?.listingLimit} listings in your ${subscriptionData.package?.name} plan.`
-                  : "You don't have an active subscription."}
-              </AlertDescription>
-            </Alert>
-            <Card className="p-8 text-center">
-              <Home className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-              <h1 className="text-2xl font-bold mb-2">Upgrade Your Plan</h1>
-              <p className="text-muted-foreground mb-6">
-                To create more property listings, please upgrade to a higher package.
-              </p>
-              <div className="flex gap-4 justify-center">
-                <Button variant="outline" onClick={() => navigate("/seller/dashboard")}>
-                  Back to Dashboard
-                </Button>
-                <Button onClick={() => navigate("/seller/packages")}>
-                  View Packages
-                </Button>
-              </div>
-            </Card>
-          </div>
-        </main>
-      </div>
+  return (
+      <main className="flex-1">
+        <div className="max-w-2xl mx-auto px-4 py-16">
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Listing Limit Reached</AlertTitle>
+            <AlertDescription>
+              {subscriptionData?.subscription 
+                ? `You've used ${subscriptionData.subscription.listingsUsed} of ${subscriptionData.package?.listingLimit} listings in your ${subscriptionData.package?.name} plan.`
+                : "You don't have an active subscription."}
+            </AlertDescription>
+          </Alert>
+          <Card className="p-8 text-center">
+            <Home className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+            <h1 className="text-2xl font-bold mb-2">Upgrade Your Plan</h1>
+            <p className="text-muted-foreground mb-6">
+              To create more property listings, please upgrade to a higher package.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Button variant="outline" onClick={() => navigate("/seller/dashboard")}>
+                Back to Dashboard
+              </Button>
+              <Button onClick={() => navigate("/seller/packages")}>
+                View Packages
+              </Button>
+      
+          </Card>
+  
+      </main>
     );
   }
 
@@ -430,7 +426,7 @@ export default function CreatePropertyPage() {
                   {subscriptionData.subscription.listingsUsed}/{subscriptionData.package?.listingLimit} listings used
                 </Badge>
               )}
-            </div>
+      
 
             <div className="flex items-center gap-2 mb-2">
               {STEPS.map((step, index) => (
@@ -447,7 +443,7 @@ export default function CreatePropertyPage() {
                     ) : (
                       step.id
                     )}
-                  </div>
+            
                   {index < STEPS.length - 1 && (
                     <div
                       className={`h-1 flex-1 mx-2 transition-colors ${
@@ -455,19 +451,19 @@ export default function CreatePropertyPage() {
                       }`}
                     />
                   )}
-                </div>
+          
               ))}
-            </div>
+      
             <div className="flex justify-between text-sm">
               {STEPS.map(step => (
                 <div key={step.id} className="text-center flex-1">
                   <p className={currentStep >= step.id ? "font-medium" : "text-muted-foreground"}>
                     {step.title}
                   </p>
-                </div>
+          
               ))}
-            </div>
-          </div>
+      
+    
 
           {/* Step 1: Basic Information */}
           {currentStep === 1 && (
@@ -497,7 +493,7 @@ export default function CreatePropertyPage() {
                         <SelectItem value="studio">Studio</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
+            
 
                   <div className="space-y-2">
                     <Label htmlFor="transactionType">Transaction Type *</Label>
@@ -514,8 +510,8 @@ export default function CreatePropertyPage() {
                         <SelectItem value="lease">For Lease</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
+            
+          
 
                 {canHaveProjects && formData.transactionType === "sale" && liveProjects.length > 0 && (
                   <div className="space-y-2">
@@ -542,7 +538,7 @@ export default function CreatePropertyPage() {
                     <p className="text-xs text-muted-foreground">
                       Link this property to one of your projects. Properties linked to projects appear on the project page.
                     </p>
-                  </div>
+            
                 )}
 
                 <div className="space-y-2">
@@ -557,7 +553,7 @@ export default function CreatePropertyPage() {
                   <p className="text-xs text-muted-foreground">
                     A catchy title helps attract more buyers
                   </p>
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="description">Property Description</Label>
@@ -569,7 +565,7 @@ export default function CreatePropertyPage() {
                     onChange={(e) => updateField("description", e.target.value)}
                     data-testid="textarea-description"
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="price">Price *</Label>
@@ -586,13 +582,13 @@ export default function CreatePropertyPage() {
                     {formData.transactionType === "rent" && (
                       <span className="text-muted-foreground whitespace-nowrap">/month</span>
                     )}
-                  </div>
+            
                   {formData.price && (
                     <p className="text-sm text-primary font-medium">
                       {formatPrice(formData.price)}
                     </p>
                   )}
-                </div>
+          
 
                 <Separator />
 
@@ -609,7 +605,7 @@ export default function CreatePropertyPage() {
                         onChange={(e) => updateField("address", e.target.value)}
                         data-testid="textarea-address"
                       />
-                    </div>
+              
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -621,7 +617,7 @@ export default function CreatePropertyPage() {
                           onChange={(e) => updateField("locality", e.target.value)}
                           data-testid="input-locality"
                         />
-                      </div>
+                
 
                       <div className="space-y-2">
                         <Label htmlFor="city">City *</Label>
@@ -632,7 +628,7 @@ export default function CreatePropertyPage() {
                           onChange={(e) => updateField("city", e.target.value)}
                           data-testid="input-city"
                         />
-                      </div>
+                
 
                       <div className="space-y-2">
                         <Label htmlFor="state">State *</Label>
@@ -649,7 +645,7 @@ export default function CreatePropertyPage() {
                             ))}
                           </SelectContent>
                         </Select>
-                      </div>
+                
 
                       <div className="space-y-2">
                         <Label htmlFor="pincode">PIN Code</Label>
@@ -661,8 +657,8 @@ export default function CreatePropertyPage() {
                           onChange={(e) => updateField("pincode", e.target.value.replace(/\D/g, ""))}
                           data-testid="input-pincode"
                         />
-                      </div>
-                    </div>
+                
+              
 
                     <div className="space-y-2 mt-4">
                       <Label className="flex items-center gap-2">
@@ -675,7 +671,7 @@ export default function CreatePropertyPage() {
                       <Suspense fallback={
                         <div className="h-[300px] bg-muted rounded-lg flex items-center justify-center">
                           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                        </div>
+                  
                       }>
                         <LocationPicker
                           latitude={formData.latitude ? parseFloat(formData.latitude) : undefined}
@@ -688,10 +684,10 @@ export default function CreatePropertyPage() {
                           height="300px"
                         />
                       </Suspense>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              
+            
+          
+        
             </Card>
           )}
 
@@ -725,7 +721,7 @@ export default function CreatePropertyPage() {
                               <SelectItem value="5">5+ BHK</SelectItem>
                             </SelectContent>
                           </Select>
-                        </div>
+                  
 
                         <div className="space-y-2">
                           <Label htmlFor="bathrooms">Bathrooms *</Label>
@@ -744,7 +740,7 @@ export default function CreatePropertyPage() {
                               <SelectItem value="5">5+</SelectItem>
                             </SelectContent>
                           </Select>
-                        </div>
+                  
 
                         <div className="space-y-2">
                           <Label htmlFor="balconies">Balconies</Label>
@@ -762,9 +758,9 @@ export default function CreatePropertyPage() {
                               <SelectItem value="3">3+</SelectItem>
                             </SelectContent>
                           </Select>
-                        </div>
-                      </div>
-                    </div>
+                  
+                
+              
 
                     <Separator />
                   </>
@@ -785,7 +781,7 @@ export default function CreatePropertyPage() {
                         onChange={(e) => updateField("area", e.target.value)}
                         data-testid="input-area"
                       />
-                    </div>
+              
 
                     {formData.area && formData.price && (
                       <div className="space-y-2">
@@ -793,10 +789,10 @@ export default function CreatePropertyPage() {
                         <p className="text-lg font-semibold text-primary py-2">
                           ₹{Math.round(parseInt(formData.price) / parseInt(formData.area)).toLocaleString("en-IN")}
                         </p>
-                      </div>
+                
                     )}
-                  </div>
-                </div>
+            
+          
 
                 {formData.propertyType !== "plot" && (
                   <>
@@ -815,7 +811,7 @@ export default function CreatePropertyPage() {
                             onChange={(e) => updateField("floor", e.target.value)}
                             data-testid="input-floor"
                           />
-                        </div>
+                  
 
                         <div className="space-y-2">
                           <Label htmlFor="totalFloors">Total Floors</Label>
@@ -827,7 +823,7 @@ export default function CreatePropertyPage() {
                             onChange={(e) => updateField("totalFloors", e.target.value)}
                             data-testid="input-total-floors"
                           />
-                        </div>
+                  
 
                         <div className="space-y-2">
                           <Label htmlFor="facing">Facing</Label>
@@ -849,9 +845,9 @@ export default function CreatePropertyPage() {
                               <SelectItem value="south-west">South-West</SelectItem>
                             </SelectContent>
                           </Select>
-                        </div>
-                      </div>
-                    </div>
+                  
+                
+              
 
                     <Separator />
 
@@ -871,7 +867,7 @@ export default function CreatePropertyPage() {
                             <SelectItem value="fully-furnished">Fully Furnished</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
+                
 
                       <div className="space-y-2">
                         <Label htmlFor="ageOfProperty">Age of Property (years)</Label>
@@ -891,7 +887,7 @@ export default function CreatePropertyPage() {
                             <SelectItem value="15">10+ years</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
+                
 
                       <div className="space-y-2">
                         <Label htmlFor="possessionStatus">Possession Status</Label>
@@ -908,8 +904,8 @@ export default function CreatePropertyPage() {
                             <SelectItem value="upcoming">Upcoming Project</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
-                    </div>
+                
+              
                   </>
                 )}
 
@@ -932,10 +928,10 @@ export default function CreatePropertyPage() {
                         >
                           {amenity}
                         </Label>
-                      </div>
+                
                     ))}
-                  </div>
-                </div>
+            
+          
 
                 <Separator />
 
@@ -956,11 +952,11 @@ export default function CreatePropertyPage() {
                         >
                           {highlight}
                         </Label>
-                      </div>
+                
                     ))}
-                  </div>
-                </div>
-              </div>
+            
+          
+        
             </Card>
           )}
 
@@ -978,7 +974,7 @@ export default function CreatePropertyPage() {
                 <div className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/25 rounded-lg p-12 text-center">
                   <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
                     <Upload className="h-8 w-8 text-primary" />
-                  </div>
+            
                   <h3 className="font-semibold mb-2">Upload Property Photos</h3>
                   <p className="text-sm text-muted-foreground mb-4">
                     PNG, JPG up to 10MB each (max 20 photos)
@@ -1021,7 +1017,7 @@ export default function CreatePropertyPage() {
                     <Upload className="h-4 w-4 mr-2" />
                     Select Photos
                   </ObjectUploader>
-                </div>
+          
 
                 {formData.photos.length > 0 && (
                   <div>
@@ -1052,12 +1048,12 @@ export default function CreatePropertyPage() {
                           {index === 0 && (
                             <div className="absolute bottom-2 left-2">
                               <Badge>Cover Photo</Badge>
-                            </div>
+                      
                           )}
-                        </div>
+                  
                       ))}
-                    </div>
-                  </div>
+              
+            
                 )}
 
                 <Alert>
@@ -1068,7 +1064,7 @@ export default function CreatePropertyPage() {
                     Good lighting and multiple angles help attract more buyers.
                   </AlertDescription>
                 </Alert>
-              </div>
+        
             </Card>
           )}
 
@@ -1091,7 +1087,7 @@ export default function CreatePropertyPage() {
                         onChange={(e) => updateField("contactName", e.target.value)}
                         data-testid="input-contact-name"
                       />
-                    </div>
+              
 
                     <div className="space-y-2">
                       <Label htmlFor="contactPhone">Contact Phone *</Label>
@@ -1104,8 +1100,8 @@ export default function CreatePropertyPage() {
                           onChange={(e) => updateField("contactPhone", e.target.value)}
                           data-testid="input-contact-phone"
                         />
-                      </div>
-                    </div>
+                
+              
 
                     <div className="space-y-2">
                       <Label htmlFor="contactEmail">Contact Email *</Label>
@@ -1117,7 +1113,7 @@ export default function CreatePropertyPage() {
                         onChange={(e) => updateField("contactEmail", e.target.value)}
                         data-testid="input-contact-email"
                       />
-                    </div>
+              
 
                     <Separator className="my-6" />
 
@@ -1132,7 +1128,7 @@ export default function CreatePropertyPage() {
                         <Label htmlFor="verifiedInfo" className="text-sm font-normal cursor-pointer">
                           I verify that all the information provided is accurate and true
                         </Label>
-                      </div>
+                
 
                       <div className="flex items-start space-x-3">
                         <Checkbox
@@ -1144,11 +1140,11 @@ export default function CreatePropertyPage() {
                         <Label htmlFor="agreedToTerms" className="text-sm font-normal cursor-pointer">
                           I agree to the Terms & Conditions and Privacy Policy
                         </Label>
-                      </div>
-                    </div>
-                  </div>
+                
+              
+            
                 </Card>
-              </div>
+        
 
               {/* Preview Card */}
               <div className="lg:col-span-1">
@@ -1166,7 +1162,7 @@ export default function CreatePropertyPage() {
                       ) : (
                         <span className="text-sm text-muted-foreground">No photos yet</span>
                       )}
-                    </div>
+              
 
                     <div>
                       <div className="flex items-start gap-2 mb-2">
@@ -1174,18 +1170,18 @@ export default function CreatePropertyPage() {
                           {formData.title || "Property Title"}
                         </h4>
                         <Badge>{formData.transactionType === "rent" ? "For Rent" : formData.transactionType === "lease" ? "For Lease" : "For Sale"}</Badge>
-                      </div>
+                
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
                         <MapPin className="h-4 w-4" />
                         <span className="line-clamp-1">
                           {formData.locality ? `${formData.locality}, ` : ""}{formData.city || "City"}, {formData.state || "State"}
                         </span>
-                      </div>
+                
                       <p className="text-2xl font-bold font-serif text-primary mb-4">
                         {formData.price ? formatPrice(formData.price) : "₹0"}
                         {formData.transactionType === "rent" && <span className="text-sm font-normal">/month</span>}
                       </p>
-                    </div>
+              
 
                     <Separator />
 
@@ -1195,18 +1191,18 @@ export default function CreatePropertyPage() {
                           <Bed className="h-4 w-4 text-muted-foreground mb-1" />
                           <span className="font-medium">{formData.bedrooms || "-"}</span>
                           <span className="text-xs text-muted-foreground">Beds</span>
-                        </div>
+                  
                         <div className="flex flex-col items-center p-2 bg-muted/50 rounded-lg">
                           <Bath className="h-4 w-4 text-muted-foreground mb-1" />
                           <span className="font-medium">{formData.bathrooms || "-"}</span>
                           <span className="text-xs text-muted-foreground">Baths</span>
-                        </div>
+                  
                         <div className="flex flex-col items-center p-2 bg-muted/50 rounded-lg">
                           <Maximize className="h-4 w-4 text-muted-foreground mb-1" />
                           <span className="font-medium">{formData.area || "-"}</span>
                           <span className="text-xs text-muted-foreground">sqft</span>
-                        </div>
-                      </div>
+                  
+                
                     )}
 
                     {formData.amenities.length > 0 && (
@@ -1223,8 +1219,8 @@ export default function CreatePropertyPage() {
                               +{formData.amenities.length - 4} more
                             </Badge>
                           )}
-                        </div>
-                      </div>
+                  
+                
                     )}
 
                     <Separator />
@@ -1235,17 +1231,17 @@ export default function CreatePropertyPage() {
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Phone className="h-4 w-4" />
                           <span>{formData.contactPhone || "Phone number"}</span>
-                        </div>
+                  
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Mail className="h-4 w-4" />
                           <span className="truncate">{formData.contactEmail || "Email"}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  
+                
+              
+            
                 </Card>
-              </div>
-            </div>
+        
+      
           )}
 
           {/* Navigation */}
@@ -1294,8 +1290,8 @@ export default function CreatePropertyPage() {
                 )}
               </Button>
             )}
-          </div>
-        </div>
+    
+  
       </main>
   );
 }

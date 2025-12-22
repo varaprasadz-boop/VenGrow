@@ -27,7 +27,7 @@ export default function PropertyArchivePage() {
   const getReasonBadge = (reason: string) => {
     switch (reason) {
       case "Sold":
-        return (
+      return (
           <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
             {reason}
           </Badge>
@@ -52,7 +52,7 @@ export default function PropertyArchivePage() {
             <p className="text-muted-foreground">
               View your past listings
             </p>
-          </div>
+    
 
           {archivedProperties.length > 0 ? (
             <div className="space-y-4">
@@ -63,15 +63,15 @@ export default function PropertyArchivePage() {
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="font-semibold text-lg">{property.title}</h3>
                         {getReasonBadge(property.reason)}
-                      </div>
+                
                       <div className="space-y-1 text-sm">
                         <p className="text-muted-foreground">{property.location}</p>
                         <p className="font-semibold text-primary">{property.price}</p>
                         <p className="text-xs text-muted-foreground">
                           Archived on {property.archivedDate}
                         </p>
-                      </div>
-                    </div>
+                
+              
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
@@ -87,11 +87,11 @@ export default function PropertyArchivePage() {
                       >
                         Restore
                       </Button>
-                    </div>
-                  </div>
+              
+            
                 </Card>
               ))}
-            </div>
+      
           ) : (
             <Card className="p-12 text-center">
               <Archive className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
@@ -101,7 +101,7 @@ export default function PropertyArchivePage() {
               </p>
             </Card>
           )}
-        </div>
+  
       </main>
   );
 }

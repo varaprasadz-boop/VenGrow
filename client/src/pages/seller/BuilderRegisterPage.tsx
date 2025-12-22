@@ -57,7 +57,7 @@ export default function BuilderRegisterPage() {
           <p className="text-muted-foreground">
             Register your construction company to showcase projects
           </p>
-        </div>
+  
 
         <Card className="p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -77,7 +77,7 @@ export default function BuilderRegisterPage() {
                     data-testid="input-company"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Official Email *</Label>
@@ -92,7 +92,7 @@ export default function BuilderRegisterPage() {
                     data-testid="input-email"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Official Phone *</Label>
@@ -107,7 +107,7 @@ export default function BuilderRegisterPage() {
                     data-testid="input-phone"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="website">Company Website (Optional)</Label>
@@ -121,9 +121,9 @@ export default function BuilderRegisterPage() {
                     }
                     data-testid="input-website"
                   />
-                </div>
-              </div>
-            </div>
+          
+        
+      
 
             {/* Legal & Registration Details */}
             <div>
@@ -141,7 +141,7 @@ export default function BuilderRegisterPage() {
                     data-testid="input-cin"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="gstNumber">GST Number *</Label>
@@ -155,7 +155,7 @@ export default function BuilderRegisterPage() {
                     data-testid="input-gst"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="reraNumber">RERA Registration Number *</Label>
@@ -169,7 +169,7 @@ export default function BuilderRegisterPage() {
                     data-testid="input-rera"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="establishedYear">Year Established *</Label>
@@ -184,7 +184,7 @@ export default function BuilderRegisterPage() {
                     data-testid="input-year"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="completedProjects">Number of Completed Projects *</Label>
@@ -199,9 +199,9 @@ export default function BuilderRegisterPage() {
                     data-testid="input-projects"
                     required
                   />
-                </div>
-              </div>
-            </div>
+          
+        
+      
 
             {/* Office Address */}
             <div>
@@ -220,7 +220,7 @@ export default function BuilderRegisterPage() {
                     data-testid="textarea-address"
                     required
                   />
-                </div>
+          
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
@@ -235,7 +235,7 @@ export default function BuilderRegisterPage() {
                       data-testid="input-city"
                       required
                     />
-                  </div>
+            
 
                   <div className="space-y-2">
                     <Label htmlFor="state">State *</Label>
@@ -249,7 +249,7 @@ export default function BuilderRegisterPage() {
                       data-testid="input-state"
                       required
                     />
-                  </div>
+            
 
                   <div className="space-y-2">
                     <Label htmlFor="pincode">PIN Code *</Label>
@@ -263,10 +263,10 @@ export default function BuilderRegisterPage() {
                       data-testid="input-pincode"
                       required
                     />
-                  </div>
-                </div>
-              </div>
-            </div>
+            
+          
+        
+      
 
             {/* Documents */}
             <div>
@@ -281,8 +281,8 @@ export default function BuilderRegisterPage() {
                     <Button type="button" variant="outline" size="sm" data-testid="button-upload-inc">
                       Choose File
                     </Button>
-                  </div>
-                </div>
+            
+          
 
                 <div className="space-y-2">
                   <Label>RERA Certificate *</Label>
@@ -293,8 +293,8 @@ export default function BuilderRegisterPage() {
                     <Button type="button" variant="outline" size="sm" data-testid="button-upload-rera">
                       Choose File
                     </Button>
-                  </div>
-                </div>
+            
+          
 
                 <div className="space-y-2">
                   <Label>Company Profile (Optional)</Label>
@@ -305,10 +305,10 @@ export default function BuilderRegisterPage() {
                     <Button type="button" variant="outline" size="sm" data-testid="button-upload-profile">
                       Choose File
                     </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            
+          
+        
+      
 
             {/* Terms */}
             <div className="flex items-start gap-3 p-4 border rounded-lg">
@@ -327,8 +327,8 @@ export default function BuilderRegisterPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   I confirm that the company is duly registered and all information provided is accurate
                 </p>
-              </div>
-            </div>
+        
+      
 
             {/* Submit */}
             <div className="flex gap-3 pt-4">
@@ -340,14 +340,14 @@ export default function BuilderRegisterPage() {
               <Button type="submit" className="flex-1" disabled={!formData.agreeToTerms} data-testid="button-submit">
                 Submit Registration
               </Button>
-            </div>
+      
           </form>
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
           Already registered? <Link href="/login"><a className="text-primary hover:underline">Login here</a></Link>
         </p>
-      </div>
+
     </div>
   );
 }

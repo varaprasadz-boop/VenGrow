@@ -93,18 +93,18 @@ export default function PaymentsPage() {
   };
 
   if (isLoading) {
-    return (
+  return (
       <main className="flex-1 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Skeleton className="h-10 w-64 mb-8" />
           <Skeleton className="h-96 w-full" />
-        </div>
+  
       </main>
     );
   }
 
   if (isError) {
-    return (
+  return (
       <main className="flex-1 bg-muted/30 flex items-center justify-center">
         <div className="text-center p-8">
           <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
@@ -112,7 +112,7 @@ export default function PaymentsPage() {
           <Button onClick={() => refetch()} data-testid="button-retry">
             <RefreshCw className="h-4 w-4 mr-2" />Retry
           </Button>
-        </div>
+  
       </main>
     );
   }
@@ -125,37 +125,37 @@ export default function PaymentsPage() {
           <div className="flex items-center gap-3 mb-8">
             <div className="p-2 rounded-lg bg-primary/10">
               <CreditCard className="h-6 w-6 text-primary" />
-            </div>
+      
             <div>
               <h1 className="font-serif font-bold text-3xl">Payment History</h1>
               <p className="text-muted-foreground">View all your payments</p>
-            </div>
-          </div>
+      
+    
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <Card className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
                   <CreditCard className="h-5 w-5 text-primary" />
-                </div>
+          
                 <div>
                   <p className="text-2xl font-bold">{payments.length}</p>
                   <p className="text-sm text-muted-foreground">Total Transactions</p>
-                </div>
-              </div>
+          
+        
             </Card>
             <Card className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20">
                   <IndianRupee className="h-5 w-5 text-green-600" />
-                </div>
+          
                 <div>
                   <p className="text-2xl font-bold">{formatPrice(totalPaid)}</p>
                   <p className="text-sm text-muted-foreground">Total Paid</p>
-                </div>
-              </div>
+          
+        
             </Card>
-          </div>
+    
 
           <Card className="p-6">
             <div className="border rounded-lg overflow-hidden">
@@ -214,9 +214,9 @@ export default function PaymentsPage() {
                   )}
                 </TableBody>
               </Table>
-            </div>
+      
           </Card>
-        </div>
+  
     </main>
   );
 }

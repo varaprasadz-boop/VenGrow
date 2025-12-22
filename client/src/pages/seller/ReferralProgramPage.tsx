@@ -47,7 +47,7 @@ export default function ReferralProgramPage() {
             <p className="text-muted-foreground">
               Earn ₹500 for every successful referral
             </p>
-          </div>
+    
 
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -56,15 +56,15 @@ export default function ReferralProgramPage() {
                 <div className="flex items-center gap-4">
                   <div className="p-3 rounded-lg bg-primary/10">
                     <stat.icon className="h-6 w-6 text-primary" />
-                  </div>
+            
                   <div>
                     <p className="text-3xl font-bold">{stat.value}</p>
                     <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  </div>
-                </div>
+            
+          
               </Card>
             ))}
-          </div>
+    
 
           {/* Referral Link */}
           <Card className="p-8 mb-8 bg-gradient-to-br from-primary/5 to-primary/10">
@@ -83,7 +83,7 @@ export default function ReferralProgramPage() {
                   <Copy className="h-4 w-4 mr-2" />
                   Copy
                 </Button>
-              </div>
+        
 
               <div className="flex gap-3 justify-center">
                 <Button variant="outline" data-testid="button-share-email">
@@ -94,8 +94,8 @@ export default function ReferralProgramPage() {
                   <Share2 className="h-4 w-4 mr-2" />
                   Share
                 </Button>
-              </div>
-            </div>
+        
+      
           </Card>
 
           {/* How It Works */}
@@ -105,31 +105,31 @@ export default function ReferralProgramPage() {
               <div className="text-center">
                 <div className="inline-flex p-4 rounded-full bg-primary/10 mb-4">
                   <span className="text-2xl font-bold text-primary">1</span>
-                </div>
+          
                 <h4 className="font-semibold mb-2">Share Your Link</h4>
                 <p className="text-sm text-muted-foreground">
                   Send your unique referral link to friends and colleagues
                 </p>
-              </div>
+        
               <div className="text-center">
                 <div className="inline-flex p-4 rounded-full bg-primary/10 mb-4">
                   <span className="text-2xl font-bold text-primary">2</span>
-                </div>
+          
                 <h4 className="font-semibold mb-2">They Sign Up</h4>
                 <p className="text-sm text-muted-foreground">
                   Your referral creates an account and purchases a package
                 </p>
-              </div>
+        
               <div className="text-center">
                 <div className="inline-flex p-4 rounded-full bg-primary/10 mb-4">
                   <span className="text-2xl font-bold text-primary">3</span>
-                </div>
+          
                 <h4 className="font-semibold mb-2">You Earn</h4>
                 <p className="text-sm text-muted-foreground">
                   Receive ₹500 in your account for each successful referral
                 </p>
-              </div>
-            </div>
+        
+      
           </Card>
 
           {/* Referral History */}
@@ -146,7 +146,7 @@ export default function ReferralProgramPage() {
                     <p className="text-sm text-muted-foreground">
                       {referral.email} • {referral.date}
                     </p>
-                  </div>
+            
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="font-semibold">{referral.earnings}</p>
@@ -159,13 +159,13 @@ export default function ReferralProgramPage() {
                           Pending
                         </Badge>
                       )}
-                    </div>
-                  </div>
-                </div>
+              
+            
+          
               ))}
-            </div>
+      
           </Card>
-        </div>
+  
       </main>
   );
 }

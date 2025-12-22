@@ -40,12 +40,12 @@ export default function PaymentMethodsPage() {
               <p className="text-muted-foreground">
                 Manage your saved payment methods
               </p>
-            </div>
+      
             <Button data-testid="button-add">
               <Plus className="h-4 w-4 mr-2" />
               Add Method
             </Button>
-          </div>
+    
 
           <div className="space-y-4">
             {methods.map((method) => (
@@ -54,7 +54,7 @@ export default function PaymentMethodsPage() {
                   <div className="flex items-start gap-4">
                     <div className="p-3 rounded-lg bg-muted">
                       <CreditCard className="h-6 w-6" />
-                    </div>
+              
                     <div>
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="font-semibold">
@@ -66,12 +66,12 @@ export default function PaymentMethodsPage() {
                             Default
                           </Badge>
                         )}
-                      </div>
+                
                       <p className="text-sm text-muted-foreground">
                         Expires {method.expiryMonth}/{method.expiryYear}
                       </p>
-                    </div>
-                  </div>
+              
+            
                   <div className="flex gap-2">
                     {!method.isDefault && (
                       <Button
@@ -89,11 +89,11 @@ export default function PaymentMethodsPage() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                  </div>
-                </div>
+            
+          
               </Card>
             ))}
-          </div>
+    
 
           <Card className="p-6 mt-8 bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/20">
             <div className="flex items-start gap-3">
@@ -104,10 +104,10 @@ export default function PaymentMethodsPage() {
                   All payments are processed securely through Razorpay. Your card
                   details are encrypted and never stored on our servers.
                 </p>
-              </div>
-            </div>
+        
+      
           </Card>
-        </div>
+  
       </main>
   );
 }

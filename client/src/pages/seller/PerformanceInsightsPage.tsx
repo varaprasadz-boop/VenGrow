@@ -78,12 +78,12 @@ export default function PerformanceInsightsPage() {
               <p className="text-muted-foreground">
                 AI-powered recommendations to improve your listing performance
               </p>
-            </div>
+      
             <Button data-testid="button-export">
               <Download className="h-4 w-4 mr-2" />
               Export Report
             </Button>
-          </div>
+    
 
           {/* Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -92,13 +92,13 @@ export default function PerformanceInsightsPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="p-3 rounded-lg bg-primary/10">
                     <metric.icon className="h-6 w-6 text-primary" />
-                  </div>
+            
                   {metric.trend === "up" ? (
                     <TrendingUp className="h-5 w-5 text-green-600" />
                   ) : (
                     <TrendingDown className="h-5 w-5 text-red-600" />
                   )}
-                </div>
+          
                 <p className="text-3xl font-bold font-serif mb-1">
                   {metric.value}
                 </p>
@@ -114,7 +114,7 @@ export default function PerformanceInsightsPage() {
                 </p>
               </Card>
             ))}
-          </div>
+    
 
           {/* Recommendations */}
           <div>
@@ -143,19 +143,19 @@ export default function PerformanceInsightsPage() {
                             Low Priority
                           </span>
                         )}
-                      </div>
+                
                       <p className="text-sm text-muted-foreground">
                         {rec.description}
                       </p>
-                    </div>
-                  </div>
+              
+            
                   <Button variant="outline" size="sm" data-testid={`button-action-${index}`}>
                     Take Action
                   </Button>
                 </Card>
               ))}
-            </div>
-          </div>
+      
+    
 
           {/* Benchmark */}
           <Card className="p-6 mt-8">
@@ -199,8 +199,8 @@ export default function PerformanceInsightsPage() {
                       <span className="text-green-600">
                         Top 10%: {item.top} {item.unit}
                       </span>
-                    </div>
-                  </div>
+              
+            
                   <div className="relative h-3 bg-muted rounded-full overflow-hidden">
                     <div
                       className="absolute h-full bg-blue-200 dark:bg-blue-900/40"
@@ -210,12 +210,12 @@ export default function PerformanceInsightsPage() {
                       className="absolute h-full border-l-2 border-orange-500"
                       style={{ left: `${(item.average / item.top) * 100}%` }}
                     />
-                  </div>
-                </div>
+            
+          
               ))}
-            </div>
+      
           </Card>
-        </div>
+  
       </main>
   );
 }

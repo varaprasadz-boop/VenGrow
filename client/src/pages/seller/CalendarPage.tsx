@@ -42,12 +42,12 @@ export default function CalendarPage() {
               <p className="text-muted-foreground">
                 Manage your schedule and appointments
               </p>
-            </div>
+      
             <Button data-testid="button-add-event">
               <CalendarIcon className="h-4 w-4 mr-2" />
               Add Event
             </Button>
-          </div>
+    
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Calendar */}
@@ -62,23 +62,23 @@ export default function CalendarPage() {
                     <Button variant="outline" size="icon">
                       <ChevronRight className="h-4 w-4" />
                     </Button>
-                  </div>
-                </div>
+            
+          
 
                 <div className="grid grid-cols-7 gap-2 mb-4">
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                     <div key={day} className="text-center text-sm font-medium text-muted-foreground p-2">
                       {day}
-                    </div>
+              
                   ))}
-                </div>
+          
 
                 <div className="grid grid-cols-7 gap-2">
                   {Array.from({ length: 35 }).map((_, index) => {
                     const day = index - 2;
                     const isToday = day === 24;
                     const hasEvent = day === 24;
-                    return (
+                  return (
                       <button
                         key={index}
                         className={`aspect-square p-2 rounded-lg text-sm hover-elevate active-elevate-2 ${
@@ -95,9 +95,9 @@ export default function CalendarPage() {
                       </button>
                     );
                   })}
-                </div>
+          
               </Card>
-            </div>
+      
 
             {/* Events */}
             <div className="lg:col-span-1">
@@ -109,16 +109,16 @@ export default function CalendarPage() {
                       <div className="flex items-center gap-2 mb-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium">{event.time}</span>
-                      </div>
+                
                       <h4 className="font-semibold mb-1">{event.title}</h4>
                       <p className="text-sm text-muted-foreground">{event.client}</p>
-                    </div>
+              
                   ))}
-                </div>
+          
               </Card>
-            </div>
-          </div>
-        </div>
+      
+    
+  
       </main>
   );
 }

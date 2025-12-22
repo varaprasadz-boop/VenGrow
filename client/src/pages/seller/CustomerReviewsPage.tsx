@@ -62,7 +62,7 @@ export default function CustomerReviewsPage() {
             <p className="text-muted-foreground">
               See what buyers are saying about you
             </p>
-          </div>
+    
 
           {/* Overview */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
@@ -82,8 +82,8 @@ export default function CustomerReviewsPage() {
                       }`}
                     />
                   ))}
-                </div>
-              </div>
+          
+        
               <p className="text-muted-foreground">
                 Based on {stats.total} reviews
               </p>
@@ -97,23 +97,23 @@ export default function CustomerReviewsPage() {
                     <div className="flex items-center gap-1 w-16">
                       <span className="text-sm font-medium">{item.stars}</span>
                       <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    </div>
+              
                     <div className="flex-1">
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-yellow-400"
                           style={{ width: `${item.percentage}%` }}
                         />
-                      </div>
-                    </div>
+                
+              
                     <span className="text-sm text-muted-foreground w-12 text-right">
                       {item.count}
                     </span>
-                  </div>
+            
                 ))}
-              </div>
+        
             </Card>
-          </div>
+    
 
           {/* Reviews List */}
           <div className="space-y-4">
@@ -134,14 +134,14 @@ export default function CustomerReviewsPage() {
                             }`}
                           />
                         ))}
-                      </div>
-                    </div>
+                
+              
                     <p className="text-sm text-muted-foreground mb-1">
                       {review.property}
                     </p>
                     <p className="text-xs text-muted-foreground">{review.date}</p>
-                  </div>
-                </div>
+            
+          
 
                 <p className="text-muted-foreground mb-4">{review.comment}</p>
 
@@ -162,11 +162,11 @@ export default function CustomerReviewsPage() {
                     <MessageSquare className="h-4 w-4 mr-2" />
                     Reply
                   </Button>
-                </div>
+          
               </Card>
             ))}
-          </div>
-        </div>
+    
+  
       </main>
   );
 }

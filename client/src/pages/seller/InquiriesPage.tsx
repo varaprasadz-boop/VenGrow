@@ -119,7 +119,7 @@ export default function InquiriesPage() {
             <p className="text-muted-foreground text-sm sm:text-base">
               Manage inquiries from potential buyers
             </p>
-          </div>
+    
 
           <div className="mb-6">
             <div className="relative">
@@ -131,8 +131,8 @@ export default function InquiriesPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 data-testid="input-search"
               />
-            </div>
-          </div>
+      
+    
 
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
             <TabsList className="mb-6">
@@ -161,11 +161,11 @@ export default function InquiriesPage() {
                           <Skeleton className="h-5 w-48" />
                           <Skeleton className="h-4 w-64" />
                           <Skeleton className="h-4 w-32" />
-                        </div>
-                      </div>
+                  
+                
                     </Card>
                   ))}
-                </div>
+          
               ) : (
                 <div className="space-y-4">
                   {filteredInquiries.map((inquiry) => {
@@ -174,7 +174,7 @@ export default function InquiriesPage() {
                       ? `${inquiry.buyer.firstName || ""} ${inquiry.buyer.lastName || ""}`.trim() || "Anonymous"
                       : "Anonymous";
 
-                    return (
+                  return (
                       <Card key={inquiry.id} className="p-6">
                         <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                           <div className="flex-1 space-y-4">
@@ -192,7 +192,7 @@ export default function InquiriesPage() {
                                   <Badge className={statusInfo.className}>
                                     {statusInfo.label}
                                   </Badge>
-                                </div>
+                          
                                 <p className="text-sm text-muted-foreground mb-2">
                                   {inquiry.property?.title || "Property"}
                                 </p>
@@ -213,14 +213,14 @@ export default function InquiriesPage() {
                                       {inquiry.buyerPhone}
                                     </span>
                                   )}
-                                </div>
-                              </div>
-                            </div>
+                          
+                        
+                      
 
                             <div className="p-4 bg-muted/50 rounded-lg">
                               <p className="text-sm">{inquiry.message || "No message provided"}</p>
-                            </div>
-                          </div>
+                      
+                    
 
                           <div className="flex lg:flex-col gap-2">
                             {inquiry.buyerPhone && (
@@ -269,12 +269,12 @@ export default function InquiriesPage() {
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          </div>
-                        </div>
+                    
+                  
                       </Card>
                     );
                   })}
-                </div>
+          
               )}
 
               {!isLoading && filteredInquiries.length === 0 && (
@@ -290,11 +290,11 @@ export default function InquiriesPage() {
                       ? "You haven't received any inquiries yet"
                       : `No ${selectedTab} inquiries`}
                   </p>
-                </div>
+          
               )}
             </TabsContent>
           </Tabs>
-        </div>
+  
       </main>
   );
 }

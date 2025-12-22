@@ -90,7 +90,7 @@ export default function AnalyticsDashboardPage() {
               <p className="text-muted-foreground">
                 Track performance of your property listings
               </p>
-            </div>
+      
             <div className="flex gap-3">
               <Button variant="outline" data-testid="button-date-range">
                 <Calendar className="h-4 w-4 mr-2" />
@@ -100,8 +100,8 @@ export default function AnalyticsDashboardPage() {
                 <Download className="h-4 w-4 mr-2" />
                 Export Report
               </Button>
-            </div>
-          </div>
+      
+    
 
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -112,7 +112,7 @@ export default function AnalyticsDashboardPage() {
                   <Skeleton className="h-4 w-32" />
                 </Card>
               ))}
-            </div>
+      
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               {stats.map((stat, index) => (
@@ -120,16 +120,16 @@ export default function AnalyticsDashboardPage() {
                   <div className="flex items-start justify-between mb-3">
                     <div className="p-3 rounded-lg bg-primary/10">
                       <stat.icon className="h-6 w-6 text-primary" />
-                    </div>
-                  </div>
+              
+            
                   <div>
                     <p className="text-3xl font-bold font-serif mb-1">{stat.value}</p>
                     <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
                     <p className="text-xs text-muted-foreground">{stat.change}</p>
-                  </div>
+            
                 </Card>
               ))}
-            </div>
+      
           )}
 
           <Tabs defaultValue="overview" className="space-y-6">
@@ -151,7 +151,7 @@ export default function AnalyticsDashboardPage() {
                       {[1, 2, 3].map((i) => (
                         <Skeleton key={i} className="h-12 w-full" />
                       ))}
-                    </div>
+              
                   ) : properties.length === 0 ? (
                     <div className="text-center py-8">
                       <Building className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -159,7 +159,7 @@ export default function AnalyticsDashboardPage() {
                       <Link href="/seller/listings/new">
                         <Button>Create Your First Listing</Button>
                       </Link>
-                    </div>
+              
                   ) : (
                     <div className="space-y-4">
                       {topProperties.slice(0, 5).map((property, index) => (
@@ -169,8 +169,8 @@ export default function AnalyticsDashboardPage() {
                             <div className="flex gap-4 text-xs">
                               <span className="text-muted-foreground">{property.views} views</span>
                               <span className="text-muted-foreground">{property.inquiries} inquiries</span>
-                            </div>
-                          </div>
+                      
+                    
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div
                               className="h-full bg-primary rounded-full"
@@ -178,10 +178,10 @@ export default function AnalyticsDashboardPage() {
                                 width: `${Math.min(100, totalViews > 0 ? (property.views / totalViews * 100) : 0)}%` 
                               }}
                             />
-                          </div>
-                        </div>
+                    
+                  
                       ))}
-                    </div>
+              
                   )}
                 </Card>
 
@@ -192,7 +192,7 @@ export default function AnalyticsDashboardPage() {
                       {[1, 2, 3].map((i) => (
                         <Skeleton key={i} className="h-12 w-full" />
                       ))}
-                    </div>
+              
                   ) : (
                     <div className="space-y-4">
                       {[
@@ -223,19 +223,19 @@ export default function AnalyticsDashboardPage() {
                             <span className="text-muted-foreground">
                               {item.count} {item.percentage > 0 && item.percentage < 100 && `(${item.percentage}%)`}
                             </span>
-                          </div>
+                    
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div
                               className="h-full bg-primary rounded-full"
                               style={{ width: `${Math.min(100, item.percentage)}%` }}
                             />
-                          </div>
-                        </div>
+                    
+                  
                       ))}
-                    </div>
+              
                   )}
                 </Card>
-              </div>
+        
             </TabsContent>
 
             <TabsContent value="properties">
@@ -248,7 +248,7 @@ export default function AnalyticsDashboardPage() {
                     {[1, 2, 3].map((i) => (
                       <Skeleton key={i} className="h-12 w-full" />
                     ))}
-                  </div>
+            
                 ) : properties.length === 0 ? (
                   <div className="text-center py-8">
                     <Building className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -256,7 +256,7 @@ export default function AnalyticsDashboardPage() {
                     <Link href="/seller/listings/new">
                       <Button>Create Your First Listing</Button>
                     </Link>
-                  </div>
+            
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
@@ -292,7 +292,7 @@ export default function AnalyticsDashboardPage() {
                                     {property.title}
                                   </span>
                                 </Link>
-                              </div>
+                        
                             </td>
                             <td className="p-3 text-center">{property.views}</td>
                             <td className="p-3 text-center">{property.favorites}</td>
@@ -304,12 +304,12 @@ export default function AnalyticsDashboardPage() {
                         ))}
                       </tbody>
                     </table>
-                  </div>
+            
                 )}
               </Card>
             </TabsContent>
           </Tabs>
-        </div>
+  
     </main>
   );
 }

@@ -97,12 +97,12 @@ export default function CreateListingStep2Page() {
 
   // Show loading state while checking auth and step data
   if (authLoading || !step1Data) {
-    return (
+  return (
       <main className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
           <p className="mt-2 text-muted-foreground">Loading...</p>
-        </div>
+  
       </main>
     );
   }
@@ -115,22 +115,22 @@ export default function CreateListingStep2Page() {
             <div className="flex items-center gap-2 mb-4">
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
                 1
-              </div>
+        
               <div className="h-1 flex-1 bg-primary"></div>
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
                 2
-              </div>
+        
               <div className="h-1 flex-1 bg-muted"></div>
               <div className="h-8 w-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-bold">
                 3
-              </div>
+        
               <div className="h-1 flex-1 bg-muted"></div>
               <div className="h-8 w-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-bold">
                 4
-              </div>
-            </div>
+        
+      
             <p className="text-sm text-muted-foreground">Step 2 of 4: Property Details</p>
-          </div>
+    
 
           <Card className="p-8">
             <h1 className="font-serif font-bold text-2xl mb-6">
@@ -161,7 +161,7 @@ export default function CreateListingStep2Page() {
                         <SelectItem value="5">5+ BHK</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
+            
 
                   <div className="space-y-2">
                     <Label htmlFor="bathrooms">Bathrooms *</Label>
@@ -182,7 +182,7 @@ export default function CreateListingStep2Page() {
                         <SelectItem value="5">5+</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
+            
 
                   <div className="space-y-2">
                     <Label htmlFor="balconies">Balconies</Label>
@@ -202,9 +202,9 @@ export default function CreateListingStep2Page() {
                         <SelectItem value="3">3+</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
-              </div>
+            
+          
+        
 
               {/* Area Details */}
               <div>
@@ -222,7 +222,7 @@ export default function CreateListingStep2Page() {
                       }
                       data-testid="input-carpet-area"
                     />
-                  </div>
+            
 
                   <div className="space-y-2">
                     <Label htmlFor="builtUpArea">Built-up Area (sq ft)</Label>
@@ -236,9 +236,9 @@ export default function CreateListingStep2Page() {
                       }
                       data-testid="input-builtup-area"
                     />
-                  </div>
-                </div>
-              </div>
+            
+          
+        
 
               {/* Floor Details */}
               <div>
@@ -256,7 +256,7 @@ export default function CreateListingStep2Page() {
                       }
                       data-testid="input-floor-number"
                     />
-                  </div>
+            
 
                   <div className="space-y-2">
                     <Label htmlFor="totalFloors">Total Floors</Label>
@@ -270,7 +270,7 @@ export default function CreateListingStep2Page() {
                       }
                       data-testid="input-total-floors"
                     />
-                  </div>
+            
 
                   <div className="space-y-2">
                     <Label htmlFor="facing">Facing *</Label>
@@ -294,9 +294,9 @@ export default function CreateListingStep2Page() {
                         <SelectItem value="southwest">South-West</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
-              </div>
+            
+          
+        
 
               {/* Furnishing & Parking */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -317,7 +317,7 @@ export default function CreateListingStep2Page() {
                       <SelectItem value="fully-furnished">Fully Furnished</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="parking">Parking *</Label>
@@ -337,8 +337,8 @@ export default function CreateListingStep2Page() {
                       <SelectItem value="open">Open Parking</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-              </div>
+          
+        
 
               {/* Possession Status & Property Age */}
               <div>
@@ -360,7 +360,7 @@ export default function CreateListingStep2Page() {
                         <SelectItem value="under-construction">Under Construction</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
+            
 
                   {formData.possessionStatus === "under-construction" && (
                     <div className="space-y-2">
@@ -374,7 +374,7 @@ export default function CreateListingStep2Page() {
                         }
                         data-testid="input-expected-possession-date"
                       />
-                    </div>
+              
                   )}
 
                   <div className="space-y-2">
@@ -396,8 +396,8 @@ export default function CreateListingStep2Page() {
                         <SelectItem value="10+">10+ years</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
+            
+          
 
                 {/* New Construction Toggle */}
                 <div className="flex items-center space-x-3 mt-4 p-4 border rounded-lg bg-muted/30">
@@ -419,9 +419,9 @@ export default function CreateListingStep2Page() {
                     <p className="text-xs text-muted-foreground mt-1">
                       Check this if the property is a newly built project from a developer/builder
                     </p>
-                  </div>
-                </div>
-              </div>
+            
+          
+        
 
               {/* Amenities */}
               <div>
@@ -441,10 +441,10 @@ export default function CreateListingStep2Page() {
                       >
                         {amenity}
                       </Label>
-                    </div>
+              
                   ))}
-                </div>
-              </div>
+          
+        
 
               {/* Navigation */}
               <div className="flex justify-between pt-6">
@@ -465,10 +465,10 @@ export default function CreateListingStep2Page() {
                   Next: Photos & Videos
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
-              </div>
+        
             </form>
           </Card>
-        </div>
+  
     </main>
   );
 }

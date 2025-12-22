@@ -160,16 +160,16 @@ export default function ProjectEditPage() {
   };
 
   if (isLoading) {
-    return (
+  return (
       <div className="p-6 space-y-6">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-96 w-full" />
-      </div>
+
     );
   }
 
   if (!project) {
-    return (
+  return (
       <div className="p-6">
         <Card className="p-12 text-center">
           <AlertCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
@@ -181,7 +181,7 @@ export default function ProjectEditPage() {
             Back to Projects
           </Button>
         </Card>
-      </div>
+
     );
   }
 
@@ -195,10 +195,10 @@ export default function ProjectEditPage() {
           <div>
             <h1 className="font-serif font-bold text-2xl">Edit Project</h1>
             <p className="text-muted-foreground">{project.name}</p>
-          </div>
-        </div>
+    
+  
         {getStatusBadge(project.status)}
-      </div>
+
 
       {project.status === 'rejected' && project.rejectionReason && (
         <Card className="p-4 border-destructive bg-destructive/5">
@@ -207,8 +207,8 @@ export default function ProjectEditPage() {
             <div>
               <p className="font-medium text-destructive">Rejection Reason</p>
               <p className="text-sm text-muted-foreground">{project.rejectionReason}</p>
-            </div>
-          </div>
+      
+    
         </Card>
       )}
 
@@ -296,7 +296,7 @@ export default function ProjectEditPage() {
                   </FormItem>
                 )}
               />
-            </div>
+      
           </Card>
 
           <Card className="p-6">
@@ -384,7 +384,7 @@ export default function ProjectEditPage() {
                   </FormItem>
                 )}
               />
-            </div>
+      
           </Card>
 
           <Card className="p-6">
@@ -473,7 +473,7 @@ export default function ProjectEditPage() {
                   </FormItem>
                 )}
               />
-            </div>
+      
           </Card>
 
           <Card className="p-6">
@@ -506,7 +506,7 @@ export default function ProjectEditPage() {
                   </FormItem>
                 )}
               />
-            </div>
+      
           </Card>
 
           <div className="flex items-center justify-end gap-4 flex-wrap">
@@ -537,7 +537,7 @@ export default function ProjectEditPage() {
                 Submit for Approval
               </Button>
             )}
-          </div>
+    
         </form>
       </Form>
     </div>

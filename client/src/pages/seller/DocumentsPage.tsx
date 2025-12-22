@@ -53,21 +53,21 @@ export default function DocumentsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "verified":
-        return (
+      return (
           <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
             <CheckCircle className="h-3 w-3 mr-1" />
             Verified
           </Badge>
         );
       case "pending":
-        return (
+      return (
           <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500">
             <Clock className="h-3 w-3 mr-1" />
             Pending
           </Badge>
         );
       case "rejected":
-        return (
+      return (
           <Badge variant="destructive">
             <AlertCircle className="h-3 w-3 mr-1" />
             Rejected
@@ -91,12 +91,12 @@ export default function DocumentsPage() {
               <p className="text-muted-foreground">
                 Manage your verification documents
               </p>
-            </div>
+      
             <Button data-testid="button-upload">
               <Upload className="h-4 w-4 mr-2" />
               Upload Document
             </Button>
-          </div>
+    
 
           {/* Required Documents */}
           <Card className="p-6 mb-8 bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/20">
@@ -111,9 +111,9 @@ export default function DocumentsPage() {
                 <div key={index} className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-blue-600" />
                   <span>{doc}</span>
-                </div>
+          
               ))}
-            </div>
+      
           </Card>
 
           {/* Documents List */}
@@ -123,7 +123,7 @@ export default function DocumentsPage() {
                 <div className="flex items-start gap-4">
                   <div className="p-3 rounded-lg bg-muted">
                     <FileText className="h-6 w-6" />
-                  </div>
+            
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
@@ -134,17 +134,17 @@ export default function DocumentsPage() {
                           <span>{doc.size}</span>
                           <span>•</span>
                           <span>Uploaded {doc.uploadedDate}</span>
-                        </div>
-                      </div>
+                  
+                
                       {getStatusBadge(doc.status)}
-                    </div>
+              
 
                     {doc.status === "rejected" && doc.reason && (
                       <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/20 rounded-lg mb-3">
                         <p className="text-sm text-red-900 dark:text-red-400">
                           <strong>Reason:</strong> {doc.reason}
                         </p>
-                      </div>
+                
                     )}
 
                     <div className="flex gap-2 mt-3">
@@ -174,13 +174,13 @@ export default function DocumentsPage() {
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete
                       </Button>
-                    </div>
-                  </div>
-                </div>
+              
+            
+          
               </Card>
             ))}
-          </div>
-        </div>
+    
+  
       </main>
   );
 }

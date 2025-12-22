@@ -54,12 +54,12 @@ export default function PropertyPerformanceReportPage() {
               <p className="text-muted-foreground">
                 {property.title} • Listed on {property.listedDate}
               </p>
-            </div>
+      
             <Button variant="outline" data-testid="button-export">
               <Download className="h-4 w-4 mr-2" />
               Export Report
             </Button>
-          </div>
+    
 
           {/* Key Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -68,18 +68,18 @@ export default function PropertyPerformanceReportPage() {
                 <div className="flex items-center gap-4 mb-4">
                   <div className={`p-3 rounded-lg bg-${metric.color}-100 dark:bg-${metric.color}-900/20`}>
                     <metric.icon className={`h-6 w-6 text-${metric.color}-600`} />
-                  </div>
-                </div>
+            
+          
                 <p className="text-3xl font-bold mb-2">{metric.value}</p>
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">{metric.label}</p>
                   <span className={`text-sm ${metric.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
                     {metric.change}
                   </span>
-                </div>
+          
               </Card>
             ))}
-          </div>
+    
 
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -87,16 +87,16 @@ export default function PropertyPerformanceReportPage() {
               <h3 className="font-semibold text-lg mb-6">Views Over Time</h3>
               <div className="h-64 flex items-center justify-center bg-muted rounded-lg">
                 <span className="text-muted-foreground">Views Chart</span>
-              </div>
+        
             </Card>
 
             <Card className="p-6">
               <h3 className="font-semibold text-lg mb-6">Inquiry Sources</h3>
               <div className="h-64 flex items-center justify-center bg-muted rounded-lg">
                 <span className="text-muted-foreground">Sources Chart</span>
-              </div>
+        
             </Card>
-          </div>
+    
 
           {/* Demographics */}
           <Card className="p-6">
@@ -114,17 +114,17 @@ export default function PropertyPerformanceReportPage() {
                       <div className="flex items-center justify-between text-sm mb-1">
                         <span className="text-muted-foreground">{item.label}</span>
                         <span className="font-medium">{item.value}%</span>
-                      </div>
+                
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-primary"
                           style={{ width: `${item.value}%` }}
                         />
-                      </div>
-                    </div>
+                
+              
                   ))}
-                </div>
-              </div>
+          
+        
 
               <div>
                 <h4 className="font-medium mb-4">Locations</h4>
@@ -138,17 +138,17 @@ export default function PropertyPerformanceReportPage() {
                       <div className="flex items-center justify-between text-sm mb-1">
                         <span className="text-muted-foreground">{item.label}</span>
                         <span className="font-medium">{item.value}%</span>
-                      </div>
+                
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-primary"
                           style={{ width: `${item.value}%` }}
                         />
-                      </div>
-                    </div>
+                
+              
                   ))}
-                </div>
-              </div>
+          
+        
 
               <div>
                 <h4 className="font-medium mb-4">Devices</h4>
@@ -162,20 +162,20 @@ export default function PropertyPerformanceReportPage() {
                       <div className="flex items-center justify-between text-sm mb-1">
                         <span className="text-muted-foreground">{item.label}</span>
                         <span className="font-medium">{item.value}%</span>
-                      </div>
+                
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-primary"
                           style={{ width: `${item.value}%` }}
                         />
-                      </div>
-                    </div>
+                
+              
                   ))}
-                </div>
-              </div>
-            </div>
+          
+        
+      
           </Card>
-        </div>
+  
       </main>
   );
 }

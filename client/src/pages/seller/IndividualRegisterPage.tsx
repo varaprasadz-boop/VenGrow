@@ -52,7 +52,7 @@ export default function IndividualRegisterPage() {
           <p className="text-muted-foreground">
             Complete your profile to start listing properties
           </p>
-        </div>
+  
 
         <Card className="p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -72,7 +72,7 @@ export default function IndividualRegisterPage() {
                     data-testid="input-fullname"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address *</Label>
@@ -87,7 +87,7 @@ export default function IndividualRegisterPage() {
                     data-testid="input-email"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number *</Label>
@@ -98,7 +98,7 @@ export default function IndividualRegisterPage() {
                     }
                     data-testid="input-phone"
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="state">State *</Label>
@@ -109,9 +109,9 @@ export default function IndividualRegisterPage() {
                     }
                     data-testid="select-state"
                   />
-                </div>
-              </div>
-            </div>
+          
+        
+      
 
             {/* Address */}
             <div>
@@ -130,7 +130,7 @@ export default function IndividualRegisterPage() {
                     data-testid="textarea-address"
                     required
                   />
-                </div>
+          
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -143,7 +143,7 @@ export default function IndividualRegisterPage() {
                       stateValue={formData.state}
                       data-testid="select-city"
                     />
-                  </div>
+            
 
                   <div className="space-y-2">
                     <Label htmlFor="pincode">PIN Code *</Label>
@@ -154,10 +154,10 @@ export default function IndividualRegisterPage() {
                       }
                       data-testid="input-pincode"
                     />
-                  </div>
-                </div>
-              </div>
-            </div>
+            
+          
+        
+      
 
             {/* Verification Documents */}
             <div>
@@ -175,7 +175,7 @@ export default function IndividualRegisterPage() {
                     data-testid="input-pan"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="aadharNumber">Aadhar Number *</Label>
@@ -189,8 +189,8 @@ export default function IndividualRegisterPage() {
                     data-testid="input-aadhar"
                     required
                   />
-                </div>
-              </div>
+          
+        
 
               <div className="space-y-2 mt-4">
                 <Label htmlFor="propertyDocument">Property Document (Optional)</Label>
@@ -205,9 +205,9 @@ export default function IndividualRegisterPage() {
                   <Button type="button" variant="outline" size="sm" data-testid="button-upload-doc">
                     Choose File
                   </Button>
-                </div>
-              </div>
-            </div>
+          
+        
+      
 
             {/* Terms */}
             <div className="flex items-start gap-3 p-4 border rounded-lg">
@@ -226,8 +226,8 @@ export default function IndividualRegisterPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   By registering, you confirm that all provided information is accurate
                 </p>
-              </div>
-            </div>
+        
+      
 
             {/* Submit */}
             <div className="flex gap-3 pt-4">
@@ -239,14 +239,14 @@ export default function IndividualRegisterPage() {
               <Button type="submit" className="flex-1" disabled={!formData.agreeToTerms} data-testid="button-submit">
                 Submit Registration
               </Button>
-            </div>
+      
           </form>
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
           Already registered? <Link href="/login"><a className="text-primary hover:underline">Login here</a></Link>
         </p>
-      </div>
+
     </div>
   );
 }

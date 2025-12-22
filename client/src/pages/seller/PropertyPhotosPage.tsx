@@ -26,19 +26,19 @@ export default function PropertyPhotosPage() {
               <p className="text-muted-foreground">
                 Luxury 3BHK Apartment • Bandra West, Mumbai
               </p>
-            </div>
+      
             <Button data-testid="button-upload">
               <Upload className="h-4 w-4 mr-2" />
               Upload Photos
             </Button>
-          </div>
+    
 
           {/* Upload Area */}
           <Card className="p-12 mb-8 border-dashed border-2">
             <div className="text-center">
               <div className="inline-flex p-4 rounded-full bg-muted mb-4">
                 <Upload className="h-8 w-8 text-muted-foreground" />
-              </div>
+        
               <h3 className="font-semibold mb-2">
                 Drag & Drop photos here
               </h3>
@@ -46,7 +46,7 @@ export default function PropertyPhotosPage() {
                 or click to browse (max 20 photos, 5MB each)
               </p>
               <Button variant="outline">Browse Files</Button>
-            </div>
+      
           </Card>
 
           {/* Photo Grid */}
@@ -60,9 +60,9 @@ export default function PropertyPhotosPage() {
                   {photo.isPrimary && (
                     <div className="absolute top-2 left-2">
                       <Badge className="bg-primary">Primary</Badge>
-                    </div>
+              
                   )}
-                </div>
+          
                 <div className="p-3 space-y-2">
                   <p className="text-sm font-medium truncate">{photo.name}</p>
                   <div className="flex gap-1">
@@ -100,11 +100,11 @@ export default function PropertyPhotosPage() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                  </div>
-                </div>
+            
+          
               </Card>
             ))}
-          </div>
+    
 
           <Card className="p-6 mt-8 bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/20">
             <h3 className="font-semibold mb-2">Photo Tips</h3>
@@ -116,7 +116,7 @@ export default function PropertyPhotosPage() {
               <li>• High-quality photos get 3x more inquiries</li>
             </ul>
           </Card>
-        </div>
+  
       </main>
   );
 }

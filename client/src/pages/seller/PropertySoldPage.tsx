@@ -29,7 +29,7 @@ export default function PropertySoldPage() {
             <p className="text-muted-foreground">
               Congratulations on your successful sale
             </p>
-          </div>
+    
 
           <Card className="p-8 mb-8 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/10 dark:to-green-900/20">
             <div className="text-center">
@@ -45,8 +45,8 @@ export default function PropertySoldPage() {
                 <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
                   +3.5% above listing
                 </Badge>
-              </div>
-            </div>
+        
+      
           </Card>
 
           <div className="grid grid-cols-2 gap-6 mb-8">
@@ -66,7 +66,7 @@ export default function PropertySoldPage() {
               <h3 className="font-semibold mb-4">Total Inquiries</h3>
               <p className="text-xl font-bold">{soldDetails.totalInquiries}</p>
             </Card>
-          </div>
+    
 
           <div className="flex gap-4">
             <Button variant="outline" className="flex-1">
@@ -75,8 +75,8 @@ export default function PropertySoldPage() {
             <Button className="flex-1" data-testid="button-list-another">
               List Another Property
             </Button>
-          </div>
-        </div>
+    
+  
       </main>
   );
 }

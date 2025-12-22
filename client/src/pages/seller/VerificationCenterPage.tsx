@@ -40,14 +40,14 @@ export default function VerificationCenterPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "verified":
-        return (
+      return (
           <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
             <CheckCircle className="h-3 w-3 mr-1" />
             Verified
           </Badge>
         );
       case "pending":
-        return (
+      return (
           <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500">
             <Clock className="h-3 w-3 mr-1" />
             Pending Review
@@ -75,27 +75,27 @@ export default function VerificationCenterPage() {
             <p className="text-muted-foreground">
               Complete your profile verification
             </p>
-          </div>
+    
 
           {/* Progress */}
           <Card className="p-6 mb-8 bg-gradient-to-br from-primary/5 to-primary/10">
             <div className="flex items-center gap-4 mb-4">
               <div className="p-4 rounded-full bg-primary/20">
                 <Shield className="h-8 w-8 text-primary" />
-              </div>
+        
               <div>
                 <h3 className="font-semibold text-lg">Verification Progress</h3>
                 <p className="text-muted-foreground">
                   {verifiedCount} of {totalCount} verifications completed
                 </p>
-              </div>
-            </div>
+        
+      
             <div className="h-3 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary transition-all"
                 style={{ width: `${(verifiedCount / totalCount) * 100}%` }}
               />
-            </div>
+      
           </Card>
 
           {/* Verifications List */}
@@ -107,7 +107,7 @@ export default function VerificationCenterPage() {
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-semibold">{verification.type}</h3>
                       {getStatusBadge(verification.status)}
-                    </div>
+              
                     {verification.status === "verified" && verification.verifiedDate && (
                       <p className="text-sm text-muted-foreground">
                         Verified on {verification.verifiedDate}
@@ -118,14 +118,14 @@ export default function VerificationCenterPage() {
                         Submitted on {verification.submittedDate}
                       </p>
                     )}
-                  </div>
-                </div>
+            
+          
 
                 {verification.status === "verified" && (
                   <div className="flex items-center gap-2 text-sm text-green-600">
                     <CheckCircle className="h-4 w-4" />
                     <span>Document verified successfully</span>
-                  </div>
+            
                 )}
 
                 {verification.status === "pending" && (
@@ -133,7 +133,7 @@ export default function VerificationCenterPage() {
                     <p className="text-sm text-yellow-900 dark:text-yellow-400">
                       Your document is under review. This typically takes 24-48 hours.
                     </p>
-                  </div>
+            
                 )}
 
                 {verification.status === "not_submitted" && (
@@ -144,7 +144,7 @@ export default function VerificationCenterPage() {
                 )}
               </Card>
             ))}
-          </div>
+    
 
           {/* Help */}
           <Card className="p-6 mt-8">
@@ -154,7 +154,7 @@ export default function VerificationCenterPage() {
             </p>
             <Button variant="outline">Contact Support</Button>
           </Card>
-        </div>
+  
       </main>
   );
 }

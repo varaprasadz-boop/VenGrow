@@ -140,7 +140,7 @@ export default function CorporateRegisterPage() {
           <p className="text-muted-foreground">
             Register your company to showcase projects and get featured as a Verified Builder
           </p>
-        </div>
+  
 
         <Card className="p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -172,7 +172,7 @@ export default function CorporateRegisterPage() {
                           <X className="h-4 w-4" />
                         </Button>
                         <p className="text-sm text-muted-foreground mt-2">Logo uploaded</p>
-                      </div>
+                
                     ) : (
                       <>
                         <Image className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
@@ -193,11 +193,11 @@ export default function CorporateRegisterPage() {
                         </Label>
                       </>
                     )}
-                  </div>
+            
                   <p className="text-xs text-muted-foreground">
                     This logo will be displayed on the Verified Builders section
                   </p>
-                </div>
+          
 
                 {/* Company Brochure Upload */}
                 <div className="space-y-2">
@@ -217,7 +217,7 @@ export default function CorporateRegisterPage() {
                           <X className="h-4 w-4" />
                         </Button>
                         <p className="text-xs text-muted-foreground mt-1">PDF uploaded</p>
-                      </div>
+                
                     ) : (
                       <>
                         <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
@@ -238,13 +238,13 @@ export default function CorporateRegisterPage() {
                         </Label>
                       </>
                     )}
-                  </div>
+            
                   <p className="text-xs text-muted-foreground">
                     Buyers can download this brochure from your profile
                   </p>
-                </div>
-              </div>
-            </div>
+          
+        
+      
 
             {/* Company Information */}
             <div>
@@ -262,7 +262,7 @@ export default function CorporateRegisterPage() {
                     data-testid="input-company"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Official Email *</Label>
@@ -277,7 +277,7 @@ export default function CorporateRegisterPage() {
                     data-testid="input-email"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Official Phone *</Label>
@@ -292,7 +292,7 @@ export default function CorporateRegisterPage() {
                     data-testid="input-phone"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="password">Password *</Label>
@@ -307,7 +307,7 @@ export default function CorporateRegisterPage() {
                     data-testid="input-password"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm Password *</Label>
@@ -322,7 +322,7 @@ export default function CorporateRegisterPage() {
                     data-testid="input-confirm-password"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="website">Company Website (Optional)</Label>
@@ -336,9 +336,9 @@ export default function CorporateRegisterPage() {
                     }
                     data-testid="input-website"
                   />
-                </div>
-              </div>
-            </div>
+          
+        
+      
 
             {/* Legal & Registration Details */}
             <div>
@@ -356,7 +356,7 @@ export default function CorporateRegisterPage() {
                     data-testid="input-cin"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="gstNumber">GST Number *</Label>
@@ -370,7 +370,7 @@ export default function CorporateRegisterPage() {
                     data-testid="input-gst"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="reraNumber">RERA Registration Number *</Label>
@@ -384,7 +384,7 @@ export default function CorporateRegisterPage() {
                     data-testid="input-rera"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="establishedYear">Year Established *</Label>
@@ -399,7 +399,7 @@ export default function CorporateRegisterPage() {
                     data-testid="input-year"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="completedProjects">Number of Completed Projects *</Label>
@@ -414,9 +414,9 @@ export default function CorporateRegisterPage() {
                     data-testid="input-projects"
                     required
                   />
-                </div>
-              </div>
-            </div>
+          
+        
+      
 
             {/* Office Address */}
             <div>
@@ -435,7 +435,7 @@ export default function CorporateRegisterPage() {
                     data-testid="textarea-address"
                     required
                   />
-                </div>
+          
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
@@ -450,7 +450,7 @@ export default function CorporateRegisterPage() {
                       data-testid="input-city"
                       required
                     />
-                  </div>
+            
 
                   <div className="space-y-2">
                     <Label htmlFor="state">State *</Label>
@@ -464,7 +464,7 @@ export default function CorporateRegisterPage() {
                       data-testid="input-state"
                       required
                     />
-                  </div>
+            
 
                   <div className="space-y-2">
                     <Label htmlFor="pincode">PIN Code *</Label>
@@ -478,10 +478,10 @@ export default function CorporateRegisterPage() {
                       data-testid="input-pincode"
                       required
                     />
-                  </div>
-                </div>
-              </div>
-            </div>
+            
+          
+        
+      
 
             {/* Terms */}
             <div className="flex items-start gap-3 p-4 border rounded-lg">
@@ -501,8 +501,8 @@ export default function CorporateRegisterPage() {
                   I confirm that the company is duly registered and all information provided is accurate. 
                   My registration will be reviewed by admin before activation.
                 </p>
-              </div>
-            </div>
+        
+      
 
             {/* Submit */}
             <div className="flex gap-3 pt-4">
@@ -519,14 +519,14 @@ export default function CorporateRegisterPage() {
               >
                 {isLoading ? "Submitting..." : "Submit Registration"}
               </Button>
-            </div>
+      
           </form>
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
           Already registered? <Link href="/login" className="text-primary hover:underline">Login here</Link>
         </p>
-      </div>
+
     </div>
   );
 }

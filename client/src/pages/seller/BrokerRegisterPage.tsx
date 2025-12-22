@@ -55,7 +55,7 @@ export default function BrokerRegisterPage() {
           <p className="text-muted-foreground">
             Register as a verified real estate broker
           </p>
-        </div>
+  
 
         <Card className="p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -75,7 +75,7 @@ export default function BrokerRegisterPage() {
                     data-testid="input-fullname"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address *</Label>
@@ -90,7 +90,7 @@ export default function BrokerRegisterPage() {
                     data-testid="input-email"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number *</Label>
@@ -101,7 +101,7 @@ export default function BrokerRegisterPage() {
                     }
                     data-testid="input-phone"
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="firmName">Firm/Agency Name *</Label>
@@ -115,9 +115,9 @@ export default function BrokerRegisterPage() {
                     data-testid="input-firm"
                     required
                   />
-                </div>
-              </div>
-            </div>
+          
+        
+      
 
             {/* Professional Details */}
             <div>
@@ -135,7 +135,7 @@ export default function BrokerRegisterPage() {
                     data-testid="input-rera"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2">
                   <Label htmlFor="yearsOfExperience">Years of Experience *</Label>
@@ -150,7 +150,7 @@ export default function BrokerRegisterPage() {
                     data-testid="input-experience"
                     required
                   />
-                </div>
+          
 
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="panNumber">PAN Number *</Label>
@@ -164,9 +164,9 @@ export default function BrokerRegisterPage() {
                     data-testid="input-pan"
                     required
                   />
-                </div>
-              </div>
-            </div>
+          
+        
+      
 
             {/* Office Address */}
             <div>
@@ -185,7 +185,7 @@ export default function BrokerRegisterPage() {
                     data-testid="textarea-address"
                     required
                   />
-                </div>
+          
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
@@ -197,7 +197,7 @@ export default function BrokerRegisterPage() {
                       }
                       data-testid="select-state"
                     />
-                  </div>
+            
 
                   <div className="space-y-2">
                     <Label htmlFor="city">City *</Label>
@@ -209,7 +209,7 @@ export default function BrokerRegisterPage() {
                       stateValue={formData.state}
                       data-testid="select-city"
                     />
-                  </div>
+            
 
                   <div className="space-y-2">
                     <Label htmlFor="pincode">PIN Code *</Label>
@@ -220,10 +220,10 @@ export default function BrokerRegisterPage() {
                       }
                       data-testid="input-pincode"
                     />
-                  </div>
-                </div>
-              </div>
-            </div>
+            
+          
+        
+      
 
             {/* Documents */}
             <div>
@@ -238,8 +238,8 @@ export default function BrokerRegisterPage() {
                     <Button type="button" variant="outline" size="sm" data-testid="button-upload-rera">
                       Choose File
                     </Button>
-                  </div>
-                </div>
+            
+          
 
                 <div className="space-y-2">
                   <Label>Business Card (Optional)</Label>
@@ -250,10 +250,10 @@ export default function BrokerRegisterPage() {
                     <Button type="button" variant="outline" size="sm" data-testid="button-upload-card">
                       Choose File
                     </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            
+          
+        
+      
 
             {/* Terms */}
             <div className="flex items-start gap-3 p-4 border rounded-lg">
@@ -272,8 +272,8 @@ export default function BrokerRegisterPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   I confirm that I hold a valid RERA registration and all information provided is accurate
                 </p>
-              </div>
-            </div>
+        
+      
 
             {/* Submit */}
             <div className="flex gap-3 pt-4">
@@ -285,14 +285,14 @@ export default function BrokerRegisterPage() {
               <Button type="submit" className="flex-1" disabled={!formData.agreeToTerms} data-testid="button-submit">
                 Submit Registration
               </Button>
-            </div>
+      
           </form>
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
           Already registered? <Link href="/login"><a className="text-primary hover:underline">Login here</a></Link>
         </p>
-      </div>
+
     </div>
   );
 }

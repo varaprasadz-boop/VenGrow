@@ -46,7 +46,7 @@ export default function ExportDataPage() {
             <p className="text-muted-foreground">
               Download your data in various formats
             </p>
-          </div>
+    
 
           <div className="space-y-4">
             {exportOptions.map((option) => (
@@ -54,7 +54,7 @@ export default function ExportDataPage() {
                 <div className="flex items-start gap-4 mb-4">
                   <div className="p-3 rounded-lg bg-primary/10 flex-shrink-0">
                     <FileText className="h-6 w-6 text-primary" />
-                  </div>
+            
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg mb-2">{option.title}</h3>
                     <p className="text-sm text-muted-foreground mb-4">
@@ -80,7 +80,7 @@ export default function ExportDataPage() {
                             ))}
                           </SelectContent>
                         </Select>
-                      </div>
+                
                       <Button
                         className="mt-6"
                         data-testid={`button-export-${option.id}`}
@@ -88,12 +88,12 @@ export default function ExportDataPage() {
                         <Download className="h-4 w-4 mr-2" />
                         Export
                       </Button>
-                    </div>
-                  </div>
-                </div>
+              
+            
+          
               </Card>
             ))}
-          </div>
+    
 
           <Card className="p-6 mt-8 bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/20">
             <h3 className="font-semibold mb-2">Data Privacy</h3>
@@ -102,7 +102,7 @@ export default function ExportDataPage() {
               delete them after use.
             </p>
           </Card>
-        </div>
+  
       </main>
   );
 }

@@ -24,7 +24,7 @@ export default function CommissionCalculatorPage() {
             <p className="text-muted-foreground">
               Calculate your commission and net earnings
             </p>
-          </div>
+    
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Calculator */}
@@ -47,7 +47,7 @@ export default function CommissionCalculatorPage() {
                       className="w-full"
                       data-testid="slider-price"
                     />
-                  </div>
+            
 
                   <div>
                     <Label htmlFor="commission-rate">
@@ -64,8 +64,8 @@ export default function CommissionCalculatorPage() {
                       className="w-full"
                       data-testid="slider-rate"
                     />
-                  </div>
-                </div>
+            
+          
               </Card>
 
               {/* Breakdown */}
@@ -77,7 +77,7 @@ export default function CommissionCalculatorPage() {
                     <span className="font-semibold">
                       ₹{(salePrice / 100000).toFixed(2)} L
                     </span>
-                  </div>
+            
 
                   <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200 dark:border-red-900/20">
                     <div>
@@ -87,11 +87,11 @@ export default function CommissionCalculatorPage() {
                       <p className="text-xs text-muted-foreground">
                         {commissionRate}% of sale price
                       </p>
-                    </div>
+              
                     <span className="font-semibold text-red-600">
                       - ₹{(commission / 100000).toFixed(2)} L
                     </span>
-                  </div>
+            
 
                   <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border border-primary/20">
                     <div>
@@ -99,14 +99,14 @@ export default function CommissionCalculatorPage() {
                       <p className="text-xs text-muted-foreground">
                         Amount you'll receive
                       </p>
-                    </div>
+              
                     <span className="font-semibold text-2xl text-primary">
                       ₹{(netAmount / 100000).toFixed(2)} L
                     </span>
-                  </div>
-                </div>
+            
+          
               </Card>
-            </div>
+      
 
             {/* Summary */}
             <div className="lg:col-span-1">
@@ -119,9 +119,9 @@ export default function CommissionCalculatorPage() {
                   Commission on this transaction
                 </p>
               </Card>
-            </div>
-          </div>
-        </div>
+      
+    
+  
       </main>
   );
 }

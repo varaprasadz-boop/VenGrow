@@ -78,7 +78,7 @@ export default function NotificationPreferencesPage() {
             <p className="text-muted-foreground">
               Choose how you want to be notified
             </p>
-          </div>
+    
 
           <div className="space-y-6">
             {/* Email Notifications */}
@@ -100,15 +100,15 @@ export default function NotificationPreferencesPage() {
                       <p className="text-sm text-muted-foreground mt-1">
                         {pref.description}
                       </p>
-                    </div>
+              
                     <Switch
                       id={pref.id}
                       defaultChecked={pref.defaultValue}
                       data-testid={`switch-email-${pref.id}`}
                     />
-                  </div>
+            
                 ))}
-              </div>
+        
             </Card>
 
             {/* SMS Notifications */}
@@ -127,15 +127,15 @@ export default function NotificationPreferencesPage() {
                       <p className="text-sm text-muted-foreground mt-1">
                         {pref.description}
                       </p>
-                    </div>
+              
                     <Switch
                       id={`sms-${pref.id}`}
                       defaultChecked={pref.defaultValue}
                       data-testid={`switch-sms-${pref.id}`}
                     />
-                  </div>
+            
                 ))}
-              </div>
+        
             </Card>
 
             {/* Push Notifications */}
@@ -150,21 +150,21 @@ export default function NotificationPreferencesPage() {
                     <p className="text-sm text-muted-foreground mt-1">
                       Receive instant notifications on your device
                     </p>
-                  </div>
+            
                   <Switch
                     id="push-enabled"
                     defaultChecked
                     data-testid="switch-push-enabled"
                   />
-                </div>
-              </div>
+          
+        
             </Card>
 
             <Button className="w-full" size="lg" data-testid="button-save">
               Save Preferences
             </Button>
-          </div>
-        </div>
+    
+  
       </main>
   );
 }

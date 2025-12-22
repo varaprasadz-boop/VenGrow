@@ -28,7 +28,7 @@ export default function PropertyMediaPage() {
             <p className="text-muted-foreground">
               Photos and videos for your property
             </p>
-          </div>
+    
 
           {/* Photos */}
           <Card className="p-6 mb-8">
@@ -38,7 +38,7 @@ export default function PropertyMediaPage() {
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Photo
               </Button>
-            </div>
+      
             <div className="space-y-3">
               {photos.map((photo) => (
                 <div
@@ -48,7 +48,7 @@ export default function PropertyMediaPage() {
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
                       <Image className="h-6 w-6 text-muted-foreground" />
-                    </div>
+              
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <p className="font-medium">{photo.name}</p>
@@ -57,10 +57,10 @@ export default function PropertyMediaPage() {
                             Primary
                           </Badge>
                         )}
-                      </div>
+                
                       <p className="text-sm text-muted-foreground">{photo.size}</p>
-                    </div>
-                  </div>
+              
+            
                   <Button
                     variant="outline"
                     size="sm"
@@ -68,9 +68,9 @@ export default function PropertyMediaPage() {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                </div>
+          
               ))}
-            </div>
+      
           </Card>
 
           {/* Videos */}
@@ -81,7 +81,7 @@ export default function PropertyMediaPage() {
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Video
               </Button>
-            </div>
+      
             <div className="space-y-3">
               {videos.map((video) => (
                 <div
@@ -91,16 +91,16 @@ export default function PropertyMediaPage() {
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
                       <Video className="h-6 w-6 text-muted-foreground" />
-                    </div>
+              
                     <div>
                       <p className="font-medium mb-1">{video.name}</p>
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <span>{video.duration}</span>
                         <span>•</span>
                         <span>{video.size}</span>
-                      </div>
-                    </div>
-                  </div>
+                
+              
+            
                   <Button
                     variant="outline"
                     size="sm"
@@ -108,11 +108,11 @@ export default function PropertyMediaPage() {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                </div>
+          
               ))}
-            </div>
+      
           </Card>
-        </div>
+  
       </main>
   );
 }

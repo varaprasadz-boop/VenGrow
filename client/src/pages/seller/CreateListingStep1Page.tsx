@@ -142,19 +142,19 @@ export default function CreateListingStep1Page() {
 
   // Show loading state
   if (authLoading || quotaLoading) {
-    return (
+  return (
       <main className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
           <p className="mt-2 text-muted-foreground">Loading...</p>
-        </div>
+  
       </main>
     );
   }
 
   // Show quota exceeded message
   if (!canCreateListing && canCreateData) {
-    return (
+  return (
       <main className="flex-1">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <Card className="p-8 text-center">
@@ -170,9 +170,9 @@ export default function CreateListingStep1Page() {
               <Link href="/seller/packages/buy">
                 <Button>Upgrade Package</Button>
               </Link>
-            </div>
+      
           </Card>
-        </div>
+  
       </main>
     );
   }
@@ -207,24 +207,24 @@ export default function CreateListingStep1Page() {
             <div className="flex items-center gap-2 mb-4">
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
                 1
-              </div>
+        
               <div className="h-1 flex-1 bg-muted">
                 <div className="h-full w-0 bg-primary"></div>
-              </div>
+        
               <div className="h-8 w-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-bold">
                 2
-              </div>
+        
               <div className="h-1 flex-1 bg-muted"></div>
               <div className="h-8 w-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-bold">
                 3
-              </div>
+        
               <div className="h-1 flex-1 bg-muted"></div>
               <div className="h-8 w-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-bold">
                 4
-              </div>
-            </div>
+        
+      
             <p className="text-sm text-muted-foreground">Step 1 of 4: Basic Information</p>
-          </div>
+    
 
           <Card className="p-8">
             <h1 className="font-serif font-bold text-2xl mb-6">
@@ -238,7 +238,7 @@ export default function CreateListingStep1Page() {
                   {categoriesLoading ? (
                     <div className="h-10 flex items-center justify-center border rounded-md">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                    </div>
+              
                   ) : (
                     <Select
                       value={formData.categoryId}
@@ -256,7 +256,7 @@ export default function CreateListingStep1Page() {
                       </SelectContent>
                     </Select>
                   )}
-                </div>
+          
 
                 {formData.categoryId && filteredSubcategories.length > 0 && (
                   <div className="space-y-2">
@@ -278,9 +278,9 @@ export default function CreateListingStep1Page() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+            
                 )}
-              </div>
+        
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -307,7 +307,7 @@ export default function CreateListingStep1Page() {
                       )}
                     </SelectContent>
                   </Select>
-                </div>
+          
 
                 {selectedCategory?.hasProjectStage && (
                   <div className="space-y-2">
@@ -329,9 +329,9 @@ export default function CreateListingStep1Page() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+            
                 )}
-              </div>
+        
 
               {canHaveProjects && formData.transactionType === "sale" && liveProjects.length > 0 && (
                 <div className="space-y-2">
@@ -360,7 +360,7 @@ export default function CreateListingStep1Page() {
                   <p className="text-xs text-muted-foreground">
                     Link this property to one of your projects. Properties linked to projects appear on the project page.
                   </p>
-                </div>
+          
               )}
 
               <div className="space-y-2">
@@ -377,7 +377,7 @@ export default function CreateListingStep1Page() {
                 <p className="text-xs text-muted-foreground">
                   A catchy title helps attract more buyers
                 </p>
-              </div>
+        
 
               <div className="space-y-2">
                 <Label htmlFor="description">Property Description *</Label>
@@ -391,7 +391,7 @@ export default function CreateListingStep1Page() {
                   }
                   data-testid="textarea-description"
                 />
-              </div>
+        
 
               <div className="space-y-2">
                 <Label htmlFor="price">Price *</Label>
@@ -405,12 +405,12 @@ export default function CreateListingStep1Page() {
                       placeholder={formData.transactionType === "rent" || formData.transactionType === "lease" ? "45000" : "8500000"}
                       data-testid="input-price"
                     />
-                  </div>
+            
                   {(formData.transactionType === "rent" || formData.transactionType === "lease") && (
                     <span className="text-muted-foreground whitespace-nowrap">/month</span>
                   )}
-                </div>
-              </div>
+          
+        
 
               <div>
                 <h3 className="font-semibold mb-4">Location Details</h3>
@@ -427,7 +427,7 @@ export default function CreateListingStep1Page() {
                       }
                       data-testid="textarea-address"
                     />
-                  </div>
+            
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
@@ -439,7 +439,7 @@ export default function CreateListingStep1Page() {
                         }
                         data-testid="select-state"
                       />
-                    </div>
+              
 
                     <div className="space-y-2">
                       <Label htmlFor="city">City *</Label>
@@ -451,7 +451,7 @@ export default function CreateListingStep1Page() {
                         stateValue={formData.state}
                         data-testid="select-city"
                       />
-                    </div>
+              
 
                     <div className="space-y-2">
                       <Label htmlFor="locality">Locality *</Label>
@@ -464,7 +464,7 @@ export default function CreateListingStep1Page() {
                         }
                         data-testid="input-locality"
                       />
-                    </div>
+              
 
                     <div className="space-y-2">
                       <Label htmlFor="pincode">PIN Code *</Label>
@@ -475,10 +475,10 @@ export default function CreateListingStep1Page() {
                         }
                         data-testid="input-pincode"
                       />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              
+            
+          
+        
 
               <div className="flex justify-between pt-6">
                 <Link href="/seller/dashboard">
@@ -491,10 +491,10 @@ export default function CreateListingStep1Page() {
                   Next: Property Details
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
-              </div>
+        
             </form>
           </Card>
-        </div>
+  
     </main>
   );
 }

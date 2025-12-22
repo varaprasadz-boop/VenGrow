@@ -65,8 +65,8 @@ export default function MessagesPage() {
           <div className="border-b p-4">
             <div className="max-w-7xl mx-auto">
               <h1 className="font-serif font-bold text-2xl">Messages</h1>
-            </div>
-          </div>
+      
+    
 
           <div className="flex-1 flex overflow-hidden">
             {/* Conversations List */}
@@ -79,8 +79,8 @@ export default function MessagesPage() {
                     className="pl-10"
                     data-testid="input-search"
                   />
-                </div>
-              </div>
+          
+        
 
               <div className="flex-1 overflow-y-auto">
                 {conversations.map((conv) => (
@@ -97,7 +97,7 @@ export default function MessagesPage() {
                       <span className="text-xs text-muted-foreground">
                         {conv.time}
                       </span>
-                    </div>
+              
                     <p className="text-sm text-muted-foreground mb-2 line-clamp-1">
                       {conv.property}
                     </p>
@@ -108,11 +108,11 @@ export default function MessagesPage() {
                       {conv.unread > 0 && (
                         <Badge className="ml-2">{conv.unread}</Badge>
                       )}
-                    </div>
+              
                   </button>
                 ))}
-              </div>
-            </div>
+        
+      
 
             {/* Chat Area */}
             <div className="flex-1 flex flex-col">
@@ -124,7 +124,7 @@ export default function MessagesPage() {
                 <p className="text-sm text-muted-foreground">
                   {conversations.find((c) => c.id === selectedChat)?.property}
                 </p>
-              </div>
+        
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -152,10 +152,10 @@ export default function MessagesPage() {
                       >
                         {message.time}
                       </p>
-                    </div>
-                  </div>
+              
+            
                 ))}
-              </div>
+        
 
               {/* Input */}
               <div className="p-4 border-t">
@@ -170,11 +170,11 @@ export default function MessagesPage() {
                   <Button data-testid="button-send">
                     <Send className="h-4 w-4" />
                   </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+          
+        
+      
+    
+  
       </main>
   );
 }

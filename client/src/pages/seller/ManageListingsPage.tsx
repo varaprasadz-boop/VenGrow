@@ -247,14 +247,14 @@ export default function ManageListingsPage() {
               <p className="text-muted-foreground text-sm sm:text-base">
                 View and manage all your property listings
               </p>
-            </div>
+      
             <Link href="/seller/listings/create/step1">
               <Button size="default" data-testid="button-create-listing-manage">
                 <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 Create New Listing
               </Button>
             </Link>
-          </div>
+    
 
           <Alert className="mb-6">
             <AlertCircle className="h-4 w-4" />
@@ -274,8 +274,8 @@ export default function ManageListingsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 data-testid="input-search"
               />
-            </div>
-          </div>
+      
+    
 
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
             <TabsList className="mb-6 flex flex-wrap gap-1">
@@ -315,11 +315,11 @@ export default function ManageListingsPage() {
                           <Skeleton className="h-4 w-24" />
                           <Skeleton className="h-4 w-24" />
                           <Skeleton className="h-4 w-24" />
-                        </div>
-                      </div>
+                  
+                
                     </Card>
                   ))}
-                </div>
+          
               ) : filteredListings.length > 0 ? (
                 <div className="space-y-4">
                   {filteredListings.map((listing) => {
@@ -330,7 +330,7 @@ export default function ManageListingsPage() {
                       !listing.workflowStatus;
                     const isLive = listing.workflowStatus === "live" || listing.workflowStatus === "approved";
 
-                    return (
+                  return (
                       <Card key={listing.id} className="p-6" data-testid={`card-listing-${listing.id}`}>
                         <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                           <div className="flex-1 space-y-4">
@@ -343,7 +343,7 @@ export default function ManageListingsPage() {
                                   <StatusIcon className="h-3 w-3 mr-1" />
                                   {statusInfo.label}
                                 </Badge>
-                              </div>
+                        
                               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                                 <span>{listing.locality}, {listing.city}</span>
                                 <span>•</span>
@@ -352,31 +352,31 @@ export default function ManageListingsPage() {
                                 <span className="font-medium text-primary">
                                   {formatPrice(listing.price, listing.transactionType)}
                                 </span>
-                              </div>
-                            </div>
+                        
+                      
 
                             {listing.workflowStatus === "rejected" && listing.rejectionReason && (
                               <div className="p-3 bg-destructive/5 border border-destructive/20 rounded-lg">
                                 <p className="text-sm text-destructive">
                                   <strong>Rejection Reason:</strong> {listing.rejectionReason}
                                 </p>
-                              </div>
+                        
                             )}
 
                             <div className="flex flex-wrap items-center gap-6 text-sm">
                               <div className="flex items-center gap-2">
                                 <Eye className="h-4 w-4 text-muted-foreground" />
                                 <span>{listing.viewCount || 0} views</span>
-                              </div>
+                        
                               <div className="flex items-center gap-2">
                                 <Heart className="h-4 w-4 text-muted-foreground" />
                                 <span>{listing.favoriteCount || 0} favorites</span>
-                              </div>
+                        
                               <div className="flex items-center gap-2">
                                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
                                 <span>{listing.inquiryCount || 0} inquiries</span>
-                              </div>
-                            </div>
+                        
+                      
 
                             <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                               <span>Created: {format(new Date(listing.createdAt), 'MMM d, yyyy')}</span>
@@ -390,8 +390,8 @@ export default function ManageListingsPage() {
                                   </span>
                                 </>
                               )}
-                            </div>
-                          </div>
+                      
+                    
 
                           <div className="flex lg:flex-col gap-2">
                             {canSubmitForReview && (
@@ -462,12 +462,12 @@ export default function ManageListingsPage() {
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          </div>
-                        </div>
+                    
+                  
                       </Card>
                     );
                   })}
-                </div>
+          
               ) : (
                 <div className="text-center py-16">
                   {searchQuery ? (
@@ -496,11 +496,11 @@ export default function ManageListingsPage() {
                       )}
                     </>
                   )}
-                </div>
+          
               )}
             </TabsContent>
           </Tabs>
-        </div>
+  
     </main>
   );
 }

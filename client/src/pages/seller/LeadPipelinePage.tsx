@@ -62,7 +62,7 @@ export default function LeadPipelinePage() {
             <p className="text-muted-foreground">
               Track leads through your sales funnel
             </p>
-          </div>
+    
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {pipeline.map((stage, index) => (
@@ -72,7 +72,7 @@ export default function LeadPipelinePage() {
                   <div className="flex items-center justify-between">
                     <Badge>{stage.count} leads</Badge>
                     <span className="font-semibold text-sm">{stage.value}</span>
-                  </div>
+            
                 </Card>
 
                 <div className="space-y-3">
@@ -87,11 +87,11 @@ export default function LeadPipelinePage() {
                       </p>
                     </Card>
                   ))}
-                </div>
-              </div>
+          
+        
             ))}
-          </div>
-        </div>
+    
+  
       </main>
   );
 }

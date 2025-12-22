@@ -48,7 +48,7 @@ export default function PackageSelectionPage() {
             <p className="text-lg text-muted-foreground">
               Select a package that fits your property listing needs
             </p>
-          </div>
+    
         </section>
 
         <section className="py-16">
@@ -63,20 +63,20 @@ export default function PackageSelectionPage() {
                       {[1, 2, 3, 4, 5].map((j) => (
                         <Skeleton key={j} className="h-4 w-full" />
                       ))}
-                    </div>
+              
                     <Skeleton className="h-10 w-full mt-6" />
                   </Card>
                 ))}
-              </div>
+        
             ) : activePackages.length === 0 ? (
               <div className="text-center py-16">
                 <p className="text-muted-foreground">No packages available at the moment.</p>
-              </div>
+        
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
                 {activePackages.map((pkg) => {
                   const PackageIcon = getPackageIcon(pkg.name);
-                  return (
+                return (
                     <Card
                       key={pkg.id}
                       className={`p-6 relative ${
@@ -91,13 +91,13 @@ export default function PackageSelectionPage() {
                       <div className="text-center mb-6">
                         <div className="inline-flex p-3 rounded-full bg-primary/10 mb-4">
                           <PackageIcon className="h-8 w-8 text-primary" />
-                        </div>
+                  
                         <h3 className="font-serif font-bold text-2xl mb-2">{pkg.name}</h3>
                         <div className="flex items-baseline justify-center gap-1">
                           <span className="text-3xl font-bold">₹{formatPrice(pkg.price)}</span>
                           <span className="text-muted-foreground">/{pkg.duration} days</span>
-                        </div>
-                      </div>
+                  
+                
 
                       <ul className="space-y-3 mb-6">
                         <li className="flex items-center gap-2 text-sm">
@@ -139,7 +139,7 @@ export default function PackageSelectionPage() {
                     </Card>
                   );
                 })}
-              </div>
+        
             )}
 
             {!isLoading && activePackages.length > 0 && (
@@ -167,7 +167,7 @@ export default function PackageSelectionPage() {
                                     Popular
                                   </Badge>
                                 )}
-                              </div>
+                        
                             </th>
                           ))}
                         </tr>
@@ -249,9 +249,9 @@ export default function PackageSelectionPage() {
                         </tr>
                       </tbody>
                     </table>
-                  </div>
+            
                 </Card>
-              </div>
+        
             )}
 
             <div className="mt-16 max-w-3xl mx-auto">
@@ -280,9 +280,9 @@ export default function PackageSelectionPage() {
                     billing period.
                   </p>
                 </Card>
-              </div>
-            </div>
-          </div>
+        
+      
+    
         </section>
       </main>
   );

@@ -23,12 +23,12 @@ export default function ApprovalPendingPage() {
               <span className="font-serif font-bold text-2xl">VenGrow</span>
             </a>
           </Link>
-        </div>
+  
 
         <Card className="p-8 text-center">
           <div className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/20 mb-6">
             <Clock className="h-12 w-12 text-yellow-600" />
-          </div>
+    
 
           <h1 className="font-serif font-bold text-3xl mb-3">
             Verification in Progress
@@ -47,7 +47,7 @@ export default function ApprovalPendingPage() {
                 >
                   <div className="flex-1 text-left">
                     <p className="font-medium">{item.step}</p>
-                  </div>
+            
                   {item.status === "completed" && (
                     <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
                       <CheckCircle className="h-3 w-3 mr-1" />
@@ -65,10 +65,10 @@ export default function ApprovalPendingPage() {
                       Pending
                     </Badge>
                   )}
-                </div>
+          
               ))}
-            </div>
-          </div>
+      
+    
 
           {/* What Happens Next */}
           <div className="bg-muted/50 rounded-lg p-6 mb-8 text-left">
@@ -87,7 +87,7 @@ export default function ApprovalPendingPage() {
                 <span>After approval, you can select a package and start listing</span>
               </li>
             </ul>
-          </div>
+    
 
           {/* Contact Support */}
           <div className="border-t pt-6">
@@ -103,8 +103,8 @@ export default function ApprovalPendingPage() {
                 <Phone className="h-4 w-4 mr-2" />
                 +91 1800-123-4567
               </Button>
-            </div>
-          </div>
+      
+    
         </Card>
 
         <div className="text-center mt-6">
@@ -113,8 +113,8 @@ export default function ApprovalPendingPage() {
               Return to Homepage
             </a>
           </Link>
-        </div>
-      </div>
+  
+
     </div>
   );
 }

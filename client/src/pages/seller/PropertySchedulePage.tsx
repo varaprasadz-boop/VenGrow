@@ -41,13 +41,13 @@ export default function PropertySchedulePage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "confirmed":
-        return (
+      return (
           <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
             Confirmed
           </Badge>
         );
       case "pending":
-        return (
+      return (
           <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500">
             Pending
           </Badge>
@@ -70,13 +70,13 @@ export default function PropertySchedulePage() {
             <p className="text-muted-foreground">
               Manage upcoming property viewings
             </p>
-          </div>
+    
 
           {/* Calendar View */}
           <Card className="p-6 mb-8">
             <div className="h-64 flex items-center justify-center bg-muted rounded-lg">
               <span className="text-muted-foreground">Calendar View</span>
-            </div>
+      
           </Card>
 
           {/* Upcoming Visits */}
@@ -90,11 +90,11 @@ export default function PropertySchedulePage() {
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="font-semibold">{visit.property}</h3>
                         {getStatusBadge(visit.status)}
-                      </div>
+                
                       <div className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
                         <MapPin className="h-4 w-4" />
                         {visit.location}
-                      </div>
+                
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="flex items-center gap-2 text-sm">
@@ -104,25 +104,25 @@ export default function PropertySchedulePage() {
                             <p className="text-xs text-muted-foreground">
                               {visit.visitorPhone}
                             </p>
-                          </div>
-                        </div>
+                    
+                  
                         <div className="flex items-center gap-2 text-sm">
                           <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <p className="font-medium">{visit.date}</p>
                             <p className="text-xs text-muted-foreground">Visit Date</p>
-                          </div>
-                        </div>
+                    
+                  
                         <div className="flex items-center gap-2 text-sm">
                           <Clock className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <p className="font-medium">{visit.time}</p>
                             <p className="text-xs text-muted-foreground">Time Slot</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    
+                  
+                
+              
+            
 
                   <div className="flex gap-2">
                     {visit.status === "pending" && (
@@ -152,12 +152,12 @@ export default function PropertySchedulePage() {
                         Reschedule
                       </Button>
                     )}
-                  </div>
+            
                 </Card>
               ))}
-            </div>
-          </div>
-        </div>
+      
+    
+  
       </main>
   );
 }

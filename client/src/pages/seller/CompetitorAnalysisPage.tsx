@@ -38,7 +38,7 @@ export default function CompetitorAnalysisPage() {
             <p className="text-muted-foreground">
               Compare your listing with similar properties
             </p>
-          </div>
+    
 
           {/* Your Property */}
           <Card className="p-6 mb-8 bg-gradient-to-br from-primary/5 to-primary/10">
@@ -47,20 +47,20 @@ export default function CompetitorAnalysisPage() {
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Your Price</p>
                 <p className="text-2xl font-bold text-primary">₹85 L</p>
-              </div>
+        
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Views</p>
                 <p className="text-2xl font-bold">1,234</p>
-              </div>
+        
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Inquiries</p>
                 <p className="text-2xl font-bold">45</p>
-              </div>
+        
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Days Listed</p>
                 <p className="text-2xl font-bold">15</p>
-              </div>
-            </div>
+        
+      
           </Card>
 
           {/* Competitors */}
@@ -74,46 +74,46 @@ export default function CompetitorAnalysisPage() {
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">{comp.price}</span>
-                      </div>
+                
                       {comp.difference > 0 ? (
                         <div className="flex items-center gap-1 text-green-600">
                           <TrendingUp className="h-4 w-4" />
                           <span className="text-sm">
                             {comp.difference}% cheaper
                           </span>
-                        </div>
+                  
                       ) : (
                         <div className="flex items-center gap-1 text-red-600">
                           <TrendingDown className="h-4 w-4" />
                           <span className="text-sm">
                             {Math.abs(comp.difference)}% costlier
                           </span>
-                        </div>
+                  
                       )}
-                    </div>
-                  </div>
-                </div>
+              
+            
+          
 
                 <div className="grid grid-cols-3 gap-4">
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-xs text-muted-foreground mb-1">Views</p>
                     <p className="font-semibold">{comp.views}</p>
-                  </div>
+            
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-xs text-muted-foreground mb-1">Inquiries</p>
                     <p className="font-semibold">{comp.inquiries}</p>
-                  </div>
+            
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-xs text-muted-foreground mb-1">
                       Days Listed
                     </p>
                     <p className="font-semibold">{comp.daysListed}</p>
-                  </div>
-                </div>
+            
+          
               </Card>
             ))}
-          </div>
-        </div>
+    
+  
       </main>
   );
 }

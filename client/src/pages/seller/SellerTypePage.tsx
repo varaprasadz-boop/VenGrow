@@ -58,13 +58,13 @@ export default function SellerTypePage() {
           <p className="text-muted-foreground text-lg">
             Select the option that best describes you
           </p>
-        </div>
+  
 
         {/* Seller Type Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {sellerTypes.map((seller) => {
             const Icon = seller.icon;
-            return (
+          return (
               <Card
                 key={seller.type}
                 className="p-8 hover-elevate active-elevate-2 cursor-pointer transition-all group"
@@ -73,14 +73,14 @@ export default function SellerTypePage() {
                 <div className="text-center mb-6">
                   <div className="inline-flex p-6 rounded-full bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground transition-colors mb-4">
                     <Icon className="h-10 w-10" />
-                  </div>
+            
                   <h2 className="font-serif font-bold text-2xl mb-2">
                     {seller.title}
                   </h2>
                   <p className="text-muted-foreground">
                     {seller.description}
                   </p>
-                </div>
+          
 
                 <ul className="space-y-3 mb-8">
                   {seller.features.map((feature, index) => (
@@ -99,15 +99,15 @@ export default function SellerTypePage() {
               </Card>
             );
           })}
-        </div>
+  
 
         {/* Back Link */}
         <div className="text-center mt-8">
           <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground">
             Already have an account? Login
           </Link>
-        </div>
-      </div>
+  
+
     </div>
   );
 }

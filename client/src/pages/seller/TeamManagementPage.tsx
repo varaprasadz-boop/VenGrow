@@ -39,12 +39,12 @@ export default function TeamManagementPage() {
               <p className="text-muted-foreground">
                 Manage team members and their permissions
               </p>
-            </div>
+      
             <Button data-testid="button-add-member">
               <Plus className="h-4 w-4 mr-2" />
               Add Member
             </Button>
-          </div>
+    
 
           <div className="space-y-4">
             {teamMembers.map((member) => (
@@ -60,7 +60,7 @@ export default function TeamManagementPage() {
                         <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
                           {member.status}
                         </Badge>
-                      </div>
+                
                       <p className="text-sm text-muted-foreground mb-4">
                         {member.role} • {member.email}
                       </p>
@@ -74,10 +74,10 @@ export default function TeamManagementPage() {
                               {permission}
                             </Badge>
                           ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  
+                
+              
+            
                   <div className="flex gap-2 ml-4">
                     <Button
                       variant="outline"
@@ -93,12 +93,12 @@ export default function TeamManagementPage() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                  </div>
-                </div>
+            
+          
               </Card>
             ))}
-          </div>
-        </div>
+    
+  
       </main>
   );
 }

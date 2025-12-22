@@ -47,7 +47,7 @@ export default function PropertyExpiryPage() {
             <p className="text-muted-foreground">
               Monitor and renew your property listings
             </p>
-          </div>
+    
 
           {/* Expiring Soon */}
           <div className="mb-8">
@@ -67,7 +67,7 @@ export default function PropertyExpiryPage() {
                         <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-500">
                           {property.daysLeft} days left
                         </Badge>
-                      </div>
+                
                       <p className="text-sm text-muted-foreground mb-4">
                         {property.location}
                       </p>
@@ -77,13 +77,13 @@ export default function PropertyExpiryPage() {
                             Views
                           </p>
                           <p className="font-semibold">{property.views}</p>
-                        </div>
+                  
                         <div className="p-3 bg-muted rounded-lg">
                           <p className="text-xs text-muted-foreground mb-1">
                             Inquiries
                           </p>
                           <p className="font-semibold">{property.inquiries}</p>
-                        </div>
+                  
                         <div className="p-3 bg-muted rounded-lg">
                           <p className="text-xs text-muted-foreground mb-1">
                             Expires On
@@ -91,10 +91,10 @@ export default function PropertyExpiryPage() {
                           <p className="font-semibold text-xs">
                             {property.expiryDate}
                           </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  
+                
+              
+            
                   <Button
                     className="w-full"
                     data-testid={`button-renew-${property.id}`}
@@ -104,8 +104,8 @@ export default function PropertyExpiryPage() {
                   </Button>
                 </Card>
               ))}
-            </div>
-          </div>
+      
+    
 
           {/* Expired */}
           <div>
@@ -123,26 +123,26 @@ export default function PropertyExpiryPage() {
                           {property.title}
                         </h3>
                         <Badge variant="destructive">Expired</Badge>
-                      </div>
+                
                       <p className="text-sm text-muted-foreground mb-4">
                         {property.location}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Expired on {property.expiredDate}
                       </p>
-                    </div>
+              
                     <Button
                       size="sm"
                       data-testid={`button-reactivate-${property.id}`}
                     >
                       Reactivate
                     </Button>
-                  </div>
+            
                 </Card>
               ))}
-            </div>
-          </div>
-        </div>
+      
+    
+  
       </main>
   );
 }

@@ -88,19 +88,19 @@ export default function SellerProjectsPage() {
   };
 
   if (isLoading) {
-    return (
+  return (
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <Skeleton className="h-10 w-48" />
           <Skeleton className="h-10 w-32" />
-        </div>
+  
         <Skeleton className="h-10 w-full max-w-md" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-72" />
           ))}
-        </div>
-      </div>
+  
+
     );
   }
 
@@ -112,12 +112,12 @@ export default function SellerProjectsPage() {
           <p className="text-muted-foreground">
             Manage your real estate projects
           </p>
-        </div>
+  
         <Button onClick={() => navigate("/seller/projects/create")} data-testid="button-create-project">
           <Plus className="h-4 w-4 mr-2" />
           New Project
         </Button>
-      </div>
+
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -128,7 +128,7 @@ export default function SellerProjectsPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           data-testid="input-search-projects"
         />
-      </div>
+
 
       {filteredProjects.length === 0 ? (
         <Card className="p-12 text-center">
@@ -156,25 +156,25 @@ export default function SellerProjectsPage() {
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Building2 className="h-12 w-12 text-muted-foreground" />
-                  </div>
+            
                 )}
                 <div className="absolute top-2 right-2">
                   {getStatusBadge(project.status)}
-                </div>
-              </div>
+          
+        
               <div className="p-4 space-y-3">
                 <h3 className="font-semibold text-lg line-clamp-1">{project.name}</h3>
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4 shrink-0" />
                   <span className="line-clamp-1">{project.locality ? `${project.locality}, ` : ""}{project.city}, {project.state}</span>
-                </div>
+          
 
                 {project.priceRangeMin && project.priceRangeMax && (
                   <div className="flex items-center gap-2 text-sm">
                     <IndianRupee className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <span>{formatPrice(project.priceRangeMin)} - {formatPrice(project.priceRangeMax)}</span>
-                  </div>
+            
                 )}
 
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -182,13 +182,13 @@ export default function SellerProjectsPage() {
                     <div className="flex items-center gap-1">
                       <Home className="h-4 w-4" />
                       <span>{project.totalUnits} units</span>
-                    </div>
+              
                   )}
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     <span>{format(new Date(project.createdAt), "MMM yyyy")}</span>
-                  </div>
-                </div>
+            
+          
 
                 <div className="flex items-center gap-2 pt-2 border-t">
                   <Button
@@ -220,11 +220,11 @@ export default function SellerProjectsPage() {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                </div>
-              </div>
+          
+        
             </Card>
           ))}
-        </div>
+  
       )}
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

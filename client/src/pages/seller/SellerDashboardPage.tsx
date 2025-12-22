@@ -142,14 +142,14 @@ export default function SellerDashboardPage() {
               <p className="text-muted-foreground text-sm sm:text-base">
                 Here's an overview of your property listings
               </p>
-            </div>
+      
             <Link href="/seller/listings/create/step1">
               <Button size="default" className="sm:!min-h-10" data-testid="button-create-listing-dashboard">
                 <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 Create New Listing
               </Button>
             </Link>
-          </div>
+    
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
             {isLoading ? (
@@ -167,20 +167,20 @@ export default function SellerDashboardPage() {
                     <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2 sm:gap-4">
                       <div className="p-2 sm:p-3 rounded-lg bg-primary/10">
                         <stat.icon className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
-                      </div>
-                    </div>
+                
+              
                     <div>
                       <p className="text-xl sm:text-3xl font-bold font-serif mb-0.5 sm:mb-1">{stat.value}</p>
                       <p className="text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">{stat.label}</p>
                       <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
                         {stat.packageInfo || stat.change}
                       </p>
-                    </div>
+              
                   </Card>
                 </Link>
               ))
             )}
-          </div>
+    
 
           {subscription && (
             <Card className="p-4 sm:p-6 mb-6 sm:mb-8 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
@@ -192,7 +192,7 @@ export default function SellerDashboardPage() {
                       <Calendar className="h-3 w-3 mr-1" />
                       {renewalDays > 0 ? `Renews in ${renewalDays} days` : "Expired"}
                     </Badge>
-                  </div>
+            
                   <h3 className="font-semibold text-lg mb-1">
                     ₹{(subscription.package?.price || 0).toLocaleString()}/month • {subscription.package?.listingLimit || 5} Listings
                     {subscription.package?.features?.includes("featured_badge") && " • Featured Badge"}
@@ -201,7 +201,7 @@ export default function SellerDashboardPage() {
                     {activeListings} of {subscription.package?.listingLimit || 5} listings used
                     {subscription.package?.listingLimit && activeListings < subscription.package.listingLimit && " • Upgrade for unlimited listings"}
                   </p>
-                </div>
+          
                 <div className="flex flex-wrap gap-3">
                   <Link href="/seller/subscription">
                     <Button variant="outline" data-testid="button-manage-package">
@@ -213,8 +213,8 @@ export default function SellerDashboardPage() {
                       Upgrade Plan
                     </Button>
                   </Link>
-                </div>
-              </div>
+          
+        
             </Card>
           )}
 
@@ -226,13 +226,13 @@ export default function SellerDashboardPage() {
                   <p className="text-sm text-muted-foreground">
                     Choose a package to start listing your properties
                   </p>
-                </div>
+          
                 <Link href="/seller/packages">
                   <Button data-testid="button-choose-package">
                     Choose Package
                   </Button>
                 </Link>
-              </div>
+        
             </Card>
           )}
 
@@ -251,7 +251,7 @@ export default function SellerDashboardPage() {
                       View All
                     </Button>
                   </Link>
-                </div>
+          
                 {inquiriesLoading ? (
                   <div className="space-y-4">
                     {[1, 2, 3].map((i) => (
@@ -259,9 +259,9 @@ export default function SellerDashboardPage() {
                         <Skeleton className="h-5 w-3/4 mb-2" />
                         <Skeleton className="h-4 w-1/2 mb-2" />
                         <Skeleton className="h-3 w-1/4" />
-                      </div>
+                
                     ))}
-                  </div>
+            
                 ) : recentInquiries.length > 0 ? (
                   <div className="space-y-4">
                     {recentInquiries.map((inquiry) => (
@@ -277,28 +277,28 @@ export default function SellerDashboardPage() {
                             {inquiry.status === "pending" && (
                               <Badge variant="default" className="flex-shrink-0">New</Badge>
                             )}
-                          </div>
+                    
                           <p className="text-sm text-muted-foreground mb-1">
                             {inquiry.property?.title || "Property Inquiry"}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true })}
                           </p>
-                        </div>
+                  
                         <Link href={`/seller/inquiries/${inquiry.id}`}>
                           <Button size="sm" variant="outline" data-testid={`button-reply-${inquiry.id}`}>
                             Reply
                           </Button>
                         </Link>
-                      </div>
+                
                     ))}
-                  </div>
+            
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>No inquiries yet</p>
                     <p className="text-sm mt-1">Inquiries will appear here when buyers contact you</p>
-                  </div>
+            
                 )}
               </Card>
 
@@ -310,7 +310,7 @@ export default function SellerDashboardPage() {
                       Manage All
                     </Button>
                   </Link>
-                </div>
+          
                 {propertiesLoading ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {[1, 2].map((i) => (
@@ -318,15 +318,15 @@ export default function SellerDashboardPage() {
                         <Skeleton className="h-48 w-full rounded-lg" />
                         <Skeleton className="h-4 w-3/4" />
                         <Skeleton className="h-4 w-1/2" />
-                      </div>
+                
                     ))}
-                  </div>
+            
                 ) : recentListings.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {recentListings.map((property) => (
                       <PropertyCard key={property.id} {...formatPropertyForCard(property)} />
                     ))}
-                  </div>
+            
                 ) : (
                   <Card className="p-8 text-center text-muted-foreground">
                     <Building className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -336,8 +336,8 @@ export default function SellerDashboardPage() {
                     </Link>
                   </Card>
                 )}
-              </div>
-            </div>
+        
+      
 
             <div className="space-y-4 sm:space-y-6">
               <Card className="p-4 sm:p-6">
@@ -361,7 +361,7 @@ export default function SellerDashboardPage() {
                       View Inquiries
                     </Button>
                   </Link>
-                </div>
+          
               </Card>
 
               <Card className="p-4 sm:p-6">
@@ -372,24 +372,24 @@ export default function SellerDashboardPage() {
                     <p className="text-xs text-muted-foreground">
                       Listings with 10+ photos get 3x more views
                     </p>
-                  </div>
+            
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <p className="font-medium mb-1">Respond quickly</p>
                     <p className="text-xs text-muted-foreground">
                       Fast responses increase conversion by 40%
                     </p>
-                  </div>
+            
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <p className="font-medium mb-1">Update pricing</p>
                     <p className="text-xs text-muted-foreground">
                       Competitive pricing attracts more buyers
                     </p>
-                  </div>
-                </div>
+            
+          
               </Card>
-            </div>
-          </div>
-        </div>
+      
+    
+  
     </main>
   );
 }

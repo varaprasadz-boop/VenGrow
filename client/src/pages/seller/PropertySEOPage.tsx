@@ -21,7 +21,7 @@ export default function PropertySEOPage() {
             <p className="text-muted-foreground">
               Optimize your listing for search engines
             </p>
-          </div>
+    
 
           <Card className="p-6 mb-8">
             <h3 className="font-semibold text-lg mb-6">Meta Information</h3>
@@ -36,7 +36,7 @@ export default function PropertySEOPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   60 characters recommended
                 </p>
-              </div>
+        
               <div>
                 <Label htmlFor="description">SEO Description</Label>
                 <Textarea
@@ -48,7 +48,7 @@ export default function PropertySEOPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   160 characters recommended
                 </p>
-              </div>
+        
               <div>
                 <Label htmlFor="keywords">Keywords</Label>
                 <Input
@@ -56,8 +56,8 @@ export default function PropertySEOPage() {
                   defaultValue="3BHK apartment, Bandra West, Mumbai, luxury flat"
                   data-testid="input-keywords"
                 />
-              </div>
-            </div>
+        
+      
           </Card>
 
           <Card className="p-6 mb-8">
@@ -71,28 +71,28 @@ export default function PropertySEOPage() {
                 <p className="text-sm text-muted-foreground">
                   Your listing is well-optimized
                 </p>
-              </div>
-            </div>
+        
+      
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <span className="text-green-600">✓</span>
                 <span>Title length is optimal</span>
-              </div>
+        
               <div className="flex items-center gap-2">
                 <span className="text-green-600">✓</span>
                 <span>Description includes keywords</span>
-              </div>
+        
               <div className="flex items-center gap-2">
                 <span className="text-yellow-600">!</span>
                 <span>Add more high-quality images</span>
-              </div>
-            </div>
+        
+      
           </Card>
 
           <Button className="w-full" size="lg" data-testid="button-save">
             Save SEO Settings
           </Button>
-        </div>
+  
       </main>
   );
 }

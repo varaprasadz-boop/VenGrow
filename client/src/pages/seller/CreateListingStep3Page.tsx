@@ -56,12 +56,12 @@ export default function CreateListingStep3Page() {
 
   // Show loading state while checking auth and validating data
   if (authLoading || !dataValidated) {
-    return (
+  return (
       <main className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
           <p className="mt-2 text-muted-foreground">Loading...</p>
-        </div>
+  
       </main>
     );
   }
@@ -83,22 +83,22 @@ export default function CreateListingStep3Page() {
             <div className="flex items-center gap-2 mb-4">
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
                 1
-              </div>
+        
               <div className="h-1 flex-1 bg-primary"></div>
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
                 2
-              </div>
+        
               <div className="h-1 flex-1 bg-primary"></div>
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
                 3
-              </div>
+        
               <div className="h-1 flex-1 bg-muted"></div>
               <div className="h-8 w-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-bold">
                 4
-              </div>
-            </div>
+        
+      
             <p className="text-sm text-muted-foreground">Step 3 of 4: Photos & Media</p>
-          </div>
+    
 
           <Card className="p-8">
             <h1 className="font-serif font-bold text-2xl mb-2">
@@ -117,11 +117,11 @@ export default function CreateListingStep3Page() {
                     <p className="text-sm text-muted-foreground mt-1">
                       Upload at least 5 photos. Maximum 20 photos allowed.
                     </p>
-                  </div>
+            
                   <span className="text-sm text-muted-foreground">
                     {photos.length}/20
                   </span>
-                </div>
+          
 
                 {/* Upload Button */}
                 <div
@@ -131,7 +131,7 @@ export default function CreateListingStep3Page() {
                 >
                   <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
                     <Upload className="h-8 w-8 text-primary" />
-                  </div>
+            
                   <h3 className="font-semibold mb-2">Click to upload photos</h3>
                   <p className="text-sm text-muted-foreground mb-2">
                     or drag and drop
@@ -139,7 +139,7 @@ export default function CreateListingStep3Page() {
                   <p className="text-xs text-muted-foreground">
                     PNG, JPG up to 10MB each
                   </p>
-                </div>
+          
 
                 {/* Photo Grid */}
                 {photos.length > 0 && (
@@ -151,7 +151,7 @@ export default function CreateListingStep3Page() {
                       >
                         <div className="absolute inset-0 bg-muted flex items-center justify-center">
                           <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                        </div>
+                  
                         <Button
                           variant="destructive"
                           size="icon"
@@ -166,19 +166,19 @@ export default function CreateListingStep3Page() {
                             <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
                               Cover Photo
                             </span>
-                          </div>
+                    
                         )}
-                      </div>
+                
                     ))}
-                  </div>
+            
                 )}
 
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/20 rounded-lg">
                   <p className="text-sm text-blue-900 dark:text-blue-400">
                     <strong>Photo Tips:</strong> Include photos of all rooms, kitchen, bathrooms, and outdoor areas. Good lighting and multiple angles help attract more buyers.
                   </p>
-                </div>
-              </div>
+          
+        
 
               {/* YouTube Video */}
               <div>
@@ -193,7 +193,7 @@ export default function CreateListingStep3Page() {
                       <svg className="h-6 w-6 text-red-600" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
                       </svg>
-                    </div>
+              
                     <div className="flex-1">
                       <input
                         type="text"
@@ -208,16 +208,16 @@ export default function CreateListingStep3Page() {
                           Please enter a valid YouTube URL
                         </p>
                       )}
-                    </div>
-                  </div>
+              
+            
 
                   <div className="p-4 bg-muted/50 rounded-lg">
                     <p className="text-sm text-muted-foreground">
                       <strong>Supported formats:</strong> youtube.com/watch?v=, youtu.be/, youtube.com/embed/
                     </p>
-                  </div>
-                </div>
-              </div>
+            
+          
+        
 
               {/* Virtual Tour */}
               <div>
@@ -231,7 +231,7 @@ export default function CreateListingStep3Page() {
                   className="w-full px-4 py-2 border rounded-lg"
                   data-testid="input-virtual-tour"
                 />
-              </div>
+        
 
               {/* Navigation */}
               <div className="flex justify-between pt-6">
@@ -260,10 +260,10 @@ export default function CreateListingStep3Page() {
                   Next: Contact & Preview
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
-              </div>
+        
             </form>
           </Card>
-        </div>
+  
     </main>
   );
 }
