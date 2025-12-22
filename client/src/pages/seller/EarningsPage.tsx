@@ -47,29 +47,25 @@ export default function EarningsPage() {
 
   if (isLoading) {
     return (
-
-        <main className="flex-1">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <Skeleton className="h-10 w-64 mb-2" />
-            <Skeleton className="h-6 w-48 mb-8" />
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-24 w-full" />
-              ))}
-            </div>
-            <Skeleton className="h-96 w-full" />
+      <main className="flex-1">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Skeleton className="h-10 w-64 mb-2" />
+          <Skeleton className="h-6 w-48 mb-8" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-24 w-full" />
+            ))}
           </div>
-        </main>
-      </div>
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </main>
     );
   }
 
   return (
-
-
-      <main className="flex-1">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+    <main className="flex-1">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
             <div>
               <h1 className="font-serif font-bold text-3xl mb-2">
                 My Earnings
@@ -195,5 +191,5 @@ export default function EarningsPage() {
           </Card>
         </div>
       </main>
-  );
+    );
 }

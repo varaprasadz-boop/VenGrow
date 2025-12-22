@@ -40,9 +40,7 @@ export default function ReferralDashboardPage() {
   ];
 
   return (
-
-
-      <main className="flex-1">
+    <main className="flex-1">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <h1 className="font-serif font-bold text-3xl mb-2">
@@ -160,5 +158,5 @@ export default function ReferralDashboardPage() {
           </Card>
         </div>
       </main>
-  );
+    );
 }

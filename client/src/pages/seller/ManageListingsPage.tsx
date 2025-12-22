@@ -229,8 +229,8 @@ export default function ManageListingsPage() {
 
   return (
     <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>
               <h1 className="font-serif font-bold text-3xl mb-2">
                 Manage Listings
@@ -492,6 +492,6 @@ export default function ManageListingsPage() {
             </TabsContent>
           </Tabs>
         </div>
-    </main>
+      </main>
   );
 }

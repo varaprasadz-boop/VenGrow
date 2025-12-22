@@ -53,9 +53,7 @@ export default function LeadPipelinePage() {
   ];
 
   return (
-
-
-      <main className="flex-1 bg-muted/30">
+    <main className="flex-1 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <h1 className="font-serif font-bold text-3xl mb-2">Lead Pipeline</h1>

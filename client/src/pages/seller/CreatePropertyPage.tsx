@@ -370,56 +370,50 @@ export default function CreatePropertyPage() {
 
   if (checkingLimit || loadingSubscription) {
     return (
-
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p>Checking your subscription...</p>
-          </div>
-        </main>
-      </div>
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Checking your subscription...</p>
+        </div>
+      </main>
     );
   }
 
   if (!canCreateData?.canCreate) {
     return (
-
-        <main className="flex-1">
-          <div className="max-w-2xl mx-auto px-4 py-16">
-            <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Listing Limit Reached</AlertTitle>
-              <AlertDescription>
-                {subscriptionData?.subscription 
-                  ? `You've used ${subscriptionData.subscription.listingsUsed} of ${subscriptionData.package?.listingLimit} listings in your ${subscriptionData.package?.name} plan.`
-                  : "You don't have an active subscription."}
-              </AlertDescription>
-            </Alert>
-            <Card className="p-8 text-center">
-              <Home className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-              <h1 className="text-2xl font-bold mb-2">Upgrade Your Plan</h1>
-              <p className="text-muted-foreground mb-6">
-                To create more property listings, please upgrade to a higher package.
-              </p>
-              <div className="flex gap-4 justify-center">
-                <Button variant="outline" onClick={() => navigate("/seller/dashboard")}>
-                  Back to Dashboard
-                </Button>
-                <Button onClick={() => navigate("/seller/packages")}>
-                  View Packages
-                </Button>
-              </div>
-            </Card>
-          </div>
-        </main>
-      </div>
+      <main className="flex-1">
+        <div className="max-w-2xl mx-auto px-4 py-16">
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Listing Limit Reached</AlertTitle>
+            <AlertDescription>
+              {subscriptionData?.subscription 
+                ? `You've used ${subscriptionData.subscription.listingsUsed} of ${subscriptionData.package?.listingLimit} listings in your ${subscriptionData.package?.name} plan.`
+                : "You don't have an active subscription."}
+            </AlertDescription>
+          </Alert>
+          <Card className="p-8 text-center">
+            <Home className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+            <h1 className="text-2xl font-bold mb-2">Upgrade Your Plan</h1>
+            <p className="text-muted-foreground mb-6">
+              To create more property listings, please upgrade to a higher package.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Button variant="outline" onClick={() => navigate("/seller/dashboard")}>
+                Back to Dashboard
+              </Button>
+              <Button onClick={() => navigate("/seller/packages")}>
+                View Packages
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </main>
     );
   }
 
   return (
-
-
-      <main className="flex-1">
+    <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Progress Header */}
           <div className="mb-8">

@@ -58,9 +58,7 @@ export default function MessagesPage() {
   ];
 
   return (
-
-
-      <main className="flex-1">
+    <main className="flex-1">
         <div className="h-screen flex flex-col">
           <div className="border-b p-4">
             <div className="max-w-7xl mx-auto">

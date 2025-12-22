@@ -36,9 +36,7 @@ export default function PackageSelectionPage() {
   ];
 
   return (
-
-
-      <main className="flex-1">
+    <main className="flex-1">
         <section className="py-16 bg-gradient-to-b from-primary/5 to-background">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <Badge className="mb-4">Seller Packages</Badge>
@@ -285,5 +283,5 @@ export default function PackageSelectionPage() {
           </div>
         </section>
       </main>
-  );
+    );
 }

@@ -320,6 +320,7 @@ export default function PropertyTypesPage() {
   const isSubcategoryMutating = createSubcategoryMutation.isPending || updateSubcategoryMutation.isPending;
 
   return (
+    <>
       <main className="flex-1 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <AdminPageHeader
@@ -567,6 +568,6 @@ export default function PropertyTypesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

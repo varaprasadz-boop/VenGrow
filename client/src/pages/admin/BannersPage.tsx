@@ -218,6 +218,7 @@ export default function BannersPage() {
   const isMutating = createMutation.isPending || updateMutation.isPending;
 
   return (
+    <>
       <main className="flex-1 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <AdminPageHeader
@@ -386,6 +387,6 @@ export default function BannersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

@@ -17,9 +17,7 @@ export default function PropertySoldPage() {
   };
 
   return (
-
-
-      <main className="flex-1">
+    <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <h1 className="font-serif font-bold text-3xl mb-2 flex items-center gap-3">
@@ -78,5 +76,5 @@ export default function PropertySoldPage() {
           </div>
         </div>
       </main>
-  );
+    );
 }

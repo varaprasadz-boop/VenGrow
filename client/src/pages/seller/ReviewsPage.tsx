@@ -29,29 +29,25 @@ export default function ReviewsPage() {
 
   if (isLoading) {
     return (
-
-        <main className="flex-1">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <Skeleton className="h-10 w-64 mb-2" />
-            <Skeleton className="h-6 w-48 mb-8" />
-            <Skeleton className="h-48 w-full mb-8" />
-            <div className="space-y-6">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-40 w-full" />
-              ))}
-            </div>
+      <main className="flex-1">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Skeleton className="h-10 w-64 mb-2" />
+          <Skeleton className="h-6 w-48 mb-8" />
+          <Skeleton className="h-48 w-full mb-8" />
+          <div className="space-y-6">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-40 w-full" />
+            ))}
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
     );
   }
 
   return (
-
-
-      <main className="flex-1">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
+    <main className="flex-1">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
             <h1 className="font-serif font-bold text-3xl mb-2">
               Reviews & Ratings
             </h1>
@@ -186,5 +182,5 @@ export default function ReviewsPage() {
           )}
         </div>
       </main>
-  );
+    );
 }
