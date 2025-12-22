@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -184,10 +185,17 @@ export default function LeadManagementPage() {
     );
   }
 
+  const breadcrumbItems = [
+    { label: "Dashboard", href: "/seller/dashboard" },
+    { label: "Lead Management" },
+  ];
+
   return (
     <>
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Breadcrumbs items={breadcrumbItems} className="mb-6" />
+          
           <div className="mb-8">
             <h1 className="font-serif font-bold text-3xl mb-2">
               Lead Management
