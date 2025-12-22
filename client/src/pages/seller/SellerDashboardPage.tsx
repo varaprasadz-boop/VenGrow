@@ -126,46 +126,46 @@ export default function SellerDashboardPage() {
 
   return (
     <main className="flex-1 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
             <div>
-              <h1 className="font-serif font-bold text-3xl mb-2">
+              <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-1 sm:mb-2">
                 Welcome back{sellerProfile?.companyName ? `, ${sellerProfile.companyName}` : user?.firstName ? `, ${user.firstName}` : ''}!
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm sm:text-base">
                 Here's an overview of your property listings
               </p>
             </div>
             <Link href="/seller/listings/create/step1">
-              <Button size="lg" data-testid="button-create-listing-dashboard">
-                <Plus className="h-5 w-5 mr-2" />
+              <Button size="default" className="sm:!min-h-10" data-testid="button-create-listing-dashboard">
+                <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 Create New Listing
               </Button>
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
             {isLoading ? (
               [1, 2, 3, 4].map((i) => (
-                <Card key={i} className="p-6">
-                  <Skeleton className="h-12 w-12 rounded-lg mb-3" />
-                  <Skeleton className="h-8 w-16 mb-1" />
-                  <Skeleton className="h-4 w-24" />
+                <Card key={i} className="p-3 sm:p-6">
+                  <Skeleton className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg mb-2 sm:mb-3" />
+                  <Skeleton className="h-6 sm:h-8 w-12 sm:w-16 mb-1" />
+                  <Skeleton className="h-3 sm:h-4 w-16 sm:w-24" />
                 </Card>
               ))
             ) : (
               stats.map((stat, index) => (
                 <Link key={index} href={stat.link}>
-                  <Card className="p-6 hover-elevate active-elevate-2 cursor-pointer">
-                    <div className="flex items-start justify-between mb-3 gap-4">
-                      <div className="p-3 rounded-lg bg-primary/10">
-                        <stat.icon className="h-6 w-6 text-primary" />
+                  <Card className="p-3 sm:p-6 hover-elevate active-elevate-2 cursor-pointer">
+                    <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2 sm:gap-4">
+                      <div className="p-2 sm:p-3 rounded-lg bg-primary/10">
+                        <stat.icon className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
                       </div>
                     </div>
                     <div>
-                      <p className="text-3xl font-bold font-serif mb-1">{stat.value}</p>
-                      <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xl sm:text-3xl font-bold font-serif mb-0.5 sm:mb-1">{stat.value}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">{stat.label}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
                         {stat.packageInfo || stat.change}
                       </p>
                     </div>
@@ -176,8 +176,8 @@ export default function SellerDashboardPage() {
           </div>
 
           {subscription && (
-            <Card className="p-6 mb-8 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <Card className="p-4 sm:p-6 mb-6 sm:mb-8 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
                 <div>
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <Badge variant="default">{subscription.package?.name || "Package"}</Badge>
@@ -212,8 +212,8 @@ export default function SellerDashboardPage() {
           )}
 
           {!subscription && !subscriptionLoading && (
-            <Card className="p-6 mb-8 bg-gradient-to-r from-yellow-500/5 to-orange-500/10 border-yellow-500/20">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <Card className="p-4 sm:p-6 mb-6 sm:mb-8 bg-gradient-to-r from-yellow-500/5 to-orange-500/10 border-yellow-500/20">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
                 <div>
                   <h3 className="font-semibold text-lg mb-1">No Active Subscription</h3>
                   <p className="text-sm text-muted-foreground">
@@ -234,11 +234,11 @@ export default function SellerDashboardPage() {
             isLoading={propertiesLoading} 
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-6 gap-4">
-                  <h2 className="font-semibold text-xl">Recent Inquiries</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
+            <div className="lg:col-span-2 space-y-4 sm:space-y-8">
+              <Card className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
+                  <h2 className="font-semibold text-lg sm:text-xl">Recent Inquiries</h2>
                   <Link href="/seller/inquiries">
                     <Button variant="ghost" size="sm" data-testid="button-view-all-inquiries">
                       View All
@@ -296,8 +296,8 @@ export default function SellerDashboardPage() {
               </Card>
 
               <div>
-                <div className="flex items-center justify-between mb-6 gap-4">
-                  <h2 className="font-semibold text-xl">My Listings</h2>
+                <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
+                  <h2 className="font-semibold text-lg sm:text-xl">My Listings</h2>
                   <Link href="/seller/listings">
                     <Button variant="ghost" size="sm" data-testid="button-manage-listings">
                       Manage All
@@ -332,9 +332,9 @@ export default function SellerDashboardPage() {
               </div>
             </div>
 
-            <div className="space-y-6">
-              <Card className="p-6">
-                <h3 className="font-semibold mb-4">Quick Actions</h3>
+            <div className="space-y-4 sm:space-y-6">
+              <Card className="p-4 sm:p-6">
+                <h3 className="font-semibold mb-3 sm:mb-4">Quick Actions</h3>
                 <div className="space-y-2">
                   <Link href="/seller/listings/create/step1">
                     <Button variant="outline" className="w-full justify-start" data-testid="button-create-new">
@@ -357,8 +357,8 @@ export default function SellerDashboardPage() {
                 </div>
               </Card>
 
-              <Card className="p-6">
-                <h3 className="font-semibold mb-4">Performance Tips</h3>
+              <Card className="p-4 sm:p-6">
+                <h3 className="font-semibold mb-3 sm:mb-4">Performance Tips</h3>
                 <div className="space-y-4 text-sm">
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <p className="font-medium mb-1">Add more photos</p>

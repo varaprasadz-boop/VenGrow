@@ -86,17 +86,17 @@ export default function AdminDashboardPage() {
   if (isLoading) {
     return (
       <main className="flex-1 bg-muted/30">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <Skeleton className="h-10 w-64 mb-2" />
-            <Skeleton className="h-6 w-48 mb-8" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+            <Skeleton className="h-8 sm:h-10 w-48 sm:w-64 mb-2" />
+            <Skeleton className="h-5 sm:h-6 w-36 sm:w-48 mb-6 sm:mb-8" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
               {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-32 w-full" />
+                <Skeleton key={i} className="h-24 sm:h-32 w-full" />
               ))}
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <Skeleton className="lg:col-span-2 h-96 w-full" />
-              <Skeleton className="h-96 w-full" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
+              <Skeleton className="lg:col-span-2 h-64 sm:h-96 w-full" />
+              <Skeleton className="h-64 sm:h-96 w-full" />
             </div>
           </div>
         </main>
@@ -150,39 +150,39 @@ export default function AdminDashboardPage() {
 
   return (
       <main className="flex-1 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <h1 className="font-serif font-bold text-3xl mb-2">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-1 sm:mb-2">
               Admin Dashboard
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm sm:text-base">
               Platform overview and management
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
             {statCards.map((stat, index) => (
-              <Card key={index} className="p-6" data-testid={`card-stat-${index}`}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="p-3 rounded-lg bg-primary/10">
-                    <stat.icon className="h-6 w-6 text-primary" />
+              <Card key={index} className="p-3 sm:p-6" data-testid={`card-stat-${index}`}>
+                <div className="flex items-start justify-between mb-2 sm:mb-3">
+                  <div className="p-2 sm:p-3 rounded-lg bg-primary/10">
+                    <stat.icon className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
                   </div>
                 </div>
                 <div>
-                  <p className="text-3xl font-bold font-serif mb-1">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-                  <p className="text-xs text-green-600">{stat.change}</p>
+                  <p className="text-xl sm:text-3xl font-bold font-serif mb-0.5 sm:mb-1">{stat.value}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">{stat.label}</p>
+                  <p className="text-[10px] sm:text-xs text-green-600 line-clamp-1">{stat.change}</p>
                 </div>
               </Card>
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
-                  <div className="flex items-center gap-3">
-                    <h2 className="font-semibold text-xl">Pending Seller Approvals</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
+            <div className="lg:col-span-2 space-y-4 sm:space-y-8">
+              <Card className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4 sm:mb-6 flex-wrap gap-2">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <h2 className="font-semibold text-lg sm:text-xl">Pending Seller Approvals</h2>
                     <Badge variant="destructive">{pendingApprovals.length}</Badge>
                   </div>
                   <Link href="/admin/seller-approvals">
@@ -231,9 +231,9 @@ export default function AdminDashboardPage() {
                 )}
               </Card>
 
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
-                  <h2 className="font-semibold text-xl">Recent Listings</h2>
+              <Card className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4 sm:mb-6 flex-wrap gap-2">
+                  <h2 className="font-semibold text-lg sm:text-xl">Recent Listings</h2>
                   <Link href="/admin/listing-moderation">
                     <Button variant="ghost" size="sm" data-testid="button-view-all-listings">
                       View All
@@ -283,9 +283,9 @@ export default function AdminDashboardPage() {
               </Card>
             </div>
 
-            <div className="space-y-6">
-              <Card className="p-6">
-                <h3 className="font-semibold mb-4">Quick Actions</h3>
+            <div className="space-y-4 sm:space-y-6">
+              <Card className="p-4 sm:p-6">
+                <h3 className="font-semibold mb-3 sm:mb-4">Quick Actions</h3>
                 <div className="space-y-2">
                   <Link href="/admin/user-management">
                     <Button variant="outline" className="w-full justify-start" data-testid="button-manage-users">
@@ -314,8 +314,8 @@ export default function AdminDashboardPage() {
                 </div>
               </Card>
 
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <Card className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-3 sm:mb-4 flex-wrap gap-2">
                   <h3 className="font-semibold">Recent Transactions</h3>
                   <Link href="/admin/transactions">
                     <Button variant="ghost" size="sm" data-testid="button-view-all-transactions">
@@ -346,8 +346,8 @@ export default function AdminDashboardPage() {
                 )}
               </Card>
 
-              <Card className="p-6">
-                <h3 className="font-semibold mb-4">System Status</h3>
+              <Card className="p-4 sm:p-6">
+                <h3 className="font-semibold mb-3 sm:mb-4">System Status</h3>
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Server Status</span>
