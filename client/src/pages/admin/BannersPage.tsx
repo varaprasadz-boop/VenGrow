@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { AdminDataTable, AdminPageHeader, StatusBadge, type FilterConfig, type C
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, Loader2, Flag, ExternalLink } from "lucide-react";
+import { Edit, Trash2, Loader2, Flag, ExternalLink, Upload, X } from "lucide-react";
 import type { Banner } from "@shared/schema";
 
 const BANNER_TYPES = ["hero", "promotional", "announcement", "sidebar"];
@@ -43,8 +43,55 @@ export default function BannersPage() {
     title: "", description: "", imageUrl: "", linkUrl: "", linkText: "",
     bannerType: "hero", startDate: "", endDate: "", isActive: true, sortOrder: 0
   });
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const handleImageUpload = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", file);
+      formDataUpload.append("directory", "public/banners");
+      
+      const res = await fetch("/api/objects/upload", {
+        method: "POST",
+        body: formDataUpload,
+        credentials: "include",
+      });
+      
+      if (!res.ok) {
+        throw new Error("Upload failed");
+      }
+      
+      const data = await res.json();
+      setFormData(prev => ({ ...prev, imageUrl: data.url }));
+      toast({ title: "Image uploaded successfully" });
+    } catch (error) {
+      toast({ title: "Failed to upload image", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: "Image must be less than 5MB", variant: "destructive" });
+        return;
+      }
+      handleImageUpload(file);
+    }
+  };
+
+  const removeImage = () => {
+    setFormData(prev => ({ ...prev, imageUrl: "" }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const { data: banners = [], isLoading, isError, refetch } = useQuery<Banner[]>({
     queryKey: ["/api/admin/banners"],
@@ -286,14 +333,59 @@ export default function BannersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="imageUrl">Image URL</Label>
-              <Input
-                id="imageUrl"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                placeholder="https://..."
-                data-testid="input-banner-image"
+              <Label>Banner Image</Label>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+                data-testid="input-banner-image-file"
               />
+              {formData.imageUrl ? (
+                <div className="relative">
+                  <img
+                    src={formData.imageUrl}
+                    alt="Banner preview"
+                    className="w-full h-32 object-cover rounded-md border"
+                    data-testid="img-banner-preview"
+                  />
+                  <div className="absolute top-2 right-2">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={removeImage}
+                      data-testid="button-remove-banner-image"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed rounded-md p-8">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    data-testid="button-upload-banner-image"
+                  >
+                    {isUploading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Uploading...</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Click to upload banner image</span>
+                      </div>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

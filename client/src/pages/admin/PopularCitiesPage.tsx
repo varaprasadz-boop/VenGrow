@@ -329,38 +329,41 @@ export default function PopularCitiesPage() {
                     className="w-full h-32 object-cover rounded-md border"
                     data-testid="img-city-preview"
                   />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-6 w-6"
-                    onClick={removeImage}
-                    data-testid="button-remove-image"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <div className="absolute top-2 right-2">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={removeImage}
+                      data-testid="button-remove-image"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-32 border-dashed"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  data-testid="button-upload-image"
-                >
-                  {isUploading ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Uploading...</span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-2">
-                      <Upload className="h-6 w-6 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Click to upload image</span>
-                    </div>
-                  )}
-                </Button>
+                <div className="border-2 border-dashed rounded-md p-8">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    data-testid="button-upload-image"
+                  >
+                    {isUploading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Uploading...</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Click to upload image</span>
+                      </div>
+                    )}
+                  </Button>
+                </div>
               )}
             </div>
             <div className="grid grid-cols-2 gap-4">
