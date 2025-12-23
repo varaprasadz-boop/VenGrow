@@ -47,14 +47,16 @@ export default function MapSettingsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: MapSettings) => {
-      return apiRequest("PUT", "/api/admin/settings/maps", data);
+      const res = await apiRequest("PUT", "/api/admin/settings/maps", data);
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/maps"] });
       toast({ title: "Settings Saved", description: "Map settings have been updated." });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
+    onError: (error: Error) => {
+      console.error("Error saving map settings:", error);
+      toast({ title: "Error", description: error.message || "Failed to save settings.", variant: "destructive" });
     },
   });
 

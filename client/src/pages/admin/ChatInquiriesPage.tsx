@@ -34,7 +34,7 @@ export default function ChatInquiriesPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: inquiries = [], isLoading, isError, refetch } = useQuery<InquiryWithDetails[]>({
-    queryKey: ["/api/admin/inquiries", { sourceType: "chat" }],
+    queryKey: ["/api/admin/inquiries?source=chat"],
   });
 
   const chatInquiries = inquiries.filter(i => i.sourceType === "chat");

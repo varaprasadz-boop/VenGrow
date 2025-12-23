@@ -2053,20 +2053,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get system setting
-  app.get("/api/admin/settings/:key", async (req: Request, res: Response) => {
-    try {
-      const setting = await storage.getSystemSetting(req.params.key);
-      if (!setting) {
-        return res.status(404).json({ error: "Setting not found" });
-      }
-      res.json(setting);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to get setting" });
-    }
-  });
-
-  // Set system setting
+  // Set system setting (generic POST endpoint)
   app.post("/api/admin/settings", async (req: Request, res: Response) => {
     try {
       const { key, value, updatedBy } = req.body;
@@ -2157,17 +2144,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/settings/maps", async (req: Request, res: Response) => {
     try {
       const setting = await storage.getSystemSetting("maps_settings");
+      
+      // Get API key from environment variable as fallback
+      const envApiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY || "";
+      
+      // Default structure matching frontend expectations
+      const defaultSettings = {
+        googleMapsApiKey: envApiKey,
+        defaultLatitude: 20.5937,
+        defaultLongitude: 78.9629,
+        defaultZoom: 5,
+        enableGeocoding: true,
+        enableStreetView: true,
+      };
+
       if (!setting) {
-        return res.json({
-          provider: "openstreetmap",
-          apiKey: "",
-          defaultLat: 20.5937,
-          defaultLng: 78.9629,
-          defaultZoom: 5,
-          showMarkers: true,
-        });
+        return res.json(defaultSettings);
       }
-      res.json(setting.value);
+
+      // Transform old structure to new structure if needed
+      const value = setting.value as any;
+      const transformedSettings = {
+        googleMapsApiKey: value.googleMapsApiKey ?? value.apiKey ?? envApiKey,
+        defaultLatitude: value.defaultLatitude ?? value.defaultLat ?? 20.5937,
+        defaultLongitude: value.defaultLongitude ?? value.defaultLng ?? 78.9629,
+        defaultZoom: value.defaultZoom ?? 5,
+        enableGeocoding: value.enableGeocoding ?? value.showMarkers ?? true,
+        enableStreetView: value.enableStreetView ?? true,
+      };
+
+      // If API key is empty, use environment variable
+      if (!transformedSettings.googleMapsApiKey) {
+        transformedSettings.googleMapsApiKey = envApiKey;
+      }
+
+      res.json(transformedSettings);
     } catch (error) {
       res.status(500).json({ error: "Failed to get map settings" });
     }
@@ -2176,9 +2187,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update map settings
   app.put("/api/admin/settings/maps", async (req: Request, res: Response) => {
     try {
-      const setting = await storage.setSystemSetting("maps_settings", req.body);
-      res.json(setting.value);
+      // Ensure the structure matches what frontend sends
+      const settingsToSave = {
+        googleMapsApiKey: req.body.googleMapsApiKey || "",
+        defaultLatitude: req.body.defaultLatitude ?? 20.5937,
+        defaultLongitude: req.body.defaultLongitude ?? 78.9629,
+        defaultZoom: req.body.defaultZoom ?? 5,
+        enableGeocoding: req.body.enableGeocoding ?? true,
+        enableStreetView: req.body.enableStreetView ?? true,
+      };
+      
+      const setting = await storage.setSystemSetting("maps_settings", settingsToSave);
+      
+      // Return in the format frontend expects (transformed)
+      const savedValue = setting.value as any;
+      const response = {
+        googleMapsApiKey: savedValue.googleMapsApiKey ?? savedValue.apiKey ?? "",
+        defaultLatitude: savedValue.defaultLatitude ?? savedValue.defaultLat ?? 20.5937,
+        defaultLongitude: savedValue.defaultLongitude ?? savedValue.defaultLng ?? 78.9629,
+        defaultZoom: savedValue.defaultZoom ?? 5,
+        enableGeocoding: savedValue.enableGeocoding ?? savedValue.showMarkers ?? true,
+        enableStreetView: savedValue.enableStreetView ?? true,
+      };
+      
+      res.json(response);
     } catch (error) {
+      console.error("Error updating map settings:", error);
       res.status(500).json({ error: "Failed to update map settings" });
     }
   });
@@ -2311,6 +2345,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get general/system settings
+  app.get("/api/admin/settings/general", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.getSystemSetting("general_settings");
+      if (!setting) {
+        return res.json({
+          siteName: "VenGrow",
+          siteTagline: "Find Your Dream Property",
+          contactEmail: "support@vengrow.com",
+          contactPhone: "+91 98765 43210",
+          aboutUs: "",
+          enableRegistration: true,
+          enableSellerApproval: true,
+          enableListingModeration: true,
+          enableEmailNotifications: true,
+          enableSMSNotifications: false,
+          maintenanceMode: false,
+          googleAnalyticsId: "",
+          razorpayKey: "",
+          googleMapsKey: "",
+        });
+      }
+      res.json(setting.value);
+    } catch (error) {
+      console.error("Error getting general settings:", error);
+      res.status(500).json({ error: "Failed to get general settings" });
+    }
+  });
+
+  // Update general/system settings
+  app.put("/api/admin/settings/general", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.setSystemSetting("general_settings", req.body);
+      res.json(setting.value);
+    } catch (error) {
+      console.error("Error updating general settings:", error);
+      res.status(500).json({ error: "Failed to update general settings" });
+    }
+  });
+
+  // Get system setting (generic - must be after all specific routes)
+  app.get("/api/admin/settings/:key", async (req: Request, res: Response) => {
+    try {
+      const setting = await storage.getSystemSetting(req.params.key);
+      if (!setting) {
+        return res.status(404).json({ error: "Setting not found" });
+      }
+      res.json(setting);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get setting" });
+    }
+  });
+
   // ============================================
   // EMAIL TEMPLATES
   // ============================================
@@ -2386,8 +2473,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         source: source as string,
         status: status as string,
       });
-      res.json(inquiries);
+      
+      // Populate property and buyer details
+      const inquiriesWithDetails = await Promise.all(
+        inquiries.map(async (inquiry) => {
+          const [property, buyer] = await Promise.all([
+            storage.getProperty(inquiry.propertyId),
+            storage.getUser(inquiry.buyerId),
+          ]);
+          
+          return {
+            ...inquiry,
+            property: property ? {
+              title: property.title,
+              city: property.city,
+            } : undefined,
+            buyer: buyer ? {
+              firstName: buyer.firstName,
+              lastName: buyer.lastName,
+              email: buyer.email,
+              phone: buyer.phone,
+            } : undefined,
+          };
+        })
+      );
+      
+      res.json(inquiriesWithDetails);
     } catch (error) {
+      console.error("Error getting admin inquiries:", error);
       res.status(500).json({ error: "Failed to get inquiries" });
     }
   });
@@ -2507,8 +2620,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
       const inquiries = await storage.getInquiriesBySeller(profile.id);
-      res.json(inquiries);
+      
+      // Populate property and buyer details
+      const inquiriesWithDetails = await Promise.all(
+        inquiries.map(async (inquiry) => {
+          const [property, buyer] = await Promise.all([
+            storage.getProperty(inquiry.propertyId),
+            storage.getUser(inquiry.buyerId),
+          ]);
+          
+          return {
+            ...inquiry,
+            property: property ? {
+              title: property.title,
+              city: property.city,
+            } : undefined,
+            buyer: buyer ? {
+              firstName: buyer.firstName,
+              lastName: buyer.lastName,
+              email: buyer.email,
+              phone: buyer.phone,
+            } : undefined,
+          };
+        })
+      );
+      
+      res.json(inquiriesWithDetails);
     } catch (error) {
+      console.error("Error getting seller inquiries:", error);
       res.status(500).json({ error: "Failed to get inquiries" });
     }
   });

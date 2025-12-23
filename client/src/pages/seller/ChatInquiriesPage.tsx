@@ -30,7 +30,7 @@ interface InquiryWithDetails extends Inquiry {
 
 export default function SellerChatInquiriesPage() {
   const { data: inquiries = [], isLoading, isError, refetch } = useQuery<InquiryWithDetails[]>({
-    queryKey: ["/api/seller/inquiries", { sourceType: "chat" }],
+    queryKey: ["/api/me/seller-inquiries"],
   });
 
   const chatInquiries = inquiries.filter(i => i.sourceType === "chat");

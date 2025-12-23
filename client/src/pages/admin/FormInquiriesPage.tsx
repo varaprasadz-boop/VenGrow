@@ -34,7 +34,7 @@ export default function FormInquiriesPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: inquiries = [], isLoading, isError, refetch } = useQuery<InquiryWithDetails[]>({
-    queryKey: ["/api/admin/inquiries", { sourceType: "form" }],
+    queryKey: ["/api/admin/inquiries?source=form"],
   });
 
   const formInquiries = inquiries.filter(i => i.sourceType === "form");

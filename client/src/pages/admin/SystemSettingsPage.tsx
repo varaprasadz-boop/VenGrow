@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,39 +7,123 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Save } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Settings, Save, RefreshCw, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+
+interface GeneralSettings {
+  siteName: string;
+  siteTagline: string;
+  contactEmail: string;
+  contactPhone: string;
+  aboutUs: string;
+  enableRegistration: boolean;
+  enableSellerApproval: boolean;
+  enableListingModeration: boolean;
+  enableEmailNotifications: boolean;
+  enableSMSNotifications: boolean;
+  maintenanceMode: boolean;
+  googleAnalyticsId: string;
+  razorpayKey: string;
+  googleMapsKey: string;
+}
 
 export default function SystemSettingsPage() {
-  const [settings, setSettings] = useState({
+  const { toast } = useToast();
+  const [settings, setSettings] = useState<GeneralSettings>({
     siteName: "VenGrow",
     siteTagline: "Find Your Dream Property",
-    contactEmail: "support@propconnect.com",
+    contactEmail: "support@vengrow.com",
     contactPhone: "+91 98765 43210",
+    aboutUs: "",
     enableRegistration: true,
     enableSellerApproval: true,
     enableListingModeration: true,
     enableEmailNotifications: true,
     enableSMSNotifications: false,
     maintenanceMode: false,
+    googleAnalyticsId: "",
+    razorpayKey: "",
+    googleMapsKey: "",
   });
 
-  return (
-      <main className="flex-1">
+  const { data: loadedSettings, isLoading, isError, refetch } = useQuery<GeneralSettings>({
+    queryKey: ["/api/admin/settings/general"],
+  });
+
+  useEffect(() => {
+    if (loadedSettings) {
+      setSettings(loadedSettings);
+    }
+  }, [loadedSettings]);
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: GeneralSettings) => {
+      const res = await apiRequest("PUT", "/api/admin/settings/general", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/general"] });
+      toast({ title: "Settings Saved", description: "General settings have been updated." });
+    },
+    onError: (error: Error) => {
+      console.error("Error saving general settings:", error);
+      toast({ title: "Error", description: error.message || "Failed to save settings.", variant: "destructive" });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate(settings);
+  };
+
+  if (isLoading) {
+    return (
+      <main className="flex-1 bg-muted/30">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="font-serif font-bold text-3xl mb-2">
-                System Settings
-              </h1>
-              <p className="text-muted-foreground">
-                Configure platform settings and preferences
-              </p>
+          <Skeleton className="h-10 w-64 mb-8" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </main>
+    );
+  }
+
+  if (isError) {
+    return (
+      <main className="flex-1 bg-muted/30 flex items-center justify-center">
+        <div className="text-center p-8">
+          <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
+          <h2 className="text-xl font-semibold mb-2">Failed to Load Settings</h2>
+          <Button onClick={() => refetch()} data-testid="button-retry">
+            <RefreshCw className="h-4 w-4 mr-2" />Retry
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+      <main className="flex-1 bg-muted/30">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <form onSubmit={handleSubmit}>
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="font-serif font-bold text-3xl mb-2">
+                  System Settings
+                </h1>
+                <p className="text-muted-foreground">
+                  Configure platform settings and preferences
+                </p>
+              </div>
+              <Button type="submit" disabled={saveMutation.isPending} data-testid="button-save">
+                {saveMutation.isPending ? (
+                  <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Saving...</>
+                ) : (
+                  <><Save className="h-4 w-4 mr-2" />Save Changes</>
+                )}
+              </Button>
             </div>
-            <Button data-testid="button-save">
-              <Save className="h-4 w-4 mr-2" />
-              Save Changes
-            </Button>
-          </div>
 
           <Tabs defaultValue="general" className="space-y-6">
             <TabsList>
@@ -116,6 +201,10 @@ export default function SystemSettingsPage() {
                       id="aboutUs"
                       rows={6}
                       placeholder="Tell users about your platform..."
+                      value={settings.aboutUs}
+                      onChange={(e) =>
+                        setSettings({ ...settings, aboutUs: e.target.value })
+                      }
                       data-testid="textarea-about-us"
                     />
                   </div>
@@ -221,34 +310,6 @@ export default function SystemSettingsPage() {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="smtpHost">SMTP Host</Label>
-                    <Input
-                      id="smtpHost"
-                      placeholder="smtp.example.com"
-                      data-testid="input-smtp-host"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="smtpPort">SMTP Port</Label>
-                      <Input
-                        id="smtpPort"
-                        placeholder="587"
-                        data-testid="input-smtp-port"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="smtpUsername">SMTP Username</Label>
-                      <Input
-                        id="smtpUsername"
-                        placeholder="username@example.com"
-                        data-testid="input-smtp-username"
-                      />
-                    </div>
-                  </div>
                 </div>
               </Card>
             </TabsContent>
@@ -279,6 +340,10 @@ export default function SystemSettingsPage() {
                     <Input
                       id="googleAnalytics"
                       placeholder="UA-XXXXXXXXX-X"
+                      value={settings.googleAnalyticsId}
+                      onChange={(e) =>
+                        setSettings({ ...settings, googleAnalyticsId: e.target.value })
+                      }
                       data-testid="input-google-analytics"
                     />
                   </div>
@@ -287,7 +352,12 @@ export default function SystemSettingsPage() {
                     <Label htmlFor="razorpayKey">Razorpay API Key</Label>
                     <Input
                       id="razorpayKey"
+                      type="password"
                       placeholder="rzp_live_XXXXXXXXXXXXXXX"
+                      value={settings.razorpayKey}
+                      onChange={(e) =>
+                        setSettings({ ...settings, razorpayKey: e.target.value })
+                      }
                       data-testid="input-razorpay-key"
                     />
                   </div>
@@ -296,7 +366,12 @@ export default function SystemSettingsPage() {
                     <Label htmlFor="googleMapsKey">Google Maps API Key</Label>
                     <Input
                       id="googleMapsKey"
+                      type="password"
                       placeholder="AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                      value={settings.googleMapsKey}
+                      onChange={(e) =>
+                        setSettings({ ...settings, googleMapsKey: e.target.value })
+                      }
                       data-testid="input-google-maps-key"
                     />
                   </div>
@@ -304,6 +379,7 @@ export default function SystemSettingsPage() {
               </Card>
             </TabsContent>
           </Tabs>
+          </form>
         </div>
       </main>
     );

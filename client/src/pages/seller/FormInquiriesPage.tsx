@@ -31,7 +31,7 @@ interface InquiryWithDetails extends Inquiry {
 
 export default function SellerFormInquiriesPage() {
   const { data: inquiries = [], isLoading, isError, refetch } = useQuery<InquiryWithDetails[]>({
-    queryKey: ["/api/seller/inquiries", { sourceType: "form" }],
+    queryKey: ["/api/me/seller-inquiries"],
   });
 
   const formInquiries = inquiries.filter(i => i.sourceType === "form");

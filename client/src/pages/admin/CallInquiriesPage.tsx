@@ -34,7 +34,7 @@ export default function CallInquiriesPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: inquiries = [], isLoading, isError, refetch } = useQuery<InquiryWithDetails[]>({
-    queryKey: ["/api/admin/inquiries", { sourceType: "call" }],
+    queryKey: ["/api/admin/inquiries?source=call"],
   });
 
   const callInquiries = inquiries.filter(i => i.sourceType === "call");
