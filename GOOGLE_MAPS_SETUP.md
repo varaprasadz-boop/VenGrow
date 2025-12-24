@@ -4,11 +4,16 @@
 
 This document explains how to fix Google Maps not working on your production domain.
 
+## ⚠️ CRITICAL: Vite Environment Variables are Build-Time Only
+
+**Important:** `VITE_*` environment variables are embedded **during build** (`npm run build`), NOT at runtime. Even if your `.env` file has `VITE_GOOGLE_MAPS_API_KEY`, you must **rebuild** the application for it to be included.
+
 ## Common Causes
 
-1. **API Key Not Set in Production Environment**
-   - The `VITE_GOOGLE_MAPS_API_KEY` environment variable must be set during build time
+1. **API Key Not Set During Build** ⚠️ MOST COMMON
+   - The `VITE_GOOGLE_MAPS_API_KEY` environment variable must be set **during build time**
    - Vite environment variables are embedded at build time, not runtime
+   - **If you added the key to `.env` after building, you MUST rebuild**
 
 2. **API Key Domain Restrictions**
    - Google Cloud Console may have HTTP referrer restrictions

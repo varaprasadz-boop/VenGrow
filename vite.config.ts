@@ -1,9 +1,21 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
-export default defineConfig({
+export default defineConfig(async ({ mode }) => {
+  // Load env file from project root (where vite.config.ts is located)
+  // Vite automatically loads .env files, but we need to ensure it looks in the right place
+  // The third parameter 'VITE_' means only load variables prefixed with VITE_
+  const env = loadEnv(mode, import.meta.dirname, 'VITE_');
+  
+  // Log in development to help debug
+  if (mode === 'production' && !env.VITE_GOOGLE_MAPS_API_KEY) {
+    console.warn('⚠️  WARNING: VITE_GOOGLE_MAPS_API_KEY is not set in .env file!');
+    console.warn('   Google Maps will not work. Make sure to set it before building.');
+  }
+  
+  return {
   plugins: [
     react(),
     runtimeErrorOverlay(),
@@ -37,4 +49,5 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
+  };
 });
