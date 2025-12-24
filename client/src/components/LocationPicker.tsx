@@ -146,8 +146,17 @@ export default function LocationPicker({
       <Card className="p-4">
         <div className="flex flex-col items-center justify-center h-48 text-center">
           <MapPin className="h-8 w-8 text-primary mb-2 opacity-70" />
-          <p className="text-muted-foreground text-sm">Map picker is being configured</p>
+          <p className="text-muted-foreground text-sm">
+            {!GOOGLE_MAPS_API_KEY 
+              ? "Google Maps API key is not configured"
+              : "Map picker is being configured"}
+          </p>
           <p className="text-xs text-muted-foreground mt-1">You can still enter coordinates manually</p>
+          {loadError && import.meta.env.PROD && (
+            <p className="text-xs text-destructive mt-2">
+              Check API key restrictions and domain whitelist in Google Cloud Console
+            </p>
+          )}
         </div>
       </Card>
     );

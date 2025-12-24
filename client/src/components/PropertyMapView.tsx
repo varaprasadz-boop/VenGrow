@@ -157,8 +157,15 @@ export default function PropertyMapView({ properties, className = "" }: Property
           </p>
           <div className="bg-card rounded-lg p-4 text-left space-y-2">
             <p className="text-xs text-muted-foreground">
-              Interactive map is being configured. Properties are displayed in grid view.
+              {!GOOGLE_MAPS_API_KEY 
+                ? "Google Maps API key is not configured. Please contact support."
+                : "Interactive map is being configured. Properties are displayed in grid view."}
             </p>
+            {loadError && import.meta.env.PROD && (
+              <p className="text-xs text-destructive mt-2">
+                Error: {loadError.message || "Unknown error"}. Check API key restrictions and domain whitelist.
+              </p>
+            )}
           </div>
         </div>
       </div>

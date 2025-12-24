@@ -109,7 +109,16 @@ export default function PropertyMap({
       <Card className="flex items-center justify-center text-center" style={{ height }}>
         <div className="p-8">
           <MapPin className="h-12 w-12 text-primary mx-auto mb-4 opacity-70" />
-          <p className="text-muted-foreground text-sm">Map view is being configured</p>
+          <p className="text-muted-foreground text-sm">
+            {!GOOGLE_MAPS_API_KEY 
+              ? "Google Maps API key is not configured"
+              : "Map view is being configured"}
+          </p>
+          {loadError && import.meta.env.PROD && (
+            <p className="text-xs text-destructive mt-2">
+              Error: {loadError.message || "Unknown error"}. Check API key restrictions and domain whitelist.
+            </p>
+          )}
         </div>
       </Card>
     );
