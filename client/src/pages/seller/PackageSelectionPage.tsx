@@ -96,7 +96,7 @@ export default function PackageSelectionPage() {
         ) : currentSubscription && currentPackage ? (
           <section className="py-8">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-              <Card className={`p-6 ${isExpired ? 'border-destructive' : isExpiringSoon ? 'border-yellow-500' : 'border-primary'}`}>
+              <Card className={`p-6 ${isExpired ? 'border-destructive' : isExpiringSoon ? 'border-orange-500 dark:border-orange-400' : 'border-primary'}`}>
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-4">
