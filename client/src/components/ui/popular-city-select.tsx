@@ -139,7 +139,7 @@ export function PopularCitySelect({
   return (
     <div className="space-y-1">
       <Select
-        value={value}
+        value={value || ""} // Ensure value is always a string to avoid controlled/uncontrolled warning
         onValueChange={handleSelectChange}
         disabled={disabled}
       >
