@@ -308,7 +308,7 @@ export const sellerRoutes: RouteConfig[] = [
   { path: "/seller/packages", component: lazy(() => import("@/pages/seller/PackageSelectionPage")), requireAuth: true, roles: ["seller", "admin"], title: "My Packages" },
   { path: "/seller/packages/buy", component: lazy(() => import("@/pages/seller/PackageSelectionPage")), requireAuth: true, roles: ["seller", "admin"], title: "Buy Package" },
   { path: "/seller/package-history", component: lazy(() => import("@/pages/seller/SubscriptionHistoryPage")), requireAuth: true, roles: ["seller", "admin"], title: "Package History" },
-  { path: "/seller/wallet", component: lazy(() => import("@/pages/seller/EarningsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Wallet" },
+  { path: "/seller/wallet", component: lazy(() => import("@/pages/seller/DashboardPage")), requireAuth: true, roles: ["seller", "admin"], title: "Dashboard" },
   { path: "/seller/transactions", component: lazy(() => import("@/pages/seller/TransactionHistoryPage")), requireAuth: true, roles: ["seller", "admin"], title: "Transactions" },
   { path: "/seller/subscription", component: lazy(() => import("@/pages/seller/SubscriptionPage")), requireAuth: true, roles: ["seller", "admin"], title: "Subscription" },
   { path: "/seller/subscription-history", component: lazy(() => import("@/pages/seller/SubscriptionHistoryPage")), requireAuth: true, roles: ["seller", "admin"], title: "Subscription History" },
@@ -319,8 +319,8 @@ export const sellerRoutes: RouteConfig[] = [
   { path: "/seller/payment-success", component: lazy(() => import("@/pages/seller/PaymentSuccessPage")), requireAuth: true, roles: ["seller", "admin"], title: "Payment Success" },
   { path: "/seller/payment-failed", component: lazy(() => import("@/pages/seller/PaymentFailedPage")), requireAuth: true, roles: ["seller", "admin"], title: "Payment Failed" },
   { path: "/seller/transaction-history", component: lazy(() => import("@/pages/seller/TransactionHistoryPage")), requireAuth: true, roles: ["seller", "admin"], title: "Transactions" },
-  { path: "/seller/earnings", component: lazy(() => import("@/pages/seller/EarningsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Earnings" },
-  { path: "/seller/withdraw", component: lazy(() => import("@/pages/seller/WithdrawFundsPage")), requireAuth: true, roles: ["seller", "admin"], title: "Withdraw Funds" },
+  { path: "/seller/earnings", component: lazy(() => import("@/pages/seller/DashboardPage")), requireAuth: true, roles: ["seller", "admin"], title: "Dashboard" },
+  { path: "/seller/withdraw", component: lazy(() => import("@/pages/seller/DashboardPage")), requireAuth: true, roles: ["seller", "admin"], title: "Dashboard" },
   { path: "/seller/upgrade", component: lazy(() => import("@/pages/seller/UpgradeAccountPage")), requireAuth: true, roles: ["seller", "admin"], title: "Upgrade Account" },
   
   // Profile & Settings - Sidebar Links

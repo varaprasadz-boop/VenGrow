@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Building2, Plus, Package, CreditCard, MessageSquare, 
   Bell, Settings, BarChart3, HelpCircle, LogOut, ListPlus,
   ChevronDown, Heart, Calendar, Star, FileText, Upload, Eye,
-  TrendingUp, Users, Clock, Wallet
+  TrendingUp, Users, Clock
 } from "lucide-react";
 import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import { Button } from "@/components/ui/button";
@@ -65,7 +65,6 @@ const packageItems = [
   { title: "My Packages", href: "/seller/packages", icon: Package },
   { title: "Buy Package", href: "/seller/packages/buy", icon: ListPlus },
   { title: "Package History", href: "/seller/package-history", icon: Clock },
-  { title: "Wallet", href: "/seller/wallet", icon: Wallet },
   { title: "Transactions", href: "/seller/transactions", icon: CreditCard },
 ];
 
