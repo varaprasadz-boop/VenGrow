@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
+import { GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Maximize2, Minimize2, Loader2 } from "lucide-react";
 import type { Property } from "@shared/schema";
-
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+import { useGoogleMaps } from "@/hooks/useGoogleMaps";
 
 interface PropertyMapProps {
   properties?: Property[];
@@ -39,9 +38,7 @@ export default function PropertyMap({
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-  });
+  const { isLoaded, loadError, apiKey: GOOGLE_MAPS_API_KEY } = useGoogleMaps();
 
   const onLoad = useCallback((map: google.maps.Map) => {
     setMap(map);

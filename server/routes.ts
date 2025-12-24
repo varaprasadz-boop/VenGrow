@@ -764,12 +764,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create property with seller ID
+      // Ensure latitude and longitude are properly formatted (convert empty strings to null)
+      const { latitude: rawLat, longitude: rawLng, ...restBody } = req.body;
+      
+      // Convert latitude/longitude to numbers or null
+      const latitude = rawLat && rawLat !== "" && !isNaN(parseFloat(rawLat))
+        ? (typeof rawLat === "string" ? parseFloat(rawLat) : rawLat)
+        : null;
+      const longitude = rawLng && rawLng !== "" && !isNaN(parseFloat(rawLng))
+        ? (typeof rawLng === "string" ? parseFloat(rawLng) : rawLng)
+        : null;
+      
       const propertyData = {
-        ...req.body,
+        ...restBody,
         sellerId: sellerProfile.id,
         status: "draft" as const,
         workflowStatus: "draft" as const,
+        latitude,
+        longitude,
       };
+      
+      console.log("Creating property with coordinates:", {
+        latitude,
+        longitude,
+        hasLat: !!latitude,
+        hasLng: !!longitude,
+      });
       
       const property = await storage.createProperty(propertyData);
       

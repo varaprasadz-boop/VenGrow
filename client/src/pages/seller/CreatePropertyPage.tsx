@@ -44,7 +44,9 @@ import {
   Loader2,
   Save,
   Building2,
+  Navigation,
 } from "lucide-react";
+import { PopularCitySelect } from "@/components/ui/popular-city-select";
 import {
   Alert,
   AlertDescription,
@@ -664,12 +666,11 @@ export default function CreatePropertyPage() {
 
                       <div className="space-y-2">
                         <Label htmlFor="city">City *</Label>
-                        <Input
-                          id="city"
-                          placeholder="e.g., Mumbai"
+                        <PopularCitySelect
                           value={formData.city}
-                          onChange={(e) => updateField("city", e.target.value)}
-                          data-testid="input-city"
+                          onValueChange={(value) => updateField("city", value)}
+                          placeholder="Select or enter city"
+                          data-testid="select-city"
                         />
                       </div>
 
@@ -703,30 +704,102 @@ export default function CreatePropertyPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-2 mt-4">
-                      <Label className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        Pin Location on Map
-                      </Label>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Pinning your property's exact location helps buyers find it more easily
-                      </p>
-                      <Suspense fallback={
-                        <div className="h-[300px] bg-muted rounded-lg flex items-center justify-center">
-                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <div className="space-y-4 mt-4">
+                      <div>
+                        <Label className="flex items-center gap-2 mb-2">
+                          <MapPin className="h-4 w-4" />
+                          Pin Location on Map
+                        </Label>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Select your property's exact location on the map or enter coordinates manually
+                        </p>
+                        <Suspense fallback={
+                          <div className="h-[400px] bg-muted rounded-lg flex items-center justify-center border">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          </div>
+                        }>
+                          <div className="border rounded-lg overflow-hidden">
+                            <LocationPicker
+                              latitude={formData.latitude ? parseFloat(formData.latitude) : undefined}
+                              longitude={formData.longitude ? parseFloat(formData.longitude) : undefined}
+                              onLocationChange={(lat, lng) => {
+                                updateField("latitude", lat.toString());
+                                updateField("longitude", lng.toString());
+                              }}
+                              onAddressSelect={(address) => {
+                                // Optionally update address field when location is selected
+                                if (address && !formData.address) {
+                                  updateField("address", address);
+                                }
+                              }}
+                              defaultCity={formData.city || "Mumbai"}
+                              height="400px"
+                            />
+                          </div>
+                        </Suspense>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t">
+                        <div className="space-y-2">
+                          <Label htmlFor="latitude" className="flex items-center gap-2">
+                            <Navigation className="h-4 w-4" />
+                            Latitude (Optional)
+                          </Label>
+                          <Input
+                            id="latitude"
+                            type="number"
+                            step="any"
+                            placeholder="e.g., 19.0760"
+                            value={formData.latitude}
+                            onChange={(e) => {
+                              const lat = e.target.value;
+                              updateField("latitude", lat);
+                              // Update map if both coordinates are valid
+                              if (lat && formData.longitude) {
+                                const latNum = parseFloat(lat);
+                                const lngNum = parseFloat(formData.longitude);
+                                if (!isNaN(latNum) && !isNaN(lngNum)) {
+                                  // Map will update via the latitude/longitude props
+                                }
+                              }
+                            }}
+                            data-testid="input-latitude"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Enter latitude manually or select on map
+                          </p>
                         </div>
-                      }>
-                        <LocationPicker
-                          latitude={formData.latitude ? parseFloat(formData.latitude) : undefined}
-                          longitude={formData.longitude ? parseFloat(formData.longitude) : undefined}
-                          onLocationChange={(lat, lng) => {
-                            updateField("latitude", lat.toString());
-                            updateField("longitude", lng.toString());
-                          }}
-                          defaultCity={formData.city || "Mumbai"}
-                          height="300px"
-                        />
-                      </Suspense>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="longitude" className="flex items-center gap-2">
+                            <Navigation className="h-4 w-4" />
+                            Longitude (Optional)
+                          </Label>
+                          <Input
+                            id="longitude"
+                            type="number"
+                            step="any"
+                            placeholder="e.g., 72.8777"
+                            value={formData.longitude}
+                            onChange={(e) => {
+                              const lng = e.target.value;
+                              updateField("longitude", lng);
+                              // Update map if both coordinates are valid
+                              if (lng && formData.latitude) {
+                                const latNum = parseFloat(formData.latitude);
+                                const lngNum = parseFloat(lng);
+                                if (!isNaN(latNum) && !isNaN(lngNum)) {
+                                  // Map will update via the latitude/longitude props
+                                }
+                              }
+                            }}
+                            data-testid="input-longitude"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Enter longitude manually or select on map
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

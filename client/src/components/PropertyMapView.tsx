@@ -1,12 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
+import { GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Bed, Bath, Square, MapPin, ExternalLink, Loader2 } from "lucide-react";
-
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+import { useGoogleMaps } from "@/hooks/useGoogleMaps";
 
 interface PropertyMarker {
   id: string;
@@ -119,9 +118,7 @@ export default function PropertyMapView({ properties, className = "" }: Property
   const [selectedProperty, setSelectedProperty] = useState<PropertyMarker | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
 
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-  });
+  const { isLoaded, loadError, apiKey: GOOGLE_MAPS_API_KEY } = useGoogleMaps();
 
   const validProperties = properties.filter(
     (p) => typeof p.lat === "number" && typeof p.lng === "number" && !isNaN(p.lat) && !isNaN(p.lng)

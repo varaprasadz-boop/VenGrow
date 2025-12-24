@@ -1,13 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { GoogleMap, useJsApiLoader, Marker, Autocomplete } from "@react-google-maps/api";
+import { GoogleMap, Marker, Autocomplete } from "@react-google-maps/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { MapPin, Crosshair, Loader2 } from "lucide-react";
-
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
-const libraries: ("places")[] = ["places"];
+import { useGoogleMaps } from "@/hooks/useGoogleMaps";
 
 interface LocationPickerProps {
   latitude?: number;
@@ -57,16 +55,19 @@ export default function LocationPicker({
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries,
-  });
+  const { isLoaded, loadError, apiKey: GOOGLE_MAPS_API_KEY } = useGoogleMaps();
 
   useEffect(() => {
-    if (latitude && longitude) {
-      setPosition({ lat: latitude, lng: longitude });
+    if (latitude && longitude && !isNaN(latitude) && !isNaN(longitude)) {
+      const newPosition = { lat: latitude, lng: longitude };
+      setPosition(newPosition);
+      // Update map center if map is loaded
+      if (map) {
+        map.panTo(newPosition);
+        map.setZoom(15);
+      }
     }
-  }, [latitude, longitude]);
+  }, [latitude, longitude, map]);
 
   const onLoad = useCallback((map: google.maps.Map) => {
     setMap(map);
