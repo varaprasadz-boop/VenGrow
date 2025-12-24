@@ -1,16 +1,35 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { format, differenceInDays } from "date-fns";
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle, Crown, Zap, Star } from "lucide-react";
-import type { Package } from "@shared/schema";
+import { Progress } from "@/components/ui/progress";
+import { CheckCircle, Crown, Zap, Star, Calendar, Package as PackageIcon, AlertTriangle } from "lucide-react";
+import type { Package, SellerSubscription } from "@shared/schema";
+
+interface CurrentSubscriptionResponse {
+  success: boolean;
+  subscription: SellerSubscription | null;
+  package: Package | null;
+  usage?: {
+    listingsUsed: number;
+    listingLimit: number;
+    remainingListings: number;
+    featuredUsed: number;
+    featuredLimit: number;
+  };
+}
 
 export default function PackageSelectionPage() {
   const { data: packages = [], isLoading } = useQuery<Package[]>({
     queryKey: ["/api/packages"],
+  });
+
+  const { data: currentSubData, isLoading: isLoadingSubscription } = useQuery<CurrentSubscriptionResponse>({
+    queryKey: ["/api/subscriptions/current"],
   });
 
   const activePackages = packages.filter(p => p.isActive);
@@ -35,22 +54,154 @@ export default function PackageSelectionPage() {
     { feature: "Social Media Promotion", key: "socialMedia" },
   ];
 
+  const currentSubscription = currentSubData?.subscription;
+  const currentPackage = currentSubData?.package;
+  const usage = currentSubData?.usage;
+
+  const getDaysRemaining = () => {
+    if (!currentSubscription?.endDate) return 0;
+    return differenceInDays(new Date(currentSubscription.endDate), new Date());
+  };
+
+  const daysRemaining = getDaysRemaining();
+  const isExpiringSoon = daysRemaining <= 7 && daysRemaining > 0;
+  const isExpired = daysRemaining <= 0;
+
   return (
     <main className="flex-1">
-        <section className="py-16 bg-gradient-to-b from-primary/5 to-background">
+        <section className="py-8 bg-gradient-to-b from-primary/5 to-background">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <Badge className="mb-4">Seller Packages</Badge>
             <h1 className="font-serif font-bold text-4xl sm:text-5xl mb-6">
-              Choose Your Perfect Plan
+              {currentSubscription ? "My Package" : "Choose Your Perfect Plan"}
             </h1>
             <p className="text-lg text-muted-foreground">
-              Select a package that fits your property listing needs
+              {currentSubscription 
+                ? "Manage your current subscription and upgrade when needed"
+                : "Select a package that fits your property listing needs"}
             </p>
           </div>
         </section>
 
-        <section className="py-16">
+        {isLoadingSubscription ? (
+          <section className="py-8">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+              <Card className="p-6">
+                <Skeleton className="h-8 w-48 mb-4" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-3/4" />
+              </Card>
+            </div>
+          </section>
+        ) : currentSubscription && currentPackage ? (
+          <section className="py-8">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+              <Card className={`p-6 ${isExpired ? 'border-destructive' : isExpiringSoon ? 'border-yellow-500' : 'border-primary'}`}>
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-full bg-primary/10">
+                        <PackageIcon className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <h2 className="font-serif font-bold text-2xl" data-testid="text-current-package-name">
+                          {currentPackage.name}
+                        </h2>
+                        <Badge variant={isExpired ? "destructive" : isExpiringSoon ? "secondary" : "default"}>
+                          {isExpired ? "Expired" : "Active"}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Expires:</span>
+                        <span className="font-medium" data-testid="text-expiry-date">
+                          {currentSubscription.endDate 
+                            ? format(new Date(currentSubscription.endDate), "dd MMM yyyy")
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        {isExpired ? (
+                          <Badge variant="destructive" className="gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            Subscription expired
+                          </Badge>
+                        ) : isExpiringSoon ? (
+                          <Badge variant="secondary" className="gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            {daysRemaining} days remaining
+                          </Badge>
+                        ) : (
+                          <span className="text-green-600 font-medium">
+                            {daysRemaining} days remaining
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {usage && (
+                      <div className="space-y-3">
+                        <div>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-muted-foreground">Listings Used</span>
+                            <span className="font-medium" data-testid="text-listings-usage">
+                              {usage.listingsUsed} / {usage.listingLimit}
+                            </span>
+                          </div>
+                          <Progress 
+                            value={(usage.listingsUsed / usage.listingLimit) * 100} 
+                            className="h-2"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {usage.remainingListings} listings remaining
+                          </p>
+                        </div>
+                        {usage.featuredLimit > 0 && (
+                          <div>
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="text-muted-foreground">Featured Listings</span>
+                              <span className="font-medium">
+                                {usage.featuredUsed} / {usage.featuredLimit}
+                              </span>
+                            </div>
+                            <Progress 
+                              value={(usage.featuredUsed / usage.featuredLimit) * 100} 
+                              className="h-2"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2 md:min-w-[140px]">
+                    <Link href="/seller/packages/buy">
+                      <Button className="w-full" data-testid="button-upgrade-package">
+                        {isExpired ? "Renew Package" : "Upgrade"}
+                      </Button>
+                    </Link>
+                    <Link href="/seller/package-history">
+                      <Button variant="outline" className="w-full" data-testid="button-view-history">
+                        View History
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </section>
+        ) : null}
+
+        <section className="py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {currentSubscription && (
+              <h2 className="font-serif font-bold text-3xl mb-8 text-center">
+                {isExpired ? "Renew Your Package" : "Upgrade Your Package"}
+              </h2>
+            )}
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
                 {[1, 2, 3].map((i) => (
