@@ -20,13 +20,18 @@ import {
   type VerifiedBuilder, type InsertVerifiedBuilder,
   type Project, type InsertProject,
   type Appointment, type InsertAppointment,
+  type Testimonial, type InsertTestimonial,
+  type TeamMember, type InsertTeamMember,
+  type CompanyValue, type InsertCompanyValue,
+  type HeroSlide, type InsertHeroSlide,
   users, sellerProfiles, packages, properties, propertyImages, propertyDocuments,
   inquiries, favorites, savedSearches, propertyViews, appointments,
   chatThreads, chatMessages, notifications, payments, reviews,
   adminApprovals, auditLogs, systemSettings, sellerSubscriptions, propertyAlerts,
   propertyApprovalRequests, faqItems, staticPages, banners, platformSettings,
   popularCities, navigationLinks, propertyTypesManaged, siteSettings, emailTemplates,
-  propertyCategories, propertySubcategories, verifiedBuilders, projects
+  propertyCategories, propertySubcategories, verifiedBuilders, projects,
+  testimonials, teamMembers, companyValues, heroSlides
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, like, or, sql, gte, lte, inArray } from "drizzle-orm";
@@ -172,6 +177,26 @@ export interface IStorage {
   createBanner(data: Omit<Banner, 'id' | 'createdAt' | 'updatedAt'>): Promise<Banner>;
   updateBanner(id: string, data: Partial<Banner>): Promise<Banner | undefined>;
   deleteBanner(id: string): Promise<boolean>;
+  
+  getAllTestimonials(): Promise<Testimonial[]>;
+  createTestimonial(data: Omit<Testimonial, 'id' | 'createdAt' | 'updatedAt'>): Promise<Testimonial>;
+  updateTestimonial(id: string, data: Partial<Testimonial>): Promise<Testimonial | undefined>;
+  deleteTestimonial(id: string): Promise<boolean>;
+  
+  getAllTeamMembers(): Promise<TeamMember[]>;
+  createTeamMember(data: Omit<TeamMember, 'id' | 'createdAt' | 'updatedAt'>): Promise<TeamMember>;
+  updateTeamMember(id: string, data: Partial<TeamMember>): Promise<TeamMember | undefined>;
+  deleteTeamMember(id: string): Promise<boolean>;
+  
+  getAllCompanyValues(): Promise<CompanyValue[]>;
+  createCompanyValue(data: Omit<CompanyValue, 'id' | 'createdAt' | 'updatedAt'>): Promise<CompanyValue>;
+  updateCompanyValue(id: string, data: Partial<CompanyValue>): Promise<CompanyValue | undefined>;
+  deleteCompanyValue(id: string): Promise<boolean>;
+  
+  getAllHeroSlides(): Promise<HeroSlide[]>;
+  createHeroSlide(data: Omit<HeroSlide, 'id' | 'createdAt' | 'updatedAt'>): Promise<HeroSlide>;
+  updateHeroSlide(id: string, data: Partial<HeroSlide>): Promise<HeroSlide | undefined>;
+  deleteHeroSlide(id: string): Promise<boolean>;
   
   getPlatformSettings(category?: string): Promise<PlatformSetting[]>;
   
@@ -1223,6 +1248,98 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBanner(id: string): Promise<boolean> {
     await db.delete(banners).where(eq(banners.id, id));
+    return true;
+  }
+
+  // Testimonials CRUD
+  async getAllTestimonials(): Promise<Testimonial[]> {
+    return db.select().from(testimonials).orderBy(testimonials.sortOrder);
+  }
+
+  async createTestimonial(data: Omit<Testimonial, 'id' | 'createdAt' | 'updatedAt'>): Promise<Testimonial> {
+    const [testimonial] = await db.insert(testimonials).values(data).returning();
+    return testimonial;
+  }
+
+  async updateTestimonial(id: string, data: Partial<Testimonial>): Promise<Testimonial | undefined> {
+    const [testimonial] = await db.update(testimonials)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(testimonials.id, id))
+      .returning();
+    return testimonial;
+  }
+
+  async deleteTestimonial(id: string): Promise<boolean> {
+    await db.delete(testimonials).where(eq(testimonials.id, id));
+    return true;
+  }
+
+  // Team Members CRUD
+  async getAllTeamMembers(): Promise<TeamMember[]> {
+    return db.select().from(teamMembers).orderBy(teamMembers.sortOrder);
+  }
+
+  async createTeamMember(data: Omit<TeamMember, 'id' | 'createdAt' | 'updatedAt'>): Promise<TeamMember> {
+    const [member] = await db.insert(teamMembers).values(data).returning();
+    return member;
+  }
+
+  async updateTeamMember(id: string, data: Partial<TeamMember>): Promise<TeamMember | undefined> {
+    const [member] = await db.update(teamMembers)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(teamMembers.id, id))
+      .returning();
+    return member;
+  }
+
+  async deleteTeamMember(id: string): Promise<boolean> {
+    await db.delete(teamMembers).where(eq(teamMembers.id, id));
+    return true;
+  }
+
+  // Company Values CRUD
+  async getAllCompanyValues(): Promise<CompanyValue[]> {
+    return db.select().from(companyValues).orderBy(companyValues.sortOrder);
+  }
+
+  async createCompanyValue(data: Omit<CompanyValue, 'id' | 'createdAt' | 'updatedAt'>): Promise<CompanyValue> {
+    const [value] = await db.insert(companyValues).values(data).returning();
+    return value;
+  }
+
+  async updateCompanyValue(id: string, data: Partial<CompanyValue>): Promise<CompanyValue | undefined> {
+    const [value] = await db.update(companyValues)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(companyValues.id, id))
+      .returning();
+    return value;
+  }
+
+  async deleteCompanyValue(id: string): Promise<boolean> {
+    await db.delete(companyValues).where(eq(companyValues.id, id));
+    return true;
+  }
+
+  // Hero Slides CRUD
+  async getAllHeroSlides(): Promise<HeroSlide[]> {
+    return db.select().from(heroSlides).orderBy(heroSlides.sortOrder);
+  }
+
+  async createHeroSlide(data: Omit<HeroSlide, 'id' | 'createdAt' | 'updatedAt'>): Promise<HeroSlide> {
+    const [slide] = await db.insert(heroSlides).values(data).returning();
+    return slide;
+  }
+
+  async updateHeroSlide(id: string, data: Partial<HeroSlide>): Promise<HeroSlide | undefined> {
+    const [slide] = await db.update(heroSlides)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(heroSlides.id, id))
+      .returning();
+    return slide;
+  }
+
+  async deleteHeroSlide(id: string): Promise<boolean> {
+    await db.delete(heroSlides).where(eq(heroSlides.id, id));
     return true;
   }
 

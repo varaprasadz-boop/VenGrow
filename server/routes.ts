@@ -2983,10 +2983,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { ObjectStorageService } = await import("./objectStorage");
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      res.json({ uploadURL });
-    } catch (error) {
+      
+      // Extract the actual object URL from the signed URL for response
+      // The signed URL contains the full path, we need to extract the base URL
+      let objectURL = uploadURL;
+      try {
+        const urlObj = new URL(uploadURL);
+        // Remove query parameters to get the base object URL
+        objectURL = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
+      } catch (e) {
+        // If URL parsing fails, use the uploadURL as-is
+        console.warn("Could not parse upload URL:", e);
+      }
+      
+      res.json({ 
+        uploadURL, // Signed URL for PUT upload
+        url: objectURL // Final object URL after upload (for Uppy to store)
+      });
+    } catch (error: any) {
       console.error("Error getting upload URL:", error);
-      res.status(500).json({ error: "Failed to get upload URL" });
+      res.status(500).json({ 
+        error: error.message || "Failed to get upload URL",
+        details: error.toString()
+      });
     }
   });
 
@@ -3830,6 +3849,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting banner:", error);
       res.status(500).json({ message: "Failed to delete banner" });
+    }
+  });
+
+  // --- Testimonials Admin CRUD ---
+  app.get("/api/admin/testimonials", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const testimonials = await storage.getAllTestimonials();
+      res.json(testimonials);
+    } catch (error: any) {
+      console.error("Error fetching testimonials:", error);
+      const errorMessage = error?.message || "Failed to fetch testimonials";
+      console.error("Full error:", error);
+      res.status(500).json({ message: errorMessage, error: error?.code || "UNKNOWN_ERROR" });
+    }
+  });
+
+  app.post("/api/admin/testimonials", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const testimonial = await storage.createTestimonial(req.body);
+      res.status(201).json(testimonial);
+    } catch (error) {
+      console.error("Error creating testimonial:", error);
+      res.status(500).json({ message: "Failed to create testimonial" });
+    }
+  });
+
+  app.put("/api/admin/testimonials/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const testimonial = await storage.updateTestimonial(req.params.id, req.body);
+      if (!testimonial) return res.status(404).json({ message: "Testimonial not found" });
+      res.json(testimonial);
+    } catch (error) {
+      console.error("Error updating testimonial:", error);
+      res.status(500).json({ message: "Failed to update testimonial" });
+    }
+  });
+
+  app.delete("/api/admin/testimonials/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteTestimonial(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting testimonial:", error);
+      res.status(500).json({ message: "Failed to delete testimonial" });
+    }
+  });
+
+  // --- Team Members Admin CRUD ---
+  app.get("/api/admin/team-members", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const members = await storage.getAllTeamMembers();
+      res.json(members);
+    } catch (error: any) {
+      console.error("Error fetching team members:", error);
+      const errorMessage = error?.message || "Failed to fetch team members";
+      console.error("Full error:", error);
+      res.status(500).json({ message: errorMessage, error: error?.code || "UNKNOWN_ERROR" });
+    }
+  });
+
+  app.post("/api/admin/team-members", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const member = await storage.createTeamMember(req.body);
+      res.status(201).json(member);
+    } catch (error) {
+      console.error("Error creating team member:", error);
+      res.status(500).json({ message: "Failed to create team member" });
+    }
+  });
+
+  app.put("/api/admin/team-members/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const member = await storage.updateTeamMember(req.params.id, req.body);
+      if (!member) return res.status(404).json({ message: "Team member not found" });
+      res.json(member);
+    } catch (error) {
+      console.error("Error updating team member:", error);
+      res.status(500).json({ message: "Failed to update team member" });
+    }
+  });
+
+  app.delete("/api/admin/team-members/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteTeamMember(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting team member:", error);
+      res.status(500).json({ message: "Failed to delete team member" });
+    }
+  });
+
+  // --- Company Values Admin CRUD ---
+  app.get("/api/admin/company-values", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const values = await storage.getAllCompanyValues();
+      res.json(values);
+    } catch (error: any) {
+      console.error("Error fetching company values:", error);
+      const errorMessage = error?.message || "Failed to fetch company values";
+      console.error("Full error:", error);
+      res.status(500).json({ message: errorMessage, error: error?.code || "UNKNOWN_ERROR" });
+    }
+  });
+
+  app.post("/api/admin/company-values", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const value = await storage.createCompanyValue(req.body);
+      res.status(201).json(value);
+    } catch (error) {
+      console.error("Error creating company value:", error);
+      res.status(500).json({ message: "Failed to create company value" });
+    }
+  });
+
+  app.put("/api/admin/company-values/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const value = await storage.updateCompanyValue(req.params.id, req.body);
+      if (!value) return res.status(404).json({ message: "Company value not found" });
+      res.json(value);
+    } catch (error) {
+      console.error("Error updating company value:", error);
+      res.status(500).json({ message: "Failed to update company value" });
+    }
+  });
+
+  app.delete("/api/admin/company-values/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteCompanyValue(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting company value:", error);
+      res.status(500).json({ message: "Failed to delete company value" });
+    }
+  });
+
+  // --- Hero Slides Admin CRUD ---
+  app.get("/api/admin/hero-slides", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const slides = await storage.getAllHeroSlides();
+      res.json(slides);
+    } catch (error: any) {
+      console.error("Error fetching hero slides:", error);
+      const errorMessage = error?.message || "Failed to fetch hero slides";
+      console.error("Full error:", error);
+      res.status(500).json({ message: errorMessage, error: error?.code || "UNKNOWN_ERROR" });
+    }
+  });
+
+  app.post("/api/admin/hero-slides", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const slide = await storage.createHeroSlide(req.body);
+      res.status(201).json(slide);
+    } catch (error) {
+      console.error("Error creating hero slide:", error);
+      res.status(500).json({ message: "Failed to create hero slide" });
+    }
+  });
+
+  app.put("/api/admin/hero-slides/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const slide = await storage.updateHeroSlide(req.params.id, req.body);
+      if (!slide) return res.status(404).json({ message: "Hero slide not found" });
+      res.json(slide);
+    } catch (error) {
+      console.error("Error updating hero slide:", error);
+      res.status(500).json({ message: "Failed to update hero slide" });
+    }
+  });
+
+  app.delete("/api/admin/hero-slides/:id", isAdminAuthenticated, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteHeroSlide(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting hero slide:", error);
+      res.status(500).json({ message: "Failed to delete hero slide" });
     }
   });
 

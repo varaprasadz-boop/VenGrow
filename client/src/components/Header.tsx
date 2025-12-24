@@ -86,7 +86,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
         <div className="flex h-16 items-center justify-between gap-4">
           <div className="flex items-center gap-1">
             <Link href="/" className="flex items-center -ml-2 relative z-10" data-testid="link-home">
-              <div className="bg-background rounded-b-lg px-2 pb-2 pt-1 -mb-10">
+              <div className="bg-background rounded-b-lg px-2  pt-1">
                 <img 
                   src={vengrowLogo} 
                   alt="VenGrow - Verified Property Market" 

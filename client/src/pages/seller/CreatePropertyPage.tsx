@@ -233,8 +233,43 @@ export default function CreatePropertyPage() {
       const response = await apiRequest("POST", "/api/properties", data);
       return response.json();
     },
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       if (result.success) {
+        // Save photos if any were uploaded
+        if (formData.photos && formData.photos.length > 0) {
+          try {
+            // Extract photo URLs from the photos array
+            const photoURLs = formData.photos.map((photo: any) => {
+              // Handle both object format {url: "..."} and string format
+              return typeof photo === 'string' ? photo : photo.url || photo;
+            }).filter((url: string) => url && url.trim() !== "");
+
+            if (photoURLs.length > 0) {
+              const photosResponse = await apiRequest("POST", `/api/properties/${result.property.id}/photos`, {
+                photoURLs: photoURLs
+              });
+              
+              if (!photosResponse.ok) {
+                console.error("Failed to save property photos");
+                // Don't fail the whole operation, just log the error
+                toast({
+                  title: "Property created, but photos failed to save",
+                  description: "You can add photos later by editing the property.",
+                  variant: "destructive",
+                });
+              }
+            }
+          } catch (error: any) {
+            console.error("Error saving property photos:", error);
+            // Don't fail the whole operation, just show a warning
+            toast({
+              title: "Property created, but photos failed to save",
+              description: "You can add photos later by editing the property.",
+              variant: "destructive",
+            });
+          }
+        }
+
         queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/can-create-listing"] });
         queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] });
         queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
@@ -286,6 +321,8 @@ export default function CreatePropertyPage() {
           (formData.propertyType === "plot" || (formData.bedrooms && formData.bathrooms))
         );
       case 3:
+        // Photos are optional but recommended - allow proceeding without photos
+        // User can add photos later or proceed to next step
         return true;
       case 4:
         return !!(
@@ -302,6 +339,14 @@ export default function CreatePropertyPage() {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
+      // Warn user if proceeding from step 3 without photos
+      if (currentStep === 3 && (!formData.photos || formData.photos.length === 0)) {
+        toast({
+          title: "No photos uploaded",
+          description: "You can proceed without photos, but properties with photos get more views. You can add photos later by editing the property.",
+          duration: 5000,
+        });
+      }
       setCurrentStep(prev => Math.min(prev + 1, 4));
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
@@ -981,32 +1026,128 @@ export default function CreatePropertyPage() {
                     maxNumberOfFiles={20}
                     maxFileSize={10485760}
                     allowedFileTypes={["image/*"]}
-                    onGetUploadParameters={async () => {
-                      const response = await apiRequest("POST", "/api/objects/upload");
-                      const data = await response.json();
-                      return {
-                        method: "PUT" as const,
-                        url: data.uploadURL,
-                      };
+                    onGetUploadParameters={async (file) => {
+                      try {
+                        const response = await apiRequest("POST", "/api/objects/upload");
+                        if (!response.ok) {
+                          const errorData = await response.json().catch(() => ({}));
+                          throw new Error(errorData.error || "Failed to get upload URL");
+                        }
+                        const data = await response.json();
+                        if (!data.uploadURL) {
+                          throw new Error("Upload URL not received from server");
+                        }
+                        
+                        // Store the final object URL in file metadata for later retrieval
+                        // The signed URL format: https://storage.googleapis.com/bucket/path?signature
+                        // After upload, the file will be at: https://storage.googleapis.com/bucket/path
+                        let finalURL = data.url;
+                        if (!finalURL && data.uploadURL) {
+                          try {
+                            const urlObj = new URL(data.uploadURL);
+                            finalURL = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
+                          } catch (e) {
+                            console.warn("Could not parse upload URL:", e);
+                            finalURL = data.uploadURL;
+                          }
+                        }
+                        
+                        // Store in file metadata for retrieval after upload completes
+                        if (file && finalURL) {
+                          file.meta = file.meta || {};
+                          file.meta.finalURL = finalURL;
+                          file.meta.uploadURL = finalURL; // Also store as uploadURL for compatibility
+                        }
+                        
+                        return {
+                          method: "PUT" as const,
+                          url: data.uploadURL, // Signed URL for upload
+                        };
+                      } catch (error: any) {
+                        console.error("Error getting upload parameters:", error);
+                        throw new Error(error.message || "Failed to get upload URL. Please try again.");
+                      }
                     }}
                     onComplete={(result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
                       if (result.successful && result.successful.length > 0) {
-                        const newPhotos = result.successful.map((file, index) => ({
-                          url: file.uploadURL || "",
-                          caption: "",
-                          isPrimary: formData.photos.length === 0 && index === 0,
-                        }));
-                        updateField("photos", [...formData.photos, ...newPhotos] as unknown as string[]);
-                        toast({
-                          title: "Photos uploaded",
-                          description: `Successfully uploaded ${result.successful.length} photo(s)`,
-                        });
+                        const newPhotos = result.successful.map((file: any, index) => {
+                          // Extract the final object URL from various possible locations
+                          // Uppy AWS S3 plugin may store it differently
+                          let uploadURL = "";
+                          
+                          // Priority order for URL extraction:
+                          // 1. Metadata stored during getUploadParameters (finalURL)
+                          // 2. Response from upload (response.url or response.uploadURL)
+                          // 3. File metadata (meta.finalURL or meta.uploadURL)
+                          // 4. Direct file properties (uploadURL, url)
+                          
+                          if (file.meta?.finalURL) {
+                            uploadURL = file.meta.finalURL;
+                          } else if (file.response?.url) {
+                            uploadURL = file.response.url;
+                          } else if (file.response?.uploadURL) {
+                            uploadURL = file.response.uploadURL;
+                          } else if (file.meta?.uploadURL) {
+                            uploadURL = file.meta.uploadURL;
+                          } else if (file.uploadURL) {
+                            uploadURL = file.uploadURL;
+                          } else if (file.url) {
+                            uploadURL = file.url;
+                          } else if (file.source) {
+                            // Fallback: try to extract from source if it's a URL
+                            uploadURL = file.source;
+                          }
+                          
+                          // If we still don't have a URL, try to construct it from the upload URL
+                          // The signed URL format: https://storage.googleapis.com/bucket/path?signature
+                          // We need the base URL without query params
+                          if (!uploadURL && file.meta?.uploadURL) {
+                            try {
+                              const urlObj = new URL(file.meta.uploadURL);
+                              uploadURL = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
+                            } catch (e) {
+                              console.warn("Could not parse URL from meta:", e);
+                            }
+                          }
+                          
+                          console.log("Uploaded file:", file.name, "Extracted URL:", uploadURL, "Full file object:", file);
+                          
+                          return {
+                            url: uploadURL,
+                            caption: "",
+                            isPrimary: formData.photos.length === 0 && index === 0,
+                          };
+                        }).filter((photo) => photo.url && photo.url.trim() !== ""); // Filter out any photos without URLs
+                        
+                        if (newPhotos.length > 0) {
+                          updateField("photos", [...formData.photos, ...newPhotos] as unknown as string[]);
+                          toast({
+                            title: "Photos uploaded",
+                            description: `Successfully uploaded ${newPhotos.length} photo(s)`,
+                          });
+                        } else {
+                          console.error("No valid URLs extracted from uploaded files:", result.successful);
+                          toast({
+                            title: "Upload issue",
+                            description: "Photos were uploaded but URLs could not be extracted. Please try uploading again or contact support.",
+                            variant: "destructive",
+                            duration: 10000,
+                          });
+                        }
                       }
                       if (result.failed && result.failed.length > 0) {
+                        const errorMessages = result.failed.map((file: any) => {
+                          const error = file.error?.message || file.error?.message || file.error?.toString() || file.error || "Unknown error";
+                          return `${file.name || "File"}: ${error}`;
+                        }).join(", ");
+                        
+                        console.error("Failed uploads details:", result.failed);
+                        
                         toast({
                           title: "Some uploads failed",
-                          description: `${result.failed.length} photo(s) failed to upload`,
+                          description: `${result.failed.length} photo(s) failed to upload. ${errorMessages}`,
                           variant: "destructive",
+                          duration: 10000, // Show for 10 seconds to read the error
                         });
                       }
                     }}
