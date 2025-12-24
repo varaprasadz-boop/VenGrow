@@ -83,7 +83,7 @@ export default function CreateListingStep1Page() {
   });
 
   const { data: sellerProjects = [] } = useQuery<Project[]>({
-    queryKey: ["/api/projects/my-projects"],
+    queryKey: ["/api/seller/projects"],
     enabled: canHaveProjects,
   });
 

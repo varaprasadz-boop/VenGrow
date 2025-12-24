@@ -190,7 +190,7 @@ export default function CreatePropertyPage() {
   const canHaveProjects = user?.sellerType && ["builder", "broker"].includes(user.sellerType);
 
   const { data: sellerProjects = [] } = useQuery<Project[]>({
-    queryKey: ["/api/projects/my-projects"],
+    queryKey: ["/api/seller/projects"],
     enabled: canHaveProjects,
   });
 
