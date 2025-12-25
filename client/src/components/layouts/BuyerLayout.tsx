@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sidebar,
@@ -63,10 +64,25 @@ const quickLinks = [
 
 export default function BuyerLayout({ children }: BuyerLayoutProps) {
   const [location] = useLocation();
+  const { user, logout } = useAuth();
   
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
+  };
+
+  // Calculate user initials
+  const userInitials = user 
+    ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || user.email?.[0] || 'U'}`.toUpperCase()
+    : 'U';
+
+  // Get user name
+  const userName = user 
+    ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email 
+    : 'Guest';
+
+  const handleLogout = async () => {
+    await logout();
   };
 
   return (
@@ -185,17 +201,15 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
           <SidebarFooter className="border-t p-4">
             <div className="flex items-center gap-3">
               <Avatar className="h-8 w-8">
-                <AvatarImage src="" />
-                <AvatarFallback className="bg-primary text-primary-foreground text-xs">AP</AvatarFallback>
+                <AvatarImage src={user?.profileImageUrl || undefined} alt={userName} />
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs">{userInitials}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col flex-1 min-w-0">
-                <span className="text-sm font-medium truncate">Amit Patel</span>
-                <span className="text-xs text-muted-foreground truncate">amit@example.com</span>
+                <span className="text-sm font-medium truncate">{userName}</span>
+                <span className="text-xs text-muted-foreground truncate">{user?.email || ''}</span>
               </div>
-              <Button variant="ghost" size="icon" asChild className="shrink-0">
-                <Link href="/logout" data-testid="button-logout">
-                  <LogOut className="h-4 w-4" />
-                </Link>
+              <Button variant="ghost" size="icon" onClick={handleLogout} className="shrink-0" data-testid="button-logout">
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </SidebarFooter>

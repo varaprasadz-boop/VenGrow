@@ -168,8 +168,40 @@ export function ObjectUploader({
                 if (xhr.status >= 200 && xhr.status < 300) {
                   try {
                     const response = JSON.parse(xhr.responseText);
-                    const finalURL = response.url || response.uploadURL;
+                    // For local storage, the response contains the URL
+                    // The URL might be a relative path like /storage/public/... or full URL
+                    let finalURL = response.url || response.uploadURL;
+                    
+                    // If it's a relative path, make it absolute by prepending the origin
+                    if (finalURL && finalURL.startsWith("/")) {
+                      finalURL = `${window.location.origin}${finalURL}`;
+                    }
 
+                    setFiles((prev) => {
+                      const updated = [...prev];
+                      updated[i] = {
+                        ...updated[i],
+                        uploadStatus: "success",
+                        uploadProgress: 100,
+                        finalURL: finalURL || uploadParams.url,
+                      };
+                      return updated;
+                    });
+                    resolve();
+                  } catch (e) {
+                    // If response is not JSON, try to use the upload URL as final URL
+                    let finalURL = uploadParams.url;
+                    if (finalURL.startsWith("/")) {
+                      finalURL = `${window.location.origin}${finalURL.split("?")[0]}`;
+                    } else {
+                      try {
+                        const urlObj = new URL(uploadParams.url);
+                        finalURL = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
+                      } catch (parseError) {
+                        // Keep original URL if parsing fails
+                      }
+                    }
+                    
                     setFiles((prev) => {
                       const updated = [...prev];
                       updated[i] = {
@@ -181,8 +213,6 @@ export function ObjectUploader({
                       return updated;
                     });
                     resolve();
-                  } catch (e) {
-                    throw new Error("Failed to parse upload response");
                   }
                 } else {
                   const errorText = xhr.responseText || `Upload failed with status ${xhr.status}`;
@@ -291,14 +321,27 @@ export function ObjectUploader({
       
       // Prepare result for onComplete callback
       const successful = files
-        .map((file, index) => ({
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          source: file.finalURL || file.preview,
-          url: file.finalURL || file.preview,
-          meta: { finalURL: file.finalURL },
-        }))
+        .map((file, index) => {
+          // Get the final URL - prefer finalURL from upload response, fallback to preview
+          const finalURL = file.finalURL || file.preview;
+          
+          return {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            source: finalURL,
+            url: finalURL,
+            uploadURL: finalURL,
+            meta: { 
+              finalURL: finalURL,
+              uploadURL: finalURL,
+            },
+            response: {
+              url: finalURL,
+              uploadURL: finalURL,
+            },
+          };
+        })
         .filter((_, index) => files[index].uploadStatus === "success");
 
       const failed = files
@@ -308,10 +351,13 @@ export function ObjectUploader({
         }))
         .filter((_, index) => files[index].uploadStatus === "error");
 
-      onComplete?.({
-        successful,
-        failed,
-      } as UploadResult<Record<string, unknown>, Record<string, unknown>>);
+      // Call onComplete with the result
+      if (onComplete) {
+        onComplete({
+          successful,
+          failed,
+        } as UploadResult<Record<string, unknown>, Record<string, unknown>>);
+      }
 
       // Close modal after a short delay
       setTimeout(() => {

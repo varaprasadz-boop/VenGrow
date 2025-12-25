@@ -1287,48 +1287,41 @@ export default function CreatePropertyPage() {
                       }
                     }}
                     onComplete={(result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+                      console.log("Upload complete result:", result);
+                      
                       if (result.successful && result.successful.length > 0) {
                         const newPhotos = result.successful.map((file: any, index) => {
                           // Extract the final object URL from various possible locations
-                          // Uppy AWS S3 plugin may store it differently
                           let uploadURL = "";
                           
                           // Priority order for URL extraction:
-                          // 1. Metadata stored during getUploadParameters (finalURL)
+                          // 1. Direct url property
                           // 2. Response from upload (response.url or response.uploadURL)
                           // 3. File metadata (meta.finalURL or meta.uploadURL)
-                          // 4. Direct file properties (uploadURL, url)
+                          // 4. Direct file properties (uploadURL, source)
                           
-                          if (file.meta?.finalURL) {
-                            uploadURL = file.meta.finalURL;
+                          if (file.url) {
+                            uploadURL = file.url;
                           } else if (file.response?.url) {
                             uploadURL = file.response.url;
                           } else if (file.response?.uploadURL) {
                             uploadURL = file.response.uploadURL;
+                          } else if (file.meta?.finalURL) {
+                            uploadURL = file.meta.finalURL;
                           } else if (file.meta?.uploadURL) {
                             uploadURL = file.meta.uploadURL;
                           } else if (file.uploadURL) {
                             uploadURL = file.uploadURL;
-                          } else if (file.url) {
-                            uploadURL = file.url;
                           } else if (file.source) {
-                            // Fallback: try to extract from source if it's a URL
                             uploadURL = file.source;
                           }
                           
-                          // If we still don't have a URL, try to construct it from the upload URL
-                          // The signed URL format: https://storage.googleapis.com/bucket/path?signature
-                          // We need the base URL without query params
-                          if (!uploadURL && file.meta?.uploadURL) {
-                            try {
-                              const urlObj = new URL(file.meta.uploadURL);
-                              uploadURL = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
-                            } catch (e) {
-                              console.warn("Could not parse URL from meta:", e);
-                            }
+                          // If URL is relative, make it absolute
+                          if (uploadURL && uploadURL.startsWith("/") && !uploadURL.startsWith("//")) {
+                            uploadURL = `${window.location.origin}${uploadURL}`;
                           }
                           
-                          console.log("Uploaded file:", file.name, "Extracted URL:", uploadURL, "Full file object:", file);
+                          console.log("Uploaded file:", file.name, "Extracted URL:", uploadURL);
                           
                           return {
                             url: uploadURL,
@@ -1337,11 +1330,16 @@ export default function CreatePropertyPage() {
                           };
                         }).filter((photo) => photo.url && photo.url.trim() !== ""); // Filter out any photos without URLs
                         
+                        console.log("New photos to add:", newPhotos);
+                        console.log("Current photos:", formData.photos);
+                        
                         if (newPhotos.length > 0) {
-                          updateField("photos", [...formData.photos, ...newPhotos] as unknown as string[]);
+                          const updatedPhotos = [...formData.photos, ...newPhotos];
+                          console.log("Updated photos array:", updatedPhotos);
+                          updateField("photos", updatedPhotos as unknown as string[]);
                           toast({
                             title: "Photos uploaded",
-                            description: `Successfully uploaded ${newPhotos.length} photo(s)`,
+                            description: `Successfully uploaded ${newPhotos.length} photo(s). They will appear below.`,
                           });
                         } else {
                           console.error("No valid URLs extracted from uploaded files:", result.successful);
@@ -1376,39 +1374,71 @@ export default function CreatePropertyPage() {
                   </ObjectUploader>
                 </div>
 
-                {formData.photos.length > 0 && (
-                  <div>
+                {formData.photos && formData.photos.length > 0 && (
+                  <div className="mt-6">
                     <h3 className="font-semibold mb-3">Uploaded Photos ({formData.photos.length})</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {formData.photos.map((photo, index) => (
-                        <div
-                          key={index}
-                          className="relative aspect-square rounded-lg border overflow-hidden group"
-                        >
-                          <img
-                            src={photo.url}
-                            alt={photo.caption || `Photo ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => {
-                              const updated = formData.photos.filter((_, i) => i !== index);
-                              updateField("photos", updated as unknown as string[]);
-                            }}
-                            data-testid={`button-remove-photo-${index}`}
+                      {formData.photos.map((photo: any, index: number) => {
+                        // Handle both object format {url: "...", caption: "..."} and string format
+                        const photoUrl = typeof photo === 'string' ? photo : (photo?.url || photo);
+                        const photoCaption = typeof photo === 'object' && photo?.caption ? photo.caption : `Photo ${index + 1}`;
+                        
+                        if (!photoUrl) {
+                          console.warn("Photo at index", index, "has no URL:", photo);
+                          return null;
+                        }
+                        
+                        return (
+                          <div
+                            key={index}
+                            className="relative aspect-square rounded-lg border overflow-hidden group bg-muted"
                           >
-                            <X className="h-4 w-4" />
-                          </Button>
-                          {index === 0 && (
-                            <div className="absolute bottom-2 left-2">
-                              <Badge>Cover Photo</Badge>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                            <img
+                              src={photoUrl}
+                              alt={photoCaption}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                console.error("Failed to load image:", photoUrl);
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                // Show error placeholder
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `
+                                    <div class="flex items-center justify-center h-full text-muted-foreground text-xs">
+                                      <div class="text-center">
+                                        <ImageIcon class="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                        <p>Failed to load</p>
+                                      </div>
+                                    </div>
+                                  `;
+                                }
+                              }}
+                            />
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                              onClick={() => {
+                                const updated = formData.photos.filter((_: any, i: number) => i !== index);
+                                updateField("photos", updated as unknown as string[]);
+                                toast({
+                                  title: "Photo removed",
+                                  description: "Photo has been removed from your listing.",
+                                });
+                              }}
+                              data-testid={`button-remove-photo-${index}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                            {index === 0 && (
+                              <div className="absolute bottom-2 left-2 z-10">
+                                <Badge variant="secondary">Cover Photo</Badge>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
