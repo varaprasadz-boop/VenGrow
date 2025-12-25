@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 
 import { Card } from "@/components/ui/card";
@@ -143,8 +143,10 @@ const INDIAN_STATES = [
 
 export default function CreatePropertyPage() {
   const [, navigate] = useLocation();
+  const params = useParams<{ id?: string }>();
   const { toast } = useToast();
   const { user } = useAuth();
+  const isEditMode = !!params.id;
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<PropertyFormData>({
     propertyType: "",
@@ -218,9 +220,86 @@ export default function CreatePropertyPage() {
     queryKey: ["/api/auth/me"],
   });
 
+  // Load property data if in edit mode
+  const { data: propertyData, isLoading: loadingProperty } = useQuery<{
+    id: string;
+    propertyType: string;
+    transactionType: string;
+    title: string;
+    description?: string;
+    price: number;
+    address: string;
+    city: string;
+    state: string;
+    pincode?: string;
+    locality?: string;
+    latitude?: string;
+    longitude?: string;
+    bedrooms?: number;
+    bathrooms?: number;
+    balconies?: number;
+    floor?: number;
+    totalFloors?: number;
+    area: number;
+    facing?: string;
+    furnishing?: string;
+    ageOfProperty?: number;
+    possessionStatus?: string;
+    amenities?: string[];
+    highlights?: string[];
+    projectId?: string;
+    images?: Array<{ url: string; caption?: string; isPrimary?: boolean }>;
+  }>({
+    queryKey: ["/api/properties", params.id],
+    enabled: isEditMode && !!params.id,
+  });
+
+  // Populate form when property data loads
+  useEffect(() => {
+    if (propertyData) {
+      setFormData({
+        propertyType: propertyData.propertyType || "",
+        transactionType: propertyData.transactionType || "",
+        title: propertyData.title || "",
+        description: propertyData.description || "",
+        price: propertyData.price?.toString() || "",
+        address: propertyData.address || "",
+        city: propertyData.city || "",
+        state: propertyData.state || "",
+        pincode: propertyData.pincode || "",
+        locality: propertyData.locality || "",
+        latitude: propertyData.latitude || "",
+        longitude: propertyData.longitude || "",
+        bedrooms: propertyData.bedrooms?.toString() || "",
+        bathrooms: propertyData.bathrooms?.toString() || "",
+        balconies: propertyData.balconies?.toString() || "",
+        floor: propertyData.floor?.toString() || "",
+        totalFloors: propertyData.totalFloors?.toString() || "",
+        area: propertyData.area?.toString() || "",
+        facing: propertyData.facing || "",
+        furnishing: propertyData.furnishing || "",
+        ageOfProperty: propertyData.ageOfProperty?.toString() || "",
+        possessionStatus: propertyData.possessionStatus || "",
+        amenities: propertyData.amenities || [],
+        highlights: propertyData.highlights || [],
+        photos: (propertyData.images || []).map((img: any) => ({
+          url: img.url || img,
+          caption: img.caption || "",
+          isPrimary: img.isPrimary || false,
+        })),
+        contactName: "",
+        contactPhone: "",
+        contactEmail: "",
+        agreedToTerms: true,
+        verifiedInfo: true,
+        projectId: propertyData.projectId || "",
+      });
+    }
+  }, [propertyData]);
+
   useEffect(() => {
     const user = authData?.user;
-    if (user) {
+    if (user && !isEditMode) {
       setFormData(prev => ({
         ...prev,
         contactName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username || "",
@@ -228,7 +307,7 @@ export default function CreatePropertyPage() {
         contactEmail: user.email || "",
       }));
     }
-  }, [authData]);
+  }, [authData, isEditMode]);
 
   const createPropertyMutation = useMutation({
     mutationFn: async (data: Record<string, unknown>) => {
@@ -275,11 +354,12 @@ export default function CreatePropertyPage() {
         queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/can-create-listing"] });
         queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] });
         queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/me/properties"] });
         toast({
           title: "Property Created",
           description: "Your property listing has been saved as draft. Submit it for review when ready.",
         });
-        navigate(`/seller/properties/${result.property.id}`);
+        navigate(`/seller/properties`);
       } else {
         throw new Error(result.message || "Failed to create property");
       }
@@ -288,6 +368,56 @@ export default function CreatePropertyPage() {
       toast({
         title: "Error",
         description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updatePropertyMutation = useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const response = await apiRequest("PATCH", `/api/properties/${params.id}`, data);
+      return response.json();
+    },
+    onSuccess: async (result) => {
+      // Save photos if any were uploaded
+      if (formData.photos && formData.photos.length > 0) {
+        try {
+          const photoURLs = formData.photos.map((photo: any) => {
+            return typeof photo === 'string' ? photo : photo.url || photo;
+          }).filter((url: string) => url && url.trim() !== "");
+
+          if (photoURLs.length > 0) {
+            const photosResponse = await apiRequest("POST", `/api/properties/${params.id}/photos`, {
+              photoURLs: photoURLs
+            });
+            
+            if (!photosResponse.ok) {
+              console.error("Failed to save property photos");
+            }
+          }
+        } catch (error: any) {
+          console.error("Error saving property photos:", error);
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["/api/properties", params.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/me/properties"] });
+      
+      const message = result.needsReapproval 
+        ? result.message || "Changes saved. Your listing will be reviewed before going live."
+        : "Property updated successfully";
+      
+      toast({
+        title: "Property Updated",
+        description: message,
+      });
+      navigate(`/seller/properties`);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update property",
         variant: "destructive",
       });
     },
@@ -404,7 +534,11 @@ export default function CreatePropertyPage() {
       projectId: formData.projectId || null,
     };
 
-    createPropertyMutation.mutate(propertyData);
+    if (isEditMode) {
+      updatePropertyMutation.mutate(propertyData);
+    } else {
+      createPropertyMutation.mutate(propertyData);
+    }
   };
 
   const formatPrice = (price: string): string => {
@@ -414,6 +548,17 @@ export default function CreatePropertyPage() {
     if (num >= 100000) return `₹${(num / 100000).toFixed(2)} L`;
     return `₹${num.toLocaleString("en-IN")}`;
   };
+
+  if (loadingProperty) {
+    return (
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading property...</p>
+        </div>
+      </main>
+    );
+  }
 
   if (checkingLimit || loadingSubscription) {
     return (
@@ -426,7 +571,7 @@ export default function CreatePropertyPage() {
     );
   }
 
-  if (!canCreateData?.canCreate) {
+  if (!isEditMode && !canCreateData?.canCreate) {
     return (
       <main className="flex-1">
         <div className="max-w-2xl mx-auto px-4 py-16">
@@ -465,8 +610,8 @@ export default function CreatePropertyPage() {
           {/* Progress Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold">Create New Listing</h1>
-              {subscriptionData?.subscription && (
+              <h1 className="text-2xl font-bold">{isEditMode ? "Edit Property" : "Create New Listing"}</h1>
+              {!isEditMode && subscriptionData?.subscription && (
                 <Badge variant="outline">
                   {subscriptionData.subscription.listingsUsed}/{subscriptionData.package?.listingLimit} listings used
                 </Badge>
@@ -1486,18 +1631,18 @@ export default function CreatePropertyPage() {
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={createPropertyMutation.isPending || !formData.agreedToTerms || !formData.verifiedInfo}
+                disabled={(isEditMode ? updatePropertyMutation.isPending : createPropertyMutation.isPending) || !formData.agreedToTerms || !formData.verifiedInfo}
                 data-testid="button-submit"
               >
-                {createPropertyMutation.isPending ? (
+                {(isEditMode ? updatePropertyMutation.isPending : createPropertyMutation.isPending) ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
+                    {isEditMode ? "Updating..." : "Creating..."}
                   </>
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    Create Listing
+                    {isEditMode ? "Update Listing" : "Create Listing"}
                   </>
                 )}
               </Button>

@@ -804,14 +804,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update property
-  app.patch("/api/properties/:id", async (req: any, res: Response) => {
+  app.patch("/api/properties/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
       const propertyId = req.params.id;
+      
+      // Get current user ID
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       
       // Get current property to check status
       const currentProperty = await storage.getProperty(propertyId);
       if (!currentProperty) {
         return res.status(404).json({ error: "Property not found" });
+      }
+      
+      // Check if user owns this property (through seller profile)
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile || sellerProfile.id !== currentProperty.sellerId) {
+        return res.status(403).json({ error: "You can only edit your own properties" });
       }
       
       // If property is approved, live, needs_reapproval, or submitted, editing should go to pendingChanges
@@ -862,7 +874,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         // For draft or other statuses, apply changes directly
-        property = await storage.updateProperty(propertyId, req.body);
+        // Sanitize input to prevent editing protected fields
+        const protectedFields = [
+          'id', 'sellerId', 'status', 'workflowStatus', 'isVerified', 'isFeatured',
+          'viewCount', 'inquiryCount', 'favoriteCount', 'publishedAt', 'expiresAt',
+          'approvedAt', 'approvedBy', 'rejectionReason', 'createdAt', 'updatedAt'
+        ];
+        const sanitizedBody = { ...req.body };
+        protectedFields.forEach(field => delete sanitizedBody[field]);
+        
+        property = await storage.updateProperty(propertyId, sanitizedBody);
         
         res.json({
           ...property,
@@ -870,16 +891,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     } catch (error) {
+      console.error("Error updating property:", error);
       res.status(500).json({ error: "Failed to update property" });
     }
   });
 
   // Delete property
-  app.delete("/api/properties/:id", async (req: Request, res: Response) => {
+  app.delete("/api/properties/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
-      await storage.deleteProperty(req.params.id);
+      const propertyId = req.params.id;
+      
+      // Get current user ID
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      // Get property to verify ownership
+      const property = await storage.getProperty(propertyId);
+      if (!property) {
+        return res.status(404).json({ error: "Property not found" });
+      }
+      
+      // Check if user owns this property (through seller profile)
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile || sellerProfile.id !== property.sellerId) {
+        return res.status(403).json({ error: "You can only delete your own properties" });
+      }
+      
+      await storage.deleteProperty(propertyId);
       res.json({ success: true });
     } catch (error) {
+      console.error("Error deleting property:", error);
       res.status(500).json({ error: "Failed to delete property" });
     }
   });
