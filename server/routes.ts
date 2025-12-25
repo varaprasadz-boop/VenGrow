@@ -402,7 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? (isActive ? "User Unsuspended" : "User Suspended")
         : "User Updated";
       await storage.createAuditLog({
-        userId: adminUser.id,
+        userId: adminUser.id === "superadmin" ? null : adminUser.id,
         action,
         entityType: "user",
         entityId: id,
@@ -1007,7 +1007,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update approval request
       await storage.updatePropertyApprovalRequest(approvalId, {
         status: "approved",
-        approverId: "superadmin",
+        approverId: adminUser.id === "superadmin" ? null : adminUser.id,
         decisionReason: notes,
         decidedAt: new Date(),
       });
@@ -1020,7 +1020,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         workflowStatus: "live",
         status: "active",
         approvedAt: new Date(),
-        approvedBy: "superadmin",
+        approvedBy: adminUser.id === "superadmin" ? null : adminUser.id,
         pendingChanges: null, // Clear pending changes after approval
       };
       
@@ -1083,7 +1083,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update approval request
       await storage.updatePropertyApprovalRequest(approvalId, {
         status: "rejected",
-        approverId: "superadmin",
+        approverId: adminUser.id === "superadmin" ? null : adminUser.id,
         decisionReason: reason,
         decidedAt: new Date(),
       });
@@ -1236,10 +1236,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Property not found" });
       }
       
+      // Get or create guest user if userId is not provided
+      let buyerId = userId;
+      if (!buyerId) {
+        // Try to find existing guest user by email, or create one
+        if (email) {
+          const existingUser = await storage.getUserByEmail(email);
+          if (existingUser) {
+            buyerId = existingUser.id;
+          } else {
+            // Create a guest user for this inquiry
+            const guestUser = await storage.createUser({
+              email,
+              firstName: name?.split(' ')[0] || "Guest",
+              lastName: name?.split(' ').slice(1).join(' ') || "User",
+              phone,
+              role: "buyer",
+              authProvider: "local",
+            });
+            buyerId = guestUser.id;
+          }
+        } else {
+          // No email provided, create a temporary guest user
+          const guestUser = await storage.createUser({
+            email: `guest-${Date.now()}@temp.inquiry`,
+            firstName: name?.split(' ')[0] || "Guest",
+            lastName: name?.split(' ').slice(1).join(' ') || "User",
+            phone,
+            role: "buyer",
+            authProvider: "local",
+          });
+          buyerId = guestUser.id;
+        }
+      }
+      
       // Create the inquiry with seller lookup
       const inquiryData = {
         propertyId,
-        buyerId: userId || "guest",
+        buyerId,
         sellerId: property.sellerId,
         message: message || `Inquiry from ${name}`,
         buyerPhone: phone,
@@ -2997,27 +3031,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // OBJECT STORAGE / FILE UPLOAD ROUTES
   // ============================================
 
-  // Get presigned URL for file upload
+  // Get presigned URL for file upload (or direct upload endpoint for local storage)
   app.post("/api/objects/upload", isAuthenticated, async (req: any, res: Response) => {
     try {
       const { ObjectStorageService } = await import("./objectStorage");
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       
-      // Extract the actual object URL from the signed URL for response
-      // The signed URL contains the full path, we need to extract the base URL
+      // For local storage, uploadURL is already the endpoint path
+      // For Replit storage, extract the base URL from signed URL
       let objectURL = uploadURL;
-      try {
-        const urlObj = new URL(uploadURL);
-        // Remove query parameters to get the base object URL
-        objectURL = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
-      } catch (e) {
-        // If URL parsing fails, use the uploadURL as-is
-        console.warn("Could not parse upload URL:", e);
+      if (uploadURL.startsWith("http://") || uploadURL.startsWith("https://")) {
+        try {
+          const urlObj = new URL(uploadURL);
+          // Remove query parameters to get the base object URL
+          objectURL = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
+        } catch (e) {
+          // If URL parsing fails, use the uploadURL as-is
+          console.warn("Could not parse upload URL:", e);
+        }
       }
       
       res.json({ 
-        uploadURL, // Signed URL for PUT upload
+        uploadURL, // Signed URL for PUT upload (Replit) or endpoint path (local)
         url: objectURL // Final object URL after upload (for Uppy to store)
       });
     } catch (error: any) {
@@ -3029,15 +3065,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Direct file upload endpoint for local storage (handles PUT requests from Uppy)
+  app.put("/api/upload/direct", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+      const { LocalStorageService } = await import("./localStorage");
+      const localStorage = new LocalStorageService();
+
+      // Get upload ID from query
+      const uploadId = req.query.uploadId as string;
+      if (!uploadId) {
+        return res.status(400).json({ error: "Upload ID required" });
+      }
+
+      // Get file data from request body
+      const fileBuffer = Buffer.isBuffer(req.body) 
+        ? req.body 
+        : Buffer.from(req.body || '', 'binary');
+      
+      if (fileBuffer.length === 0) {
+        return res.status(400).json({ error: "No file data provided" });
+      }
+
+      // Get filename from headers or use upload ID
+      const contentDisposition = req.headers['content-disposition'] || '';
+      const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+      const fileName = filenameMatch ? filenameMatch[1] : `upload-${uploadId}`;
+
+      // Save file
+      const fileUrl = await localStorage.saveUploadedFile(
+        fileBuffer,
+        fileName,
+        userId,
+        "public"
+      );
+
+      res.status(200).json({ 
+        success: true,
+        url: fileUrl
+      });
+    } catch (error: any) {
+      console.error("Error uploading file:", error);
+      res.status(500).json({ 
+        error: error.message || "Failed to upload file",
+        details: error.toString()
+      });
+    }
+  });
+
   // Serve private objects (property photos)
   app.get("/objects/:objectPath(*)", async (req: any, res: Response) => {
     try {
       const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
       const objectStorageService = new ObjectStorageService();
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      objectStorageService.downloadObject(objectFile, res);
+      await objectStorageService.downloadObject(objectFile, res);
     } catch (error: any) {
       console.error("Error serving object:", error);
+      if (error?.name === "ObjectNotFoundError") {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
+  // Serve storage files (for local storage)
+  app.get("/storage/:type(public|private)/:path(*)", async (req: any, res: Response) => {
+    try {
+      const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = `/storage/${req.params.type}/${req.params.path}`;
+      const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+      await objectStorageService.downloadObject(objectFile, res);
+    } catch (error: any) {
+      console.error("Error serving storage file:", error);
       if (error?.name === "ObjectNotFoundError") {
         return res.sendStatus(404);
       }
@@ -4448,7 +4551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       else if (req.body.status === 'under_review') action = "Project Marked Under Review";
       
       await storage.createAuditLog({
-        userId: adminUser.id,
+        userId: adminUser.id === "superadmin" ? null : adminUser.id,
         action,
         entityType: "project",
         entityId: req.params.id,

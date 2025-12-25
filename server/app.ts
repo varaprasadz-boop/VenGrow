@@ -27,6 +27,9 @@ declare module 'http' {
     rawBody: unknown
   }
 }
+// Handle raw binary data for file uploads (up to 100MB) - must be before JSON parser
+app.use('/api/upload/direct', express.raw({ limit: '100mb', type: '*/*' }));
+
 app.use(express.json({
   verify: (req, _res, buf) => {
     req.rawBody = buf;

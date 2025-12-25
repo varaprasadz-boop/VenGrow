@@ -8,8 +8,14 @@ import {
   getObjectAclPolicy,
   setObjectAclPolicy,
 } from "./objectAcl";
+import { LocalStorageService, LocalFile } from "./localStorage";
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
+
+// Check if we're running on Replit
+function isRunningOnReplit(): boolean {
+  return !!process.env.REPL_ID;
+}
 
 export const objectStorageClient = new Storage({
   credentials: {
@@ -38,7 +44,14 @@ export class ObjectNotFoundError extends Error {
 }
 
 export class ObjectStorageService {
-  constructor() {}
+  private localStorage?: LocalStorageService;
+
+  constructor() {
+    // Use local storage if not on Replit
+    if (!isRunningOnReplit()) {
+      this.localStorage = new LocalStorageService();
+    }
+  }
 
   getPublicObjectSearchPaths(): Array<string> {
     const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
@@ -70,7 +83,12 @@ export class ObjectStorageService {
     return dir;
   }
 
-  async searchPublicObject(filePath: string): Promise<File | null> {
+  async searchPublicObject(filePath: string): Promise<File | LocalFile | null> {
+    // Use local storage if not on Replit
+    if (this.localStorage) {
+      return this.localStorage.searchPublicObject(filePath);
+    }
+
     for (const searchPath of this.getPublicObjectSearchPaths()) {
       const fullPath = `${searchPath}/${filePath}`;
       const { bucketName, objectName } = parseObjectPath(fullPath);
@@ -84,7 +102,11 @@ export class ObjectStorageService {
     return null;
   }
 
-  async downloadObject(file: File, res: Response, cacheTtlSec: number = 3600) {
+  async downloadObject(file: File | LocalFile, res: Response, cacheTtlSec: number = 3600) {
+    // Use local storage if it's a LocalFile
+    if (this.localStorage && 'path' in file && 'contentType' in file) {
+      return this.localStorage.downloadObject(file as LocalFile, res, cacheTtlSec);
+    }
     try {
       const [metadata] = await file.getMetadata();
       const aclPolicy = await getObjectAclPolicy(file);
@@ -114,11 +136,16 @@ export class ObjectStorageService {
   }
 
   async getObjectEntityUploadURL(): Promise<string> {
+    // Use local storage if not on Replit
+    if (this.localStorage) {
+      return this.localStorage.getObjectEntityUploadURL();
+    }
+
     const privateObjectDir = this.getPrivateObjectDir();
     if (!privateObjectDir) {
       throw new Error(
         "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
-          "tool and set PRIVATE_OBJECT_DIR env var."
+        "tool and set PRIVATE_OBJECT_DIR env var."
       );
     }
 
@@ -134,7 +161,12 @@ export class ObjectStorageService {
     });
   }
 
-  async getObjectEntityFile(objectPath: string): Promise<File> {
+  async getObjectEntityFile(objectPath: string): Promise<File | LocalFile> {
+    // Use local storage if not on Replit
+    if (this.localStorage) {
+      return this.localStorage.getObjectEntityFile(objectPath);
+    }
+
     if (!objectPath.startsWith("/objects/")) {
       throw new ObjectNotFoundError();
     }
@@ -185,13 +217,23 @@ export class ObjectStorageService {
     rawPath: string,
     aclPolicy: ObjectAclPolicy
   ): Promise<string> {
+    // Use local storage if not on Replit
+    if (this.localStorage) {
+      return this.localStorage.trySetObjectEntityAclPolicy(rawPath, {
+        owner: aclPolicy.owner,
+        visibility: aclPolicy.visibility,
+      });
+    }
+
     const normalizedPath = this.normalizeObjectEntityPath(rawPath);
     if (!normalizedPath.startsWith("/")) {
       return normalizedPath;
     }
 
     const objectFile = await this.getObjectEntityFile(normalizedPath);
-    await setObjectAclPolicy(objectFile, aclPolicy);
+    if (objectFile instanceof File) {
+      await setObjectAclPolicy(objectFile, aclPolicy);
+    }
     return normalizedPath;
   }
 
@@ -201,12 +243,21 @@ export class ObjectStorageService {
     requestedPermission,
   }: {
     userId?: string;
-    objectFile: File;
+    objectFile: File | LocalFile;
     requestedPermission?: ObjectPermission;
   }): Promise<boolean> {
+    // Use local storage if it's a LocalFile
+    if (this.localStorage && 'path' in objectFile) {
+      return this.localStorage.canAccessObjectEntity({
+        userId,
+        objectFile: objectFile as LocalFile,
+        requestedPermission: requestedPermission as "read" | "write" | "delete" | undefined,
+      });
+    }
+
     return canAccessObject({
       userId,
-      objectFile,
+      objectFile: objectFile as File,
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
     });
   }
@@ -244,29 +295,48 @@ async function signObjectURL({
   method: "GET" | "PUT" | "DELETE" | "HEAD";
   ttlSec: number;
 }): Promise<string> {
+  if (!isRunningOnReplit()) {
+    throw new Error(
+      "Object storage is only available when running on Replit. " +
+      "Please set up local file storage or use Replit's object storage."
+    );
+  }
+
   const request = {
     bucket_name: bucketName,
     object_name: objectName,
     method,
     expires_at: new Date(Date.now() + ttlSec * 1000).toISOString(),
   };
-  const response = await fetch(
-    `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(request),
-    }
-  );
-  if (!response.ok) {
-    throw new Error(
-      `Failed to sign object URL, errorcode: ${response.status}, ` +
-        `make sure you're running on Replit`
+  
+  try {
+    const response = await fetch(
+      `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      }
     );
-  }
+    
+    if (!response.ok) {
+      throw new Error(
+        `Failed to sign object URL, errorcode: ${response.status}, ` +
+          `make sure you're running on Replit`
+      );
+    }
 
-  const { signed_url: signedURL } = await response.json();
-  return signedURL;
+    const { signed_url: signedURL } = await response.json();
+    return signedURL;
+  } catch (error: any) {
+    if (error.message && error.message.includes("fetch failed")) {
+      throw new Error(
+        "Failed to connect to Replit object storage service. " +
+        "Make sure you're running on Replit or configure local file storage."
+      );
+    }
+    throw error;
+  }
 }
