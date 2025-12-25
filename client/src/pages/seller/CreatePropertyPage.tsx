@@ -1241,7 +1241,7 @@ export default function CreatePropertyPage() {
                     PNG, JPG up to 10MB each (max 20 photos)
                   </p>
                   <ObjectUploader
-                    maxNumberOfFiles={20}
+                    maxNumberOfFiles={5}
                     maxFileSize={10485760}
                     allowedFileTypes={["image/*"]}
                     onGetUploadParameters={async (file) => {

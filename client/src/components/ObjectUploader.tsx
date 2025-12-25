@@ -57,6 +57,7 @@ export function ObjectUploader({
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const shouldAutoUploadRef = useRef(false);
 
   const [uppy] = useState(() =>
     new Uppy({
@@ -88,6 +89,12 @@ export function ObjectUploader({
       });
 
     setFiles((prev) => [...prev, ...newFiles]);
+    
+    // Mark that we should auto-upload after modal closes
+    shouldAutoUploadRef.current = true;
+    
+    // Close modal immediately after selection
+    setShowModal(false);
   }, [files.length, maxNumberOfFiles]);
 
   // Handle drag and drop
@@ -319,8 +326,11 @@ export function ObjectUploader({
     try {
       await Promise.all(uploadPromises);
       
+      // Get the current files state to prepare result
+      const currentFiles = files;
+      
       // Prepare result for onComplete callback
-      const successful = files
+      const successful = currentFiles
         .map((file, index) => {
           // Get the final URL - prefer finalURL from upload response, fallback to preview
           const finalURL = file.finalURL || file.preview;
@@ -342,14 +352,14 @@ export function ObjectUploader({
             },
           };
         })
-        .filter((_, index) => files[index].uploadStatus === "success");
+        .filter((_, index) => currentFiles[index].uploadStatus === "success");
 
-      const failed = files
+      const failed = currentFiles
         .map((file, index) => ({
           name: file.name,
           error: { message: file.error || "Upload failed" },
         }))
-        .filter((_, index) => files[index].uploadStatus === "error");
+        .filter((_, index) => currentFiles[index].uploadStatus === "error");
 
       // Call onComplete with the result
       if (onComplete) {
@@ -359,12 +369,11 @@ export function ObjectUploader({
         } as UploadResult<Record<string, unknown>, Record<string, unknown>>);
       }
 
-      // Close modal after a short delay
+      // Clear files after upload completes
       setTimeout(() => {
-        setShowModal(false);
         setFiles([]);
         setIsUploading(false);
-      }, 1000);
+      }, 500);
     } catch (error) {
       setIsUploading(false);
     }
@@ -381,15 +390,17 @@ export function ObjectUploader({
     };
   }, [files]);
 
-  // Reset files when modal closes
+  // Auto-upload files when modal closes with pending files
   useEffect(() => {
-    if (!showModal) {
-      setTimeout(() => {
-        setFiles([]);
-        setIsUploading(false);
-      }, 300);
+    if (!showModal && shouldAutoUploadRef.current && files.length > 0 && !isUploading) {
+      const hasPendingFiles = files.some(f => f.uploadStatus === "pending");
+      if (hasPendingFiles) {
+        shouldAutoUploadRef.current = false;
+        // Auto-upload files after modal closes
+        handleUpload();
+      }
     }
-  }, [showModal]);
+  }, [showModal, files.length, isUploading, handleUpload]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
@@ -405,7 +416,10 @@ export function ObjectUploader({
   return (
     <div>
       <Button 
-        onClick={() => setShowModal(true)} 
+        onClick={() => {
+          shouldAutoUploadRef.current = false;
+          setShowModal(true);
+        }} 
         className={buttonClassName}
         variant={buttonVariant}
         disabled={disabled}
