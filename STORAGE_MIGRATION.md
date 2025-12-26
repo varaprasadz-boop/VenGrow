@@ -35,15 +35,19 @@ Add these to your `.env` file:
 
 ```env
 # Local Storage Configuration
-LOCAL_STORAGE_DIR=/var/www/vengrow/storage
-PUBLIC_STORAGE_DIR=/var/www/vengrow/storage/public
+LOCAL_STORAGE_DIR=/var/www/storage
+PUBLIC_STORAGE_DIR=/var/www/storage/public
 STORAGE_BASE_URL=/storage
+NODE_ENV=production
 ```
 
 **Default values** (if not set):
-- `LOCAL_STORAGE_DIR`: `./storage` (relative to project root)
-- `PUBLIC_STORAGE_DIR`: `./storage/public`
+- `LOCAL_STORAGE_DIR`: 
+  - Production: `/var/www/storage` (for VPS)
+  - Development: `./storage` (relative to project root)
+- `PUBLIC_STORAGE_DIR`: `{LOCAL_STORAGE_DIR}/public`
 - `STORAGE_BASE_URL`: `/storage`
+- `NODE_ENV`: `development` (affects default storage path)
 
 ## Storage Structure
 
@@ -79,13 +83,26 @@ storage/
 If you're migrating from Replit:
 
 1. **Set environment variables** (see above)
-2. **Create storage directories**:
+2. **Create storage directories on VPS**:
    ```bash
-   mkdir -p storage/public storage/private
-   chmod -R 755 storage
+   sudo mkdir -p /var/www/storage/public /var/www/storage/private /var/www/storage/uploads
+   sudo chown -R $USER:$USER /var/www/storage
+   chmod -R 755 /var/www/storage
    ```
 3. **Deploy to VPS** following `VPS_SETUP.md`
-4. **No code changes needed** - the application automatically detects the environment
+4. **No code changes needed** - the application automatically detects the environment and uses `/var/www/storage` in production mode
+
+## VPS Setup
+
+For VPS deployment, the storage is automatically configured to use `/var/www/storage` when `NODE_ENV=production`. 
+
+**Important**: Make sure the application user has write permissions to `/var/www/storage`:
+```bash
+sudo chown -R $USER:$USER /var/www/storage
+chmod -R 755 /var/www/storage
+```
+
+If using PM2 or a process manager, ensure the user running the application has permissions.
 
 ## Testing Local Storage
 

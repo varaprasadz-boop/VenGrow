@@ -30,7 +30,12 @@ export class LocalStorageService {
 
   constructor() {
     // Get storage directory from env or use default
-    this.storageDir = process.env.LOCAL_STORAGE_DIR || path.join(process.cwd(), "storage");
+    // For VPS, use /var/www/storage, otherwise use local storage directory
+    const defaultStorageDir = process.env.NODE_ENV === 'production' 
+      ? '/var/www/storage'
+      : path.join(process.cwd(), "storage");
+    
+    this.storageDir = process.env.LOCAL_STORAGE_DIR || defaultStorageDir;
     this.publicDir = process.env.PUBLIC_STORAGE_DIR || path.join(this.storageDir, "public");
     this.baseUrl = process.env.STORAGE_BASE_URL || "/storage";
     
@@ -48,7 +53,31 @@ export class LocalStorageService {
 
     for (const dir of dirs) {
       if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
+        try {
+          mkdirSync(dir, { recursive: true, mode: 0o755 });
+          console.log(`Created storage directory: ${dir}`);
+        } catch (error: any) {
+          console.error(`Failed to create directory ${dir}:`, error.message);
+          // In production, this is critical - throw error
+          if (process.env.NODE_ENV === 'production') {
+            throw new Error(`Cannot create storage directory ${dir}: ${error.message}. Please ensure the directory exists and has proper permissions.`);
+          }
+          // In development, just warn and continue
+        }
+      } else {
+        // Check if directory is writable (synchronous check)
+        try {
+          const testFile = path.join(dir, '.write-test');
+          // Use sync methods for initialization check
+          const fsSync = require('fs');
+          fsSync.writeFileSync(testFile, 'test');
+          fsSync.unlinkSync(testFile);
+        } catch (error: any) {
+          console.warn(`Directory ${dir} exists but may not be writable:`, error.message);
+          if (process.env.NODE_ENV === 'production') {
+            throw new Error(`Storage directory ${dir} is not writable. Please check permissions.`);
+          }
+        }
       }
     }
   }
@@ -72,8 +101,25 @@ export class LocalStorageService {
     userId: string,
     visibility: "public" | "private" = "public"
   ): Promise<string> {
+    if (!buffer || buffer.length === 0) {
+      throw new Error("File buffer is empty");
+    }
+
     const uploadId = randomUUID();
-    const fileExt = path.extname(originalName) || ".bin";
+    // Get file extension from original name, default to .jpg for images if not provided
+    let fileExt = path.extname(originalName).toLowerCase();
+    if (!fileExt || fileExt === '') {
+      // Try to detect from buffer (magic numbers)
+      if (buffer[0] === 0xFF && buffer[1] === 0xD8) {
+        fileExt = '.jpg';
+      } else if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+        fileExt = '.png';
+      } else if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
+        fileExt = '.gif';
+      } else {
+        fileExt = '.bin';
+      }
+    }
     const fileName = `${uploadId}${fileExt}`;
     
     const targetDir = visibility === "public" 
@@ -83,12 +129,34 @@ export class LocalStorageService {
     // Ensure user directory exists for private files
     if (visibility === "private") {
       if (!existsSync(targetDir)) {
-        mkdirSync(targetDir, { recursive: true });
+        try {
+          mkdirSync(targetDir, { recursive: true, mode: 0o755 });
+        } catch (error: any) {
+          console.error(`Failed to create private directory ${targetDir}:`, error.message);
+          throw new Error(`Failed to create storage directory: ${error.message}`);
+        }
+      }
+    }
+
+    // Ensure public directory exists
+    if (visibility === "public" && !existsSync(this.publicDir)) {
+      try {
+        mkdirSync(this.publicDir, { recursive: true, mode: 0o755 });
+      } catch (error: any) {
+        console.error(`Failed to create public directory ${this.publicDir}:`, error.message);
+        throw new Error(`Failed to create storage directory: ${error.message}`);
       }
     }
 
     const filePath = path.join(targetDir, fileName);
-    await fs.writeFile(filePath, buffer);
+    
+    try {
+      await fs.writeFile(filePath, buffer, { mode: 0o644 });
+      console.log(`File saved successfully: ${filePath} (${buffer.length} bytes)`);
+    } catch (error: any) {
+      console.error(`Failed to write file ${filePath}:`, error.message);
+      throw new Error(`Failed to save file: ${error.message}`);
+    }
 
     // Return the URL path
     if (visibility === "public") {

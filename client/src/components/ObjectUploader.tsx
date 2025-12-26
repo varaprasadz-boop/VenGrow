@@ -222,8 +222,20 @@ export function ObjectUploader({
                     resolve();
                   }
                 } else {
-                  const errorText = xhr.responseText || `Upload failed with status ${xhr.status}`;
-                  throw new Error(errorText);
+                  let errorMessage = `Upload failed with status ${xhr.status}`;
+                  try {
+                    const errorResponse = JSON.parse(xhr.responseText);
+                    errorMessage = errorResponse.error || errorResponse.message || errorMessage;
+                    if (errorResponse.details && process.env.NODE_ENV === 'development') {
+                      errorMessage += `: ${errorResponse.details}`;
+                    }
+                  } catch (e) {
+                    // If response is not JSON, use the response text or default message
+                    if (xhr.responseText) {
+                      errorMessage = xhr.responseText;
+                    }
+                  }
+                  throw new Error(errorMessage);
                 }
               });
 
@@ -241,7 +253,10 @@ export function ObjectUploader({
               });
 
               xhr.open("PUT", uploadParams.url);
-              // Set content disposition header with filename for local storage
+              // Set content type and disposition headers for local storage
+              if (file.type) {
+                xhr.setRequestHeader("Content-Type", file.type);
+              }
               xhr.setRequestHeader("Content-Disposition", `attachment; filename="${file.name}"`);
               xhr.send(file);
             });

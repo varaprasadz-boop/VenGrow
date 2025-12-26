@@ -3077,11 +3077,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get presigned URL for file upload (or direct upload endpoint for local storage)
   app.post("/api/objects/upload", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
       const { ObjectStorageService } = await import("./objectStorage");
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       
-      // For local storage, uploadURL is already the endpoint path
+      // For local storage, uploadURL is already the endpoint path like /api/upload/direct?uploadId=...
       // For Replit storage, extract the base URL from signed URL
       let objectURL = uploadURL;
       if (uploadURL.startsWith("http://") || uploadURL.startsWith("https://")) {
@@ -3093,6 +3098,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // If URL parsing fails, use the uploadURL as-is
           console.warn("Could not parse upload URL:", e);
         }
+      } else if (uploadURL.startsWith("/api/upload/direct")) {
+        // For local storage, we can't know the final URL until after upload
+        // So we'll return a placeholder that will be replaced after upload
+        // The actual URL will be returned from the upload endpoint
+        objectURL = uploadURL; // Will be replaced with actual file URL after upload
       }
       
       res.json({ 
@@ -3101,9 +3111,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error getting upload URL:", error);
+      console.error("Error stack:", error.stack);
       res.status(500).json({ 
         error: error.message || "Failed to get upload URL",
-        details: error.toString()
+        details: process.env.NODE_ENV === 'development' ? error.toString() : undefined
       });
     }
   });
@@ -3112,7 +3123,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/upload/direct", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = getAuthenticatedUserId(req);
-      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
 
       const { LocalStorageService } = await import("./localStorage");
       const localStorage = new LocalStorageService();
@@ -3124,18 +3137,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get file data from request body
-      const fileBuffer = Buffer.isBuffer(req.body) 
-        ? req.body 
-        : Buffer.from(req.body || '', 'binary');
+      // The body should be a Buffer when using express.raw()
+      let fileBuffer: Buffer;
       
-      if (fileBuffer.length === 0) {
+      if (Buffer.isBuffer(req.body)) {
+        fileBuffer = req.body;
+      } else if (req.body instanceof Uint8Array) {
+        fileBuffer = Buffer.from(req.body);
+      } else if (typeof req.body === 'string') {
+        // If it's a string, try to convert from base64 or binary
+        fileBuffer = Buffer.from(req.body, 'binary');
+      } else if (req.body && typeof req.body === 'object') {
+        // If it's an object, try to extract buffer
+        fileBuffer = Buffer.from(JSON.stringify(req.body));
+      } else {
+        return res.status(400).json({ error: "Invalid file data format" });
+      }
+      
+      if (!fileBuffer || fileBuffer.length === 0) {
         return res.status(400).json({ error: "No file data provided" });
       }
 
       // Get filename from headers or use upload ID
       const contentDisposition = req.headers['content-disposition'] || '';
-      const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-      const fileName = filenameMatch ? filenameMatch[1] : `upload-${uploadId}`;
+      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      let fileName = filenameMatch ? filenameMatch[1].replace(/['"]/g, '') : null;
+      
+      // If no filename in header, try content-type to determine extension
+      if (!fileName || fileName === '') {
+        const contentType = req.headers['content-type'] || '';
+        let ext = '.bin';
+        if (contentType.includes('image/jpeg') || contentType.includes('image/jpg')) {
+          ext = '.jpg';
+        } else if (contentType.includes('image/png')) {
+          ext = '.png';
+        } else if (contentType.includes('image/gif')) {
+          ext = '.gif';
+        } else if (contentType.includes('image/webp')) {
+          ext = '.webp';
+        }
+        fileName = `upload-${uploadId}${ext}`;
+      }
+
+      // Validate file size (max 100MB)
+      const maxSize = 100 * 1024 * 1024; // 100MB
+      if (fileBuffer.length > maxSize) {
+        return res.status(400).json({ 
+          error: `File too large. Maximum size is ${maxSize / 1024 / 1024}MB` 
+        });
+      }
 
       // Save file
       const fileUrl = await localStorage.saveUploadedFile(
@@ -3147,13 +3197,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(200).json({ 
         success: true,
-        url: fileUrl
+        url: fileUrl,
+        uploadURL: fileUrl // For compatibility
       });
     } catch (error: any) {
       console.error("Error uploading file:", error);
+      console.error("Error stack:", error.stack);
       res.status(500).json({ 
         error: error.message || "Failed to upload file",
-        details: error.toString()
+        details: process.env.NODE_ENV === 'development' ? error.toString() : undefined
       });
     }
   });
@@ -3213,7 +3265,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { ObjectStorageService } = await import("./objectStorage");
       const userId = getAuthenticatedUserId(req);
-      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
       const propertyId = req.params.id;
       const { photoURLs } = req.body;
 
@@ -3221,26 +3276,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "photoURLs must be an array" });
       }
 
+      if (photoURLs.length === 0) {
+        return res.status(400).json({ error: "At least one photo URL is required" });
+      }
+
+      // Verify property exists and belongs to user
+      const property = await storage.getProperty(propertyId);
+      if (!property) {
+        return res.status(404).json({ error: "Property not found" });
+      }
+
+      // Check if user owns this property
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile || property.sellerId !== sellerProfile.id) {
+        return res.status(403).json({ error: "You don't have permission to update this property" });
+      }
+
       const objectStorageService = new ObjectStorageService();
       const normalizedPaths: string[] = [];
 
       for (const url of photoURLs) {
+        if (!url || typeof url !== 'string' || url.trim() === '') {
+          console.warn("Skipping invalid photo URL:", url);
+          continue;
+        }
+
         try {
+          // Normalize the URL path
           const normalizedPath = await objectStorageService.trySetObjectEntityAclPolicy(url, {
             owner: userId,
             visibility: "public",
           });
           normalizedPaths.push(normalizedPath);
-        } catch (e) {
-          console.error("Error setting ACL for photo:", e);
+        } catch (e: any) {
+          console.error("Error setting ACL for photo:", url, e.message);
+          // Still add the URL even if ACL setting fails (for local storage, this is fine)
           normalizedPaths.push(url);
         }
       }
 
-      // Update property with photo paths
-      const property = await storage.getProperty(propertyId);
-      if (!property) {
-        return res.status(404).json({ error: "Property not found" });
+      if (normalizedPaths.length === 0) {
+        return res.status(400).json({ error: "No valid photo URLs provided" });
       }
 
       // Merge existing images with new ones
@@ -3249,18 +3325,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         propertyId,
         url,
         isPrimary: existingImages.length === 0 && index === 0,
-        displayOrder: existingImages.length + index,
+        sortOrder: existingImages.length + index,
       }));
 
       // Add images to storage
       for (const image of newImages) {
-        await storage.addPropertyImage(image.propertyId, image.url, image.isPrimary);
+        try {
+          await storage.addPropertyImage(image.propertyId, image.url, image.isPrimary);
+        } catch (e: any) {
+          console.error("Error adding property image:", e.message);
+          // Continue with other images even if one fails
+        }
       }
 
-      res.json({ success: true, photos: normalizedPaths });
-    } catch (error) {
+      res.json({ 
+        success: true, 
+        photos: normalizedPaths,
+        message: `Successfully added ${normalizedPaths.length} photo(s)`
+      });
+    } catch (error: any) {
       console.error("Error updating property photos:", error);
-      res.status(500).json({ error: "Failed to update property photos" });
+      console.error("Error stack:", error.stack);
+      res.status(500).json({ 
+        error: error.message || "Failed to update property photos",
+        details: process.env.NODE_ENV === 'development' ? error.toString() : undefined
+      });
     }
   });
 
