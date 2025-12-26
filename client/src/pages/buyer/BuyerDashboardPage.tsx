@@ -156,7 +156,9 @@ export default function BuyerDashboardPage() {
     title: property.title,
     price: property.price,
     location: `${property.locality || ''}, ${property.city}`.replace(/^, /, ''),
-    imageUrl: (property as any).images?.[0] || '/placeholder-property.jpg',
+    imageUrl: typeof (property as any).images?.[0] === 'string' 
+      ? ((property as any).images?.[0] || '/placeholder-property.jpg')
+      : ((property as any).images?.[0]?.url || '/placeholder-property.jpg'),
     bedrooms: property.bedrooms || 0,
     bathrooms: property.bathrooms || 0,
     area: property.area,

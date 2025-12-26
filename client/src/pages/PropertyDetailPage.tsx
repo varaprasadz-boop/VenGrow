@@ -340,8 +340,9 @@ export default function PropertyDetailPage() {
   }
 
   // Get property images or use placeholder
+  // Handle both array of objects (PropertyImage) and array of strings (legacy)
   const images = (property as any).images?.length > 0 
-    ? (property as any).images 
+    ? (property as any).images.map((img: any) => typeof img === 'string' ? img : img.url)
     : ['/placeholder-property.jpg'];
 
   const getTransactionLabel = (type: string) => {
@@ -359,7 +360,9 @@ export default function PropertyDetailPage() {
         title={property.title}
         location={`${property.locality || property.city}, ${property.state}`}
         price={property.price}
-        imageUrl={(property as any).images?.[0]}
+        imageUrl={typeof (property as any).images?.[0] === 'string' 
+          ? (property as any).images?.[0] 
+          : (property as any).images?.[0]?.url}
       />
       <Header isLoggedIn={!!user} userType={user?.role || "buyer"} />
       
