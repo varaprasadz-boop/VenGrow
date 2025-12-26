@@ -1,12 +1,12 @@
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Video, Mic, MicOff, VideoOff, Phone } from "lucide-react";
 
 export default function PropertyVideoCallPage() {
   return (
-    <main className="flex-1">
+    <main className="flex-1 pb-16 lg:pb-8">
       <div className="h-screen flex flex-col bg-black">
         {/* Header */}
         <div className="p-4 bg-black/50 text-white">

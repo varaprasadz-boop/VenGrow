@@ -22,6 +22,7 @@ interface PopularCity {
 interface PopularCitySelectProps {
   value: string;
   onValueChange: (value: string) => void;
+  stateValue?: string;
   placeholder?: string;
   disabled?: boolean;
   required?: boolean;
@@ -34,6 +35,7 @@ const OTHER_CITY_VALUE = "__OTHER__";
 export function PopularCitySelect({
   value,
   onValueChange,
+  stateValue,
   placeholder = "Select city",
   disabled = false,
   required = false,
@@ -52,10 +54,27 @@ export function PopularCitySelect({
     },
   });
 
+  // Filter cities by state if stateValue is provided
+  const filteredCities = stateValue
+    ? cities.filter((city) => city.state === stateValue)
+    : cities;
+
+  // Clear city when state changes and current city is not in filtered list
+  useEffect(() => {
+    if (stateValue && value && filteredCities.length > 0) {
+      const city = filteredCities.find(
+        (c) => c.name.toLowerCase() === value.toLowerCase()
+      );
+      if (!city) {
+        onValueChange("");
+      }
+    }
+  }, [stateValue, filteredCities, value, onValueChange]);
+
   // Check if current value is a custom city (not in dropdown)
   useEffect(() => {
-    if (value && cities.length > 0) {
-      const isInList = cities.some(
+    if (value && filteredCities.length > 0) {
+      const isInList = filteredCities.some(
         (c) => c.name.toLowerCase() === value.toLowerCase()
       );
       if (!isInList && value !== "" && value !== OTHER_CITY_VALUE) {
@@ -69,7 +88,7 @@ export function PopularCitySelect({
         setCustomCity("");
       }
     }
-  }, [value, cities]);
+  }, [value, filteredCities]);
 
   const handleSelectChange = (selectedValue: string) => {
     if (selectedValue === OTHER_CITY_VALUE) {
@@ -106,6 +125,20 @@ export function PopularCitySelect({
     );
   }
 
+  // Show disabled select if state is required but not selected
+  if (stateValue === undefined || stateValue === "") {
+    return (
+      <div className="space-y-1">
+        <Select disabled>
+          <SelectTrigger data-testid={testId} className={error ? "border-destructive" : ""}>
+            <SelectValue placeholder="Select state first" />
+          </SelectTrigger>
+        </Select>
+        {error && <p className="text-xs text-destructive">{error}</p>}
+      </div>
+    );
+  }
+
   if (isOther) {
     return (
       <div className="space-y-2">
@@ -134,14 +167,14 @@ export function PopularCitySelect({
     );
   }
 
-  const activeCities = cities.filter((city) => city.isActive);
+  const activeCities = filteredCities.filter((city) => city.isActive);
 
   return (
     <div className="space-y-1">
       <Select
         value={value || ""} // Ensure value is always a string to avoid controlled/uncontrolled warning
         onValueChange={handleSelectChange}
-        disabled={disabled}
+        disabled={disabled || !stateValue}
       >
         <SelectTrigger
           data-testid={testId}
@@ -155,11 +188,6 @@ export function PopularCitySelect({
               {activeCities.map((city) => (
                 <SelectItem key={city.id} value={city.name}>
                   {city.name}
-                  {city.state && (
-                    <span className="text-xs text-muted-foreground ml-1">
-                      ({city.state})
-                    </span>
-                  )}
                 </SelectItem>
               ))}
               <div className="h-px bg-border my-1" />
@@ -169,7 +197,7 @@ export function PopularCitySelect({
             </>
           ) : (
             <SelectItem value={OTHER_CITY_VALUE} disabled>
-              No cities available. Enter manually.
+              No cities available for this state. Enter manually.
             </SelectItem>
           )}
         </SelectContent>

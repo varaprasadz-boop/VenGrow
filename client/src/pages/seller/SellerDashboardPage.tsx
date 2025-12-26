@@ -138,10 +138,10 @@ export default function SellerDashboardPage() {
                 Here's an overview of your property listings
               </p>
             </div>
-            <Link href="/seller/listings/create/step1">
+            <Link href="/seller/property/add">
               <Button size="default" className="sm:!min-h-10" data-testid="button-create-listing-dashboard">
                 <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                Create New Listing
+                Add Property
               </Button>
             </Link>
           </div>
@@ -326,8 +326,8 @@ export default function SellerDashboardPage() {
                   <Card className="p-8 text-center text-muted-foreground">
                     <Building className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>No listings yet</p>
-                    <Link href="/seller/listings/create/step1">
-                      <Button variant="ghost" className="mt-2">Create Your First Listing</Button>
+                    <Link href="/seller/property/add">
+                      <Button variant="ghost" className="mt-2">Add Your First Property</Button>
                     </Link>
                   </Card>
                 )}
@@ -338,10 +338,10 @@ export default function SellerDashboardPage() {
               <Card className="p-4 sm:p-6">
                 <h3 className="font-semibold mb-3 sm:mb-4">Quick Actions</h3>
                 <div className="space-y-2">
-                  <Link href="/seller/listings/create/step1">
+                  <Link href="/seller/property/add">
                     <Button variant="outline" className="w-full justify-start" data-testid="button-create-new">
                       <Plus className="h-4 w-4 mr-2" />
-                      Create Listing
+                      Add Property
                     </Button>
                   </Link>
                   <Link href="/seller/analytics">

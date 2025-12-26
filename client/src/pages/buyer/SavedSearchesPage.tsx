@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
+import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,7 +102,8 @@ export default function SavedSearchesPage() {
 
   if (isLoading) {
     return (
-      <main className="flex-1">
+      <div className="min-h-screen flex flex-col">
+        <main className="flex-1 pb-16 lg:pb-8">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Skeleton className="h-6 w-48 mb-6" />
           <div className="mb-8">
@@ -114,12 +116,15 @@ export default function SavedSearchesPage() {
             ))}
           </div>
         </div>
-      </main>
+        </main>
+        <BuyerBottomNav />
+      </div>
     );
   }
 
   return (
-    <main className="flex-1">
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1 pb-16 lg:pb-8">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Breadcrumbs items={breadcrumbItems} className="mb-6" />
         
@@ -252,6 +257,8 @@ export default function SavedSearchesPage() {
           </Card>
         )}
       </div>
-    </main>
+      </main>
+      <BuyerBottomNav />
+    </div>
   );
 }

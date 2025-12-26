@@ -77,6 +77,7 @@ interface PropertyFormData {
   furnishing: string;
   ageOfProperty: string;
   possessionStatus: string;
+  expectedPossessionDate: string;
   amenities: string[];
   highlights: string[];
   photos: { url: string; caption: string; isPrimary: boolean }[];
@@ -172,6 +173,7 @@ export default function CreatePropertyPage() {
     furnishing: "",
     ageOfProperty: "",
     possessionStatus: "",
+    expectedPossessionDate: "",
     amenities: [],
     highlights: [],
     photos: [],
@@ -281,6 +283,7 @@ export default function CreatePropertyPage() {
         furnishing: propertyData.furnishing || "",
         ageOfProperty: propertyData.ageOfProperty?.toString() || "",
         possessionStatus: propertyData.possessionStatus || "",
+        expectedPossessionDate: (propertyData as any).expectedPossessionDate || "",
         amenities: propertyData.amenities || [],
         highlights: propertyData.highlights || [],
         photos: (propertyData.images || [])
@@ -530,6 +533,7 @@ export default function CreatePropertyPage() {
       furnishing: formData.furnishing || null,
       ageOfProperty: parseInt(formData.ageOfProperty) || null,
       possessionStatus: formData.possessionStatus || null,
+      expectedPossessionDate: formData.expectedPossessionDate || null,
       address: formData.address,
       locality: formData.locality || null,
       city: formData.city,
@@ -618,7 +622,7 @@ export default function CreatePropertyPage() {
           {/* Progress Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold">{isEditMode ? "Edit Property" : "Create New Listing"}</h1>
+              <h1 className="text-2xl font-bold">{isEditMode ? "Edit Property" : "Add Property"}</h1>
               {!isEditMode && subscriptionData?.subscription && (
                 <Badge variant="outline">
                   {subscriptionData.subscription.listingsUsed}/{subscriptionData.package?.listingLimit} listings used
@@ -807,31 +811,14 @@ export default function CreatePropertyPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="locality">Locality</Label>
-                        <Input
-                          id="locality"
-                          placeholder="e.g., Bandra West"
-                          value={formData.locality}
-                          onChange={(e) => updateField("locality", e.target.value)}
-                          data-testid="input-locality"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="city">City *</Label>
-                        <PopularCitySelect
-                          value={formData.city}
-                          onValueChange={(value) => updateField("city", value)}
-                          placeholder="Select or enter city"
-                          data-testid="select-city"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
                         <Label htmlFor="state">State *</Label>
                         <Select
                           value={formData.state}
-                          onValueChange={(value) => updateField("state", value)}
+                          onValueChange={(value) => {
+                            updateField("state", value);
+                            // Clear city when state changes
+                            updateField("city", "");
+                          }}
                         >
                           <SelectTrigger id="state" data-testid="select-state">
                             <SelectValue placeholder="Select state" />
@@ -842,6 +829,28 @@ export default function CreatePropertyPage() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="city">City *</Label>
+                        <PopularCitySelect
+                          value={formData.city}
+                          onValueChange={(value) => updateField("city", value)}
+                          stateValue={formData.state}
+                          placeholder="Select or enter city"
+                          data-testid="select-city"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="locality">Locality</Label>
+                        <Input
+                          id="locality"
+                          placeholder="e.g., Bandra West"
+                          value={formData.locality}
+                          onChange={(e) => updateField("locality", e.target.value)}
+                          data-testid="input-locality"
+                        />
                       </div>
 
                       <div className="space-y-2">
@@ -1174,6 +1183,19 @@ export default function CreatePropertyPage() {
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {(formData.possessionStatus === "under_construction" || formData.possessionStatus === "under-construction") && (
+                        <div className="space-y-2">
+                          <Label htmlFor="expectedPossessionDate">Expected Possession Date</Label>
+                          <Input
+                            id="expectedPossessionDate"
+                            type="month"
+                            value={formData.expectedPossessionDate}
+                            onChange={(e) => updateField("expectedPossessionDate", e.target.value)}
+                            data-testid="input-expected-possession-date"
+                          />
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
@@ -1755,7 +1777,7 @@ export default function CreatePropertyPage() {
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    {isEditMode ? "Update Listing" : "Create Listing"}
+                    {isEditMode ? "Update Property" : "Add Property"}
                   </>
                 )}
               </Button>

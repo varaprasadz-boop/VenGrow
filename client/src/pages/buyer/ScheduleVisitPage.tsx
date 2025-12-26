@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +43,7 @@ export default function ScheduleVisitPage() {
     <div className="min-h-screen flex flex-col">
       <Header isLoggedIn={true} userType="buyer" />
 
-      <main className="flex-1">
+      <main className="flex-1 pb-16 lg:pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <Link href="/property/1">
@@ -272,7 +272,7 @@ export default function ScheduleVisitPage() {
         </div>
       </main>
 
-      <Footer />
+      <BuyerBottomNav />
     </div>
   );
 }

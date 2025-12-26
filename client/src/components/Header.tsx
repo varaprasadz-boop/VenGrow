@@ -19,6 +19,8 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocation as useLocationContext, SUPPORTED_CITIES } from "@/contexts/LocationContext";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface HeaderProps {
   isLoggedIn?: boolean;
@@ -33,11 +35,39 @@ const navigationLinks = [
   { label: "Projects", url: "/projects" },
 ];
 
+interface PopularCity {
+  id: string;
+  name: string;
+  state?: string;
+  isActive: boolean;
+}
+
 export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserType, userId: propUserId }: HeaderProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const [, setWouterLocation] = useWouterLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
+  // Fetch active cities from API
+  const { data: apiCities = [] } = useQuery<PopularCity[]>({
+    queryKey: ["/api/popular-cities"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/popular-cities");
+      return response.json();
+    },
+  });
+
+  // Convert API cities to LocationCity format for compatibility
+  const activeApiCities = apiCities.filter(city => city.isActive).map(city => {
+    // Try to find matching city in SUPPORTED_CITIES to get lat/lng, otherwise use defaults
+    const matchedCity = SUPPORTED_CITIES.find(sc => sc.name === city.name);
+    return {
+      name: city.name,
+      state: city.state || matchedCity?.state || "",
+      lat: matchedCity?.lat || 0,
+      lng: matchedCity?.lng || 0,
+    };
+  });
+
   // Use LocationContext for city management
   let locationContext: ReturnType<typeof useLocationContext> | null = null;
   try {
@@ -47,7 +77,10 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
   }
   
   const selectedCity = locationContext?.selectedCity?.name || "Mumbai";
-  const cities = locationContext?.supportedCities || SUPPORTED_CITIES;
+  // Use active cities from API, fallback to LocationContext, then static list
+  const cities = activeApiCities.length > 0 
+    ? activeApiCities 
+    : (locationContext?.supportedCities || SUPPORTED_CITIES);
   
   // Use auth hook values, fall back to props for backward compatibility
   const isLoggedIn = propIsLoggedIn !== undefined ? propIsLoggedIn : isAuthenticated;
@@ -58,7 +91,14 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
     if (locationContext) {
       const city = cities.find(c => c.name === cityName);
       if (city) {
-        locationContext.setSelectedCity(city);
+        // Ensure LocationCity format with lat/lng
+        const locationCity = {
+          name: city.name,
+          state: city.state || "",
+          lat: (city as any).lat || 0,
+          lng: (city as any).lng || 0,
+        };
+        locationContext.setSelectedCity(locationCity);
       }
     }
   };
@@ -133,7 +173,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
 
           <nav className="hidden md:flex items-center gap-2">
             {userType === "seller" || !isLoggedIn ? (
-              <Link href={isLoggedIn ? "/seller/create-listing" : "/login"}>
+              <Link href={isLoggedIn ? "/seller/property/add" : "/login"}>
                 <Button variant="outline" size="sm" data-testid="button-post-property">
                   Post Property <span className="text-primary font-bold italic ml-1">FREE</span>
                 </Button>
@@ -158,10 +198,10 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                   </Link>
                 )}
                 {userType === "seller" && (
-                  <Link href="/seller/create-listing">
+                  <Link href="/seller/property/add">
                     <Button data-testid="button-create-listing-header">
                       <Plus className="h-4 w-4 mr-1" />
-                      Create Listing
+                      Add Property
                     </Button>
                   </Link>
                 )}
@@ -368,10 +408,10 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                                   My Listings
                                 </Button>
                               </Link>
-                              <Link href="/seller/create-listing" onClick={() => setMobileMenuOpen(false)}>
+                              <Link href="/seller/property/add" onClick={() => setMobileMenuOpen(false)}>
                                 <Button variant="ghost" className="w-full justify-start">
                                   <Plus className="mr-2 h-4 w-4" />
-                                  Create Listing
+                                  Add Property
                                 </Button>
                               </Link>
                               <Link href="/seller/leads" onClick={() => setMobileMenuOpen(false)}>

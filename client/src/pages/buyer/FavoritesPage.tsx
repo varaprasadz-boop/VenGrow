@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
+import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import PropertyCard from "@/components/PropertyCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -73,8 +74,9 @@ export default function FavoritesPage() {
   ];
 
   return (
-    <main className="flex-1">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1 pb-16 lg:pb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Breadcrumbs items={breadcrumbItems} className="mb-6" />
         
         <div className="mb-8">
@@ -161,7 +163,10 @@ export default function FavoritesPage() {
             )}
           </TabsContent>
         </Tabs>
-      </div>
-    </main>
+        </div>
+      </main>
+
+      <BuyerBottomNav />
+    </div>
   );
 }

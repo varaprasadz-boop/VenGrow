@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -122,7 +122,7 @@ export default function NotificationsPage() {
             </Button>
           </Card>
         </main>
-        <Footer />
+        <BuyerBottomNav />
       </div>
     );
   }
@@ -131,7 +131,7 @@ export default function NotificationsPage() {
     <div className="min-h-screen flex flex-col">
       <Header isLoggedIn={true} userType="buyer" />
 
-      <main className="flex-1">
+      <main className="flex-1 pb-16 lg:pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
@@ -295,7 +295,7 @@ export default function NotificationsPage() {
         </div>
       </main>
 
-      <Footer />
+      <BuyerBottomNav />
     </div>
   );
 }

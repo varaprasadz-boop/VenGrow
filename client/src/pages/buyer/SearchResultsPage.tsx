@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,7 +82,7 @@ export default function SearchResultsPage() {
     <div className="min-h-screen flex flex-col">
       <Header isLoggedIn={true} userType="buyer" />
 
-      <main className="flex-1">
+      <main className="flex-1 pb-16 lg:pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Search Bar */}
           <Card className="p-4 mb-6">
@@ -319,7 +319,7 @@ export default function SearchResultsPage() {
         </div>
       </main>
 
-      <Footer />
+      <BuyerBottomNav />
     </div>
   );
 }

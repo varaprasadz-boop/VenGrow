@@ -1,5 +1,5 @@
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Share2, Mail, MessageCircle, Copy, Facebook, Twitter } from "lucide-react";
@@ -17,7 +17,7 @@ export default function PropertySharePage() {
     <div className="min-h-screen flex flex-col">
       <Header isLoggedIn={true} userType="buyer" />
 
-      <main className="flex-1">
+      <main className="flex-1 pb-16 lg:pb-8">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center mb-8">
             <div className="inline-flex p-4 rounded-full bg-primary/10 mb-4">
@@ -118,7 +118,7 @@ export default function PropertySharePage() {
         </div>
       </main>
 
-      <Footer />
+      <BuyerBottomNav />
     </div>
   );
 }

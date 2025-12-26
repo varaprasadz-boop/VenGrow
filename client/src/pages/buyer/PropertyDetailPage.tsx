@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -77,7 +77,7 @@ Key Highlights:
     <div className="min-h-screen flex flex-col">
       <Header isLoggedIn={true} userType="buyer" />
 
-      <main className="flex-1">
+      <main className="flex-1 pb-16 lg:pb-8">
         {/* Image Gallery */}
         <div className="relative h-[400px] bg-muted">
           <div className="absolute inset-0 flex items-center justify-center">
@@ -321,7 +321,7 @@ Key Highlights:
         </div>
       </main>
 
-      <Footer />
+      <BuyerBottomNav />
     </div>
   );
 }

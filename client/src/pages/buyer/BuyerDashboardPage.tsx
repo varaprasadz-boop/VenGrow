@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -176,39 +176,39 @@ export default function BuyerDashboardPage() {
     <div className="min-h-screen flex flex-col">
       <Header isLoggedIn={!!user} userType="buyer" />
 
-      <main className="flex-1 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <h1 className="font-serif font-bold text-3xl mb-2">
+      <main className="flex-1 bg-muted/30 pb-16 lg:pb-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-2">
               Welcome back{user?.firstName ? `, ${user.firstName}` : ''}!
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Here's what's happening with your property search
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-6 mb-6 sm:mb-8">
             {statsLoading ? (
               [1, 2, 3, 4].map((i) => (
-                <Card key={i} className="p-6">
-                  <Skeleton className="h-12 w-12 rounded-lg mb-3" />
-                  <Skeleton className="h-8 w-16 mb-1" />
-                  <Skeleton className="h-4 w-24" />
+                <Card key={i} className="p-3 sm:p-4 lg:p-6">
+                  <Skeleton className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 rounded-lg mb-2 sm:mb-3" />
+                  <Skeleton className="h-6 w-12 sm:h-7 sm:w-16 lg:h-8 lg:w-16 mb-1" />
+                  <Skeleton className="h-3 w-16 sm:h-4 sm:w-24" />
                 </Card>
               ))
             ) : (
               stats.map((stat, index) => (
                 <Link key={index} href={stat.link}>
-                  <Card className="p-6 hover-elevate active-elevate-2 cursor-pointer">
-                    <div className="flex items-start justify-between mb-3 gap-4">
-                      <div className="p-3 rounded-lg bg-primary/10">
-                        <stat.icon className="h-6 w-6 text-primary" />
+                  <Card className="p-3 sm:p-4 lg:p-6 hover-elevate active-elevate-2 cursor-pointer">
+                    <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
+                      <div className="p-2 sm:p-2.5 lg:p-3 rounded-lg bg-primary/10">
+                        <stat.icon className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-primary" />
                       </div>
                     </div>
                     <div>
-                      <p className="text-3xl font-bold font-serif mb-1">{stat.value}</p>
-                      <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-                      <p className="text-xs text-muted-foreground">{stat.change}</p>
+                      <p className="text-xl sm:text-2xl lg:text-3xl font-bold font-serif mb-0.5 sm:mb-1">{stat.value}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">{stat.label}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">{stat.change}</p>
                     </div>
                   </Card>
                 </Link>
@@ -216,11 +216,11 @@ export default function BuyerDashboardPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-6 gap-4">
-                  <h2 className="font-semibold text-xl">Recent Inquiries</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+            <div className="lg:col-span-2 space-y-4 sm:space-y-6 lg:space-y-8">
+              <Card className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4 sm:mb-6 gap-4">
+                  <h2 className="font-semibold text-lg sm:text-xl">Recent Inquiries</h2>
                   <Link href="/buyer/inquiries">
                     <Button variant="ghost" size="sm" data-testid="button-view-all-inquiries">
                       View All
@@ -276,8 +276,8 @@ export default function BuyerDashboardPage() {
               </Card>
 
               <div>
-                <div className="flex items-center justify-between mb-6 gap-4">
-                  <h2 className="font-semibold text-xl">Saved Properties</h2>
+                <div className="flex items-center justify-between mb-4 sm:mb-6 gap-4">
+                  <h2 className="font-semibold text-lg sm:text-xl">Saved Properties</h2>
                   <Link href="/buyer/favorites">
                     <Button variant="ghost" size="sm" data-testid="button-view-history">
                       View All
@@ -285,7 +285,7 @@ export default function BuyerDashboardPage() {
                   </Link>
                 </div>
                 {favoritesLoading ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     {[1, 2].map((i) => (
                       <div key={i} className="space-y-3">
                         <Skeleton className="h-48 w-full rounded-lg" />
@@ -295,7 +295,7 @@ export default function BuyerDashboardPage() {
                     ))}
                   </div>
                 ) : recentFavorites.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     {recentFavorites.map((property) => (
                       <PropertyCard key={property.id} {...formatPropertyForCard(property)} />
                     ))}
@@ -312,10 +312,10 @@ export default function BuyerDashboardPage() {
               </div>
             </div>
 
-            <div className="space-y-6">
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-4 gap-4">
-                  <h3 className="font-semibold">Saved Searches</h3>
+            <div className="space-y-4 sm:space-y-6">
+              <Card className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-3 sm:mb-4 gap-4">
+                  <h3 className="font-semibold text-sm sm:text-base">Saved Searches</h3>
                   <Link href="/buyer/saved-searches">
                     <Button variant="ghost" size="sm" data-testid="button-manage-searches">
                       Manage
@@ -357,9 +357,9 @@ export default function BuyerDashboardPage() {
                 )}
               </Card>
 
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-4 gap-4">
-                  <h3 className="font-semibold flex items-center gap-2">
+              <Card className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-3 sm:mb-4 gap-4">
+                  <h3 className="font-semibold text-sm sm:text-base flex items-center gap-2">
                     <CalendarDays className="h-4 w-4" />
                     Upcoming Visits
                   </h3>
@@ -407,8 +407,8 @@ export default function BuyerDashboardPage() {
                 )}
               </Card>
 
-              <Card className="p-6">
-                <h3 className="font-semibold mb-4">Quick Actions</h3>
+              <Card className="p-4 sm:p-6">
+                <h3 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4">Quick Actions</h3>
                 <div className="space-y-2">
                   <Link href="/properties">
                     <Button variant="outline" className="w-full justify-start" data-testid="button-browse-properties">
@@ -435,7 +435,7 @@ export default function BuyerDashboardPage() {
         </div>
       </main>
 
-      <Footer />
+      <BuyerBottomNav />
     </div>
   );
 }
