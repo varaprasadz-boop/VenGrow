@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import PropertyCard from "@/components/PropertyCard";
@@ -9,7 +10,8 @@ import TestimonialsSection from "@/components/TestimonialsSection";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import type { Property } from "@shared/schema";
 
 import propertyImg1 from "@assets/stock_images/luxury_apartment_bui_734bab84.jpg";
 import propertyImg2 from "@assets/stock_images/modern_villa_house_w_a69bd44b.jpg";
@@ -161,8 +163,82 @@ const sampleNewProperties: Property[] = [
 ];
 
 export default function HomePage() {
-  const displayFeatured = sampleFeaturedProperties;
-  const displayNew = sampleNewProperties;
+  // Fetch featured properties from API
+  const { data: featuredPropertiesData = [], isLoading: featuredLoading } = useQuery<Property[]>({
+    queryKey: ["/api/properties/featured"],
+    queryFn: async () => {
+      const response = await fetch("/api/properties/featured?limit=8");
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
+  // Fetch new properties from API
+  const { data: newPropertiesData = [], isLoading: newLoading } = useQuery<Property[]>({
+    queryKey: ["/api/properties", "new"],
+    queryFn: async () => {
+      const response = await fetch("/api/properties?limit=8&status=active");
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
+  // Transform API data for PropertyCard component
+  const displayFeatured = useMemo(() => {
+    if (featuredPropertiesData.length === 0) return sampleFeaturedProperties;
+    return featuredPropertiesData.map(property => {
+      // Extract first image URL from images array
+      const imageUrl = (property as any).images?.length > 0
+        ? (typeof (property as any).images[0] === 'string' 
+            ? (property as any).images[0] 
+            : (property as any).images[0]?.url)
+        : '';
+      
+      return {
+        id: property.id,
+        title: property.title,
+        price: property.price,
+        location: `${property.locality || ''}, ${property.city || ''}`.replace(/^, |, $/g, '') || 'Location not specified',
+        imageUrl: imageUrl,
+        bedrooms: property.bedrooms || undefined,
+        bathrooms: property.bathrooms || undefined,
+        area: property.area || 0,
+        propertyType: property.propertyType || "Property",
+        isFeatured: property.isFeatured || false,
+        isVerified: property.isVerified || false,
+        sellerType: ((property as any).sellerType || "Builder") as "Individual" | "Broker" | "Builder",
+        transactionType: (property.transactionType === "sale" ? "Sale" : property.transactionType === "rent" ? "Rent" : "Lease") as "Sale" | "Rent" | "Lease",
+      };
+    });
+  }, [featuredPropertiesData]);
+
+  const displayNew = useMemo(() => {
+    if (newPropertiesData.length === 0) return sampleNewProperties;
+    return newPropertiesData.map(property => {
+      // Extract first image URL from images array
+      const imageUrl = (property as any).images?.length > 0
+        ? (typeof (property as any).images[0] === 'string' 
+            ? (property as any).images[0] 
+            : (property as any).images[0]?.url)
+        : '';
+      
+      return {
+        id: property.id,
+        title: property.title,
+        price: property.price,
+        location: `${property.locality || ''}, ${property.city || ''}`.replace(/^, |, $/g, '') || 'Location not specified',
+        imageUrl: imageUrl,
+        bedrooms: property.bedrooms || undefined,
+        bathrooms: property.bathrooms || undefined,
+        area: property.area || 0,
+        propertyType: property.propertyType || "Property",
+        isFeatured: property.isFeatured || false,
+        isVerified: property.isVerified || false,
+        sellerType: ((property as any).sellerType || "Individual") as "Individual" | "Broker" | "Builder",
+        transactionType: (property.transactionType === "sale" ? "Sale" : property.transactionType === "rent" ? "Rent" : "Lease") as "Sale" | "Rent" | "Lease",
+      };
+    });
+  }, [newPropertiesData]);
   
   // Featured Properties scroll state
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -264,11 +340,19 @@ export default function HomePage() {
             </div>
             
             {/* Desktop: Grid layout, Mobile: Horizontal scroll */}
-            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="grid-featured-properties-desktop">
-              {displayFeatured.slice(0, 4).map((property) => (
-                <PropertyCard key={property.id} {...property} />
-              ))}
-            </div>
+            {featuredLoading ? (
+              <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="aspect-[4/3] bg-muted animate-pulse rounded-lg" />
+                ))}
+              </div>
+            ) : (
+              <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="grid-featured-properties-desktop">
+                {displayFeatured.slice(0, 4).map((property) => (
+                  <PropertyCard key={property.id} {...property} />
+                ))}
+              </div>
+            )}
             
             {/* Mobile: Horizontal scroll with 2 cards visible */}
             <div className="md:hidden relative group/carousel">
@@ -285,18 +369,26 @@ export default function HomePage() {
                 <ChevronLeft className="h-5 w-5 text-muted-foreground" />
               </button>
 
-              <div
-                ref={scrollContainerRef}
-                className="flex gap-4 overflow-x-auto scrollbar-hide px-6 py-2"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-                data-testid="carousel-featured-properties"
-              >
-                {displayFeatured.map((property) => (
-                  <div key={property.id} className="flex-shrink-0 w-[calc(50%-8px)]">
-                    <PropertyCard {...property} />
-                  </div>
-                ))}
-              </div>
+              {featuredLoading ? (
+                <div className="flex gap-4 overflow-x-auto scrollbar-hide px-6 py-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex-shrink-0 w-[calc(50%-8px)] aspect-[4/3] bg-muted animate-pulse rounded-lg" />
+                  ))}
+                </div>
+              ) : (
+                <div
+                  ref={scrollContainerRef}
+                  className="flex gap-4 overflow-x-auto scrollbar-hide px-6 py-2"
+                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  data-testid="carousel-featured-properties"
+                >
+                  {displayFeatured.map((property) => (
+                    <div key={property.id} className="flex-shrink-0 w-[calc(50%-8px)]">
+                      <PropertyCard {...property} />
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <button
                 className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm transition-all duration-200 ${
@@ -329,11 +421,19 @@ export default function HomePage() {
             </div>
             
             {/* Desktop: Grid layout */}
-            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="grid-new-listings-desktop">
-              {displayNew.slice(0, 4).map((property) => (
-                <PropertyCard key={property.id} {...property} />
-              ))}
-            </div>
+            {newLoading ? (
+              <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="aspect-[4/3] bg-muted animate-pulse rounded-lg" />
+                ))}
+              </div>
+            ) : (
+              <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="grid-new-listings-desktop">
+                {displayNew.slice(0, 4).map((property) => (
+                  <PropertyCard key={property.id} {...property} />
+                ))}
+              </div>
+            )}
             
             {/* Mobile: Horizontal scroll with 2 cards visible */}
             <div className="md:hidden relative group/carousel-new">
@@ -350,18 +450,26 @@ export default function HomePage() {
                 <ChevronLeft className="h-5 w-5 text-muted-foreground" />
               </button>
 
-              <div
-                ref={newListingsScrollRef}
-                className="flex gap-4 overflow-x-auto scrollbar-hide px-6 py-2"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-                data-testid="carousel-new-listings"
-              >
-                {displayNew.map((property) => (
-                  <div key={property.id} className="flex-shrink-0 w-[calc(50%-8px)]">
-                    <PropertyCard {...property} />
-                  </div>
-                ))}
-              </div>
+              {newLoading ? (
+                <div className="flex gap-4 overflow-x-auto scrollbar-hide px-6 py-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex-shrink-0 w-[calc(50%-8px)] aspect-[4/3] bg-muted animate-pulse rounded-lg" />
+                  ))}
+                </div>
+              ) : (
+                <div
+                  ref={newListingsScrollRef}
+                  className="flex gap-4 overflow-x-auto scrollbar-hide px-6 py-2"
+                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  data-testid="carousel-new-listings"
+                >
+                  {displayNew.map((property) => (
+                    <div key={property.id} className="flex-shrink-0 w-[calc(50%-8px)]">
+                      <PropertyCard {...property} />
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <button
                 className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm transition-all duration-200 ${

@@ -280,24 +280,33 @@ export default function CityPropertiesPage() {
                       : "space-y-4"
                   }
                 >
-                  {sortedProperties.map((property) => (
-                    <PropertyCard
-                      key={property.id}
-                      id={property.id}
-                      title={property.title}
-                      price={property.price}
-                      location={`${property.locality || ""}, ${property.city}`}
-                      imageUrl=""
-                      bedrooms={property.bedrooms || undefined}
-                      bathrooms={property.bathrooms || undefined}
-                      area={property.area}
-                      propertyType={property.propertyType}
-                      isFeatured={property.isFeatured || false}
-                      isVerified={property.isVerified || false}
-                      sellerType="Individual"
-                      transactionType={property.transactionType as "Sale" | "Lease" | "Rent"}
-                    />
-                  ))}
+                  {sortedProperties.map((property) => {
+                    // Extract first image URL from images array
+                    const imageUrl = (property as any).images?.length > 0
+                      ? (typeof (property as any).images[0] === 'string' 
+                          ? (property as any).images[0] 
+                          : (property as any).images[0]?.url)
+                      : '';
+                    
+                    return (
+                      <PropertyCard
+                        key={property.id}
+                        id={property.id}
+                        title={property.title}
+                        price={property.price}
+                        location={`${property.locality || ""}, ${property.city}`}
+                        imageUrl={imageUrl}
+                        bedrooms={property.bedrooms || undefined}
+                        bathrooms={property.bathrooms || undefined}
+                        area={property.area}
+                        propertyType={property.propertyType}
+                        isFeatured={property.isFeatured || false}
+                        isVerified={property.isVerified || false}
+                        sellerType="Individual"
+                        transactionType={property.transactionType as "Sale" | "Lease" | "Rent"}
+                      />
+                    );
+                  })}
                 </div>
               )}
 

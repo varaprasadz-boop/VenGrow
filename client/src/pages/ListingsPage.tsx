@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
@@ -20,7 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Property } from "@shared/schema";
-import defaultPropertyImage from '@assets/generated_images/luxury_indian_apartment_building.png';
 
 interface FilterState {
   priceRange?: [number, number];
@@ -44,6 +43,16 @@ export default function ListingsPage() {
   const [filters, setFilters] = useState<FilterState>({});
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   
+  // Parse URL parameters
+  const urlParams = useMemo(() => {
+    const params = new URLSearchParams(location.split('?')[1] || '');
+    return {
+      category: params.get('category') || params.get('type') || null,
+      featured: params.get('featured') === 'true',
+      sort: params.get('sort') || null,
+    };
+  }, [location]);
+  
   const transactionTypeFromPath = useMemo(() => {
     if (location === "/buy" || location.startsWith("/buy?")) return "Sale";
     if (location === "/lease" || location.startsWith("/lease?")) return "Lease";
@@ -57,6 +66,16 @@ export default function ListingsPage() {
     if (location === "/rent" || location.startsWith("/rent?")) return "Properties for Rent";
     return "All Properties";
   }, [location]);
+  
+  // Initialize filters from URL on mount
+  useEffect(() => {
+    if (urlParams.category && !filters.category) {
+      setFilters(prev => ({ ...prev, category: urlParams.category! }));
+    }
+    if (urlParams.featured && !filters.category) {
+      // Featured is handled separately
+    }
+  }, [urlParams.category, urlParams.featured]);
 
   // Handle filter application
   const handleApplyFilters = useCallback((newFilters: FilterState) => {
@@ -72,34 +91,59 @@ export default function ListingsPage() {
   // Transform API data for PropertyCard component
   const allProperties = useMemo(() => {
     if (!propertiesData) return [];
-    return propertiesData.map(property => ({
-      id: property.id,
-      title: property.title,
-      price: property.price,
-      location: `${property.locality || ''}, ${property.city || ''}`.replace(/^, |, $/g, '') || 'Location not specified',
-      imageUrl: defaultPropertyImage,
-      bedrooms: property.bedrooms || undefined,
-      bathrooms: property.bathrooms || undefined,
-      area: property.area || 0,
-      propertyType: property.propertyType || "Property",
-      isFeatured: property.isFeatured || false,
-      isVerified: property.isVerified || false,
-      sellerType: ((property as any).sellerType || "Builder") as "Individual" | "Broker" | "Builder",
-      transactionType: (property.transactionType || "Sale") as "Sale" | "Lease" | "Rent",
-      lat: property.latitude ? parseFloat(property.latitude) : 19.0596,
-      lng: property.longitude ? parseFloat(property.longitude) : 72.8295,
-      projectStage: property.projectStage || undefined,
-      subcategory: property.subcategoryId || undefined,
-      ageOfProperty: property.ageOfProperty ? String(property.ageOfProperty) : undefined,
-      city: property.city,
-      state: property.state,
-      categoryId: property.categoryId,
-    }));
+    return propertiesData.map(property => {
+      // Extract first image URL from images array
+      const imageUrl = (property as any).images?.length > 0
+        ? (typeof (property as any).images[0] === 'string' 
+            ? (property as any).images[0] 
+            : (property as any).images[0]?.url)
+        : '';
+      
+      return {
+        id: property.id,
+        title: property.title,
+        price: property.price,
+        location: `${property.locality || ''}, ${property.city || ''}`.replace(/^, |, $/g, '') || 'Location not specified',
+        imageUrl: imageUrl, // Empty string will trigger placeholder in PropertyCard
+        bedrooms: property.bedrooms || undefined,
+        bathrooms: property.bathrooms || undefined,
+        area: property.area || 0,
+        propertyType: property.propertyType || "Property",
+        isFeatured: property.isFeatured || false,
+        isVerified: property.isVerified || false,
+        sellerType: ((property as any).sellerType || "Builder") as "Individual" | "Broker" | "Builder",
+        transactionType: (property.transactionType || "Sale") as "Sale" | "Lease" | "Rent",
+        lat: property.latitude ? parseFloat(property.latitude) : 19.0596,
+        lng: property.longitude ? parseFloat(property.longitude) : 72.8295,
+        projectStage: property.projectStage || undefined,
+        subcategory: property.subcategoryId || undefined,
+        ageOfProperty: property.ageOfProperty ? String(property.ageOfProperty) : undefined,
+        city: property.city,
+        state: property.state,
+        categoryId: property.categoryId,
+      };
+    });
   }, [propertiesData]);
   
   // Apply filters to properties
   const filteredProperties = useMemo(() => {
     let result = allProperties;
+    
+    // Featured filter from URL
+    if (urlParams.featured) {
+      result = result.filter(p => p.isFeatured === true);
+    }
+    
+    // Category filter from URL or filters
+    const categoryFilter = urlParams.category || filters.category;
+    if (categoryFilter && categoryFilter !== "all") {
+      // Filter by propertyType or categoryId
+      result = result.filter(p => {
+        const propertyTypeMatch = p.propertyType?.toLowerCase() === categoryFilter.toLowerCase();
+        // You might also want to match by categoryId if available
+        return propertyTypeMatch;
+      });
+    }
     
     // Transaction type from URL path
     if (transactionTypeFromPath) {
@@ -187,7 +231,7 @@ export default function ListingsPage() {
     }
     
     return result;
-  }, [transactionTypeFromPath, allProperties, filters, sortBy]);
+  }, [transactionTypeFromPath, allProperties, filters, sortBy, urlParams]);
 
   return (
     <div className="min-h-screen flex flex-col">

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Heart, MapPin, Bed, Bath, Maximize, CheckCircle2 } from "lucide-react";
+import { Heart, MapPin, Bed, Bath, Maximize, CheckCircle2, Home } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,6 +80,10 @@ export default function PropertyCard({
     return `₹${amount.toLocaleString('en-IN')}`;
   };
 
+  // Determine if we should show placeholder
+  const hasValidImage = imageUrl && imageUrl.trim() !== '' && !imageUrl.includes('placeholder');
+  const displayImage = hasValidImage ? imageUrl : undefined;
+
   return (
     <Card
       className="group overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all"
@@ -87,49 +91,81 @@ export default function PropertyCard({
       data-testid={`card-property-${id}`}
     >
       {/* Image Section */}
-      <div className="relative aspect-[4/3] overflow-hidden">
-        <img
-          src={imageUrl}
-          alt={title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
+      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+        {displayImage ? (
+          <>
+            <img
+              src={displayImage}
+              alt={title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              onError={(e) => {
+                // Hide image and show placeholder on error
+                e.currentTarget.style.display = 'none';
+                const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
+                if (placeholder) {
+                  placeholder.style.display = 'flex';
+                }
+              }}
+            />
+            <div 
+              className="image-placeholder absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted to-muted/50 hidden"
+            >
+              <div className="text-center">
+                <Home className="h-12 w-12 text-muted-foreground/50 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground/70">No Image Available</p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div 
+            className="image-placeholder absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted to-muted/50"
+          >
+            <div className="text-center">
+              <Home className="h-12 w-12 text-muted-foreground/50 mx-auto mb-2" />
+              <p className="text-xs text-muted-foreground/70">No Image Available</p>
+            </div>
+          </div>
+        )}
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-0" />
         
-        {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-          {isFeatured && (
-            <Badge className="bg-primary text-primary-foreground border-primary-border text-xs">
-              Featured
+        {/* Top Bar - Badges Left, Favorite Right */}
+        <div className="absolute top-3 left-3 right-3 z-10 flex items-start justify-between">
+          {/* Badges - Left */}
+          <div className="flex flex-wrap gap-1.5 max-w-[70%]">
+            {isFeatured && (
+              <Badge className="bg-primary text-primary-foreground border-primary-border text-xs">
+                Featured
+              </Badge>
+            )}
+            <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm text-xs">
+              For {transactionType}
             </Badge>
-          )}
-          <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm text-xs">
-            For {transactionType}
-          </Badge>
-          {isNewConstruction && (
-            <Badge variant="secondary" className="bg-blue-500/90 text-white backdrop-blur-sm text-xs" data-testid={`badge-new-${id}`}>
-              New
-            </Badge>
-          )}
-          {projectStage && (
-            <Badge variant="secondary" className="bg-amber-500/90 text-white backdrop-blur-sm text-xs" data-testid={`badge-stage-${id}`}>
-              {projectStageLabels[projectStage]}
-            </Badge>
-          )}
-        </div>
+            {isNewConstruction && (
+              <Badge variant="secondary" className="bg-blue-500/90 text-white backdrop-blur-sm text-xs" data-testid={`badge-new-${id}`}>
+                New
+              </Badge>
+            )}
+            {projectStage && (
+              <Badge variant="secondary" className="bg-amber-500/90 text-white backdrop-blur-sm text-xs" data-testid={`badge-stage-${id}`}>
+                {projectStageLabels[projectStage]}
+              </Badge>
+            )}
+          </div>
 
-        {/* Favorite Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-3 right-3 bg-background/90 backdrop-blur-sm hover:bg-background"
-          onClick={handleFavoriteClick}
-          data-testid={`button-favorite-${id}`}
-        >
-          <Heart
-            className={`h-5 w-5 ${isFavorited ? 'fill-red-500 text-red-500' : 'text-foreground'}`}
-          />
-        </Button>
+          {/* Favorite Button - Right */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 bg-white/95 hover:bg-white shadow-md rounded-full border border-gray-200/50 flex-shrink-0 ml-2"
+            onClick={handleFavoriteClick}
+            data-testid={`button-favorite-${id}`}
+          >
+            <Heart
+              className={`h-5 w-5 transition-colors ${isFavorited ? 'fill-red-500 text-red-500' : 'text-gray-700 hover:text-red-500'}`}
+            />
+          </Button>
+        </div>
 
         {/* Price - Bottom Overlay */}
         <div className="absolute bottom-3 left-3 right-3">

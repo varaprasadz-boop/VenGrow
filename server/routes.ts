@@ -685,7 +685,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit: limit ? parseInt(limit as string) : undefined,
         offset: offset ? parseInt(offset as string) : undefined,
       });
-      res.json(properties);
+      
+      // Fetch images for each property
+      const propertiesWithImages = await Promise.all(
+        properties.map(async (property) => {
+          const images = await storage.getPropertyImages(property.id);
+          return { ...property, images };
+        })
+      );
+      
+      res.json(propertiesWithImages);
     } catch (error) {
       res.status(500).json({ error: "Failed to get properties" });
     }
@@ -696,7 +705,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const properties = await storage.getFeaturedProperties(limit);
-      res.json(properties);
+      
+      // Fetch images for each property
+      const propertiesWithImages = await Promise.all(
+        properties.map(async (property) => {
+          const images = await storage.getPropertyImages(property.id);
+          return { ...property, images };
+        })
+      );
+      
+      res.json(propertiesWithImages);
     } catch (error) {
       res.status(500).json({ error: "Failed to get featured properties" });
     }
