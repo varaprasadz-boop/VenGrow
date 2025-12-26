@@ -3324,13 +3324,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No valid photo URLs provided" });
       }
 
-      // Merge existing images with new ones
+      // Delete existing images first to avoid duplicates when updating
+      // This ensures we replace all images instead of adding to existing ones
       const existingImages = await storage.getPropertyImages(propertyId);
+      if (existingImages.length > 0) {
+        const { db } = await import("./db");
+        const { propertyImages } = await import("@shared/schema");
+        const { eq } = await import("drizzle-orm");
+        await db.delete(propertyImages).where(eq(propertyImages.propertyId, propertyId));
+        console.log(`Deleted ${existingImages.length} existing images for property ${propertyId}`);
+      }
+
+      // Create new images with proper sorting and primary flag
       const newImages = normalizedPaths.map((url, index) => ({
         propertyId,
         url,
-        isPrimary: existingImages.length === 0 && index === 0,
-        sortOrder: existingImages.length + index,
+        isPrimary: index === 0, // First image is always primary
+        sortOrder: index,
       }));
 
       // Add images to storage
