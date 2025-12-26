@@ -45,6 +45,7 @@ import {
   Save,
   Building2,
   Navigation,
+  Star,
 } from "lucide-react";
 import { PopularCitySelect } from "@/components/ui/popular-city-select";
 import {
@@ -282,11 +283,18 @@ export default function CreatePropertyPage() {
         possessionStatus: propertyData.possessionStatus || "",
         amenities: propertyData.amenities || [],
         highlights: propertyData.highlights || [],
-        photos: (propertyData.images || []).map((img: any) => ({
-          url: img.url || img,
-          caption: img.caption || "",
-          isPrimary: img.isPrimary || false,
-        })),
+        photos: (propertyData.images || [])
+          .map((img: any) => ({
+            url: img.url || img,
+            caption: img.caption || "",
+            isPrimary: img.isPrimary || false,
+          }))
+          .sort((a, b) => {
+            // Sort so primary photo is first
+            if (a.isPrimary) return -1;
+            if (b.isPrimary) return 1;
+            return 0;
+          }),
         contactName: "",
         contactPhone: "",
         contactEmail: "",
@@ -1334,7 +1342,26 @@ export default function CreatePropertyPage() {
                         console.log("Current photos:", formData.photos);
                         
                         if (newPhotos.length > 0) {
+                          // Only set first new photo as primary if no photos exist yet
+                          if (formData.photos.length === 0) {
+                            newPhotos[0].isPrimary = true;
+                            // Make sure other new photos are not primary
+                            for (let i = 1; i < newPhotos.length; i++) {
+                              newPhotos[i].isPrimary = false;
+                            }
+                          } else {
+                            // If photos already exist, new photos should not be primary
+                            newPhotos.forEach(photo => photo.isPrimary = false);
+                          }
+                          
                           const updatedPhotos = [...formData.photos, ...newPhotos];
+                          // Ensure primary photo is first
+                          updatedPhotos.sort((a, b) => {
+                            if (a.isPrimary) return -1;
+                            if (b.isPrimary) return 1;
+                            return 0;
+                          });
+                          
                           console.log("Updated photos array:", updatedPhotos);
                           updateField("photos", updatedPhotos as unknown as string[]);
                           toast({
@@ -1415,25 +1442,81 @@ export default function CreatePropertyPage() {
                                 }
                               }}
                             />
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                              onClick={() => {
-                                const updated = formData.photos.filter((_: any, i: number) => i !== index);
-                                updateField("photos", updated as unknown as string[]);
-                                toast({
-                                  title: "Photo removed",
-                                  description: "Photo has been removed from your listing.",
-                                });
-                              }}
-                              data-testid={`button-remove-photo-${index}`}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                            {index === 0 && (
+                            {/* Action buttons - shown on hover */}
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              {/* Set as Cover button - show if not already cover */}
+                              {!(typeof photo === 'object' && photo?.isPrimary) && (
+                                <Button
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-8 w-8 bg-background/90 backdrop-blur-sm hover:bg-background"
+                                  onClick={() => {
+                                    const updated = [...formData.photos];
+                                    const photoToMove = updated[index];
+                                    // Remove from current position
+                                    updated.splice(index, 1);
+                                    // Move to front and set as primary
+                                    updated.unshift({
+                                      ...photoToMove,
+                                      isPrimary: true,
+                                    });
+                                    // Update all other photos to not be primary
+                                    updated.forEach((photo, i) => {
+                                      if (i > 0) {
+                                        photo.isPrimary = false;
+                                      }
+                                    });
+                                    updateField("photos", updated);
+                                    toast({
+                                      title: "Cover photo updated",
+                                      description: "This photo is now set as the cover photo.",
+                                    });
+                                  }}
+                                  data-testid={`button-set-cover-${index}`}
+                                  title="Set as cover photo"
+                                >
+                                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                </Button>
+                              )}
+                              {/* Remove button */}
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                className="h-8 w-8 bg-background/90 backdrop-blur-sm"
+                                onClick={() => {
+                                  const photoToRemove = formData.photos[index];
+                                  const isPrimary = typeof photoToRemove === 'object' && photoToRemove?.isPrimary;
+                                  const updated = formData.photos.filter((_: any, i: number) => i !== index);
+                                  
+                                  // If we removed the primary photo, set the first remaining photo as primary
+                                  if (isPrimary && updated.length > 0) {
+                                    updated[0] = {
+                                      ...updated[0],
+                                      isPrimary: true,
+                                    };
+                                  }
+                                  
+                                  updateField("photos", updated);
+                                  toast({
+                                    title: "Photo removed",
+                                    description: updated.length > 0 
+                                      ? "Photo has been removed from your listing." 
+                                      : "Photo removed. Add more photos to showcase your property.",
+                                  });
+                                }}
+                                data-testid={`button-remove-photo-${index}`}
+                                title="Remove photo"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            {/* Cover Photo Badge */}
+                            {(index === 0 || (typeof photo === 'object' && photo?.isPrimary)) && (
                               <div className="absolute bottom-2 left-2 z-10">
-                                <Badge variant="secondary">Cover Photo</Badge>
+                                <Badge variant="secondary" className="bg-primary/90 text-primary-foreground">
+                                  <Star className="h-3 w-3 mr-1 fill-current" />
+                                  Cover Photo
+                                </Badge>
                               </div>
                             )}
                           </div>
