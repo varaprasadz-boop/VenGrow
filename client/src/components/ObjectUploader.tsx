@@ -136,12 +136,12 @@ export function ObjectUploader({
     if (files.length === 0) return;
 
     setIsUploading(true);
-    const uploadPromises: Promise<void>[] = [];
+    const uploadPromises: Promise<{ index: number; finalURL?: string; error?: string }>[] = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       
-      const uploadPromise = (async () => {
+      const uploadPromise = (async (): Promise<{ index: number; finalURL?: string; error?: string }> => {
         try {
           setFiles((prev) => {
             const updated = [...prev];
@@ -159,7 +159,7 @@ export function ObjectUploader({
             // For local storage, use PUT with raw file data
             const xhr = new XMLHttpRequest();
             
-            return new Promise<void>((resolve, reject) => {
+            return new Promise<{ index: number; finalURL?: string; error?: string }>((resolve, reject) => {
               xhr.upload.addEventListener("progress", (e) => {
                 if (e.lengthComputable) {
                   const progress = Math.round((e.loaded / e.total) * 100);
@@ -174,27 +174,50 @@ export function ObjectUploader({
               xhr.addEventListener("load", () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
                   try {
-                    const response = JSON.parse(xhr.responseText);
+                    const responseText = xhr.responseText || xhr.response;
+                    console.log(`Upload response for file ${i} (${file.name}):`, responseText);
+                    
+                    let response: any;
+                    if (typeof responseText === 'string') {
+                      try {
+                        response = JSON.parse(responseText);
+                      } catch (e) {
+                        console.warn("Response is not JSON, treating as text:", responseText);
+                        response = { url: responseText };
+                      }
+                    } else if (typeof responseText === 'object') {
+                      response = responseText;
+                    } else {
+                      response = {};
+                    }
+                    
                     // For local storage, the response contains the URL
                     // The URL might be a relative path like /storage/public/... or full URL
                     let finalURL = response.url || response.uploadURL;
                     
+                    if (!finalURL) {
+                      console.warn("No URL in response, using uploadParams.url as fallback");
+                      finalURL = uploadParams.url;
+                    }
+                    
                     // If it's a relative path, make it absolute by prepending the origin
-                    if (finalURL && finalURL.startsWith("/")) {
+                    if (finalURL && finalURL.startsWith("/") && !finalURL.startsWith("//")) {
                       finalURL = `${window.location.origin}${finalURL}`;
                     }
 
+                    console.log(`Final URL for file ${i} (${file.name}):`, finalURL);
+                    
                     setFiles((prev) => {
                       const updated = [...prev];
                       updated[i] = {
                         ...updated[i],
                         uploadStatus: "success",
                         uploadProgress: 100,
-                        finalURL: finalURL || uploadParams.url,
+                        finalURL: finalURL,
                       };
                       return updated;
                     });
-                    resolve();
+                    resolve({ index: i, finalURL: finalURL });
                   } catch (e) {
                     // If response is not JSON, try to use the upload URL as final URL
                     let finalURL = uploadParams.url;
@@ -219,7 +242,7 @@ export function ObjectUploader({
                       };
                       return updated;
                     });
-                    resolve();
+                    resolve({ index: i, finalURL });
                   }
                 } else {
                   let errorMessage = `Upload failed with status ${xhr.status}`;
@@ -235,21 +258,32 @@ export function ObjectUploader({
                       errorMessage = xhr.responseText;
                     }
                   }
-                  throw new Error(errorMessage);
+                  const error = new Error(errorMessage);
+                  setFiles((prev) => {
+                    const updated = [...prev];
+                    updated[i] = {
+                      ...updated[i],
+                      uploadStatus: "error",
+                      error: errorMessage,
+                    };
+                    return updated;
+                  });
+                  reject({ index: i, error: errorMessage });
                 }
               });
 
               xhr.addEventListener("error", () => {
+                const errorMsg = "Upload failed";
                 setFiles((prev) => {
                   const updated = [...prev];
                   updated[i] = {
                     ...updated[i],
                     uploadStatus: "error",
-                    error: "Upload failed",
+                    error: errorMsg,
                   };
                   return updated;
                 });
-                reject(new Error("Upload failed"));
+                reject({ index: i, error: errorMsg });
               });
 
               xhr.open("PUT", uploadParams.url);
@@ -297,23 +331,34 @@ export function ObjectUploader({
                     };
                     return updated;
                   });
-                  resolve();
+                  resolve({ index: i, finalURL });
                 } else {
-                  throw new Error(`Upload failed with status ${xhr.status}`);
+                  const errorMsg = `Upload failed with status ${xhr.status}`;
+                  setFiles((prev) => {
+                    const updated = [...prev];
+                    updated[i] = {
+                      ...updated[i],
+                      uploadStatus: "error",
+                      error: errorMsg,
+                    };
+                    return updated;
+                  });
+                  reject({ index: i, error: errorMsg });
                 }
               });
 
               xhr.addEventListener("error", () => {
+                const errorMsg = "Upload failed";
                 setFiles((prev) => {
                   const updated = [...prev];
                   updated[i] = {
                     ...updated[i],
                     uploadStatus: "error",
-                    error: "Upload failed",
+                    error: errorMsg,
                   };
                   return updated;
                 });
-                reject(new Error("Upload failed"));
+                reject({ index: i, error: errorMsg });
               });
 
               xhr.open(uploadParams.method, uploadParams.url);
@@ -322,16 +367,17 @@ export function ObjectUploader({
             });
           }
         } catch (error: any) {
+          const errorMsg = error?.error || error?.message || "Upload failed";
           setFiles((prev) => {
             const updated = [...prev];
             updated[i] = {
               ...updated[i],
               uploadStatus: "error",
-              error: error.message || "Upload failed",
+              error: errorMsg,
             };
             return updated;
           });
-          throw error;
+          return { index: i, error: errorMsg };
         }
       })();
 
@@ -339,18 +385,18 @@ export function ObjectUploader({
     }
 
     try {
-      await Promise.all(uploadPromises);
+      const results = await Promise.allSettled(uploadPromises);
       
-      // Get the current files state to prepare result
-      const currentFiles = files;
-      
-      // Prepare result for onComplete callback
-      const successful = currentFiles
-        .map((file, index) => {
-          // Get the final URL - prefer finalURL from upload response, fallback to preview
-          const finalURL = file.finalURL || file.preview;
-          
-          return {
+      // Build result from the actual upload results, not from state
+      const successful: any[] = [];
+      const failed: any[] = [];
+
+      results.forEach((result, idx) => {
+        const file = files[idx];
+        if (result.status === 'fulfilled' && result.value.finalURL) {
+          const finalURL = result.value.finalURL;
+          console.log(`Building successful result for file ${idx} (${file.name}) with URL:`, finalURL);
+          successful.push({
             name: file.name,
             type: file.type,
             size: file.size,
@@ -365,16 +411,21 @@ export function ObjectUploader({
               url: finalURL,
               uploadURL: finalURL,
             },
-          };
-        })
-        .filter((_, index) => currentFiles[index].uploadStatus === "success");
+          });
+        } else {
+          const errorMsg = result.status === 'fulfilled' 
+            ? (result.value.error || "Upload failed")
+            : (result.reason?.error || result.reason?.message || "Upload failed");
+          console.error(`Upload failed for file ${idx} (${file.name}):`, errorMsg);
+          failed.push({
+            name: file.name,
+            error: { message: errorMsg },
+          });
+        }
+      });
 
-      const failed = currentFiles
-        .map((file, index) => ({
-          name: file.name,
-          error: { message: file.error || "Upload failed" },
-        }))
-        .filter((_, index) => currentFiles[index].uploadStatus === "error");
+      console.log("Upload complete - successful:", successful.length, "failed:", failed.length);
+      console.log("Successful files:", successful.map(f => ({ name: f.name, url: f.url })));
 
       // Call onComplete with the result
       if (onComplete) {
