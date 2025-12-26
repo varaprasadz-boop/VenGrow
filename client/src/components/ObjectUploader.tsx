@@ -489,8 +489,8 @@ export function ObjectUploader({
     }
   }, [files, isUploading]);
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 Bytes";
+  const formatFileSize = (bytes: number | undefined): string => {
+    if (!bytes || isNaN(bytes) || bytes === 0) return "0 Bytes";
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));

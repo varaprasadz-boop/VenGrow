@@ -3335,22 +3335,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Deleted ${existingImages.length} existing images for property ${propertyId}`);
       }
 
-      // Create new images with proper sorting and primary flag
-      const newImages = normalizedPaths.map((url, index) => ({
+      // Add images directly to database with proper sorting and primary flag
+      const { db } = await import("./db");
+      const { propertyImages } = await import("@shared/schema");
+      
+      const imageValues = normalizedPaths.map((url, index) => ({
         propertyId,
         url,
         isPrimary: index === 0, // First image is always primary
         sortOrder: index,
       }));
 
-      // Add images to storage
-      for (const image of newImages) {
-        try {
-          await storage.addPropertyImage(image.propertyId, image.url, image.isPrimary);
-        } catch (e: any) {
-          console.error("Error adding property image:", e.message);
-          // Continue with other images even if one fails
-        }
+      try {
+        await db.insert(propertyImages).values(imageValues);
+        console.log(`Successfully added ${imageValues.length} images for property ${propertyId}`);
+      } catch (e: any) {
+        console.error("Error adding property images:", e.message);
+        throw e; // Re-throw to return error response
       }
 
       res.json({ 
