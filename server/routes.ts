@@ -3232,14 +3232,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
       const objectStorageService = new ObjectStorageService();
       const objectPath = `/storage/${req.params.type}/${req.params.path}`;
+      console.log(`[Storage] Serving file: ${objectPath}`);
+      
       const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+      console.log(`[Storage] File found:`, 'path' in objectFile ? objectFile.path : 'GCS file');
+      
       await objectStorageService.downloadObject(objectFile, res);
     } catch (error: any) {
-      console.error("Error serving storage file:", error);
+      console.error(`[Storage] Error serving file /storage/${req.params.type}/${req.params.path}:`, error.message || error);
+      console.error(`[Storage] Error stack:`, error.stack);
       if (error?.name === "ObjectNotFoundError") {
-        return res.sendStatus(404);
+        return res.status(404).json({ error: "File not found", path: `/storage/${req.params.type}/${req.params.path}` });
       }
-      return res.sendStatus(500);
+      return res.status(500).json({ error: "Internal server error", message: error.message });
     }
   });
 

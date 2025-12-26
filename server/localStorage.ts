@@ -189,9 +189,12 @@ export class LocalStorageService {
       ? objectPath 
       : `/storage${objectPath.startsWith("/") ? "" : "/"}${objectPath}`;
 
+    console.log(`[LocalStorage] Getting file for path: ${normalizedPath}`);
+
     const pathParts = normalizedPath.split("/").filter(p => p);
     
     if (pathParts.length < 3) {
+      console.error(`[LocalStorage] Invalid path format: ${normalizedPath} (parts: ${pathParts.length})`);
       throw new ObjectNotFoundError();
     }
 
@@ -201,10 +204,15 @@ export class LocalStorageService {
     } else if (pathParts[1] === "private") {
       filePath = path.join(this.storageDir, "private", ...pathParts.slice(2));
     } else {
+      console.error(`[LocalStorage] Invalid storage type: ${pathParts[1]} (expected public or private)`);
       throw new ObjectNotFoundError();
     }
 
+    console.log(`[LocalStorage] Resolved file path: ${filePath}`);
+    console.log(`[LocalStorage] Public dir: ${this.publicDir}, Storage dir: ${this.storageDir}`);
+
     if (!existsSync(filePath)) {
+      console.error(`[LocalStorage] File does not exist: ${filePath}`);
       throw new ObjectNotFoundError();
     }
 
