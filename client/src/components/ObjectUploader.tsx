@@ -93,8 +93,8 @@ export function ObjectUploader({
     // Mark that we should auto-upload after modal closes
     shouldAutoUploadRef.current = true;
     
-    // Close modal immediately after selection
-    setShowModal(false);
+    // Don't close modal immediately - let user see upload progress/errors
+    // Modal will close automatically after successful upload or user can close manually
   }, [files.length, maxNumberOfFiles]);
 
   // Handle drag and drop
@@ -405,17 +405,38 @@ export function ObjectUploader({
     };
   }, [files]);
 
-  // Auto-upload files when modal closes with pending files
+  // Auto-upload files when files are selected
   useEffect(() => {
-    if (!showModal && shouldAutoUploadRef.current && files.length > 0 && !isUploading) {
+    if (shouldAutoUploadRef.current && files.length > 0 && !isUploading && showModal) {
       const hasPendingFiles = files.some(f => f.uploadStatus === "pending");
       if (hasPendingFiles) {
         shouldAutoUploadRef.current = false;
-        // Auto-upload files after modal closes
+        // Auto-upload files when modal is open
         handleUpload();
       }
     }
-  }, [showModal, files.length, isUploading, handleUpload]);
+  }, [files.length, isUploading, showModal, handleUpload]);
+
+  // Close modal automatically after all files are successfully uploaded
+  useEffect(() => {
+    if (files.length > 0 && !isUploading) {
+      const allSuccessful = files.every(f => f.uploadStatus === "success");
+      const hasErrors = files.some(f => f.uploadStatus === "error");
+      
+      // Only auto-close if all files are successful (not if there are errors)
+      if (allSuccessful && !hasErrors) {
+        // Close after a short delay to show success state
+        const timer = setTimeout(() => {
+          setShowModal(false);
+          // Clear files after modal closes
+          setTimeout(() => {
+            setFiles([]);
+          }, 300);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [files, isUploading]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
@@ -589,7 +610,12 @@ export function ObjectUploader({
 
                         {/* Error Message */}
                         {file.uploadStatus === "error" && file.error && (
-                          <p className="text-xs text-destructive">{file.error}</p>
+                          <div className="text-xs text-destructive bg-destructive/10 p-2 rounded border border-destructive/20">
+                            <div className="flex items-start gap-2">
+                              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                              <span>{file.error}</span>
+                            </div>
+                          </div>
                         )}
 
                         {/* Success Message */}

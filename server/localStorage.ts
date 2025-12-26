@@ -58,27 +58,30 @@ export class LocalStorageService {
           console.log(`Created storage directory: ${dir}`);
         } catch (error: any) {
           console.error(`Failed to create directory ${dir}:`, error.message);
-          // In production, this is critical - throw error
-          if (process.env.NODE_ENV === 'production') {
-            throw new Error(`Cannot create storage directory ${dir}: ${error.message}. Please ensure the directory exists and has proper permissions.`);
-          }
-          // In development, just warn and continue
-        }
-      } else {
-        // Check if directory is writable (synchronous check)
-        try {
-          const testFile = path.join(dir, '.write-test');
-          // Use sync methods for initialization check
-          const fsSync = require('fs');
-          fsSync.writeFileSync(testFile, 'test');
-          fsSync.unlinkSync(testFile);
-        } catch (error: any) {
-          console.warn(`Directory ${dir} exists but may not be writable:`, error.message);
-          if (process.env.NODE_ENV === 'production') {
-            throw new Error(`Storage directory ${dir} is not writable. Please check permissions.`);
-          }
+          // Don't throw during initialization - check will happen when writing
+          // This allows the service to start even if permissions are wrong
+          // The actual write operation will fail with a clear error message
         }
       }
+      // Note: We don't check writability during initialization to avoid blocking startup
+      // Permissions will be checked when actually writing files
+    }
+  }
+
+  /**
+   * Check if a directory is writable
+   * Throws an error with a clear message if not writable
+   */
+  private async checkDirectoryWritable(dir: string): Promise<void> {
+    try {
+      const testFile = path.join(dir, `.write-test-${Date.now()}`);
+      await fs.writeFile(testFile, 'test');
+      await fs.unlink(testFile);
+    } catch (error: any) {
+      throw new Error(
+        `Storage directory ${dir} is not writable. Please check permissions. ` +
+        `Run: sudo chown -R $USER:$USER ${dir} && chmod -R 755 ${dir}`
+      );
     }
   }
 
@@ -148,6 +151,9 @@ export class LocalStorageService {
       }
     }
 
+    // Check if directory is writable before attempting to write
+    await this.checkDirectoryWritable(targetDir);
+
     const filePath = path.join(targetDir, fileName);
     
     try {
@@ -155,6 +161,13 @@ export class LocalStorageService {
       console.log(`File saved successfully: ${filePath} (${buffer.length} bytes)`);
     } catch (error: any) {
       console.error(`Failed to write file ${filePath}:`, error.message);
+      // If it's a permission error, provide helpful message
+      if (error.code === 'EACCES' || error.code === 'EPERM') {
+        throw new Error(
+          `Permission denied writing to ${targetDir}. Please check permissions. ` +
+          `Run: sudo chown -R $USER:$USER ${this.storageDir} && chmod -R 755 ${this.storageDir}`
+        );
+      }
       throw new Error(`Failed to save file: ${error.message}`);
     }
 
