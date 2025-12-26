@@ -1,0 +1,177 @@
+name: Deploy to Hostinger VPS
+
+on:
+  push:
+    branches:
+      - main  # Deploy on push to main branch
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  NODE_VERSION: '18.x'
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run type check
+        run: npm run check
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy-package
+          cp -r dist deploy-package/
+          cp -r server deploy-package/ || true
+          cp -r shared deploy-package/ || true
+          cp package.json deploy-package/
+          cp package-lock.json deploy-package/
+          cp ecosystem.config.cjs deploy-package/
+          cp .env.example deploy-package/ || true
+          # Create deployment script
+          cat > deploy-package/deploy.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          echo "🚀 Starting deployment..."
+          
+          # Navigate to application directory
+          cd /var/www/vengrow || exit 1
+          
+          # Backup current version
+          if [ -d "dist" ]; then
+            echo "📦 Creating backup..."
+            BACKUP_DIR="/var/www/vengrow-backups/$(date +%Y%m%d_%H%M%S)"
+            mkdir -p "$BACKUP_DIR"
+            cp -r dist "$BACKUP_DIR/" || true
+            echo "✅ Backup created at $BACKUP_DIR"
+          fi
+          
+          # Install/update dependencies
+          echo "📥 Installing dependencies..."
+          npm ci --production
+          
+          # Run database migrations if needed
+          echo "🗄️  Running database migrations..."
+          npm run db:push || echo "⚠️  Database migration failed or not needed"
+          
+          # Ensure storage directories exist
+          echo "📁 Ensuring storage directories exist..."
+          mkdir -p /var/www/storage/public
+          mkdir -p /var/www/storage/private
+          mkdir -p /var/www/storage/uploads
+          chmod -R 755 /var/www/storage
+          
+          # Restart application with PM2
+          echo "🔄 Restarting application..."
+          pm2 restart vengrow || pm2 start ecosystem.config.cjs
+          pm2 save
+          
+          echo "✅ Deployment completed successfully!"
+          pm2 status
+          EOF
+          chmod +x deploy-package/deploy.sh
+
+      - name: Compress deployment package
+        run: |
+          tar -czf deploy.tar.gz -C deploy-package .
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          source: "deploy.tar.gz"
+          target: "/tmp"
+
+      - name: Extract and deploy on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          script: |
+            # Create temporary extraction directory
+            EXTRACT_DIR="/tmp/vengrow-deploy-$(date +%s)"
+            mkdir -p "$EXTRACT_DIR"
+            
+            # Extract deployment package
+            echo "📦 Extracting deployment package..."
+            cd "$EXTRACT_DIR"
+            tar -xzf /tmp/deploy.tar.gz
+            
+            # Copy files to application directory
+            echo "📋 Copying files to application directory..."
+            mkdir -p /var/www/vengrow
+            cp -r dist /var/www/vengrow/
+            cp -r shared /var/www/vengrow/ || true
+            cp package.json /var/www/vengrow/
+            cp package-lock.json /var/www/vengrow/
+            cp ecosystem.config.cjs /var/www/vengrow/ || true
+            cp drizzle.config.ts /var/www/vengrow/ || true
+            
+            # Run deployment script
+            if [ -f deploy.sh ]; then
+              chmod +x deploy.sh
+              ./deploy.sh
+            else
+              # Fallback deployment steps
+              echo "📥 Installing dependencies..."
+              cd /var/www/vengrow
+              npm ci --production
+              
+              echo "🗄️  Running database migrations..."
+              npm run db:push || echo "⚠️  Database migration skipped"
+              
+              echo "📁 Ensuring storage directories..."
+              mkdir -p /var/www/storage/public
+              mkdir -p /var/www/storage/private
+              mkdir -p /var/www/storage/uploads
+              chmod -R 755 /var/www/storage
+              
+              echo "🔄 Restarting application..."
+              pm2 restart vengrow || pm2 start ecosystem.config.cjs
+              pm2 save
+            fi
+            
+            # Cleanup
+            echo "🧹 Cleaning up..."
+            rm -rf "$EXTRACT_DIR"
+            rm -f /tmp/deploy.tar.gz
+            
+            echo "✅ Deployment completed!"
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          script: |
+            echo "🔍 Verifying deployment..."
+            sleep 5
+            pm2 status
+            pm2 logs vengrow --lines 20 --nostream || true
+            echo "✅ Verification complete"
+
