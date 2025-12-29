@@ -165,8 +165,6 @@ function InvoicePreviewDialog({
             <div class="header">
               <div class="company">
                 <img src="/vengrow-logo.png" alt="VenGrow Logo" style="max-width: 200px; height: auto; margin-bottom: 10px;" />
-                <h1>VenGrow</h1>
-                <p>Real Estate Marketplace</p>
                 ${invoice.companyDetails?.address ? `<p>${invoice.companyDetails.address}</p>` : ''}
                 ${invoice.companyDetails?.state ? `<p>${invoice.companyDetails.state} - ${invoice.companyDetails.pinCode || ''}</p>` : ''}
                 ${invoice.companyDetails?.gstin ? `<p>GSTIN: ${invoice.companyDetails.gstin}</p>` : ''}
@@ -274,8 +272,6 @@ function InvoicePreviewDialog({
   <div class="header">
     <div class="company">
       <img src="/vengrow-logo.png" alt="VenGrow Logo" />
-      <h1>VenGrow</h1>
-      <p>Real Estate Marketplace</p>
       ${invoice.companyDetails?.address ? `<p>${invoice.companyDetails.address}</p>` : ''}
       ${invoice.companyDetails?.state ? `<p>${invoice.companyDetails.state} - ${invoice.companyDetails.pinCode || ''}</p>` : ''}
       ${invoice.companyDetails?.gstin ? `<p>GSTIN: ${invoice.companyDetails.gstin}</p>` : ''}
@@ -381,8 +377,6 @@ function InvoicePreviewDialog({
                 alt="VenGrow Logo" 
                 className="h-16 mb-4 object-contain"
               />
-              <h2 className="text-2xl font-bold text-primary">VenGrow</h2>
-              <p className="text-sm text-muted-foreground">Real Estate Marketplace</p>
               {invoice.companyDetails?.address && (
                 <p className="text-sm">{invoice.companyDetails.address}</p>
               )}
