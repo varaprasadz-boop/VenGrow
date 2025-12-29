@@ -112,6 +112,9 @@ export default function ScheduleVisitPage() {
       scheduledTime: formData.time,
       visitType,
       notes: formData.message,
+      buyerName: formData.name,
+      buyerEmail: formData.email,
+      buyerPhone: formData.phone,
     });
   };
 
