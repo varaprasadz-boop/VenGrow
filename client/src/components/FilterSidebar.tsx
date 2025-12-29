@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Filter, X, Search, MapPin, Calendar, Building2, Layers, Milestone, Bookmark, Loader2 } from "lucide-react";
+import { useLocation as useLocationContext } from "@/contexts/LocationContext";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -50,6 +51,11 @@ const projectStages = [
 export default function FilterSidebar({ onApplyFilters, initialCategory }: FilterSidebarProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Get selected city from LocationContext (header city selector)
+  const locationContext = useLocationContext();
+  const headerSelectedCity = locationContext?.selectedCity?.name || "";
+  
   const [priceRange, setPriceRange] = useState([0, 20000000]);
   const [selectedTransactionTypes, setSelectedTransactionTypes] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || "all");
@@ -64,6 +70,13 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
   const [corporateSearch, setCorporateSearch] = useState<string>("");
   const [saveSearchOpen, setSaveSearchOpen] = useState(false);
   const [searchName, setSearchName] = useState("");
+  
+  // Sync FilterSidebar city display with header city selection (display only, no auto-apply)
+  useEffect(() => {
+    if (headerSelectedCity && headerSelectedCity !== selectedCity) {
+      setSelectedCity(headerSelectedCity);
+    }
+  }, [headerSelectedCity, selectedCity]);
 
   const saveSearchMutation = useMutation({
     mutationFn: async () => {

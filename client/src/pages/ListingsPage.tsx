@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import FilterSidebar from "@/components/FilterSidebar";
+import { useLocation as useLocationContext } from "@/contexts/LocationContext";
 import ListingsFilterHeader from "@/components/ListingsFilterHeader";
 import PropertyCard from "@/components/PropertyCard";
 import PropertyMapView from "@/components/PropertyMapView";
@@ -42,6 +43,10 @@ export default function ListingsPage() {
   const [sortBy, setSortBy] = useState("newest");
   const [filters, setFilters] = useState<FilterState>({});
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  
+  // Get selected city from LocationContext (header city selector)
+  const locationContext = useLocationContext();
+  const headerSelectedCity = locationContext?.selectedCity?.name || null;
   
   // Parse URL parameters
   const urlParams = useMemo(() => {
@@ -161,10 +166,11 @@ export default function ListingsPage() {
       result = result.filter(p => p.price >= minPrice && p.price <= maxPrice);
     }
     
-    // City filter
-    if (filters.city && filters.city !== "all") {
+    // City filter - prioritize header city selection, fallback to sidebar filter
+    const cityFilter = headerSelectedCity || filters.city;
+    if (cityFilter && cityFilter !== "all") {
       result = result.filter(p => 
-        p.city?.toLowerCase() === filters.city?.toLowerCase()
+        p.city?.toLowerCase() === cityFilter.toLowerCase()
       );
     }
     
@@ -231,7 +237,7 @@ export default function ListingsPage() {
     }
     
     return result;
-  }, [transactionTypeFromPath, allProperties, filters, sortBy, urlParams]);
+  }, [transactionTypeFromPath, allProperties, filters, sortBy, urlParams, headerSelectedCity]);
 
   return (
     <div className="min-h-screen flex flex-col">
