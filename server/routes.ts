@@ -518,6 +518,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update seller profile (for verification status updates)
+  app.patch("/api/sellers/:id", async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+
+      // Check if seller exists
+      const existingSeller = await storage.getSellerProfile(id);
+      if (!existingSeller) {
+        return res.status(404).json({ error: "Seller not found" });
+      }
+
+      // Update seller profile
+      const updatedSeller = await storage.updateSellerProfile(id, updateData);
+      
+      // If verification status is being updated, create audit log
+      if (updateData.verificationStatus && updateData.verificationStatus !== existingSeller.verificationStatus) {
+        const adminUser = (req.session as any)?.adminUser;
+        await storage.createAuditLog({
+          userId: adminUser?.id === "superadmin" ? null : adminUser?.id,
+          action: `Seller Verification ${updateData.verificationStatus === "verified" ? "Approved" : "Rejected"}`,
+          entityType: "seller",
+          entityId: id,
+          oldData: { verificationStatus: existingSeller.verificationStatus },
+          newData: { verificationStatus: updateData.verificationStatus },
+          ipAddress: req.ip || null,
+          userAgent: req.get("user-agent") || null,
+        });
+
+        // Send notification to seller
+        const user = await storage.getUser(existingSeller.userId);
+        if (user?.email) {
+          const triggerEvent = updateData.verificationStatus === "verified" 
+            ? "seller_approved" 
+            : updateData.verificationStatus === "rejected"
+            ? "seller_rejected"
+            : null;
+          
+          if (triggerEvent) {
+            emailService.sendTemplatedEmail(
+              triggerEvent,
+              user.email,
+              {
+                sellerName: user.firstName || "Seller",
+                email: user.email,
+              }
+            ).catch(err => console.log("[Email] Verification notification error:", err));
+          }
+        }
+      }
+
+      res.json(updatedSeller);
+    } catch (error) {
+      console.error("Error updating seller:", error);
+      res.status(500).json({ error: "Failed to update seller" });
+    }
+  });
+
   // ============================================
   // PACKAGE ROUTES
   // ============================================
