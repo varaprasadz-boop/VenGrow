@@ -164,6 +164,7 @@ function InvoicePreviewDialog({
           <body>
             <div class="header">
               <div class="company">
+                <img src="/vengrow-logo.png" alt="VenGrow Logo" style="max-width: 200px; height: auto; margin-bottom: 10px;" />
                 <h1>VenGrow</h1>
                 <p>Real Estate Marketplace</p>
                 ${invoice.companyDetails?.address ? `<p>${invoice.companyDetails.address}</p>` : ''}
@@ -231,7 +232,115 @@ function InvoicePreviewDialog({
     if (invoice.pdfUrl) {
       window.open(invoice.pdfUrl, '_blank');
     } else {
-      handlePrint();
+      // Create downloadable HTML with logo
+      const subtotal = invoice.subtotal || invoice.amount || 0;
+      const cgst = invoice.cgstAmount || (invoice.gstAmount ? invoice.gstAmount / 2 : 0);
+      const sgst = invoice.sgstAmount || (invoice.gstAmount ? invoice.gstAmount / 2 : 0);
+      const total = invoice.totalAmount || (subtotal + cgst + sgst);
+      const status = invoice.paidAt || invoice.status === 'completed' ? 'Paid' : 'Pending';
+      
+      const invoiceHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Invoice ${invoice.invoiceNumber}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; background: #fff; }
+    .header { display: flex; justify-content: space-between; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
+    .company { }
+    .company img { max-width: 200px; height: auto; margin-bottom: 10px; }
+    .company h1 { color: #0ea5e9; margin: 0; font-size: 28px; }
+    .invoice-info { text-align: right; }
+    .invoice-info h2 { margin: 0 0 10px 0; }
+    .status { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 12px; }
+    .status-paid { background: #dcfce7; color: #166534; }
+    .status-pending { background: #fef9c3; color: #854d0e; }
+    .section { margin: 20px 0; }
+    .grid { display: flex; justify-content: space-between; }
+    .grid-item { flex: 1; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 12px; text-align: left; }
+    th { background: #f9fafb; }
+    .totals { width: 300px; margin-left: auto; }
+    .totals .row { display: flex; justify-content: space-between; padding: 8px 0; }
+    .totals .total { font-weight: bold; font-size: 18px; border-top: 2px solid #000; margin-top: 8px; padding-top: 12px; }
+    .terms { margin-top: 40px; font-size: 12px; color: #6b7280; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="company">
+      <img src="/vengrow-logo.png" alt="VenGrow Logo" />
+      <h1>VenGrow</h1>
+      <p>Real Estate Marketplace</p>
+      ${invoice.companyDetails?.address ? `<p>${invoice.companyDetails.address}</p>` : ''}
+      ${invoice.companyDetails?.state ? `<p>${invoice.companyDetails.state} - ${invoice.companyDetails.pinCode || ''}</p>` : ''}
+      ${invoice.companyDetails?.gstin ? `<p>GSTIN: ${invoice.companyDetails.gstin}</p>` : ''}
+    </div>
+    <div class="invoice-info">
+      <h2>TAX INVOICE</h2>
+      <p style="font-family: monospace; font-size: 18px;">${invoice.invoiceNumber}</p>
+      <span class="status ${status === 'Paid' ? 'status-paid' : 'status-pending'}">${status}</span>
+    </div>
+  </div>
+  <div class="section grid">
+    <div class="grid-item">
+      <strong>Bill To:</strong>
+      <p>${invoice.sellerDetails?.name || sellerName}</p>
+      <p>${invoice.sellerDetails?.email || sellerEmail}</p>
+      ${invoice.sellerDetails?.phone ? `<p>${invoice.sellerDetails.phone}</p>` : ''}
+      ${invoice.sellerDetails?.gstin ? `<p>GSTIN: ${invoice.sellerDetails.gstin}</p>` : ''}
+    </div>
+    <div class="grid-item" style="text-align: right;">
+      <p>Invoice Date: ${invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : new Date(invoice.createdAt).toLocaleDateString()}</p>
+      ${invoice.placeOfSupply ? `<p>Place of Supply: ${invoice.placeOfSupply}</p>` : ''}
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th>SAC Code</th>
+        <th style="text-align: right;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>${invoice.packageDetails?.name || packageName} Package<br><small>Subscription for ${invoice.packageDetails?.duration || 30} days</small></td>
+        <td>${invoice.sacCode || '997221'}</td>
+        <td style="text-align: right;">₹${subtotal.toLocaleString('en-IN')}</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="totals">
+    <div class="row"><span>Subtotal:</span><span>₹${subtotal.toLocaleString('en-IN')}</span></div>
+    <div class="row"><span>CGST @ 9%:</span><span>₹${cgst.toLocaleString('en-IN')}</span></div>
+    <div class="row"><span>SGST @ 9%:</span><span>₹${sgst.toLocaleString('en-IN')}</span></div>
+    <div class="row total"><span>Total:</span><span>₹${total.toLocaleString('en-IN')}</span></div>
+  </div>
+  ${invoice.paymentMode ? `<p style="margin-top: 20px;">Payment Mode: ${invoice.paymentMode}</p>` : ''}
+  <div class="terms">
+    <p><strong>Terms & Conditions:</strong></p>
+    <p>1. Payment once made is non-refundable.</p>
+    <p>2. Invoice valid for accounting & GST purposes.</p>
+    <p>3. Any disputes subject to Bangalore jurisdiction.</p>
+  </div>
+</body>
+</html>
+      `;
+      
+      const blob = new Blob([invoiceHTML], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `VenGrow-Invoice-${invoice.invoiceNumber}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
   };
 
@@ -267,6 +376,11 @@ function InvoicePreviewDialog({
             <div className="space-y-6 p-4 border rounded-lg bg-white dark:bg-card">
           <div className="flex justify-between items-start">
             <div>
+              <img 
+                src="/vengrow-logo.png" 
+                alt="VenGrow Logo" 
+                className="h-16 mb-4 object-contain"
+              />
               <h2 className="text-2xl font-bold text-primary">VenGrow</h2>
               <p className="text-sm text-muted-foreground">Real Estate Marketplace</p>
               {invoice.companyDetails?.address && (
