@@ -10,6 +10,9 @@ import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { verifySuperadminCredentials, hashPassword, verifyPassword, validateEmail, validatePhone, validatePassword } from "./auth-utils";
 import * as emailService from "./email";
+import { db } from "./db";
+import { properties, propertyViews, users } from "@shared/schema";
+import { eq, and, or, desc, sql, notInArray } from "drizzle-orm";
 
 const connectedClients = new Map<string, Set<WebSocket>>();
 
@@ -48,6 +51,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================
   
   // Get current authenticated user (alias for frontend compatibility)
+  // Update current user profile
+  app.patch("/api/auth/me", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const { firstName, lastName, phone, bio } = req.body;
+      const updateData: any = {};
+      
+      if (firstName !== undefined) updateData.firstName = firstName.trim();
+      if (lastName !== undefined) updateData.lastName = lastName.trim();
+      if (phone !== undefined) {
+        const cleanedPhone = String(phone).replace(/\D/g, "");
+        if (cleanedPhone && !validatePhone(cleanedPhone)) {
+          return res.status(400).json({ error: "Invalid phone number" });
+        }
+        updateData.phone = cleanedPhone || null;
+      }
+      if (bio !== undefined) updateData.bio = bio.trim();
+      
+      const updatedUser = await storage.updateUser(userId, updateData);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Update user notification preferences
+  app.patch("/api/auth/me/preferences", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const { 
+        emailNotifications, 
+        smsNotifications, 
+        pushNotifications, 
+        newListings, 
+        priceDrops, 
+        inquiryReplies 
+      } = req.body;
+      
+      const preferences: any = {};
+      if (emailNotifications !== undefined) preferences.emailNotifications = emailNotifications;
+      if (smsNotifications !== undefined) preferences.smsNotifications = smsNotifications;
+      if (pushNotifications !== undefined) preferences.pushNotifications = pushNotifications;
+      if (newListings !== undefined) preferences.newListings = newListings;
+      if (priceDrops !== undefined) preferences.priceDrops = priceDrops;
+      if (inquiryReplies !== undefined) preferences.inquiryReplies = inquiryReplies;
+      
+      // Store preferences in user metadata or create a separate preferences table
+      // For now, storing in user's metadata field if it exists, or we can extend the user table
+      const updatedUser = await storage.updateUser(userId, { 
+        metadata: preferences 
+      } as any);
+      
+      res.json({ success: true, preferences });
+    } catch (error) {
+      console.error("Error updating preferences:", error);
+      res.status(500).json({ error: "Failed to update preferences" });
+    }
+  });
+
+  // Delete current user account
+  app.delete("/api/auth/me", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      // Delete user (cascade will handle related data)
+      await db.delete(users).where(eq(users.id, userId));
+      
+      // Destroy session
+      req.session.destroy((err: any) => {
+        if (err) {
+          console.error("Error destroying session:", err);
+        }
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      res.status(500).json({ error: "Failed to delete account" });
+    }
+  });
+
   app.get("/api/auth/me", async (req: any, res: Response) => {
     try {
       // Check for local user session first
@@ -1254,8 +1344,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get images
       const images = await storage.getPropertyImages(req.params.id);
       
-      res.json({ ...property, images });
+      // Get seller profile if sellerId exists
+      let sellerProfile = null;
+      if (property.sellerId) {
+        sellerProfile = await storage.getSellerProfile(property.sellerId);
+      }
+      
+      res.json({ 
+        ...property, 
+        images,
+        seller: sellerProfile ? {
+          id: sellerProfile.id,
+          businessName: sellerProfile.businessName,
+          firstName: sellerProfile.firstName,
+          lastName: sellerProfile.lastName,
+          sellerType: sellerProfile.sellerType,
+          isVerified: sellerProfile.isVerified || false,
+        } : null,
+      });
     } catch (error) {
+      console.error("Error getting property:", error);
       res.status(500).json({ error: "Failed to get property" });
     }
   });
@@ -3264,8 +3372,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       const role = user?.role || 'buyer';
       const stats = await storage.getDashboardStats(role, userId);
-      res.json(stats);
+      
+      // For buyers, enhance response with additional data
+      if (role === 'buyer') {
+        const favorites = await storage.getFavorites(userId);
+        const savedSearches = await storage.getSavedSearches(userId);
+        const appointments = await storage.getAppointmentsByBuyer(userId);
+        const inquiries = await storage.getInquiriesByBuyer(userId);
+        
+        // Get recently viewed properties (from propertyViews)
+        const recentViews = await db.select({
+          property: properties,
+          viewedAt: propertyViews.createdAt,
+        })
+          .from(propertyViews)
+          .innerJoin(properties, eq(propertyViews.propertyId, properties.id))
+          .where(eq(propertyViews.userId, userId))
+          .orderBy(desc(propertyViews.createdAt))
+          .limit(5);
+        
+        // Get recommended properties (top properties by views, excluding already favorited)
+        const favoriteIds = favorites.map(f => f.propertyId);
+        const recommended = favoriteIds.length > 0
+          ? await db.select()
+              .from(properties)
+              .where(and(
+                eq(properties.status, 'active'),
+                or(
+                  eq(properties.workflowStatus, 'live'),
+                  eq(properties.workflowStatus, 'approved')
+                ),
+                notInArray(properties.id, favoriteIds)
+              ))
+              .orderBy(desc(properties.viewCount))
+              .limit(4)
+          : await db.select()
+              .from(properties)
+              .where(and(
+                eq(properties.status, 'active'),
+                or(
+                  eq(properties.workflowStatus, 'live'),
+                  eq(properties.workflowStatus, 'approved')
+                )
+              ))
+              .orderBy(desc(properties.viewCount))
+              .limit(4);
+        
+        res.json({
+          ...stats,
+          savedProperties: stats.totalFavorites || 0,
+          activeSearches: savedSearches.filter(s => s.alertEnabled).length,
+          scheduledVisits: appointments.filter(a => 
+            (a.status === 'pending' || a.status === 'confirmed') &&
+            new Date(a.scheduledDate) >= new Date()
+          ).length,
+          unreadMessages: 0, // TODO: Implement unread message count
+          recentlyViewed: recentViews.map(rv => ({
+            id: rv.property.id,
+            title: rv.property.title,
+            location: `${rv.property.locality || ''}, ${rv.property.city}`.replace(/^, /, ''),
+            price: rv.property.price,
+            viewedAt: rv.viewedAt,
+          })),
+          recommendations: recommended.map(p => ({
+            id: p.id,
+            title: p.title,
+            location: `${p.locality || ''}, ${p.city}`.replace(/^, /, ''),
+            price: p.price,
+            type: p.propertyType,
+            bedrooms: p.bedrooms || 0,
+            bathrooms: p.bathrooms || 0,
+            area: p.area || 0,
+          })),
+          savedSearches: savedSearches.slice(0, 3).map(s => ({
+            id: s.id,
+            name: s.name,
+            filters: s.filters,
+            alertEnabled: s.alertEnabled,
+          })),
+        });
+      } else {
+        res.json(stats);
+      }
     } catch (error) {
+      console.error("Error getting dashboard stats:", error);
       res.status(500).json({ error: "Failed to get dashboard stats" });
     }
   });

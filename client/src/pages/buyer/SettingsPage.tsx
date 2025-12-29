@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
@@ -12,9 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Bell, Mail, MessageSquare, Globe, Moon, Sun } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Bell, Mail, MessageSquare, Globe, Moon, Sun, Loader2 } from "lucide-react";
+import type { User } from "@shared/schema";
 
 export default function SettingsPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [smsNotifications, setSmsNotifications] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -22,6 +29,61 @@ export default function SettingsPage() {
   const [priceDrops, setPriceDrops] = useState(true);
   const [inquiryReplies, setInquiryReplies] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [language, setLanguage] = useState("en");
+  const [currency, setCurrency] = useState("inr");
+
+  const { data: currentUser } = useQuery<User>({
+    queryKey: ["/api/auth/me"],
+    enabled: !!user,
+  });
+
+  useEffect(() => {
+    if (currentUser && (currentUser as any).metadata) {
+      const prefs = (currentUser as any).metadata;
+      if (prefs.emailNotifications !== undefined) setEmailNotifications(prefs.emailNotifications);
+      if (prefs.smsNotifications !== undefined) setSmsNotifications(prefs.smsNotifications);
+      if (prefs.pushNotifications !== undefined) setPushNotifications(prefs.pushNotifications);
+      if (prefs.newListings !== undefined) setNewListings(prefs.newListings);
+      if (prefs.priceDrops !== undefined) setPriceDrops(prefs.priceDrops);
+      if (prefs.inquiryReplies !== undefined) setInquiryReplies(prefs.inquiryReplies);
+    }
+  }, [currentUser]);
+
+  const savePreferencesMutation = useMutation({
+    mutationFn: async (preferences: {
+      emailNotifications: boolean;
+      smsNotifications: boolean;
+      pushNotifications: boolean;
+      newListings: boolean;
+      priceDrops: boolean;
+      inquiryReplies: boolean;
+    }) => {
+      return apiRequest("PATCH", "/api/auth/me/preferences", preferences);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({
+        title: "Settings saved successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to save settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveSettings = () => {
+    savePreferencesMutation.mutate({
+      emailNotifications,
+      smsNotifications,
+      pushNotifications,
+      newListings,
+      priceDrops,
+      inquiryReplies,
+    });
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -180,7 +242,7 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="language">Language</Label>
-                  <Select defaultValue="en">
+                  <Select value={language} onValueChange={setLanguage}>
                     <SelectTrigger id="language" data-testid="select-language">
                       <SelectValue placeholder="Select language" />
                     </SelectTrigger>
@@ -195,7 +257,7 @@ export default function SettingsPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="currency">Currency</Label>
-                  <Select defaultValue="inr">
+                  <Select value={currency} onValueChange={setCurrency}>
                     <SelectTrigger id="currency" data-testid="select-currency">
                       <SelectValue placeholder="Select currency" />
                     </SelectTrigger>
@@ -210,8 +272,20 @@ export default function SettingsPage() {
 
             {/* Save Button */}
             <div className="flex justify-end">
-              <Button size="lg" data-testid="button-save-settings">
-                Save Settings
+              <Button 
+                size="lg" 
+                onClick={handleSaveSettings}
+                disabled={savePreferencesMutation.isPending}
+                data-testid="button-save-settings"
+              >
+                {savePreferencesMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Settings"
+                )}
               </Button>
             </div>
           </div>

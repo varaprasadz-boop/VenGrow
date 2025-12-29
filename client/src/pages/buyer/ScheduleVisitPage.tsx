@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Link } from "wouter";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
@@ -8,9 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Calendar as CalendarIcon, Clock, MapPin, Building2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Calendar as CalendarIcon, Clock, MapPin, Building2, Loader2 } from "lucide-react";
+import type { Property } from "@shared/schema";
 
 export default function ScheduleVisitPage() {
+  const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [visitType, setVisitType] = useState("physical");
   const [formData, setFormData] = useState({
     date: "",
@@ -21,11 +30,89 @@ export default function ScheduleVisitPage() {
     message: "",
   });
 
-  const property = {
-    title: "Luxury 3BHK Apartment in Prime Location",
-    location: "Bandra West, Mumbai",
-    price: "₹85 L",
-    seller: "Prestige Estates",
+  const urlParams = new URLSearchParams(window.location.search);
+  const propertyId = urlParams.get("propertyId");
+
+  const { data: property, isLoading: propertyLoading } = useQuery<Property>({
+    queryKey: [`/api/properties/${propertyId}`],
+    enabled: !!propertyId,
+  });
+
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || '',
+        email: user.email || '',
+        phone: user.phone || '',
+      }));
+    }
+  }, [user]);
+
+  const scheduleMutation = useMutation({
+    mutationFn: async (data: {
+      propertyId: string;
+      scheduledDate: string;
+      scheduledTime: string;
+      visitType: string;
+      notes?: string;
+      buyerName?: string;
+      buyerEmail?: string;
+      buyerPhone?: string;
+    }) => {
+      return apiRequest("POST", "/api/appointments", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/me/appointments"] });
+      toast({
+        title: "Visit scheduled successfully",
+        description: "The seller will confirm your appointment soon.",
+      });
+      if (propertyId) {
+        setLocation(`/property/${propertyId}`);
+      } else {
+        setLocation("/buyer/dashboard");
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to schedule visit",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!propertyId) {
+      toast({
+        title: "Property ID missing",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!formData.date || !formData.time) {
+      toast({
+        title: "Please select date and time",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!formData.name || !formData.email || !formData.phone) {
+      toast({
+        title: "Please fill in all contact details",
+        variant: "destructive",
+      });
+      return;
+    }
+    scheduleMutation.mutate({
+      propertyId,
+      scheduledDate: formData.date,
+      scheduledTime: formData.time,
+      visitType,
+      notes: formData.message,
+    });
   };
 
   const timeSlots = [
@@ -39,18 +126,64 @@ export default function ScheduleVisitPage() {
     "05:00 PM",
   ];
 
+  const formatPrice = (price: number, transactionType: string) => {
+    if (transactionType === "rent" || transactionType === "lease") {
+      return `₹${(price / 1000).toFixed(0)}K/mo`;
+    }
+    if (price >= 10000000) {
+      return `₹${(price / 10000000).toFixed(2)} Cr`;
+    }
+    return `₹${(price / 100000).toFixed(2)} L`;
+  };
+
+  if (propertyLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header isLoggedIn={!!user} userType="buyer" />
+        <main className="flex-1 pb-16 lg:pb-8">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Skeleton className="h-10 w-64 mb-8" />
+            <Skeleton className="h-96 w-full" />
+          </div>
+        </main>
+        <BuyerBottomNav />
+      </div>
+    );
+  }
+
+  if (!property && propertyId) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header isLoggedIn={!!user} userType="buyer" />
+        <main className="flex-1 pb-16 lg:pb-8 flex items-center justify-center">
+          <Card className="p-8 text-center max-w-md">
+            <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="font-serif font-bold text-2xl mb-2">Property Not Found</h2>
+            <p className="text-muted-foreground mb-4">
+              The property you're trying to schedule a visit for doesn't exist.
+            </p>
+            <Button onClick={() => setLocation("/properties")}>Browse Properties</Button>
+          </Card>
+        </main>
+        <BuyerBottomNav />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="buyer" />
+      <Header isLoggedIn={!!user} userType="buyer" />
 
       <main className="flex-1 pb-16 lg:pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
-            <Link href="/property/1">
-              <a className="text-sm text-primary hover:underline mb-2 inline-block">
-                ← Back to Property
-              </a>
-            </Link>
+            {propertyId && (
+              <Link href={`/property/${propertyId}`}>
+                <span className="text-sm text-primary hover:underline mb-2 inline-block cursor-pointer">
+                  ← Back to Property
+                </span>
+              </Link>
+            )}
             <h1 className="font-serif font-bold text-3xl mb-2">
               Schedule a Visit
             </h1>
@@ -63,7 +196,7 @@ export default function ScheduleVisitPage() {
             {/* Form */}
             <div className="lg:col-span-2">
               <Card className="p-8">
-                <form className="space-y-6">
+                <form className="space-y-6" onSubmit={handleSubmit}>
                   {/* Visit Type */}
                   <div className="space-y-3">
                     <Label>Visit Type</Label>
@@ -212,13 +345,37 @@ export default function ScheduleVisitPage() {
 
                   {/* Actions */}
                   <div className="flex gap-3">
-                    <Link href="/property/1" className="flex-1">
-                      <Button variant="outline" className="w-full" data-testid="button-cancel">
+                    {propertyId ? (
+                      <Link href={`/property/${propertyId}`} className="flex-1">
+                        <Button type="button" variant="outline" className="w-full" data-testid="button-cancel">
+                          Cancel
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="flex-1" 
+                        onClick={() => setLocation("/properties")}
+                        data-testid="button-cancel"
+                      >
                         Cancel
                       </Button>
-                    </Link>
-                    <Button className="flex-1" data-testid="button-schedule">
-                      Schedule Visit
+                    )}
+                    <Button 
+                      type="submit" 
+                      className="flex-1" 
+                      disabled={scheduleMutation.isPending || !propertyId}
+                      data-testid="button-schedule"
+                    >
+                      {scheduleMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Scheduling...
+                        </>
+                      ) : (
+                        "Schedule Visit"
+                      )}
                     </Button>
                   </div>
                 </form>
@@ -226,39 +383,56 @@ export default function ScheduleVisitPage() {
             </div>
 
             {/* Property Summary */}
-            <div className="lg:col-span-1">
-              <Card className="p-6 sticky top-4">
-                <h3 className="font-semibold mb-4">Property Details</h3>
+            {property && (
+              <div className="lg:col-span-1">
+                <Card className="p-6 sticky top-4">
+                  <h3 className="font-semibold mb-4">Property Details</h3>
 
-                <div className="space-y-4">
-                  <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                    <span className="text-sm text-muted-foreground">Property Image</span>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold mb-2 line-clamp-2">
-                      {property.title}
-                    </h4>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                      <MapPin className="h-4 w-4" />
-                      <span>{property.location}</span>
-                    </div>
-                    <p className="text-2xl font-bold font-serif text-primary mb-3">
-                      {property.price}
-                    </p>
-                  </div>
-
-                  <div className="pt-4 border-t">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <Building2 className="h-5 w-5 text-primary" />
+                  <div className="space-y-4">
+                    {property.images && property.images.length > 0 ? (
+                      <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                        <img 
+                          src={typeof property.images[0] === 'string' ? property.images[0] : (property.images[0] as any).url}
+                          alt={property.title}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Listed by</p>
-                        <p className="font-medium">{property.seller}</p>
+                    ) : (
+                      <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+                        <span className="text-sm text-muted-foreground">No image</span>
                       </div>
+                    )}
+
+                    <div>
+                      <h4 className="font-semibold mb-2 line-clamp-2">
+                        {property.title}
+                      </h4>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <MapPin className="h-4 w-4" />
+                        <span>{property.locality || ''}, {property.city || ''}</span>
+                      </div>
+                      <p className="text-2xl font-bold font-serif text-primary mb-3">
+                        {formatPrice(property.price, property.transactionType)}
+                      </p>
                     </div>
-                  </div>
+
+                    {(property as any).seller && (
+                      <div className="pt-4 border-t">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="p-2 rounded-lg bg-primary/10">
+                            <Building2 className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Listed by</p>
+                            <p className="font-medium">
+                              {(property as any).seller.businessName || 
+                               `${(property as any).seller.firstName || ''} ${(property as any).seller.lastName || ''}`.trim() || 
+                               'Seller'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                   <div className="p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/20 rounded-lg">
                     <p className="text-sm text-blue-900 dark:text-blue-400">

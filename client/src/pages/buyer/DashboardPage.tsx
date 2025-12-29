@@ -78,24 +78,37 @@ function PropertyCard({ property }: { property: any }) {
 }
 
 export default function BuyerDashboardPage() {
-  const { data: stats } = useQuery<{
+  const { data: stats, isLoading } = useQuery<{
     savedProperties: number;
     activeSearches: number;
     scheduledVisits: number;
     unreadMessages: number;
-    recentlyViewed: any[];
-    recommendations: any[];
-    savedSearches: any[];
+    recentlyViewed: Array<{
+      id: string;
+      title: string;
+      location: string;
+      price: number;
+      viewedAt: string;
+    }>;
+    recommendations: Array<{
+      id: string;
+      title: string;
+      location: string;
+      price: number;
+      type: string;
+      bedrooms: number;
+      bathrooms: number;
+      area: number;
+    }>;
+    savedSearches: Array<{
+      id: string;
+      name: string;
+      filters: Record<string, unknown>;
+      alertEnabled: boolean;
+    }>;
   }>({
-    queryKey: ["/api/buyer/stats"],
+    queryKey: ["/api/me/dashboard"],
   });
-
-  const sampleProperties = [
-    { id: 1, title: "3BHK Premium Apartment", location: "Andheri West, Mumbai", price: "1.85 Cr", type: "Apartment", bedrooms: 3, bathrooms: 2, area: 1450 },
-    { id: 2, title: "Luxury Villa with Pool", location: "Juhu, Mumbai", price: "5.5 Cr", type: "Villa", bedrooms: 4, bathrooms: 3, area: 3200 },
-    { id: 3, title: "2BHK Sea View Flat", location: "Worli, Mumbai", price: "2.1 Cr", type: "Apartment", bedrooms: 2, bathrooms: 2, area: 1100 },
-    { id: 4, title: "Independent House", location: "Powai, Mumbai", price: "3.2 Cr", type: "House", bedrooms: 3, bathrooms: 3, area: 2000 },
-  ];
 
   return (
     <BuyerLayout>
@@ -192,44 +205,57 @@ export default function BuyerDashboardPage() {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div>
-                    <p className="font-medium">3BHK in Mumbai</p>
-                    <p className="text-xs text-muted-foreground">Budget: ₹1.5-2.5 Cr • Andheri, Bandra, Juhu</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">12 new</Badge>
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href="/properties?search=1" data-testid="button-view-search-1">View</Link>
-                    </Button>
-                  </div>
+              {stats?.savedSearches && stats.savedSearches.length > 0 ? (
+                <div className="space-y-3">
+                  {stats.savedSearches.map((search) => {
+                    const filters = search.filters || {};
+                    const city = filters.city as string || '';
+                    const propertyType = filters.propertyType as string || '';
+                    const minPrice = filters.minPrice as number;
+                    const maxPrice = filters.maxPrice as number;
+                    const formatPrice = (p: number) => {
+                      if (p >= 10000000) return `${(p / 10000000).toFixed(1)}Cr`;
+                      if (p >= 100000) return `${(p / 100000).toFixed(0)}L`;
+                      return `${p}`;
+                    };
+                    const priceRange = minPrice && maxPrice 
+                      ? `₹${formatPrice(minPrice)} - ₹${formatPrice(maxPrice)}`
+                      : minPrice ? `₹${formatPrice(minPrice)}+` : maxPrice ? `Up to ₹${formatPrice(maxPrice)}` : '';
+                    const searchParams = new URLSearchParams();
+                    Object.entries(filters).forEach(([key, value]) => {
+                      if (value !== undefined && value !== null && value !== '') {
+                        searchParams.set(key, String(value));
+                      }
+                    });
+                    return (
+                      <div key={search.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div>
+                          <p className="font-medium">{search.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {priceRange && `${priceRange} • `}
+                            {city && propertyType ? `${propertyType} in ${city}` : city || propertyType || 'All properties'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {search.alertEnabled && (
+                            <Badge variant="secondary">Active</Badge>
+                          )}
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={`/listings?${searchParams.toString()}`} data-testid={`button-view-search-${search.id}`}>
+                              View
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Villa in Pune</p>
-                    <p className="text-xs text-muted-foreground">Budget: ₹2-4 Cr • Kothrud, Baner</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">5 new</Badge>
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href="/properties?search=2" data-testid="button-view-search-2">View</Link>
-                    </Button>
-                  </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">No saved searches yet</p>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Plot in Bangalore</p>
-                    <p className="text-xs text-muted-foreground">Budget: ₹50L-1 Cr • Electronic City, Whitefield</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">3 new</Badge>
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href="/properties?search=3" data-testid="button-view-search-3">View</Link>
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -247,11 +273,34 @@ export default function BuyerDashboardPage() {
               </Link>
             </Button>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {sampleProperties.map((property) => (
-              <PropertyCard key={property.id} property={property} />
-            ))}
-          </div>
+          {stats?.recommendations && stats.recommendations.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {stats.recommendations.map((property) => {
+                const formatPrice = (price: number) => {
+                  if (price >= 10000000) return `${(price / 10000000).toFixed(2)} Cr`;
+                  if (price >= 100000) return `${(price / 100000).toFixed(2)} L`;
+                  return `${price.toLocaleString("en-IN")}`;
+                };
+                return (
+                  <PropertyCard 
+                    key={property.id} 
+                    property={{
+                      ...property,
+                      price: formatPrice(property.price),
+                    }} 
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground mb-4">No recommendations available</p>
+              <Link href="/properties">
+                <Button variant="outline">Browse Properties</Button>
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Recently Viewed */}
@@ -271,42 +320,53 @@ export default function BuyerDashboardPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 bg-muted rounded-lg flex items-center justify-center">
-                    <Building2 className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-medium">3BHK Premium Apartment</p>
-                    <p className="text-xs text-muted-foreground">Andheri West, Mumbai • ₹1.85 Cr</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Viewed 2h ago</span>
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href="/property/1" data-testid="button-view-recent-1">View</Link>
-                  </Button>
-                </div>
+            {stats?.recentlyViewed && stats.recentlyViewed.length > 0 ? (
+              <div className="space-y-3">
+                {stats.recentlyViewed.map((item) => {
+                  const formatPrice = (price: number) => {
+                    if (price >= 10000000) return `₹${(price / 10000000).toFixed(2)} Cr`;
+                    if (price >= 100000) return `₹${(price / 100000).toFixed(2)} L`;
+                    return `₹${price.toLocaleString("en-IN")}`;
+                  };
+                  const viewedDate = new Date(item.viewedAt);
+                  const now = new Date();
+                  const diffMs = now.getTime() - viewedDate.getTime();
+                  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                  const diffDays = Math.floor(diffHours / 24);
+                  const timeAgo = diffDays > 0 
+                    ? `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+                    : diffHours > 0 
+                    ? `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+                    : 'Just now';
+                  return (
+                    <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 bg-muted rounded-lg flex items-center justify-center">
+                          <Building2 className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{item.title}</p>
+                          <p className="text-xs text-muted-foreground">{item.location} • {formatPrice(item.price)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Viewed {timeAgo}</span>
+                        <Button size="sm" variant="outline" asChild>
+                          <Link href={`/property/${item.id}`} data-testid={`button-view-recent-${item.id}`}>
+                            View
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 bg-muted rounded-lg flex items-center justify-center">
-                    <Building2 className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Luxury Villa with Pool</p>
-                    <p className="text-xs text-muted-foreground">Juhu, Mumbai • ₹5.5 Cr</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Viewed yesterday</span>
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href="/property/2" data-testid="button-view-recent-2">View</Link>
-                  </Button>
-                </div>
+            ) : (
+              <div className="text-center py-8">
+                <Eye className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">No recently viewed properties</p>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
