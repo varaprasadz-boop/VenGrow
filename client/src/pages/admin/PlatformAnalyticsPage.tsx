@@ -17,6 +17,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { exportToCSV } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface AnalyticsData {
   users: {
@@ -51,6 +52,7 @@ interface AnalyticsData {
 }
 
 export default function PlatformAnalyticsPage() {
+  const { toast } = useToast();
   const { data: analytics, isLoading, isError, refetch } = useQuery<AnalyticsData>({
     queryKey: ["/api/admin/analytics"],
   });
@@ -171,7 +173,16 @@ export default function PlatformAnalyticsPage() {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
               </Button>
-              <Button variant="outline" data-testid="button-date-range">
+              <Button 
+                variant="outline" 
+                data-testid="button-date-range"
+                onClick={() => {
+                  toast({
+                    title: "Date Range",
+                    description: "Date range picker feature is coming soon.",
+                  });
+                }}
+              >
                 <Calendar className="h-4 w-4 mr-2" />
                 All Time
               </Button>

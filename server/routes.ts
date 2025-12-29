@@ -3551,6 +3551,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: Get dashboard stats
+  app.get("/api/admin/stats", async (req: any, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser?.isSuperAdmin) {
+        return res.status(401).json({ message: "Unauthorized - Admin access required" });
+      }
+
+      const allUsers = await storage.getAllUsers({});
+      const allProperties = await storage.getProperties({});
+      const allPayments = await storage.getAllPayments();
+      const allSellers = await storage.getAllSellerProfiles({});
+
+      const totalUsers = allUsers.length;
+      const totalProperties = allProperties.length;
+      const totalRevenue = allPayments
+        .filter(p => p.status === "completed")
+        .reduce((sum, p) => sum + (p.amount || 0), 0);
+      const pendingApprovals = allSellers.filter(s => s.verificationStatus === "pending").length;
+      const activeListings = allProperties.filter(p => p.workflowStatus === "live" || p.workflowStatus === "approved").length;
+      
+      // Calculate new users this month
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const newUsersThisMonth = allUsers.filter(u => new Date(u.createdAt) >= startOfMonth).length;
+
+      // Get recent transactions (last 5)
+      const recentTransactions = allPayments
+        .filter(p => p.status === "completed")
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5)
+        .map(p => ({
+          id: p.id,
+          amount: p.amount,
+          packageId: p.packageId,
+          userId: p.userId,
+          createdAt: p.createdAt,
+        }));
+
+      // Get pending sellers (last 5)
+      const pendingSellers = allSellers
+        .filter(s => s.verificationStatus === "pending")
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5);
+
+      res.json({
+        totalUsers,
+        totalProperties,
+        totalRevenue,
+        pendingApprovals,
+        activeListings,
+        newUsersThisMonth,
+        recentTransactions,
+        pendingSellers,
+      });
+    } catch (error) {
+      console.error("Error getting admin stats:", error);
+      res.status(500).json({ error: "Failed to get admin stats" });
+    }
+  });
+
   // Admin: Get real-time platform analytics
   app.get("/api/admin/analytics", async (req: any, res: Response) => {
     try {

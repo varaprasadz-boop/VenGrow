@@ -8,6 +8,8 @@ import {
   Users, Building2, CreditCard, TrendingUp, AlertCircle, 
   CheckCircle, Clock, Eye, ArrowUpRight, ArrowDownRight
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import type { SellerProfile, Payment } from "@shared/schema";
 
 function StatCard({ 
   title, 
@@ -54,18 +56,54 @@ function StatCard({
 }
 
 export default function AdminDashboardPage() {
-  const { data: stats, isLoading } = useQuery<{
+  // Fetch pending sellers
+  const { data: pendingSellers = [], isLoading: loadingSellers } = useQuery<SellerProfile[]>({
+    queryKey: ["/api/sellers"],
+    select: (sellers) => sellers.filter(s => s.verificationStatus === "pending").slice(0, 2),
+  });
+
+  // Fetch recent transactions
+  const { data: recentTransactions = [], isLoading: loadingTransactions } = useQuery<Payment[]>({
+    queryKey: ["/api/payments"],
+    select: (payments) => payments
+      .filter(p => p.status === "completed")
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 3),
+  });
+
+  // Fetch stats
+  const { data: stats, isLoading: loadingStats } = useQuery<{
     totalUsers: number;
     totalProperties: number;
     totalRevenue: number;
     pendingApprovals: number;
     activeListings: number;
     newUsersThisMonth: number;
-    recentTransactions: any[];
-    pendingSellers: any[];
   }>({
     queryKey: ["/api/admin/stats"],
   });
+
+  const isLoading = loadingSellers || loadingTransactions || loadingStats;
+
+  // Get user info for sellers
+  const { data: allUsers = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/users"],
+    enabled: pendingSellers.length > 0,
+  });
+
+  const getUserInfo = (userId: string) => {
+    const user = allUsers.find(u => u.id === userId);
+    return user ? {
+      name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email || "Unknown",
+      email: user.email || "",
+    } : { name: "Unknown", email: "" };
+  };
+
+  const getPackageName = (packageId: string | null) => {
+    if (!packageId) return "Unknown Package";
+    // This would ideally fetch from packages API, but for now return a placeholder
+    return "Package";
+  };
 
   return (
     <AdminLayout>
@@ -138,43 +176,40 @@ export default function AdminDashboardPage() {
               <div className="space-y-4">
                 {isLoading ? (
                   <div className="text-center py-4 text-muted-foreground">Loading...</div>
+                ) : pendingSellers.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                    <p>All seller registrations have been reviewed</p>
+                  </div>
                 ) : (
-                  <>
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Users className="h-5 w-5 text-primary" />
+                  pendingSellers.map((seller, index) => {
+                    const userInfo = getUserInfo(seller.userId);
+                    return (
+                      <div key={seller.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Users className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{seller.companyName || userInfo.name}</p>
+                            <p className="text-xs text-muted-foreground capitalize">{seller.sellerType} • {seller.city || "Unknown"}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">Rahul Properties</p>
-                          <p className="text-xs text-muted-foreground">Broker • Mumbai</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          <Clock className="h-3 w-3 mr-1" /> 2h ago
-                        </Badge>
-                        <Button size="sm" data-testid="button-review-seller">Review</Button>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Users className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium">BuildTech Homes</p>
-                          <p className="text-xs text-muted-foreground">Builder • Bangalore</p>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            <Clock className="h-3 w-3 mr-1" /> {formatDistanceToNow(new Date(seller.createdAt), { addSuffix: true })}
+                          </Badge>
+                          <Button 
+                            size="sm" 
+                            data-testid={`button-review-seller${index === 0 ? "" : `-${index + 1}`}`}
+                            asChild
+                          >
+                            <Link href={`/admin/seller-approvals`}>Review</Link>
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          <Clock className="h-3 w-3 mr-1" /> 5h ago
-                        </Badge>
-                        <Button size="sm" data-testid="button-review-seller-2">Review</Button>
-                      </div>
-                    </div>
-                  </>
+                    );
+                  })
                 )}
               </div>
             </CardContent>
@@ -195,51 +230,35 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Premium Package</p>
-                      <p className="text-xs text-muted-foreground">Priya Sharma</p>
-                    </div>
+                {isLoading ? (
+                  <div className="text-center py-4 text-muted-foreground">Loading...</div>
+                ) : recentTransactions.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <p>No recent transactions</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-green-600">+₹15,000</p>
-                    <p className="text-xs text-muted-foreground">2 hours ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Basic Package</p>
-                      <p className="text-xs text-muted-foreground">Amit Kumar</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-green-600">+₹4,999</p>
-                    <p className="text-xs text-muted-foreground">5 hours ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Enterprise Package</p>
-                      <p className="text-xs text-muted-foreground">ReMax Realty</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-green-600">+₹49,999</p>
-                    <p className="text-xs text-muted-foreground">1 day ago</p>
-                  </div>
-                </div>
+                ) : (
+                  recentTransactions.map((txn) => {
+                    const user = allUsers.find(u => u.id === txn.userId);
+                    const userName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email || "Unknown" : "Unknown";
+                    return (
+                      <div key={txn.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{getPackageName(txn.packageId)}</p>
+                            <p className="text-xs text-muted-foreground">{userName}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-green-600">+₹{(txn.amount || 0).toLocaleString("en-IN")}</p>
+                          <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(txn.createdAt), { addSuffix: true })}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </CardContent>
           </Card>

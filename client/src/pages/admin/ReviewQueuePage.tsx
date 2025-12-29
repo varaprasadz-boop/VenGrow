@@ -25,15 +25,27 @@ function formatPrice(amount: number): string {
 }
 
 export default function ReviewQueuePage() {
-  const { data: pendingProperties = [], isLoading: loadingProps } = useQuery<Property[]>({
-    queryKey: ["/api/admin/properties/pending"],
+  // Fetch all properties and filter for pending
+  const { data: allProperties = [], isLoading: loadingProps, isError: errorProps } = useQuery<Property[]>({
+    queryKey: ["/api/properties"],
   });
 
-  const { data: pendingSellers = [], isLoading: loadingSellers } = useQuery<SellerProfile[]>({
-    queryKey: ["/api/admin/sellers/pending"],
+  // Fetch all sellers and filter for pending
+  const { data: allSellers = [], isLoading: loadingSellers, isError: errorSellers } = useQuery<SellerProfile[]>({
+    queryKey: ["/api/sellers"],
   });
 
   const isLoading = loadingProps || loadingSellers;
+  const isError = errorProps || errorSellers;
+
+  // Filter for pending items
+  const pendingProperties = allProperties.filter(
+    p => p.workflowStatus === "submitted" || p.workflowStatus === "under_review"
+  );
+  
+  const pendingSellers = allSellers.filter(
+    s => s.verificationStatus === "pending"
+  );
 
   if (isLoading) {
     return (
@@ -43,6 +55,24 @@ export default function ReviewQueuePage() {
             <Skeleton className="h-96 w-full" />
           </div>
         </main>
+    );
+  }
+
+  if (isError) {
+    return (
+      <main className="flex-1 bg-muted/30 flex items-center justify-center">
+        <div className="text-center p-8">
+          <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
+          <h2 className="text-xl font-semibold mb-2">Failed to Load Review Queue</h2>
+          <p className="text-muted-foreground mb-4">
+            There was an error loading the review queue data.
+          </p>
+          <Button onClick={() => window.location.reload()} data-testid="button-retry">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      </main>
     );
   }
 
