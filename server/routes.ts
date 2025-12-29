@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import { randomUUID } from "crypto";
 import { storage } from "./storage";
 import { seedDatabase } from "./seed";
 import { seedCMSContent } from "./seed-cms";
@@ -254,6 +255,239 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Registration error:", error);
       res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  // Seller Registration
+  app.post("/api/seller/register", async (req: Request, res: Response) => {
+    try {
+      const {
+        sellerType,
+        // User fields
+        email,
+        password,
+        firstName,
+        lastName,
+        phone,
+        // Seller profile fields
+        companyName,
+        reraNumber,
+        gstNumber,
+        panNumber,
+        aadharNumber,
+        address,
+        city,
+        state,
+        pincode,
+        website,
+        // Broker specific
+        firmName,
+        yearsOfExperience,
+        // Corporate/Builder specific
+        cinNumber,
+        establishedYear,
+        completedProjects,
+        // Document URLs (should be uploaded separately first)
+        logoUrl,
+        brochureUrl,
+        reraCertificateUrl,
+        businessCardUrl,
+        incorporationCertificateUrl,
+        companyProfileUrl,
+        propertyDocumentUrl,
+      } = req.body;
+
+      // Validation
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      if (!validateEmail(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+
+      if (phone && !validatePhone(phone)) {
+        return res.status(400).json({ message: "Invalid phone number. Must be 10 digits starting with 6-9" });
+      }
+
+      if (!sellerType || !["individual", "broker", "builder"].includes(sellerType)) {
+        return res.status(400).json({ message: "Valid seller type is required" });
+      }
+      
+      // Map corporate to builder
+      const normalizedSellerType = sellerType === "corporate" ? "builder" : sellerType;
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({ message: "User with this email already exists" });
+      }
+
+      // Hash password
+      const passwordHash = await hashPassword(password);
+
+      // Create user
+      const user = await storage.createUserWithPassword({
+        email,
+        passwordHash,
+        firstName: firstName || companyName?.split(" ")[0] || "",
+        lastName: lastName || companyName?.split(" ").slice(1).join(" ") || "",
+        phone,
+        intent: "seller",
+        role: "seller",
+        authProvider: "local",
+      });
+
+      // Prepare seller profile data
+      const sellerProfileData: any = {
+        userId: user.id,
+        sellerType: normalizedSellerType as "individual" | "broker" | "builder",
+        verificationStatus: "pending",
+      };
+
+      // Add common fields
+      if (companyName) sellerProfileData.companyName = companyName;
+      if (firmName && sellerType === "broker") sellerProfileData.companyName = firmName;
+      if (reraNumber) sellerProfileData.reraNumber = reraNumber;
+      if (gstNumber) sellerProfileData.gstNumber = gstNumber;
+      if (panNumber) sellerProfileData.panNumber = panNumber;
+      if (address) sellerProfileData.address = address;
+      if (city) sellerProfileData.city = city;
+      if (state) sellerProfileData.state = state;
+      if (pincode) sellerProfileData.pincode = pincode;
+      if (website) sellerProfileData.website = website;
+      if (logoUrl) sellerProfileData.logo = logoUrl;
+
+      // Prepare verification documents
+      const verificationDocuments: any[] = [];
+      if (aadharNumber && propertyDocumentUrl) {
+        verificationDocuments.push({
+          type: "aadhaar",
+          number: aadharNumber,
+          url: propertyDocumentUrl,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+      if (panNumber && propertyDocumentUrl) {
+        verificationDocuments.push({
+          type: "pan",
+          number: panNumber,
+          url: propertyDocumentUrl,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+      if (reraNumber && reraCertificateUrl) {
+        verificationDocuments.push({
+          type: "rera",
+          number: reraNumber,
+          url: reraCertificateUrl,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+      if (incorporationCertificateUrl) {
+        verificationDocuments.push({
+          type: "incorporation",
+          url: incorporationCertificateUrl,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+      if (businessCardUrl) {
+        verificationDocuments.push({
+          type: "business_card",
+          url: businessCardUrl,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+      if (companyProfileUrl) {
+        verificationDocuments.push({
+          type: "company_profile",
+          url: companyProfileUrl,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+      if (brochureUrl) {
+        verificationDocuments.push({
+          type: "brochure",
+          url: brochureUrl,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+
+      if (verificationDocuments.length > 0) {
+        sellerProfileData.verificationDocuments = verificationDocuments;
+      }
+
+      // Create seller profile
+      const sellerProfile = await storage.createSellerProfile(sellerProfileData);
+
+      // Set session
+      (req.session as any).localUser = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        loginAt: new Date().toISOString(),
+      };
+
+      res.status(201).json({
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        },
+        sellerProfile: {
+          id: sellerProfile.id,
+          sellerType: sellerProfile.sellerType,
+          verificationStatus: sellerProfile.verificationStatus,
+        },
+      });
+    } catch (error) {
+      console.error("Seller registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  // Upload document for seller registration
+  app.post("/api/seller/register/upload-document", async (req: Request, res: Response) => {
+    try {
+      // This endpoint expects multipart/form-data with a file
+      // For now, we'll accept a base64 file or URL
+      // In production, use multer or similar for file uploads
+      const { file, fileName, fileType } = req.body;
+
+      if (!file) {
+        return res.status(400).json({ message: "File is required" });
+      }
+
+      // Generate unique filename
+      const fileExtension = fileName?.split(".").pop() || "pdf";
+      const uniqueFileName = `seller-documents/${Date.now()}-${randomUUID()}.${fileExtension}`;
+
+      // If file is base64, decode it
+      let fileBuffer: Buffer;
+      if (file.startsWith("data:")) {
+        const base64Data = file.split(",")[1];
+        fileBuffer = Buffer.from(base64Data, "base64");
+      } else if (file.startsWith("http")) {
+        // If it's already a URL, return it
+        return res.json({ url: file });
+      } else {
+        fileBuffer = Buffer.from(file, "base64");
+      }
+
+      // Upload to object storage
+      const objectStorage = new (await import("./objectStorage")).ObjectStorageService();
+      const url = await objectStorage.uploadObject("seller-documents", uniqueFileName, fileBuffer, {
+        contentType: fileType || "application/pdf",
+        acl: "public-read",
+      });
+
+      res.json({ url, fileName: uniqueFileName });
+    } catch (error) {
+      console.error("Document upload error:", error);
+      res.status(500).json({ message: "Failed to upload document" });
     }
   });
 
