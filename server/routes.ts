@@ -2886,6 +2886,277 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get seller verification status
+  app.get("/api/me/verifications", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json([]);
+      }
+
+      const user = await storage.getUser(userId);
+      const verifications = [];
+
+      // Email verification
+      verifications.push({
+        id: "email",
+        type: "Email Verification",
+        status: user?.emailVerified ? "verified" : "not_submitted",
+        verifiedDate: user?.emailVerified ? user.updatedAt : undefined,
+      });
+
+      // Phone verification
+      verifications.push({
+        id: "phone",
+        type: "Phone Verification",
+        status: user?.phoneVerified ? "verified" : "not_submitted",
+        verifiedDate: user?.phoneVerified ? user.updatedAt : undefined,
+      });
+
+      // ID Proof (Aadhaar)
+      const aadhaarDoc = profile.verificationDocuments?.find((d: any) => d.type === "aadhaar");
+      verifications.push({
+        id: "aadhaar",
+        type: "ID Proof (Aadhaar)",
+        status: aadhaarDoc ? (profile.verificationStatus === "verified" ? "verified" : "pending") : "not_submitted",
+        verifiedDate: aadhaarDoc && profile.verificationStatus === "verified" ? profile.updatedAt : undefined,
+        submittedDate: aadhaarDoc ? aadhaarDoc.uploadedAt : undefined,
+      });
+
+      // PAN Card
+      const panDoc = profile.verificationDocuments?.find((d: any) => d.type === "pan");
+      verifications.push({
+        id: "pan",
+        type: "PAN Card",
+        status: panDoc ? (profile.verificationStatus === "verified" ? "verified" : "pending") : "not_submitted",
+        verifiedDate: panDoc && profile.verificationStatus === "verified" ? profile.updatedAt : undefined,
+        submittedDate: panDoc ? panDoc.uploadedAt : undefined,
+      });
+
+      // RERA Certificate (for builders)
+      const reraDoc = profile.verificationDocuments?.find((d: any) => d.type === "rera");
+      verifications.push({
+        id: "rera",
+        type: "RERA Certificate",
+        status: reraDoc ? (profile.verificationStatus === "verified" ? "verified" : "pending") : "not_submitted",
+        verifiedDate: reraDoc && profile.verificationStatus === "verified" ? profile.updatedAt : undefined,
+        submittedDate: reraDoc ? reraDoc.uploadedAt : undefined,
+      });
+
+      res.json(verifications);
+    } catch (error) {
+      console.error("Error getting verifications:", error);
+      res.status(500).json({ error: "Failed to get verifications" });
+    }
+  });
+
+  // Get seller documents
+  app.get("/api/me/documents", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json([]);
+      }
+
+      const properties = await storage.getPropertiesBySeller(profile.id);
+      const documents: any[] = [];
+
+      // Get documents from seller profile verificationDocuments
+      if (profile.verificationDocuments && Array.isArray(profile.verificationDocuments)) {
+        profile.verificationDocuments.forEach((doc: any) => {
+          documents.push({
+            id: doc.id || doc.type,
+            name: doc.name || `${doc.type} Document`,
+            type: doc.type,
+            status: profile.verificationStatus === "verified" ? "verified" : profile.verificationStatus === "pending" ? "pending" : "rejected",
+            uploadDate: doc.uploadedAt || doc.createdAt,
+            verifiedDate: profile.verificationStatus === "verified" ? profile.updatedAt : undefined,
+            reason: doc.rejectionReason,
+          });
+        });
+      }
+
+      res.json(documents);
+    } catch (error) {
+      console.error("Error getting documents:", error);
+      res.status(500).json({ error: "Failed to get documents" });
+    }
+  });
+
+  // Upload seller document
+  app.post("/api/me/documents", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.status(404).json({ error: "Seller profile not found" });
+      }
+
+      const { type, url, name } = req.body;
+      if (!type || !url) {
+        return res.status(400).json({ error: "Type and URL are required" });
+      }
+
+      const existingDocs = profile.verificationDocuments || [];
+      const newDoc = {
+        id: `${type}-${Date.now()}`,
+        type,
+        name: name || `${type} Document`,
+        url,
+        uploadedAt: new Date().toISOString(),
+      };
+
+      const updatedDocs = [...existingDocs, newDoc];
+      await storage.updateSellerProfile(profile.id, {
+        verificationDocuments: updatedDocs,
+        verificationStatus: "pending",
+      });
+
+      res.json({ success: true, document: newDoc });
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
+
+  // Get seller conversations (from inquiries)
+  app.get("/api/me/conversations", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json([]);
+      }
+
+      const inquiries = await storage.getInquiriesBySeller(profile.id);
+      
+      // Group inquiries by buyer to create conversations
+      const conversationMap = new Map();
+      
+      for (const inquiry of inquiries) {
+        const buyerId = inquiry.buyerId;
+        if (!conversationMap.has(buyerId)) {
+          const buyer = await storage.getUser(buyerId);
+          const property = await storage.getProperty(inquiry.propertyId);
+          
+          conversationMap.set(buyerId, {
+            id: buyerId,
+            buyerId,
+            buyerName: buyer ? `${buyer.firstName || ''} ${buyer.lastName || ''}`.trim() : "Buyer",
+            propertyId: inquiry.propertyId,
+            propertyName: property?.title || "Property",
+            lastMessage: inquiry.message || "",
+            lastMessageTime: inquiry.createdAt,
+            unread: inquiry.status === "pending" ? 1 : 0,
+            inquiryId: inquiry.id,
+          });
+        } else {
+          const conv = conversationMap.get(buyerId);
+          if (new Date(inquiry.createdAt) > new Date(conv.lastMessageTime)) {
+            conv.lastMessage = inquiry.message || "";
+            conv.lastMessageTime = inquiry.createdAt;
+            if (inquiry.status === "pending") {
+              conv.unread += 1;
+            }
+          }
+        }
+      }
+
+      const conversations = Array.from(conversationMap.values())
+        .sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+
+      res.json(conversations);
+    } catch (error) {
+      console.error("Error getting conversations:", error);
+      res.status(500).json({ error: "Failed to get conversations" });
+    }
+  });
+
+  // Get messages for a conversation (inquiry thread)
+  app.get("/api/conversations/:buyerId/messages", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.status(403).json({ error: "Seller profile not found" });
+      }
+
+      const buyerId = req.params.buyerId;
+      const inquiries = await storage.getInquiriesBySeller(profile.id);
+      const buyerInquiries = inquiries.filter(i => i.buyerId === buyerId);
+
+      const messages = buyerInquiries.map(inquiry => ({
+        id: inquiry.id,
+        sender: "buyer",
+        text: inquiry.message || "",
+        time: inquiry.createdAt,
+        inquiryId: inquiry.id,
+      }));
+
+      // Sort by time
+      messages.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+      res.json(messages);
+    } catch (error) {
+      console.error("Error getting messages:", error);
+      res.status(500).json({ error: "Failed to get messages" });
+    }
+  });
+
+  // Send message (reply to inquiry)
+  app.post("/api/conversations/:buyerId/messages", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.status(403).json({ error: "Seller profile not found" });
+      }
+
+      const buyerId = req.params.buyerId;
+      const { message, inquiryId } = req.body;
+
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      // Update inquiry with seller reply
+      if (inquiryId) {
+        await storage.updateInquiry(inquiryId, {
+          status: "replied",
+          sellerReply: message,
+          sellerRepliedAt: new Date(),
+        } as Partial<import("@shared/schema").InsertInquiry>);
+      }
+
+      res.json({
+        success: true,
+        message: {
+          id: `msg-${Date.now()}`,
+          sender: "seller",
+          text: message,
+          time: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      res.status(500).json({ error: "Failed to send message" });
+    }
+  });
+
   // Get seller dashboard stats
   app.get("/api/seller/stats", isAuthenticated, async (req: any, res: Response) => {
     try {

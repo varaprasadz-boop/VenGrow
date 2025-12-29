@@ -1,41 +1,26 @@
-
+import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Clock, Shield, Upload } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CheckCircle, Clock, Shield, Upload } from "lucide-react";
+import { format } from "date-fns";
+
+interface Verification {
+  id: string;
+  type: string;
+  status: "verified" | "pending" | "not_submitted";
+  verifiedDate?: string;
+  submittedDate?: string;
+}
 
 export default function VerificationCenterPage() {
-  const verifications = [
-    {
-      id: "1",
-      type: "Email Verification",
-      status: "verified",
-      verifiedDate: "Nov 1, 2025",
-    },
-    {
-      id: "2",
-      type: "Phone Verification",
-      status: "verified",
-      verifiedDate: "Nov 1, 2025",
-    },
-    {
-      id: "3",
-      type: "ID Proof (Aadhaar)",
-      status: "verified",
-      verifiedDate: "Nov 3, 2025",
-    },
-    {
-      id: "4",
-      type: "PAN Card",
-      status: "pending",
-      submittedDate: "Nov 20, 2025",
-    },
-    {
-      id: "5",
-      type: "RERA Certificate",
-      status: "not_submitted",
-    },
-  ];
+  const [, setLocation] = useLocation();
+
+  const { data: verifications = [], isLoading } = useQuery<Verification[]>({
+    queryKey: ["/api/me/verifications"],
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -60,8 +45,28 @@ export default function VerificationCenterPage() {
     }
   };
 
+  const handleUpload = (verificationId: string) => {
+    setLocation(`/seller/verification/documents?type=${verificationId}`);
+  };
+
   const verifiedCount = verifications.filter((v) => v.status === "verified").length;
   const totalCount = verifications.length;
+
+  if (isLoading) {
+    return (
+      <main className="flex-1">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Skeleton className="h-10 w-64 mb-8" />
+          <Skeleton className="h-48 mb-8" />
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-32" />
+            ))}
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex-1">
@@ -91,57 +96,67 @@ export default function VerificationCenterPage() {
             <div className="h-3 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary transition-all"
-                style={{ width: `${(verifiedCount / totalCount) * 100}%` }}
+                style={{ width: `${totalCount > 0 ? (verifiedCount / totalCount) * 100 : 0}%` }}
               />
             </div>
           </Card>
 
           {/* Verifications List */}
           <div className="space-y-4">
-            {verifications.map((verification) => (
-              <Card key={verification.id} className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold">{verification.type}</h3>
-                      {getStatusBadge(verification.status)}
-                    </div>
-                    {verification.status === "verified" && verification.verifiedDate && (
-                      <p className="text-sm text-muted-foreground">
-                        Verified on {verification.verifiedDate}
-                      </p>
-                    )}
-                    {verification.status === "pending" && verification.submittedDate && (
-                      <p className="text-sm text-muted-foreground">
-                        Submitted on {verification.submittedDate}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {verification.status === "verified" && (
-                  <div className="flex items-center gap-2 text-sm text-green-600">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>Document verified successfully</span>
-                  </div>
-                )}
-
-                {verification.status === "pending" && (
-                  <div className="p-3 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/20 rounded-lg">
-                    <p className="text-sm text-yellow-900 dark:text-yellow-400">
-                      Your document is under review. This typically takes 24-48 hours.
-                    </p>
-                  </div>
-                )}
-
-                {verification.status === "not_submitted" && (
-                  <Button data-testid={`button-upload-${verification.id}`}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Document
-                  </Button>
-                )}
+            {verifications.length === 0 ? (
+              <Card className="p-8 text-center">
+                <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">No verifications found</p>
               </Card>
-            ))}
+            ) : (
+              verifications.map((verification) => (
+                <Card key={verification.id} className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-semibold">{verification.type}</h3>
+                        {getStatusBadge(verification.status)}
+                      </div>
+                      {verification.status === "verified" && verification.verifiedDate && (
+                        <p className="text-sm text-muted-foreground">
+                          Verified on {format(new Date(verification.verifiedDate), "MMM dd, yyyy")}
+                        </p>
+                      )}
+                      {verification.status === "pending" && verification.submittedDate && (
+                        <p className="text-sm text-muted-foreground">
+                          Submitted on {format(new Date(verification.submittedDate), "MMM dd, yyyy")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {verification.status === "verified" && (
+                    <div className="flex items-center gap-2 text-sm text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      <span>Document verified successfully</span>
+                    </div>
+                  )}
+
+                  {verification.status === "pending" && (
+                    <div className="p-3 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/20 rounded-lg">
+                      <p className="text-sm text-yellow-900 dark:text-yellow-400">
+                        Your document is under review. This typically takes 24-48 hours.
+                      </p>
+                    </div>
+                  )}
+
+                  {verification.status === "not_submitted" && (
+                    <Button 
+                      data-testid={`button-upload-${verification.id}`}
+                      onClick={() => handleUpload(verification.id)}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Document
+                    </Button>
+                  )}
+                </Card>
+              ))
+            )}
           </div>
 
           {/* Help */}
