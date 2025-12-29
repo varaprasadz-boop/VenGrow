@@ -287,7 +287,7 @@ export default function AdminDashboardPage() {
               <Card className="p-4 sm:p-6">
                 <h3 className="font-semibold mb-3 sm:mb-4">Quick Actions</h3>
                 <div className="space-y-2">
-                  <Link href="/admin/user-management">
+                  <Link href="/admin/users">
                     <Button variant="outline" className="w-full justify-start" data-testid="button-manage-users">
                       <Users className="h-4 w-4 mr-2" />
                       Manage Users
@@ -305,7 +305,7 @@ export default function AdminDashboardPage() {
                       View Transactions
                     </Button>
                   </Link>
-                  <Link href="/admin/platform-analytics">
+                  <Link href="/admin/analytics">
                     <Button variant="outline" className="w-full justify-start" data-testid="button-analytics">
                       <TrendingUp className="h-4 w-4 mr-2" />
                       Analytics

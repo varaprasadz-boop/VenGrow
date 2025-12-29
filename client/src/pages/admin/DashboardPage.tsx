@@ -107,7 +107,7 @@ export default function AdminDashboardPage() {
             change="+23% from last month"
             changeType="positive"
             icon={CreditCard}
-            href="/admin/revenue"
+            href="/admin/transactions"
           />
           <StatCard 
             title="Pending Approvals" 
@@ -115,7 +115,7 @@ export default function AdminDashboardPage() {
             change="Requires attention"
             changeType="neutral"
             icon={AlertCircle}
-            href="/admin/approvals/sellers"
+            href="/admin/seller-approvals"
           />
         </div>
 
