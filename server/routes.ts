@@ -8,7 +8,7 @@ import { seedCMSContent } from "./seed-cms";
 import { insertPropertySchema, insertInquirySchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { verifySuperadminCredentials, hashPassword, verifyPassword, validateEmail, validatePhone } from "./auth-utils";
+import { verifySuperadminCredentials, hashPassword, verifyPassword, validateEmail, validatePhone, validatePassword } from "./auth-utils";
 import * as emailService from "./email";
 
 const connectedClients = new Map<string, Set<WebSocket>>();
@@ -200,16 +200,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password, firstName, lastName, phone, intent } = req.body;
       
+      // Validate required fields
       if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
       }
       
+      // Validate email format
       if (!validateEmail(email)) {
         return res.status(400).json({ message: "Invalid email format" });
       }
       
-      if (phone && !validatePhone(phone)) {
-        return res.status(400).json({ message: "Invalid phone number. Must be 10 digits starting with 6-9" });
+      // Validate password strength
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ message: passwordValidation.message || "Password does not meet requirements" });
+      }
+      
+      // Validate firstName and lastName
+      if (firstName !== undefined && firstName !== null) {
+        const trimmedFirstName = String(firstName).trim();
+        if (!trimmedFirstName) {
+          return res.status(400).json({ message: "First name cannot be empty" });
+        }
+      }
+      
+      if (lastName !== undefined && lastName !== null) {
+        const trimmedLastName = String(lastName).trim();
+        if (!trimmedLastName) {
+          return res.status(400).json({ message: "Last name cannot be empty" });
+        }
+      }
+      
+      // Validate phone number if provided
+      if (phone) {
+        const cleanedPhone = String(phone).replace(/\D/g, "");
+        if (!validatePhone(cleanedPhone)) {
+          return res.status(400).json({ message: "Invalid phone number. Must be 10 digits starting with 6-9" });
+        }
       }
       
       // Check if user already exists
@@ -221,13 +248,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Hash password
       const passwordHash = await hashPassword(password);
       
-      // Create user
+      // Create user with trimmed names
       const user = await storage.createUserWithPassword({
-        email,
+        email: email.trim(),
         passwordHash,
-        firstName,
-        lastName,
-        phone,
+        firstName: firstName ? String(firstName).trim() : "",
+        lastName: lastName ? String(lastName).trim() : "",
+        phone: phone ? String(phone).replace(/\D/g, "") : undefined,
         intent,
         role: intent === "seller" ? "seller" : "buyer",
         authProvider: "local",
