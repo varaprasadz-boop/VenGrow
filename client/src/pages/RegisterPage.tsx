@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Shield, Check, Users, TrendingUp, Home, Store, Eye, EyeOff, Mail, Lock, Phone, User, ArrowRight, ArrowLeft } from "lucide-react";
+import { Shield, Check, Users, TrendingUp, Home, Store, Eye, EyeOff, Mail, Lock, Phone, User, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,15 @@ import { SiGoogle } from "react-icons/si";
 
 type Intent = "buyer" | "seller" | null;
 type Step = "intent" | "buyer-form" | "seller-package";
+
+interface FormErrors {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  password?: string;
+  confirmPassword?: string;
+}
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
@@ -28,9 +37,128 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
 
   const handleGoogleSignup = () => {
+    setIsGoogleLoading(true);
     window.location.href = "/api/login";
+  };
+
+  // Password validation function
+  const validatePasswordStrength = (pwd: string): { valid: boolean; message?: string } => {
+    if (pwd.length < 8) {
+      return { valid: false, message: "Password must be at least 8 characters long" };
+    }
+    if (!/[A-Z]/.test(pwd)) {
+      return { valid: false, message: "Password must contain at least one uppercase letter" };
+    }
+    if (!/[a-z]/.test(pwd)) {
+      return { valid: false, message: "Password must contain at least one lowercase letter" };
+    }
+    if (!/[0-9]/.test(pwd)) {
+      return { valid: false, message: "Password must contain at least one number" };
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) {
+      return { valid: false, message: "Password must contain at least one special character" };
+    }
+    return { valid: true };
+  };
+
+  // Email validation
+  const validateEmailFormat = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Validate individual field
+  const validateField = (name: string, value: string): string | undefined => {
+    switch (name) {
+      case "firstName":
+        if (!value.trim()) {
+          return "First name is required";
+        }
+        break;
+      case "lastName":
+        if (!value.trim()) {
+          return "Last name is required";
+        }
+        break;
+      case "email":
+        if (!value.trim()) {
+          return "Email is required";
+        } else if (!validateEmailFormat(value.trim())) {
+          return "Please enter a valid email address";
+        }
+        break;
+      case "phone":
+        if (!value.trim()) {
+          return "Phone number is required";
+        } else if (!/^[6-9]\d{9}$/.test(value)) {
+          return "Please enter a valid 10-digit Indian mobile number starting with 6-9";
+        }
+        break;
+      case "password":
+        if (!value) {
+          return "Password is required";
+        } else {
+          const validation = validatePasswordStrength(value);
+          if (!validation.valid) {
+            return validation.message;
+          }
+        }
+        break;
+      case "confirmPassword":
+        if (!value) {
+          return "Please confirm your password";
+        } else if (value !== password) {
+          return "Passwords do not match";
+        }
+        break;
+    }
+    return undefined;
+  };
+
+  // Handle field blur
+  const handleBlur = (fieldName: string) => {
+    setTouchedFields((prev) => new Set(prev).add(fieldName));
+    const value = fieldName === "firstName" ? firstName :
+                  fieldName === "lastName" ? lastName :
+                  fieldName === "email" ? email :
+                  fieldName === "phone" ? phone :
+                  fieldName === "password" ? password :
+                  confirmPassword;
+    const error = validateField(fieldName, value);
+    setErrors((prev) => ({ ...prev, [fieldName]: error }));
+  };
+
+  // Validate all fields
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+    let isValid = true;
+
+    const fields = [
+      { name: "firstName", value: firstName },
+      { name: "lastName", value: lastName },
+      { name: "email", value: email },
+      { name: "phone", value: phone },
+      { name: "password", value: password },
+      { name: "confirmPassword", value: confirmPassword },
+    ];
+
+    fields.forEach(({ name, value }) => {
+      const error = validateField(name, value);
+      if (error) {
+        newErrors[name as keyof FormErrors] = error;
+        isValid = false;
+      }
+    });
+
+    setErrors(newErrors);
+    // Mark all fields as touched
+    setTouchedFields(new Set(["firstName", "lastName", "email", "phone", "password", "confirmPassword"]));
+    return isValid;
   };
 
   const handleIntentSelect = (selectedIntent: Intent) => {
@@ -45,19 +173,11 @@ export default function RegisterPage() {
   const handleBuyerRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password !== confirmPassword) {
+    // Validate all fields
+    if (!validateForm()) {
       toast({
-        title: "Passwords don't match",
-        description: "Please make sure your passwords match.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (phone && !/^[6-9]\d{9}$/.test(phone)) {
-      toast({
-        title: "Invalid phone number",
-        description: "Please enter a valid 10-digit Indian mobile number.",
+        title: "Please fix the errors",
+        description: "Some fields have errors. Please check and try again.",
         variant: "destructive",
       });
       return;
@@ -67,13 +187,53 @@ export default function RegisterPage() {
 
     try {
       const response = await apiRequest("POST", "/api/auth/register", {
-        email,
+        email: email.trim(),
         password,
-        firstName,
-        lastName,
-        phone,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: phone.trim(),
         intent: "buyer",
       });
+
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        let errorMessage = "Something went wrong";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+          // If response is not JSON, try to get text
+          try {
+            const text = await response.text();
+            errorMessage = text || errorMessage;
+          } catch {
+            // If that fails, use status text
+            errorMessage = response.statusText || errorMessage;
+          }
+        }
+
+        // Map common error messages to user-friendly ones
+        const userFriendlyMessages: Record<string, string> = {
+          "User with this email already exists": "This email is already registered. Please sign in or use a different email.",
+          "Invalid email format": "Please enter a valid email address.",
+          "Invalid phone number. Must be 10 digits starting with 6-9": "Please enter a valid 10-digit Indian mobile number.",
+          "Password must be at least 8 characters long": "Password must be at least 8 characters long.",
+          "Password must contain at least one uppercase letter": "Password must contain at least one uppercase letter.",
+          "Password must contain at least one lowercase letter": "Password must contain at least one lowercase letter.",
+          "Password must contain at least one number": "Password must contain at least one number.",
+          "Password must contain at least one special character": "Password must contain at least one special character.",
+        };
+
+        const friendlyMessage = userFriendlyMessages[errorMessage] || errorMessage;
+
+        toast({
+          title: "Registration Failed",
+          description: friendlyMessage,
+          variant: "destructive",
+        });
+        return;
+      }
+
       const data = await response.json();
       
       if (data.success) {
@@ -82,7 +242,21 @@ export default function RegisterPage() {
           title: "Welcome to VenGrow!",
           description: "Your account has been created successfully.",
         });
-        setLocation("/buyer/dashboard");
+        
+        // Reset form
+        setFirstName("");
+        setLastName("");
+        setEmail("");
+        setPhone("");
+        setPassword("");
+        setConfirmPassword("");
+        setErrors({});
+        setTouchedFields(new Set());
+        
+        // Redirect after a brief delay to show success
+        setTimeout(() => {
+          setLocation("/buyer/dashboard");
+        }, 500);
       } else {
         toast({
           title: "Registration Failed",
@@ -91,11 +265,20 @@ export default function RegisterPage() {
         });
       }
     } catch (error: any) {
-      toast({
-        title: "Registration Failed",
-        description: error.message || "Something went wrong",
-        variant: "destructive",
-      });
+      // Handle network errors separately
+      if (error.name === "TypeError" && error.message.includes("fetch")) {
+        toast({
+          title: "Network Error",
+          description: "Unable to connect to the server. Please check your internet connection and try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: error.message || "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -267,10 +450,21 @@ export default function RegisterPage() {
                 variant="outline" 
                 className="w-full"
                 onClick={handleGoogleSignup}
+                disabled={isGoogleLoading || isLoading}
                 data-testid="button-google-signup"
+                aria-label="Sign up with Google"
               >
-                <SiGoogle className="h-4 w-4 mr-2" />
-                Sign up with Google
+                {isGoogleLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Redirecting...
+                  </>
+                ) : (
+                  <>
+                    <SiGoogle className="h-4 w-4 mr-2" />
+                    Sign up with Google
+                  </>
+                )}
               </Button>
 
               <div className="relative">
@@ -287,81 +481,145 @@ export default function RegisterPage() {
               <form onSubmit={handleBuyerRegistration} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="firstName">First Name *</Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                       <Input
                         id="firstName"
                         placeholder="First name"
                         value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        className="pl-10"
+                        onChange={(e) => {
+                          setFirstName(e.target.value);
+                          if (touchedFields.has("firstName")) {
+                            const error = validateField("firstName", e.target.value);
+                            setErrors((prev) => ({ ...prev, firstName: error }));
+                          }
+                        }}
+                        onBlur={() => handleBlur("firstName")}
+                        className={`pl-10 ${errors.firstName ? "border-destructive" : ""}`}
                         required
                         data-testid="input-first-name"
+                        aria-invalid={!!errors.firstName}
+                        aria-describedby={errors.firstName ? "firstName-error" : undefined}
                       />
                     </div>
+                    {errors.firstName && touchedFields.has("firstName") && (
+                      <p id="firstName-error" className="text-sm text-destructive">{errors.firstName}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
+                    <Label htmlFor="lastName">Last Name *</Label>
                     <Input
                       id="lastName"
                       placeholder="Last name"
                       value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
+                      onChange={(e) => {
+                        setLastName(e.target.value);
+                        if (touchedFields.has("lastName")) {
+                          const error = validateField("lastName", e.target.value);
+                          setErrors((prev) => ({ ...prev, lastName: error }));
+                        }
+                      }}
+                      onBlur={() => handleBlur("lastName")}
+                      className={errors.lastName ? "border-destructive" : ""}
                       required
                       data-testid="input-last-name"
+                      aria-invalid={!!errors.lastName}
+                      aria-describedby={errors.lastName ? "lastName-error" : undefined}
                     />
+                    {errors.lastName && touchedFields.has("lastName") && (
+                      <p id="lastName-error" className="text-sm text-destructive">{errors.lastName}</p>
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email *</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     <Input
                       id="email"
                       type="email"
                       placeholder="Enter your email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (touchedFields.has("email")) {
+                          const error = validateField("email", e.target.value);
+                          setErrors((prev) => ({ ...prev, email: error }));
+                        }
+                      }}
+                      onBlur={() => handleBlur("email")}
+                      className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
                       required
                       data-testid="input-email"
+                      aria-invalid={!!errors.email}
+                      aria-describedby={errors.email ? "email-error" : undefined}
                     />
                   </div>
+                  {errors.email && touchedFields.has("email") && (
+                    <p id="email-error" className="text-sm text-destructive">{errors.email}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Mobile Number (10 digits)</Label>
+                  <Label htmlFor="phone">Mobile Number (10 digits) *</Label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     <Input
                       id="phone"
                       type="tel"
                       placeholder="Enter 10-digit mobile number"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      className="pl-10"
+                      onChange={(e) => {
+                        const cleaned = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        setPhone(cleaned);
+                        if (touchedFields.has("phone")) {
+                          const error = validateField("phone", cleaned);
+                          setErrors((prev) => ({ ...prev, phone: error }));
+                        }
+                      }}
+                      onBlur={() => handleBlur("phone")}
+                      className={`pl-10 ${errors.phone ? "border-destructive" : ""}`}
                       required
                       data-testid="input-phone"
+                      aria-invalid={!!errors.phone}
+                      aria-describedby={errors.phone ? "phone-error" : undefined}
                     />
                   </div>
+                  {errors.phone && touchedFields.has("phone") && (
+                    <p id="phone-error" className="text-sm text-destructive">{errors.phone}</p>
+                  )}
                   <p className="text-xs text-muted-foreground">Indian mobile number starting with 6-9</p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">Password *</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Create a password"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10"
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (touchedFields.has("password")) {
+                          const error = validateField("password", e.target.value);
+                          setErrors((prev) => ({ ...prev, password: error }));
+                        }
+                        // Also validate confirm password if it's been touched
+                        if (touchedFields.has("confirmPassword") && confirmPassword) {
+                          const confirmError = validateField("confirmPassword", confirmPassword);
+                          setErrors((prev) => ({ ...prev, confirmPassword: confirmError }));
+                        }
+                      }}
+                      onBlur={() => handleBlur("password")}
+                      className={`pl-10 pr-10 ${errors.password ? "border-destructive" : ""}`}
                       required
                       data-testid="input-password"
+                      aria-invalid={!!errors.password}
+                      aria-describedby={errors.password ? "password-error password-requirements" : "password-requirements"}
                     />
                     <Button
                       type="button"
@@ -369,6 +627,7 @@ export default function RegisterPage() {
                       size="icon"
                       className="absolute right-0 top-0 h-full px-3"
                       onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -377,36 +636,61 @@ export default function RegisterPage() {
                       )}
                     </Button>
                   </div>
+                  {errors.password && touchedFields.has("password") && (
+                    <p id="password-error" className="text-sm text-destructive">{errors.password}</p>
+                  )}
+                  <div id="password-requirements" className="text-xs text-muted-foreground space-y-1">
+                    <p className="font-medium">Password requirements:</p>
+                    <ul className="list-disc list-inside space-y-0.5 ml-2">
+                      <li className={password.length >= 8 ? "text-green-600" : ""}>At least 8 characters</li>
+                      <li className={/[A-Z]/.test(password) ? "text-green-600" : ""}>One uppercase letter</li>
+                      <li className={/[a-z]/.test(password) ? "text-green-600" : ""}>One lowercase letter</li>
+                      <li className={/[0-9]/.test(password) ? "text-green-600" : ""}>One number</li>
+                      <li className={/[!@#$%^&*(),.?":{}|<>]/.test(password) ? "text-green-600" : ""}>One special character</li>
+                    </ul>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     <Input
                       id="confirmPassword"
                       type={showPassword ? "text" : "password"}
                       placeholder="Confirm your password"
                       value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="pl-10"
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        if (touchedFields.has("confirmPassword")) {
+                          const error = validateField("confirmPassword", e.target.value);
+                          setErrors((prev) => ({ ...prev, confirmPassword: error }));
+                        }
+                      }}
+                      onBlur={() => handleBlur("confirmPassword")}
+                      className={`pl-10 ${errors.confirmPassword ? "border-destructive" : ""}`}
                       required
                       data-testid="input-confirm-password"
+                      aria-invalid={!!errors.confirmPassword}
+                      aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
                     />
                   </div>
+                  {errors.confirmPassword && touchedFields.has("confirmPassword") && (
+                    <p id="confirmPassword-error" className="text-sm text-destructive">{errors.confirmPassword}</p>
+                  )}
                 </div>
 
                 <Button 
                   type="submit" 
                   className="w-full" 
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   data-testid="button-register"
                 >
                   {isLoading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Creating account...
-                    </span>
+                    </>
                   ) : (
                     "Create Account"
                   )}
