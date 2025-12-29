@@ -2886,6 +2886,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get seller dashboard stats
+  app.get("/api/seller/stats", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json({
+          totalProperties: 0,
+          activeListings: 0,
+          totalViews: 0,
+          totalInquiries: 0,
+          newInquiries: 0,
+          scheduledVisits: 0,
+          packageInfo: { name: "No Package", listingsUsed: 0, listingsTotal: 0, daysRemaining: 0 },
+          recentInquiries: [],
+          topProperties: [],
+        });
+      }
+
+      const properties = await storage.getPropertiesBySeller(profile.id);
+      const inquiries = await storage.getInquiriesBySeller(profile.id);
+      const subscription = await storage.getActiveSubscription(profile.id);
+      const appointments = await storage.getAppointmentsBySeller(profile.id);
+
+      const totalProperties = properties.length;
+      const activeListings = properties.filter(p => p.status === "active" && (p.workflowStatus === "live" || p.workflowStatus === "approved")).length;
+      const totalViews = properties.reduce((sum, p) => sum + (p.viewCount || 0), 0);
+      const totalInquiries = inquiries.length;
+      
+      // Calculate new inquiries this week
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const newInquiries = inquiries.filter(i => new Date(i.createdAt) >= weekAgo).length;
+      
+      // Count scheduled visits
+      const scheduledVisits = appointments.filter(a => 
+        a.status === "pending" || a.status === "confirmed"
+      ).length;
+
+      // Package info
+      let packageInfo = { name: "No Package", listingsUsed: 0, listingsTotal: 0, daysRemaining: 0 };
+      if (subscription) {
+        const pkg = await storage.getPackage(subscription.packageId);
+        const listingsUsed = activeListings;
+        const listingsTotal = pkg?.listingLimit || 0;
+        const daysRemaining = subscription.endDate 
+          ? Math.max(0, Math.floor((new Date(subscription.endDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+          : 0;
+        packageInfo = {
+          name: pkg?.name || "Unknown",
+          listingsUsed,
+          listingsTotal,
+          daysRemaining,
+        };
+      }
+
+      // Recent inquiries (last 5)
+      const recentInquiries = inquiries
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5)
+        .map(inquiry => ({
+          id: inquiry.id,
+          propertyId: inquiry.propertyId,
+          buyerId: inquiry.buyerId,
+          status: inquiry.status,
+          createdAt: inquiry.createdAt,
+        }));
+
+      // Top properties by views (top 5)
+      const topProperties = [...properties]
+        .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+        .slice(0, 5)
+        .map(p => ({
+          id: p.id,
+          title: p.title,
+          views: p.viewCount || 0,
+          inquiries: inquiries.filter(i => i.propertyId === p.id).length,
+        }));
+
+      res.json({
+        totalProperties,
+        activeListings,
+        totalViews,
+        totalInquiries,
+        newInquiries,
+        scheduledVisits,
+        packageInfo,
+        recentInquiries,
+        topProperties,
+      });
+    } catch (error) {
+      console.error("Error getting seller stats:", error);
+      res.status(500).json({ error: "Failed to get seller stats" });
+    }
+  });
+
   // Get current user's payments
   app.get("/api/me/payments", isAuthenticated, async (req: any, res: Response) => {
     try {

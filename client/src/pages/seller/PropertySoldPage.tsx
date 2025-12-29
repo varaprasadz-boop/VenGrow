@@ -1,20 +1,87 @@
-
+import { useParams, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CheckCircle, Download, Plus } from "lucide-react";
+import { format, differenceInDays } from "date-fns";
+import type { Property } from "@shared/schema";
 
 export default function PropertySoldPage() {
-  const soldDetails = {
-    title: "Luxury 3BHK Apartment",
-    location: "Bandra West, Mumbai",
-    soldPrice: "₹88 L",
-    originalPrice: "₹85 L",
-    soldDate: "Nov 15, 2025",
-    timeListed: "45 days",
-    totalViews: 1234,
-    totalInquiries: 67,
+  const params = useParams();
+  const [, setLocation] = useLocation();
+  const propertyId = params.id;
+
+  const { data: property, isLoading } = useQuery<Property>({
+    queryKey: [`/api/properties/${propertyId}`],
+    enabled: !!propertyId,
+  });
+
+  const handleDownloadReport = () => {
+    if (!property) return;
+    
+    const reportContent = `
+PROPERTY SOLD REPORT
+====================
+
+Property: ${property.title}
+Location: ${property.locality || ''}, ${property.city}
+Sold Date: ${property.updatedAt ? format(new Date(property.updatedAt), "MMM dd, yyyy") : "N/A"}
+Original Price: ₹${(property.price || 0).toLocaleString("en-IN")}
+Total Views: ${property.viewCount || 0}
+Total Inquiries: ${property.inquiryCount || 0}
+Time Listed: ${property.createdAt && property.updatedAt 
+  ? `${differenceInDays(new Date(property.updatedAt), new Date(property.createdAt))} days`
+  : "N/A"}
+
+Thank you for using VenGrow!
+`;
+
+    const blob = new Blob([reportContent], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `property-sold-report-${property.id.slice(0, 8)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
+
+  const handleListAnother = () => {
+    setLocation("/seller/property/add");
+  };
+
+  if (isLoading) {
+    return (
+      <main className="flex-1">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Skeleton className="h-10 w-64 mb-8" />
+          <Skeleton className="h-64 mb-8" />
+          <Skeleton className="h-48 mb-8" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!property) {
+    return (
+      <main className="flex-1">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground">Property not found</p>
+          </Card>
+        </div>
+      </main>
+    );
+  }
+
+  const soldDate = property.updatedAt ? format(new Date(property.updatedAt), "MMM dd, yyyy") : "N/A";
+  const timeListed = property.createdAt && property.updatedAt 
+    ? `${differenceInDays(new Date(property.updatedAt), new Date(property.createdAt))} days`
+    : "N/A";
+  const propertyLocation = `${property.locality || ''}, ${property.city}`.replace(/^, /, '');
 
   return (
     <main className="flex-1">
@@ -33,16 +100,13 @@ export default function PropertySoldPage() {
             <div className="text-center">
               <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
               <h2 className="font-serif font-bold text-2xl mb-2">
-                {soldDetails.title}
+                {property.title}
               </h2>
-              <p className="text-muted-foreground mb-4">{soldDetails.location}</p>
+              <p className="text-muted-foreground mb-4">{propertyLocation}</p>
               <div className="flex items-baseline justify-center gap-3">
                 <span className="text-5xl font-bold text-green-600">
-                  {soldDetails.soldPrice}
+                  ₹{(property.price || 0).toLocaleString("en-IN")}
                 </span>
-                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
-                  +3.5% above listing
-                </Badge>
               </div>
             </div>
           </Card>
@@ -50,27 +114,29 @@ export default function PropertySoldPage() {
           <div className="grid grid-cols-2 gap-6 mb-8">
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Sold Date</h3>
-              <p className="text-xl font-bold">{soldDetails.soldDate}</p>
+              <p className="text-xl font-bold">{soldDate}</p>
             </Card>
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Time on Market</h3>
-              <p className="text-xl font-bold">{soldDetails.timeListed}</p>
+              <p className="text-xl font-bold">{timeListed}</p>
             </Card>
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Total Views</h3>
-              <p className="text-xl font-bold">{soldDetails.totalViews}</p>
+              <p className="text-xl font-bold">{(property.viewCount || 0).toLocaleString()}</p>
             </Card>
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Total Inquiries</h3>
-              <p className="text-xl font-bold">{soldDetails.totalInquiries}</p>
+              <p className="text-xl font-bold">{property.inquiryCount || 0}</p>
             </Card>
           </div>
 
           <div className="flex gap-4">
-            <Button variant="outline" className="flex-1">
+            <Button variant="outline" className="flex-1" onClick={handleDownloadReport}>
+              <Download className="h-4 w-4 mr-2" />
               Download Report
             </Button>
-            <Button className="flex-1" data-testid="button-list-another">
+            <Button className="flex-1" data-testid="button-list-another" onClick={handleListAnother}>
+              <Plus className="h-4 w-4 mr-2" />
               List Another Property
             </Button>
           </div>

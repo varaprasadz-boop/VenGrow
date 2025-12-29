@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { Link } from "wouter";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -74,10 +75,12 @@ export default function EarningsPage() {
                 Track your commissions and payouts
               </p>
             </div>
-            <Button data-testid="button-withdraw" disabled={totalEarnings === 0}>
-              <Download className="h-4 w-4 mr-2" />
-              Withdraw Funds
-            </Button>
+            <Link href="/seller/withdraw">
+              <Button data-testid="button-withdraw" disabled={totalEarnings === 0}>
+                <Download className="h-4 w-4 mr-2" />
+                Withdraw Funds
+              </Button>
+            </Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

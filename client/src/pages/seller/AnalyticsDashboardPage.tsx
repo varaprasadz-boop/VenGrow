@@ -1,8 +1,24 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import {
   Eye,
   Heart,
@@ -23,6 +39,10 @@ interface DashboardStats {
 }
 
 export default function AnalyticsDashboardPage() {
+  const { toast } = useToast();
+  const [dateRangeDialogOpen, setDateRangeDialogOpen] = useState(false);
+  const [selectedRange, setSelectedRange] = useState("all");
+
   const { data: dashboardStats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/me/dashboard"],
   });
@@ -32,6 +52,37 @@ export default function AnalyticsDashboardPage() {
   });
 
   const isLoading = statsLoading || propertiesLoading;
+
+  const handleDateRangeClick = () => {
+    setDateRangeDialogOpen(true);
+  };
+
+  const handleExport = () => {
+    // Generate CSV data
+    const csvData = [
+      ["Property", "Views", "Favorites", "Inquiries", "Engagement Rate"],
+      ...topProperties.map(p => [
+        p.title,
+        p.views.toString(),
+        p.favorites.toString(),
+        p.inquiries.toString(),
+        p.engagementRate,
+      ]),
+    ];
+
+    const csvContent = csvData.map(row => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `analytics-report-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({ title: "Report exported successfully" });
+  };
 
   const totalViews = properties.reduce((sum, p) => sum + (p.viewCount || 0), 0);
   const totalFavorites = properties.reduce((sum, p) => sum + (p.favoriteCount || 0), 0);
@@ -92,11 +143,11 @@ export default function AnalyticsDashboardPage() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" data-testid="button-date-range">
+              <Button variant="outline" data-testid="button-date-range" onClick={handleDateRangeClick}>
                 <Calendar className="h-4 w-4 mr-2" />
-                All Time
+                {selectedRange === "all" ? "All Time" : selectedRange === "week" ? "Last Week" : selectedRange === "month" ? "Last Month" : "Custom"}
               </Button>
-              <Button data-testid="button-export">
+              <Button data-testid="button-export" onClick={handleExport}>
                 <Download className="h-4 w-4 mr-2" />
                 Export Report
               </Button>
@@ -310,6 +361,40 @@ export default function AnalyticsDashboardPage() {
             </TabsContent>
           </Tabs>
         </div>
+
+        {/* Date Range Dialog */}
+        <Dialog open={dateRangeDialogOpen} onOpenChange={setDateRangeDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Select Date Range</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Select value={selectedRange} onValueChange={setSelectedRange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="week">Last Week</SelectItem>
+                  <SelectItem value="month">Last Month</SelectItem>
+                  <SelectItem value="quarter">Last Quarter</SelectItem>
+                  <SelectItem value="year">Last Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDateRangeDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                setDateRangeDialogOpen(false);
+                toast({ title: "Date range updated" });
+              }}>
+                Apply
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </main>
   );
 }
