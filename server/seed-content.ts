@@ -651,6 +651,138 @@ async function seedEmailTemplates() {
       description: "Sent when an account is reactivated",
     },
     {
+      name: "Appointment Confirmed",
+      subject: "Your Visit Request Confirmed - {{propertyTitle}}",
+      body: `<h1>Visit Confirmed!</h1>
+<p>Hi {{buyerName}},</p>
+<p>Great news! Your visit request for <strong>{{propertyTitle}}</strong> has been confirmed by the seller.</p>
+<h3>Appointment Details:</h3>
+<ul>
+  <li>Property: {{propertyTitle}}</li>
+  <li>Date & Time: {{dateTime}}</li>
+  <li>Seller: {{sellerName}}</li>
+  <li>Location: {{propertyAddress}}</li>
+</ul>
+<p>Please arrive on time. If you need to reschedule or cancel, please do so at least 24 hours in advance.</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["buyerName", "propertyTitle", "dateTime", "sellerName", "propertyAddress"],
+      triggerEvent: "appointment_confirmed" as const,
+      isActive: true,
+      description: "Sent to buyer when seller confirms appointment",
+    },
+    {
+      name: "Appointment Cancelled",
+      subject: "Appointment Cancelled - {{propertyTitle}}",
+      body: `<h1>Appointment Cancelled</h1>
+<p>Hi {{recipientName}},</p>
+<p>Your scheduled visit for <strong>{{propertyTitle}}</strong> has been cancelled.</p>
+<h3>Details:</h3>
+<ul>
+  <li>Property: {{propertyTitle}}</li>
+  <li>Original Date & Time: {{dateTime}}</li>
+  <li>Cancelled by: {{cancelledBy}}</li>
+  <li>Reason: {{reason}}</li>
+</ul>
+<p>You can request a new visit from your dashboard if you're still interested in this property.</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["recipientName", "propertyTitle", "dateTime", "cancelledBy", "reason"],
+      triggerEvent: "appointment_cancelled" as const,
+      isActive: true,
+      description: "Sent when an appointment is cancelled",
+    },
+    {
+      name: "Appointment Rescheduled",
+      subject: "Appointment Rescheduled - {{propertyTitle}}",
+      body: `<h1>Appointment Rescheduled</h1>
+<p>Hi {{recipientName}},</p>
+<p>Your visit for <strong>{{propertyTitle}}</strong> has been rescheduled.</p>
+<h3>New Details:</h3>
+<ul>
+  <li>Property: {{propertyTitle}}</li>
+  <li>New Date & Time: {{newDateTime}}</li>
+  <li>Previous Date & Time: {{oldDateTime}}</li>
+</ul>
+<p>Please confirm if this new time works for you.</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["recipientName", "propertyTitle", "newDateTime", "oldDateTime"],
+      triggerEvent: "appointment_rescheduled" as const,
+      isActive: true,
+      description: "Sent when an appointment is rescheduled",
+    },
+    {
+      name: "Property Expired",
+      subject: "Your Property Listing Has Expired - {{propertyTitle}}",
+      body: `<h1>Property Listing Expired</h1>
+<p>Hi {{sellerName}},</p>
+<p>Your property listing <strong>{{propertyTitle}}</strong> has expired and is no longer visible to buyers.</p>
+<p>To continue receiving inquiries, please renew your listing from your seller dashboard.</p>
+<p><a href="{{renewLink}}" style="background-color: #E86A33; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Renew Listing</a></p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["sellerName", "propertyTitle", "renewLink"],
+      triggerEvent: "property_expired" as const,
+      isActive: true,
+      description: "Sent when a property listing expires",
+    },
+    {
+      name: "Property Renewed",
+      subject: "Property Listing Renewed - {{propertyTitle}}",
+      body: `<h1>Listing Renewed Successfully!</h1>
+<p>Hi {{sellerName}},</p>
+<p>Your property <strong>{{propertyTitle}}</strong> has been renewed and is now live again.</p>
+<p>The listing will remain active until {{expiryDate}}.</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["sellerName", "propertyTitle", "expiryDate"],
+      triggerEvent: "property_renewed" as const,
+      isActive: true,
+      description: "Sent when a property listing is renewed",
+    },
+    {
+      name: "Property Boosted",
+      subject: "Your Property Has Been Boosted - {{propertyTitle}}",
+      body: `<h1>Property Boosted!</h1>
+<p>Hi {{sellerName}},</p>
+<p>Your property <strong>{{propertyTitle}}</strong> has been boosted and will appear at the top of search results.</p>
+<p>Boost Duration: {{boostDuration}}</p>
+<p>This will help your property get more visibility and inquiries.</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["sellerName", "propertyTitle", "boostDuration"],
+      triggerEvent: "property_boosted" as const,
+      isActive: true,
+      description: "Sent when a property is boosted",
+    },
+    {
+      name: "Property Featured",
+      subject: "Congratulations! Your Property is Now Featured - {{propertyTitle}}",
+      body: `<h1>Property Featured!</h1>
+<p>Hi {{sellerName}},</p>
+<p>Great news! Your property <strong>{{propertyTitle}}</strong> has been featured on VenGrow.</p>
+<p>Featured properties get premium placement and increased visibility, helping you reach more potential buyers.</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["sellerName", "propertyTitle"],
+      triggerEvent: "property_featured" as const,
+      isActive: true,
+      description: "Sent when a property is featured",
+    },
+    {
+      name: "Subscription Renewed",
+      subject: "Subscription Renewed Successfully - {{packageName}}",
+      body: `<h1>Subscription Renewed!</h1>
+<p>Hi {{sellerName}},</p>
+<p>Your <strong>{{packageName}}</strong> subscription has been renewed successfully.</p>
+<h3>Renewal Details:</h3>
+<ul>
+  <li>Package: {{packageName}}</li>
+  <li>Valid Until: {{validUntil}}</li>
+  <li>Listings: {{listingLimit}} properties</li>
+</ul>
+<p>Thank you for continuing with VenGrow!</p>
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["sellerName", "packageName", "validUntil", "listingLimit"],
+      triggerEvent: "subscription_renewed" as const,
+      isActive: true,
+      description: "Sent when a subscription is renewed",
+    },
+    {
       name: "Admin Notification",
       subject: "{{notificationTitle}} - VenGrow Admin",
       body: `<h1>{{notificationTitle}}</h1>
@@ -660,6 +792,29 @@ async function seedEmailTemplates() {
       triggerEvent: "admin_notification" as const,
       isActive: true,
       description: "Generic admin notification template",
+    },
+    {
+      name: "Appointment Requested",
+      subject: "{{#isForSeller}}New Visit Request{{else}}Visit Request Submitted{{/isForSeller}} - {{propertyTitle}}",
+      body: `{{#isForSeller}}
+<h1>New Visit Request</h1>
+<p>Hi {{recipientName}},</p>
+<p>You have a new visit request for your property: <strong>{{propertyTitle}}</strong></p>
+<p><strong>Requested by:</strong> {{otherPartyName}}</p>
+<p><strong>Requested Time:</strong> {{dateTime}}</p>
+<p>Login to your seller dashboard to accept or reschedule this appointment.</p>
+{{else}}
+<h1>Visit Request Submitted</h1>
+<p>Hi {{recipientName}},</p>
+<p>Your visit request for <strong>{{propertyTitle}}</strong> has been submitted.</p>
+<p><strong>Requested Time:</strong> {{dateTime}}</p>
+<p>The seller will review your request and confirm the appointment.</p>
+{{/isForSeller}}
+<p>Best regards,<br>The VenGrow Team</p>`,
+      variables: ["recipientName", "propertyTitle", "dateTime", "otherPartyName", "isForSeller"],
+      triggerEvent: "appointment_requested" as const,
+      isActive: true,
+      description: "Sent when an appointment is requested (to both buyer and seller)",
     },
   ];
 

@@ -34,8 +34,10 @@ export const emailTriggerEnum = pgEnum("email_trigger", [
   "welcome_buyer", "welcome_seller", "email_verification", "password_reset", "password_changed",
   "inquiry_received", "inquiry_response", "new_message", 
   "property_submitted", "property_approved", "property_rejected", "property_needs_reapproval", "property_live",
+  "property_expired", "property_renewed", "property_boosted", "property_featured",
   "seller_approved", "seller_rejected", "seller_verification_pending",
-  "payment_success", "payment_failed", "subscription_activated", "subscription_expiring", "subscription_expired",
+  "payment_success", "payment_failed", "subscription_activated", "subscription_expiring", "subscription_expired", "subscription_renewed",
+  "appointment_requested", "appointment_confirmed", "appointment_cancelled", "appointment_rescheduled",
   "account_deactivated", "account_reactivated", "admin_notification"
 ]);
 
