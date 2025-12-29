@@ -3774,28 +3774,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
 
-      // Recent inquiries (last 5)
-      const recentInquiries = inquiries
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 5)
-        .map(inquiry => ({
-          id: inquiry.id,
-          propertyId: inquiry.propertyId,
-          buyerId: inquiry.buyerId,
-          status: inquiry.status,
-          createdAt: inquiry.createdAt,
-        }));
+      // Recent inquiries (last 5) with buyer and property details
+      const recentInquiriesData = await Promise.all(
+        inquiries
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 5)
+          .map(async (inquiry) => {
+            const buyer = inquiry.buyerId ? await storage.getUser(inquiry.buyerId) : null;
+            const property = inquiry.propertyId ? await storage.getProperty(inquiry.propertyId) : null;
+            return {
+              id: inquiry.id,
+              propertyId: inquiry.propertyId,
+              buyerId: inquiry.buyerId,
+              buyerName: buyer ? `${buyer.firstName || ""} ${buyer.lastName || ""}`.trim() || buyer.email?.split("@")[0] || "Anonymous" : "Anonymous",
+              propertyTitle: property?.title || "Property",
+              propertyLocality: property?.locality || "",
+              propertyCity: property?.city || "",
+              message: inquiry.message || "",
+              status: inquiry.status,
+              createdAt: inquiry.createdAt,
+            };
+          })
+      );
 
-      // Top properties by views (top 5)
-      const topProperties = [...properties]
+      // Top properties by views (top 5) with full details
+      const topPropertiesData = [...properties]
         .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
         .slice(0, 5)
-        .map(p => ({
-          id: p.id,
-          title: p.title,
-          views: p.viewCount || 0,
-          inquiries: inquiries.filter(i => i.propertyId === p.id).length,
-        }));
+        .map(p => {
+          const propertyInquiries = inquiries.filter(i => i.propertyId === p.id);
+          const favorites = p.favoriteCount || 0;
+          const views = p.viewCount || 0;
+          const inquiryCount = propertyInquiries.length;
+          const conversionRate = views > 0 ? ((favorites + inquiryCount) / views * 100).toFixed(1) : "0.0";
+          return {
+            id: p.id,
+            title: p.title,
+            locality: p.locality || "",
+            city: p.city || "",
+            price: p.price || 0,
+            views: views,
+            favorites: favorites,
+            inquiries: inquiryCount,
+            conversionRate: `${conversionRate}%`,
+          };
+        });
 
       res.json({
         totalProperties,
@@ -3805,8 +3828,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newInquiries,
         scheduledVisits,
         packageInfo,
-        recentInquiries,
-        topProperties,
+        recentInquiries: recentInquiriesData,
+        topProperties: topPropertiesData,
       });
     } catch (error) {
       console.error("Error getting seller stats:", error);

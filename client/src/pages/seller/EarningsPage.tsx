@@ -136,6 +136,7 @@ export default function EarningsPage() {
                     ₹0
                   </p>
                   <p className="text-sm text-muted-foreground">Withdrawn</p>
+                  {/* Note: Withdrawal functionality not yet implemented - amount will be calculated from withdrawal history once API is available */}
                 </div>
               </div>
             </Card>

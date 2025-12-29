@@ -165,7 +165,13 @@ export default function VerificationCenterPage() {
             <p className="text-sm text-muted-foreground mb-4">
               Having trouble with verification? Contact our support team for assistance.
             </p>
-            <Button variant="outline">Contact Support</Button>
+            <Button 
+              variant="outline"
+              onClick={() => window.open("mailto:support@vengrow.com?subject=Verification Support", "_blank")}
+              data-testid="button-contact-support"
+            >
+              Contact Support
+            </Button>
           </Card>
         </div>
       </main>

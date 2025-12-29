@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ export default function AnalyticsDashboardPage() {
   const { toast } = useToast();
   const [dateRangeDialogOpen, setDateRangeDialogOpen] = useState(false);
   const [selectedRange, setSelectedRange] = useState("all");
+  const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
 
   const { data: dashboardStats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/me/dashboard"],
@@ -53,8 +54,43 @@ export default function AnalyticsDashboardPage() {
 
   const isLoading = statsLoading || propertiesLoading;
 
+  useEffect(() => {
+    if (properties.length > 0 && selectedRange === "all") {
+      setFilteredProperties(properties);
+    }
+  }, [properties, selectedRange]);
+
   const handleDateRangeClick = () => {
     setDateRangeDialogOpen(true);
+  };
+
+  const handleRangeSelect = (range: string) => {
+    setSelectedRange(range);
+    setDateRangeDialogOpen(false);
+    
+    if (range === "all") {
+      setFilteredProperties(properties);
+      return;
+    }
+    
+    const now = new Date();
+    let startDate: Date;
+    
+    if (range === "week") {
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (range === "month") {
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else {
+      setFilteredProperties(properties);
+      return;
+    }
+    
+    const filtered = properties.filter(p => {
+      const createdAt = new Date(p.createdAt);
+      return createdAt >= startDate;
+    });
+    
+    setFilteredProperties(filtered);
   };
 
   const handleExport = () => {
@@ -84,16 +120,19 @@ export default function AnalyticsDashboardPage() {
     toast({ title: "Report exported successfully" });
   };
 
-  const totalViews = properties.reduce((sum, p) => sum + (p.viewCount || 0), 0);
-  const totalFavorites = properties.reduce((sum, p) => sum + (p.favoriteCount || 0), 0);
-  const totalInquiries = properties.reduce((sum, p) => sum + (p.inquiryCount || 0), 0);
+  // Use filtered properties if date range is selected, otherwise use all properties
+  const propertiesToUse = selectedRange !== "all" && filteredProperties.length > 0 ? filteredProperties : properties;
+  
+  const totalViews = propertiesToUse.reduce((sum, p) => sum + (p.viewCount || 0), 0);
+  const totalFavorites = propertiesToUse.reduce((sum, p) => sum + (p.favoriteCount || 0), 0);
+  const totalInquiries = propertiesToUse.reduce((sum, p) => sum + (p.inquiryCount || 0), 0);
   const engagementRate = totalViews > 0 ? ((totalFavorites + totalInquiries) / totalViews * 100).toFixed(1) : "0.0";
 
   const stats = [
     {
       label: "Total Views",
       value: totalViews.toLocaleString(),
-      change: "All-time views on your listings",
+      change: selectedRange === "all" ? "All-time views on your listings" : `${selectedRange === "week" ? "Last 7 days" : "Last 30 days"} views`,
       icon: Eye,
     },
     {
@@ -116,7 +155,7 @@ export default function AnalyticsDashboardPage() {
     },
   ];
 
-  const topProperties = [...properties]
+  const topProperties = [...propertiesToUse]
     .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
     .slice(0, 5)
     .map((p) => ({
@@ -147,6 +186,36 @@ export default function AnalyticsDashboardPage() {
                 <Calendar className="h-4 w-4 mr-2" />
                 {selectedRange === "all" ? "All Time" : selectedRange === "week" ? "Last Week" : selectedRange === "month" ? "Last Month" : "Custom"}
               </Button>
+              <Dialog open={dateRangeDialogOpen} onOpenChange={setDateRangeDialogOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Select Date Range</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-2">
+                    <Button 
+                      variant={selectedRange === "all" ? "default" : "outline"} 
+                      className="w-full justify-start"
+                      onClick={() => handleRangeSelect("all")}
+                    >
+                      All Time
+                    </Button>
+                    <Button 
+                      variant={selectedRange === "week" ? "default" : "outline"} 
+                      className="w-full justify-start"
+                      onClick={() => handleRangeSelect("week")}
+                    >
+                      Last 7 Days
+                    </Button>
+                    <Button 
+                      variant={selectedRange === "month" ? "default" : "outline"} 
+                      className="w-full justify-start"
+                      onClick={() => handleRangeSelect("month")}
+                    >
+                      Last 30 Days
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
               <Button data-testid="button-export" onClick={handleExport}>
                 <Download className="h-4 w-4 mr-2" />
                 Export Report
