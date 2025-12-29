@@ -373,6 +373,8 @@ export const invoiceSettings = pgTable("invoice_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   companyName: text("company_name").notNull(),
   companyAddress: text("company_address"),
+  companyState: text("company_state"),
+  companyPin: text("company_pin"),
   gstin: text("gstin"),
   pan: text("pan"),
   logo: text("logo"),
@@ -382,8 +384,10 @@ export const invoiceSettings = pgTable("invoice_settings", {
     accountNumber?: string;
     ifscCode?: string;
     accountHolder?: string;
+    branch?: string;
   }>(),
-  termsAndConditions: text("terms_and_conditions"),
+  sacCode: text("sac_code").default("997221"),
+  termsAndConditions: text("terms_and_conditions").default("1. Payment once made is non-refundable.\n2. Invoice valid for accounting & GST purposes.\n3. Any disputes subject to Bangalore jurisdiction.\n4. Payment should be made on or before the due date."),
   invoicePrefix: text("invoice_prefix").notNull().default("VG"),
   nextInvoiceNumber: integer("next_invoice_number").notNull().default(1),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -401,10 +405,17 @@ export const invoices = pgTable("invoices", {
   subtotal: integer("subtotal").notNull(),
   gstRate: decimal("gst_rate", { precision: 5, scale: 2 }).notNull().default("18"),
   gstAmount: integer("gst_amount").notNull(),
+  cgstAmount: integer("cgst_amount"),
+  sgstAmount: integer("sgst_amount"),
   totalAmount: integer("total_amount").notNull(),
+  placeOfSupply: text("place_of_supply"),
+  sacCode: text("sac_code").default("997221"),
+  paymentMode: text("payment_mode"),
   companyDetails: jsonb("company_details").$type<{
     name: string;
     address?: string;
+    state?: string;
+    pin?: string;
     gstin?: string;
     pan?: string;
   }>(),

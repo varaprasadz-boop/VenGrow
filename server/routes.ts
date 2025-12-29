@@ -2223,16 +2223,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const setting = await storage.getSystemSetting("invoice_settings");
       if (!setting) {
         return res.json({
-          companyName: "VenGrow Real Estate",
+          companyName: "VenGrow",
           companyAddress: "",
-          gstin: "",
-          panNumber: "",
-          prefix: "VG-INV-",
-          startingNumber: 1001,
-          gstRate: 18,
-          includeGst: true,
-          termsAndConditions: "",
-          footerNotes: "",
+          companyState: "Karnataka",
+          companyPin: "",
+          gstin: "29BWZPM7438N3Z3",
+          pan: "",
+          logo: null,
+          footerText: "",
+          bankDetails: {
+            bankName: "Axis Bank",
+            accountNumber: "924020038520995",
+            ifscCode: "UTIB0004648",
+            accountHolder: "Space Shop",
+            branch: "Amruthahalli KT",
+          },
+          sacCode: "997221",
+          termsAndConditions: "1. Payment once made is non-refundable.\n2. Invoice valid for accounting & GST purposes.\n3. Any disputes subject to Bangalore jurisdiction.\n4. Payment should be made on or before the due date.",
+          invoicePrefix: "VG",
+          nextInvoiceNumber: 1,
         });
       }
       res.json(setting.value);

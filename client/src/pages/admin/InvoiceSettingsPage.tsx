@@ -22,6 +22,8 @@ interface InvoiceSettings {
   id: string;
   companyName: string;
   companyAddress: string | null;
+  companyState: string | null;
+  companyPin: string | null;
   gstin: string | null;
   pan: string | null;
   logo: string | null;
@@ -31,7 +33,9 @@ interface InvoiceSettings {
     accountNumber?: string;
     ifscCode?: string;
     accountHolder?: string;
+    branch?: string;
   } | null;
+  sacCode: string | null;
   termsAndConditions: string | null;
   invoicePrefix: string;
   nextInvoiceNumber: number;
@@ -42,6 +46,8 @@ export default function InvoiceSettingsPage() {
   const [formData, setFormData] = useState<Partial<InvoiceSettings>>({
     companyName: "VenGrow Real Estate Pvt. Ltd.",
     companyAddress: "",
+    companyState: "Karnataka",
+    companyPin: "",
     gstin: "",
     pan: "",
     footerText: "",
@@ -52,8 +58,10 @@ export default function InvoiceSettingsPage() {
       accountNumber: "",
       ifscCode: "",
       accountHolder: "",
+      branch: "",
     },
-    termsAndConditions: "",
+    sacCode: "997221",
+    termsAndConditions: "1. Payment once made is non-refundable.\n2. Invoice valid for accounting & GST purposes.\n3. Any disputes subject to Bangalore jurisdiction.\n4. Payment should be made on or before the due date.",
   });
 
   const { data: settings, isLoading, isError, refetch } = useQuery<InvoiceSettings>({
@@ -161,7 +169,7 @@ export default function InvoiceSettingsPage() {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <Label htmlFor="companyAddress">Company Address</Label>
+                    <Label htmlFor="companyAddress">Registered Address</Label>
                     <Textarea
                       id="companyAddress"
                       value={formData.companyAddress || ""}
@@ -172,12 +180,32 @@ export default function InvoiceSettingsPage() {
                     />
                   </div>
                   <div>
+                    <Label htmlFor="companyState">State</Label>
+                    <Input
+                      id="companyState"
+                      value={formData.companyState || ""}
+                      onChange={(e) => setFormData({ ...formData, companyState: e.target.value })}
+                      placeholder="e.g., Karnataka"
+                      data-testid="input-company-state"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="companyPin">PIN Code</Label>
+                    <Input
+                      id="companyPin"
+                      value={formData.companyPin || ""}
+                      onChange={(e) => setFormData({ ...formData, companyPin: e.target.value })}
+                      placeholder="e.g., 560001"
+                      data-testid="input-company-pin"
+                    />
+                  </div>
+                  <div>
                     <Label htmlFor="gstin">GSTIN</Label>
                     <Input
                       id="gstin"
                       value={formData.gstin || ""}
                       onChange={(e) => setFormData({ ...formData, gstin: e.target.value })}
-                      placeholder="e.g., 22AAAAA0000A1Z5"
+                      placeholder="e.g., 29BWZPM7438N3Z3"
                       data-testid="input-gstin"
                     />
                   </div>
@@ -187,7 +215,7 @@ export default function InvoiceSettingsPage() {
                       id="pan"
                       value={formData.pan || ""}
                       onChange={(e) => setFormData({ ...formData, pan: e.target.value })}
-                      placeholder="e.g., AAAAA0000A"
+                      placeholder="e.g., BWZPM7438N"
                       data-testid="input-pan"
                     />
                   </div>
@@ -218,7 +246,7 @@ export default function InvoiceSettingsPage() {
                       data-testid="input-invoice-prefix"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Preview: {formData.invoicePrefix}-{String(formData.nextInvoiceNumber || 1).padStart(5, '0')}
+                      Preview: {formData.invoicePrefix}/2025/{String(formData.nextInvoiceNumber || 1).padStart(3, '0')}
                     </p>
                   </div>
                   <div>
@@ -231,6 +259,19 @@ export default function InvoiceSettingsPage() {
                       min={1}
                       data-testid="input-next-number"
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="sacCode">SAC Code</Label>
+                    <Input
+                      id="sacCode"
+                      value={formData.sacCode || ""}
+                      onChange={(e) => setFormData({ ...formData, sacCode: e.target.value })}
+                      placeholder="e.g., 997221"
+                      data-testid="input-sac-code"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Service Accounting Code for Real Estate Brokerage
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -250,6 +291,19 @@ export default function InvoiceSettingsPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
+                    <Label htmlFor="accountHolder">Account Name</Label>
+                    <Input
+                      id="accountHolder"
+                      value={formData.bankDetails?.accountHolder || ""}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        bankDetails: { ...formData.bankDetails, accountHolder: e.target.value }
+                      })}
+                      placeholder="e.g., Space Shop"
+                      data-testid="input-account-holder"
+                    />
+                  </div>
+                  <div>
                     <Label htmlFor="bankName">Bank Name</Label>
                     <Input
                       id="bankName"
@@ -258,21 +312,8 @@ export default function InvoiceSettingsPage() {
                         ...formData,
                         bankDetails: { ...formData.bankDetails, bankName: e.target.value }
                       })}
-                      placeholder="e.g., HDFC Bank"
+                      placeholder="e.g., Axis Bank"
                       data-testid="input-bank-name"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="accountHolder">Account Holder Name</Label>
-                    <Input
-                      id="accountHolder"
-                      value={formData.bankDetails?.accountHolder || ""}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        bankDetails: { ...formData.bankDetails, accountHolder: e.target.value }
-                      })}
-                      placeholder="Account holder name"
-                      data-testid="input-account-holder"
                     />
                   </div>
                   <div>
@@ -284,7 +325,7 @@ export default function InvoiceSettingsPage() {
                         ...formData,
                         bankDetails: { ...formData.bankDetails, accountNumber: e.target.value }
                       })}
-                      placeholder="e.g., 1234567890"
+                      placeholder="e.g., 924020038520995"
                       data-testid="input-account-number"
                     />
                   </div>
@@ -297,8 +338,21 @@ export default function InvoiceSettingsPage() {
                         ...formData,
                         bankDetails: { ...formData.bankDetails, ifscCode: e.target.value }
                       })}
-                      placeholder="e.g., HDFC0001234"
+                      placeholder="e.g., UTIB0004648"
                       data-testid="input-ifsc-code"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="branch">Branch</Label>
+                    <Input
+                      id="branch"
+                      value={formData.bankDetails?.branch || ""}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        bankDetails: { ...formData.bankDetails, branch: e.target.value }
+                      })}
+                      placeholder="e.g., Amruthahalli KT"
+                      data-testid="input-bank-branch"
                     />
                   </div>
                 </div>

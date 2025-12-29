@@ -79,13 +79,11 @@ const systemItems = [
 const cmsContentItems = [
   { title: "Popular Cities", href: "/admin/popular-cities", icon: Globe },
   { title: "Property Types", href: "/admin/property-types", icon: Building2 },
-  { title: "Hero Slides", href: "/admin/hero-slides", icon: Image },
   { title: "Verified Builders", href: "/admin/verified-builders", icon: BadgeCheck },
   { title: "Testimonials", href: "/admin/testimonials", icon: Quote },
   { title: "Team Members", href: "/admin/team-members", icon: UserCircle },
   { title: "Company Values", href: "/admin/company-values", icon: Heart },
   { title: "FAQs", href: "/admin/faqs", icon: HelpCircle },
-  { title: "Banners", href: "/admin/banners", icon: Megaphone },
   { title: "Static Pages", href: "/admin/static-pages", icon: FileText },
   { title: "Navigation Links", href: "/admin/navigation", icon: Globe },
   { title: "Site Settings", href: "/admin/site-settings", icon: Settings },

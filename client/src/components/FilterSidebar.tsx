@@ -134,9 +134,24 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
     queryKey: ["/api/property-categories"],
   });
 
+  // Get category ID from slug for subcategories query
+  const selectedCategoryId = useMemo(() => {
+    if (selectedCategory === "all") return null;
+    const category = categories.find(c => c.slug === selectedCategory);
+    return category?.id || null;
+  }, [categories, selectedCategory]);
+
   const { data: subcategories = [] } = useQuery<PropertySubcategory[]>({
-    queryKey: ["/api/property-subcategories", selectedCategory],
-    enabled: selectedCategory !== "all",
+    queryKey: ["/api/property-subcategories", selectedCategoryId],
+    queryFn: async () => {
+      const url = selectedCategoryId 
+        ? `/api/property-subcategories?categoryId=${selectedCategoryId}`
+        : "/api/property-subcategories";
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch subcategories");
+      return res.json();
+    },
+    enabled: selectedCategory !== "all" && !!selectedCategoryId,
   });
 
   const selectedCategoryObj = useMemo(() => {
