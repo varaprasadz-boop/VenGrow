@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import {
   Search,
   Download,
   Eye,
@@ -19,6 +26,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import type { Payment } from "@shared/schema";
+import { exportToCSV } from "@/lib/utils";
 
 function formatCurrency(amount: number): string {
   return `₹${amount.toLocaleString("en-IN")}`;
@@ -27,6 +35,8 @@ function formatCurrency(amount: number): string {
 export default function TransactionsPage() {
   const [selectedTab, setSelectedTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTxn, setSelectedTxn] = useState<Payment | null>(null);
+  const [viewOpen, setViewOpen] = useState(false);
 
   const { data: payments = [], isLoading, isError, refetch } = useQuery<Payment[]>({
     queryKey: ["/api/payments"],
@@ -84,6 +94,40 @@ export default function TransactionsPage() {
   const failedCount = payments.filter((t) => t.status === "failed").length;
   const refundedCount = payments.filter((t) => t.status === "refunded").length;
 
+  const handleExport = () => {
+    const exportData = filteredTransactions.map(txn => ({
+      transactionId: txn.razorpayPaymentId || `TXN-${txn.id.slice(0, 8)}`,
+      orderId: txn.razorpayOrderId || "",
+      amount: txn.amount,
+      estimatedGst: Math.round(txn.amount * 0.18),
+      estimatedTotal: txn.amount + Math.round(txn.amount * 0.18),
+      status: txn.status,
+      paymentMethod: txn.paymentMethod || "Online",
+      createdAt: format(new Date(txn.createdAt), "yyyy-MM-dd HH:mm:ss"),
+    }));
+
+    exportToCSV(exportData, `transactions_export_${format(new Date(), 'yyyy-MM-dd')}`, [
+      { key: 'transactionId', header: 'Transaction ID' },
+      { key: 'orderId', header: 'Order ID' },
+      { key: 'amount', header: 'Base Amount' },
+      { key: 'estimatedGst', header: 'Est. GST (18%)' },
+      { key: 'estimatedTotal', header: 'Est. Total' },
+      { key: 'status', header: 'Status' },
+      { key: 'paymentMethod', header: 'Payment Method' },
+      { key: 'createdAt', header: 'Date' },
+    ]);
+  };
+
+  const handleView = (txn: Payment) => {
+    setSelectedTxn(txn);
+    setViewOpen(true);
+  };
+
+  const handleDownloadInvoice = (txn: Payment) => {
+    setSelectedTxn(txn);
+    setViewOpen(true);
+  };
+
   if (isLoading) {
     return (
       <main className="flex-1">
@@ -136,7 +180,7 @@ export default function TransactionsPage() {
                 View and manage all payment transactions
               </p>
             </div>
-            <Button data-testid="button-export">
+            <Button onClick={handleExport} data-testid="button-export">
               <Download className="h-4 w-4 mr-2" />
               Export Report
             </Button>
@@ -271,6 +315,7 @@ export default function TransactionsPage() {
                               variant="outline"
                               size="sm"
                               className="flex-1 lg:flex-none"
+                              onClick={() => handleView(txn)}
                               data-testid={`button-view-${txn.id}`}
                             >
                               <Eye className="h-4 w-4 lg:mr-2" />
@@ -280,6 +325,7 @@ export default function TransactionsPage() {
                               variant="outline"
                               size="sm"
                               className="flex-1 lg:flex-none"
+                              onClick={() => handleDownloadInvoice(txn)}
                               data-testid={`button-download-${txn.id}`}
                             >
                               <Download className="h-4 w-4 lg:mr-2" />
@@ -295,6 +341,78 @@ export default function TransactionsPage() {
             </TabsContent>
           </Tabs>
         </div>
+
+        <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Transaction Details</DialogTitle>
+            </DialogHeader>
+            {selectedTxn && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-lg font-semibold">
+                    {selectedTxn.razorpayPaymentId || `TXN-${selectedTxn.id.slice(0, 8)}`}
+                  </span>
+                  <Badge className={getStatusBadge(selectedTxn.status).className}>
+                    {getStatusBadge(selectedTxn.status).label}
+                  </Badge>
+                </div>
+
+                <Separator />
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Order ID</p>
+                    <p className="font-mono">{selectedTxn.razorpayOrderId || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Payment Method</p>
+                    <p className="capitalize">{selectedTxn.paymentMethod || "Online"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Date</p>
+                    <p>{format(new Date(selectedTxn.createdAt), "MMM d, yyyy, h:mm a")}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Package ID</p>
+                    <p className="font-mono text-xs">{selectedTxn.packageId || "N/A"}</p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span>{formatCurrency(selectedTxn.amount)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">CGST @ 9%</span>
+                    <span>{formatCurrency(Math.round(selectedTxn.amount * 0.09))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">SGST @ 9%</span>
+                    <span>{formatCurrency(Math.round(selectedTxn.amount * 0.09))}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-bold text-lg">
+                    <span>Total</span>
+                    <span className="text-primary">{formatCurrency(selectedTxn.amount + Math.round(selectedTxn.amount * 0.18))}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button variant="outline" className="flex-1" onClick={() => window.print()}>
+                    Print
+                  </Button>
+                  <Button className="flex-1" onClick={() => setViewOpen(false)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     );
 }

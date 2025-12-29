@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Download, Filter } from "lucide-react";
+import { exportToCSV } from "@/lib/utils";
 
 export default function LogsPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  
   const logs = [
     {
       id: "1",
@@ -62,6 +65,20 @@ export default function LogsPage() {
     }
   };
 
+  const handleExport = () => {
+    const filteredLogs = searchQuery 
+      ? logs.filter(l => l.message.toLowerCase().includes(searchQuery.toLowerCase()) || l.user.toLowerCase().includes(searchQuery.toLowerCase()))
+      : logs;
+    exportToCSV(filteredLogs, `system_logs_${new Date().toISOString().split('T')[0]}`, [
+      { key: 'id', header: 'ID' },
+      { key: 'level', header: 'Level' },
+      { key: 'message', header: 'Message' },
+      { key: 'user', header: 'User' },
+      { key: 'timestamp', header: 'Timestamp' },
+      { key: 'ip', header: 'IP Address' },
+    ]);
+  };
+
   return (
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -74,7 +91,7 @@ export default function LogsPage() {
                 Monitor application activity and errors
               </p>
             </div>
-            <Button variant="outline" data-testid="button-download">
+            <Button variant="outline" onClick={handleExport} data-testid="button-download">
               <Download className="h-4 w-4 mr-2" />
               Export Logs
             </Button>
@@ -88,6 +105,8 @@ export default function LogsPage() {
                 <Input
                   placeholder="Search logs..."
                   className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   data-testid="input-search"
                 />
               </div>

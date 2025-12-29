@@ -16,6 +16,7 @@ import {
   FolderKanban,
   ShieldCheck,
 } from "lucide-react";
+import { exportToCSV } from "@/lib/utils";
 
 interface AnalyticsData {
   users: {
@@ -131,6 +132,28 @@ export default function PlatformAnalyticsPage() {
     orange: "bg-orange-100 dark:bg-orange-900/20 text-orange-600",
   };
 
+  const handleExportAnalytics = () => {
+    const exportData = [
+      { metric: 'Total Users', value: analytics.users.total, details: `${analytics.users.buyers} buyers, ${analytics.users.sellers} sellers` },
+      { metric: 'Active Users', value: analytics.users.active, details: '' },
+      { metric: 'Total Listings', value: analytics.listings.total, details: '' },
+      { metric: 'Live Listings', value: analytics.listings.live, details: '' },
+      { metric: 'Pending Listings', value: analytics.listings.pending, details: '' },
+      { metric: 'Total Inquiries', value: analytics.inquiries.total, details: '' },
+      { metric: 'Pending Inquiries', value: analytics.inquiries.pending, details: '' },
+      { metric: 'Total Sellers', value: analytics.sellers.total, details: '' },
+      { metric: 'Verified Sellers', value: analytics.sellers.verified, details: '' },
+      { metric: 'Total Projects', value: analytics.projects.total, details: '' },
+      { metric: 'Live Projects', value: analytics.projects.live, details: '' },
+    ];
+
+    exportToCSV(exportData, `platform_analytics_${new Date().toISOString().split('T')[0]}`, [
+      { key: 'metric', header: 'Metric' },
+      { key: 'value', header: 'Value' },
+      { key: 'details', header: 'Details' },
+    ]);
+  };
+
   return (
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -152,7 +175,7 @@ export default function PlatformAnalyticsPage() {
                 <Calendar className="h-4 w-4 mr-2" />
                 All Time
               </Button>
-              <Button data-testid="button-export-analytics">
+              <Button onClick={handleExportAnalytics} data-testid="button-export-analytics">
                 <Download className="h-4 w-4 mr-2" />
                 Export Report
               </Button>

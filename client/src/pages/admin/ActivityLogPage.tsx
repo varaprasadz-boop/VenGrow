@@ -12,6 +12,7 @@ import {
   Settings,
   Download,
 } from "lucide-react";
+import { exportToCSV } from "@/lib/utils";
 
 export default function ActivityLogPage() {
   const [selectedTab, setSelectedTab] = useState("all");
@@ -101,6 +102,19 @@ export default function ActivityLogPage() {
     return filtered;
   };
 
+  const handleExport = () => {
+    const filteredActivities = filterActivities();
+    exportToCSV(filteredActivities, `activity_log_${new Date().toISOString().split('T')[0]}`, [
+      { key: 'id', header: 'ID' },
+      { key: 'type', header: 'Type' },
+      { key: 'action', header: 'Action' },
+      { key: 'user', header: 'User' },
+      { key: 'details', header: 'Details' },
+      { key: 'timestamp', header: 'Timestamp' },
+      { key: 'ipAddress', header: 'IP Address' },
+    ]);
+  };
+
   return (
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -113,7 +127,7 @@ export default function ActivityLogPage() {
                 Track all platform activities
               </p>
             </div>
-            <Button data-testid="button-export">
+            <Button onClick={handleExport} data-testid="button-export">
               <Download className="h-4 w-4 mr-2" />
               Export Log
             </Button>

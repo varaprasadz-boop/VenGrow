@@ -42,6 +42,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { formatDistanceToNow, format } from "date-fns";
 import { useState } from "react";
+import { exportToCSV } from "@/lib/utils";
 
 interface SellerWithStats {
   id: string;
@@ -134,6 +135,34 @@ export default function SellerListPage() {
     return getNormalizedSellerType(seller.sellerType) === "corporate";
   };
 
+  const handleExport = () => {
+    const exportData = filteredSellers.map(seller => ({
+      name: getSellerName(seller),
+      email: seller.user?.email || "",
+      phone: seller.user?.phone || "",
+      sellerType: seller.sellerType,
+      verificationStatus: seller.verificationStatus,
+      totalListings: seller.totalListings,
+      liveListings: seller.livePropertiesCount,
+      totalInquiries: seller.totalInquiries,
+      isVerifiedBuilder: seller.isVerifiedBuilder ? "Yes" : "No",
+      registeredOn: format(new Date(seller.createdAt), "yyyy-MM-dd"),
+    }));
+
+    exportToCSV(exportData, `sellers_export_${format(new Date(), 'yyyy-MM-dd')}`, [
+      { key: 'name', header: 'Seller Name' },
+      { key: 'email', header: 'Email' },
+      { key: 'phone', header: 'Phone' },
+      { key: 'sellerType', header: 'Seller Type' },
+      { key: 'verificationStatus', header: 'Status' },
+      { key: 'totalListings', header: 'Total Listings' },
+      { key: 'liveListings', header: 'Live Listings' },
+      { key: 'totalInquiries', header: 'Total Inquiries' },
+      { key: 'isVerifiedBuilder', header: 'Verified Builder' },
+      { key: 'registeredOn', header: 'Registered On' },
+    ]);
+  };
+
   if (isLoading) {
     return (
       <main className="flex-1 bg-muted/30">
@@ -187,7 +216,7 @@ export default function SellerListPage() {
                 View and manage all registered sellers with their statistics
               </p>
             </div>
-            <Button variant="outline" data-testid="button-export">
+            <Button variant="outline" onClick={handleExport} data-testid="button-export">
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
