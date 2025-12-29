@@ -2671,6 +2671,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const invoices = payments.map((payment) => ({
         id: payment.id,
         invoiceNumber: `VG-INV-${payment.id.slice(0, 8).toUpperCase()}`,
+        sellerId: payment.userId,
+        packageId: payment.packageId || undefined,
         amount: payment.amount,
         status: payment.status,
         paymentMethod: payment.paymentMethod,

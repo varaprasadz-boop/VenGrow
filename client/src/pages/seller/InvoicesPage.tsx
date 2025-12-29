@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import InvoicePreview, { downloadInvoiceAsPDF } from "@/components/InvoicePreview";
 import {
   Table,
   TableBody,
@@ -28,8 +29,8 @@ import type { Package } from "@shared/schema";
 interface Invoice {
   id: string;
   invoiceNumber: string;
-  sellerId: string;
-  packageId: string;
+  sellerId?: string;
+  packageId?: string;
   amount: number;
   status: string;
   paymentMethod: string;
@@ -45,13 +46,26 @@ function formatPrice(amount: number | undefined | null): string {
 }
 
 export default function SellerInvoicesPage() {
+  const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
   const { data: invoices = [], isLoading, isError, refetch } = useQuery<Invoice[]>({
     queryKey: ["/api/seller/invoices"],
+  });
+
+  // Fetch current user info
+  const { data: currentUser } = useQuery<any>({
+    queryKey: ["/api/auth/me"],
   });
 
   // Fetch all packages to map packageId to package name
   const { data: packages = [] } = useQuery<Package[]>({
     queryKey: ["/api/packages"],
+  });
+
+  // Fetch invoice settings
+  const { data: invoiceSettings = null } = useQuery<any>({
+    queryKey: ["/api/admin/invoice-settings"],
   });
 
   // Create a map of packageId to package name
@@ -159,7 +173,7 @@ export default function SellerInvoicesPage() {
                           <span className="font-mono font-medium">{invoice.invoiceNumber}</span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{packageMap.get(invoice.packageId) || "Unknown Package"}</Badge>
+                          <Badge variant="outline">{invoice.packageId ? (packageMap.get(invoice.packageId) || "Unknown Package") : "N/A"}</Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <div>
@@ -183,11 +197,46 @@ export default function SellerInvoicesPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm" data-testid={`button-view-${invoice.id}`}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              data-testid={`button-view-${invoice.id}`}
+                              onClick={() => {
+                                const fullInvoice = {
+                                  ...invoice,
+                                  seller: currentUser ? {
+                                    firstName: currentUser.firstName || undefined,
+                                    lastName: currentUser.lastName || undefined,
+                                    email: currentUser.email || undefined,
+                                    phone: currentUser.phone || undefined,
+                                  } : undefined,
+                                  package: invoice.packageId ? (packages.find(p => p.id === invoice.packageId) || undefined) : undefined,
+                                };
+                                setPreviewInvoice(fullInvoice);
+                                setIsPreviewOpen(true);
+                              }}
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
                             {invoice.status === "completed" && (
-                              <Button variant="ghost" size="sm" data-testid={`button-download-${invoice.id}`}>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                data-testid={`button-download-${invoice.id}`}
+                                onClick={() => {
+                                  const fullInvoice = {
+                                    ...invoice,
+                                    seller: currentUser ? {
+                                      firstName: currentUser.firstName || undefined,
+                                      lastName: currentUser.lastName || undefined,
+                                      email: currentUser.email || undefined,
+                                      phone: currentUser.phone || undefined,
+                                    } : undefined,
+                                    package: invoice.packageId ? (packages.find(p => p.id === invoice.packageId) || undefined) : undefined,
+                                  };
+                                  downloadInvoiceAsPDF(fullInvoice, invoiceSettings);
+                                }}
+                              >
                                 <Download className="h-4 w-4" />
                               </Button>
                             )}
@@ -200,6 +249,13 @@ export default function SellerInvoicesPage() {
               </Table>
             </div>
           </Card>
+
+        <InvoicePreview
+          invoice={previewInvoice}
+          settings={invoiceSettings}
+          open={isPreviewOpen}
+          onOpenChange={setIsPreviewOpen}
+        />
         </div>
       </main>
     );
