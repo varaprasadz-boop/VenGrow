@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import { useLocation } from "wouter";
 import { ChevronDown, X, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +18,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { useLocation as useLocationContext } from "@/contexts/LocationContext";
 
 interface FilterChip {
   id: string;
@@ -26,21 +29,166 @@ interface FilterChip {
 }
 
 interface ListingsFilterHeaderProps {
+  filters?: {
+    priceRange?: [number, number];
+    transactionTypes?: string[];
+    category?: string;
+    bhk?: string[];
+    sellerTypes?: string[];
+    city?: string;
+    state?: string;
+    locality?: string;
+    propertyAge?: string[];
+  };
+  onFilterChange?: (filters: any) => void;
   onOpenFilters?: () => void;
 }
 
-export default function ListingsFilterHeader({ onOpenFilters }: ListingsFilterHeaderProps) {
-  const selectedFilters: FilterChip[] = [
-    { id: "transaction", label: "Buy", value: "Buy", hasDropdown: true },
-    { id: "city", label: "Mumbai", value: "Mumbai", hasDropdown: true },
-    { id: "locality", label: "Bandra, Andheri +2", value: "Bandra, Andheri +2", isRemovable: true, hasDropdown: true },
-    { id: "price", label: "₹50L - ₹2Cr", value: "₹50L - ₹2Cr", isRemovable: true, hasDropdown: true },
-    { id: "type", label: "Apartment +1", value: "Apartment +1", isRemovable: true, hasDropdown: true },
-    { id: "bhk", label: "2, 3 BHK", value: "2, 3 BHK", isRemovable: true, hasDropdown: true },
-    { id: "seller", label: "Corporate", value: "Corporate", isRemovable: true },
-  ];
+export default function ListingsFilterHeader({ filters = {}, onFilterChange, onOpenFilters }: ListingsFilterHeaderProps) {
+  const [location, setLocation] = useLocation();
+  const locationContext = useLocationContext();
+  const headerSelectedCity = locationContext?.selectedCity?.name || null;
 
-  const moreFiltersCount = 4;
+  // Determine transaction type from URL path
+  const transactionTypeFromPath = useMemo(() => {
+    if (location === "/buy" || location.startsWith("/buy?")) return "Buy";
+    if (location === "/lease" || location.startsWith("/lease?")) return "Lease";
+    if (location === "/rent" || location.startsWith("/rent?")) return "Rent";
+    return null;
+  }, [location]);
+
+  const formatPrice = (value: number) => {
+    if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)} Cr`;
+    if (value >= 100000) return `₹${(value / 100000).toFixed(0)} L`;
+    return `₹${value.toLocaleString('en-IN')}`;
+  };
+
+  // Build filter chips from actual filters
+  const selectedFilters = useMemo<FilterChip[]>(() => {
+    const chips: FilterChip[] = [];
+    
+    // Transaction type chip (always shown if on /buy, /lease, /rent)
+    if (transactionTypeFromPath) {
+      chips.push({
+        id: "transaction",
+        label: transactionTypeFromPath,
+        value: transactionTypeFromPath,
+        hasDropdown: true,
+      });
+    }
+    
+    // City chip
+    const cityValue = headerSelectedCity || filters.city;
+    if (cityValue && cityValue !== "all") {
+      chips.push({
+        id: "city",
+        label: cityValue,
+        value: cityValue,
+        hasDropdown: true,
+        isRemovable: true,
+      });
+    }
+    
+    // Locality chip
+    if (filters.locality) {
+      chips.push({
+        id: "locality",
+        label: filters.locality,
+        value: filters.locality,
+        isRemovable: true,
+        hasDropdown: true,
+      });
+    }
+    
+    // Price range chip
+    if (filters.priceRange) {
+      const [min, max] = filters.priceRange;
+      chips.push({
+        id: "price",
+        label: `${formatPrice(min)} - ${formatPrice(max)}`,
+        value: `${min}-${max}`,
+        isRemovable: true,
+        hasDropdown: true,
+      });
+    }
+    
+    // Category chip
+    if (filters.category && filters.category !== "all") {
+      chips.push({
+        id: "category",
+        label: filters.category,
+        value: filters.category,
+        isRemovable: true,
+        hasDropdown: true,
+      });
+    }
+    
+    // BHK chip
+    if (filters.bhk && filters.bhk.length > 0) {
+      const bhkLabel = filters.bhk.length === 1 
+        ? filters.bhk[0] 
+        : `${filters.bhk.slice(0, 2).join(", ")}${filters.bhk.length > 2 ? ` +${filters.bhk.length - 2}` : ""}`;
+      chips.push({
+        id: "bhk",
+        label: bhkLabel,
+        value: filters.bhk.join(","),
+        isRemovable: true,
+        hasDropdown: true,
+      });
+    }
+    
+    // Seller type chip
+    if (filters.sellerTypes && filters.sellerTypes.length > 0) {
+      chips.push({
+        id: "seller",
+        label: filters.sellerTypes[0],
+        value: filters.sellerTypes.join(","),
+        isRemovable: true,
+      });
+    }
+    
+    return chips;
+  }, [filters, transactionTypeFromPath, headerSelectedCity]);
+
+  const moreFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.propertyAge && filters.propertyAge.length > 0) count++;
+    if (filters.state && filters.state !== "all") count++;
+    // Add other filters that aren't shown as chips
+    return count;
+  }, [filters]);
+
+  const handleClearFilter = (filterId: string) => {
+    if (!onFilterChange) return;
+    
+    const newFilters = { ...filters };
+    switch (filterId) {
+      case "city":
+        delete newFilters.city;
+        break;
+      case "locality":
+        delete newFilters.locality;
+        break;
+      case "price":
+        delete newFilters.priceRange;
+        break;
+      case "category":
+        delete newFilters.category;
+        break;
+      case "bhk":
+        delete newFilters.bhk;
+        break;
+      case "seller":
+        delete newFilters.sellerTypes;
+        break;
+    }
+    onFilterChange(newFilters);
+  };
+
+  const handleTransactionChange = (type: string) => {
+    const basePath = type === "Buy" ? "/buy" : type === "Lease" ? "/lease" : "/rent";
+    setLocation(basePath);
+  };
 
   const formatPrice = (value: number) => {
     if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)} Cr`;
@@ -49,290 +197,90 @@ export default function ListingsFilterHeader({ onOpenFilters }: ListingsFilterHe
   };
 
   const cities = ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai", "Pune", "Gurgaon"];
-  const localities = ["Bandra", "Andheri", "Powai", "Worli", "Juhu", "Goregaon"];
-  const propertyTypes = ["Apartment", "Villa", "Plot/Land", "Commercial"];
   const bhkOptions = ["1 BHK", "2 BHK", "3 BHK", "4+ BHK"];
 
   return (
     <div className="bg-background border-b" data-testid="section-filter-header">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="py-3 flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {/* Transaction Type Chip */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-9 rounded-full bg-primary text-primary-foreground border-primary hover:bg-primary/90 flex-shrink-0 gap-1.5"
-                data-testid="chip-transaction"
-              >
-                Buy
-                <ChevronDown className="h-3.5 w-3.5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-48 p-2" align="start">
-              <div className="space-y-1">
-                <Button variant="ghost" size="sm" className="w-full justify-start" data-testid="option-buy">
-                  Buy
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start" data-testid="option-lease">
-                  Lease
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start" data-testid="option-rent">
-                  Rent
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {/* City Chip */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-9 rounded-full bg-primary text-primary-foreground border-primary hover:bg-primary/90 flex-shrink-0 gap-1.5"
-                data-testid="chip-city"
-              >
-                Mumbai
-                <ChevronDown className="h-3.5 w-3.5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56 p-3" align="start">
-              <div className="space-y-3">
-                <Label className="text-xs font-medium text-muted-foreground">Select City</Label>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {cities.map((city) => (
-                    <div key={city} className="flex items-center space-x-2">
-                      <Checkbox id={`city-${city}`} defaultChecked={city === "Mumbai"} data-testid={`checkbox-city-${city.toLowerCase()}`} />
-                      <Label htmlFor={`city-${city}`} className="text-sm cursor-pointer">{city}</Label>
+          {selectedFilters.length === 0 && (
+            <span className="text-sm text-muted-foreground">No filters applied</span>
+          )}
+          
+          {selectedFilters.map((chip) => {
+            if (chip.id === "transaction") {
+              return (
+                <Popover key={chip.id}>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-9 rounded-full bg-primary text-primary-foreground border-primary hover:bg-primary/90 flex-shrink-0 gap-1.5"
+                      data-testid="chip-transaction"
+                    >
+                      {chip.label}
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-2" align="start">
+                    <div className="space-y-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full justify-start" 
+                        onClick={() => handleTransactionChange("Buy")}
+                        data-testid="option-buy"
+                      >
+                        Buy
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full justify-start" 
+                        onClick={() => handleTransactionChange("Lease")}
+                        data-testid="option-lease"
+                      >
+                        Lease
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full justify-start" 
+                        onClick={() => handleTransactionChange("Rent")}
+                        data-testid="option-rent"
+                      >
+                        Rent
+                      </Button>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {/* Divider */}
-          <div className="h-6 w-px bg-border flex-shrink-0" />
-
-          {/* Locality Chip */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button 
+                  </PopoverContent>
+                </Popover>
+              );
+            }
+            
+            return (
+              <Button
+                key={chip.id}
                 variant="secondary" 
                 size="sm" 
                 className="h-9 rounded-full flex-shrink-0 gap-1.5 pr-2"
-                data-testid="chip-locality"
+                data-testid={`chip-${chip.id}`}
               >
-                <span>Localities</span>
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-primary/10 text-primary">3</Badge>
-                <ChevronDown className="h-3.5 w-3.5" />
-                <span 
-                  className="ml-0.5 p-0.5 rounded-full hover:bg-muted-foreground/20 cursor-pointer"
-                  onClick={(e) => { e.stopPropagation(); console.log('Clear localities'); }}
-                  data-testid="clear-locality"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </span>
+                <span>{chip.label}</span>
+                {chip.isRemovable && (
+                  <span 
+                    className="ml-0.5 p-0.5 rounded-full hover:bg-muted-foreground/20 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClearFilter(chip.id);
+                    }}
+                    data-testid={`clear-${chip.id}`}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </span>
+                )}
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-3" align="start">
-              <div className="space-y-3">
-                <Label className="text-xs font-medium text-muted-foreground">Select Localities in Mumbai</Label>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {localities.map((locality) => (
-                    <div key={locality} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`locality-${locality}`} 
-                        defaultChecked={["Bandra", "Andheri", "Powai"].includes(locality)} 
-                        data-testid={`checkbox-locality-${locality.toLowerCase()}`}
-                      />
-                      <Label htmlFor={`locality-${locality}`} className="text-sm cursor-pointer">{locality}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {/* Price Range Chip */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="h-9 rounded-full flex-shrink-0 gap-1.5 pr-2"
-                data-testid="chip-price"
-              >
-                ₹50L - ₹2Cr
-                <ChevronDown className="h-3.5 w-3.5" />
-                <span 
-                  className="ml-0.5 p-0.5 rounded-full hover:bg-muted-foreground/20 cursor-pointer"
-                  onClick={(e) => { e.stopPropagation(); console.log('Clear price'); }}
-                  data-testid="clear-price"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-72 p-4" align="start">
-              <div className="space-y-4">
-                <Label className="text-xs font-medium text-muted-foreground">Price Range</Label>
-                <Slider
-                  defaultValue={[5000000, 20000000]}
-                  min={0}
-                  max={50000000}
-                  step={500000}
-                  className="w-full"
-                  data-testid="slider-header-price"
-                />
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>{formatPrice(5000000)}</span>
-                  <span>{formatPrice(20000000)}</span>
-                </div>
-                <div className="flex gap-2">
-                  <Select defaultValue="50l">
-                    <SelectTrigger className="h-8 text-xs" data-testid="select-min-price">
-                      <SelectValue placeholder="Min" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">No Min</SelectItem>
-                      <SelectItem value="25l">₹25 L</SelectItem>
-                      <SelectItem value="50l">₹50 L</SelectItem>
-                      <SelectItem value="1cr">₹1 Cr</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <span className="text-muted-foreground self-center">to</span>
-                  <Select defaultValue="2cr">
-                    <SelectTrigger className="h-8 text-xs" data-testid="select-max-price">
-                      <SelectValue placeholder="Max" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1cr">₹1 Cr</SelectItem>
-                      <SelectItem value="2cr">₹2 Cr</SelectItem>
-                      <SelectItem value="5cr">₹5 Cr</SelectItem>
-                      <SelectItem value="none">No Max</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {/* Property Type Chip */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="h-9 rounded-full flex-shrink-0 gap-1.5 pr-2"
-                data-testid="chip-property-type"
-              >
-                <span>Property Type</span>
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-primary/10 text-primary">2</Badge>
-                <ChevronDown className="h-3.5 w-3.5" />
-                <span 
-                  className="ml-0.5 p-0.5 rounded-full hover:bg-muted-foreground/20 cursor-pointer"
-                  onClick={(e) => { e.stopPropagation(); console.log('Clear type'); }}
-                  data-testid="clear-property-type"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56 p-3" align="start">
-              <div className="space-y-3">
-                <Label className="text-xs font-medium text-muted-foreground">Property Type</Label>
-                <div className="space-y-2">
-                  {propertyTypes.map((type) => (
-                    <div key={type} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`type-${type}`} 
-                        defaultChecked={["Apartment", "Villa"].includes(type)}
-                        data-testid={`checkbox-type-${type.toLowerCase().replace('/', '-')}`}
-                      />
-                      <Label htmlFor={`type-${type}`} className="text-sm cursor-pointer">{type}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {/* BHK Chip */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="h-9 rounded-full flex-shrink-0 gap-1.5 pr-2"
-                data-testid="chip-bhk"
-              >
-                <span>BHK</span>
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-primary/10 text-primary">2</Badge>
-                <ChevronDown className="h-3.5 w-3.5" />
-                <span 
-                  className="ml-0.5 p-0.5 rounded-full hover:bg-muted-foreground/20 cursor-pointer"
-                  onClick={(e) => { e.stopPropagation(); console.log('Clear bhk'); }}
-                  data-testid="clear-bhk"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-48 p-3" align="start">
-              <div className="space-y-3">
-                <Label className="text-xs font-medium text-muted-foreground">BHK Configuration</Label>
-                <div className="space-y-2">
-                  {bhkOptions.map((bhk) => (
-                    <div key={bhk} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`header-bhk-${bhk}`} 
-                        defaultChecked={["2 BHK", "3 BHK"].includes(bhk)}
-                        data-testid={`checkbox-header-bhk-${bhk.replace(/\s/g, '-').toLowerCase()}`}
-                      />
-                      <Label htmlFor={`header-bhk-${bhk}`} className="text-sm cursor-pointer">{bhk}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {/* Seller Type Chip (simple, no dropdown) */}
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            className="h-9 rounded-full flex-shrink-0 gap-1.5 pr-2"
-            data-testid="chip-seller"
-          >
-            Corporate
-            <span 
-              className="ml-0.5 p-0.5 rounded-full hover:bg-muted-foreground/20 cursor-pointer"
-              onClick={(e) => { e.stopPropagation(); console.log('Clear seller'); }}
-              data-testid="clear-seller"
-            >
-              <X className="h-3.5 w-3.5" />
-            </span>
-          </Button>
-
-          {/* Verified Only Chip */}
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            className="h-9 rounded-full flex-shrink-0 gap-1.5 pr-2"
-            data-testid="chip-verified"
-          >
-            Verified Only
-            <span 
-              className="ml-0.5 p-0.5 rounded-full hover:bg-muted-foreground/20 cursor-pointer"
-              onClick={(e) => { e.stopPropagation(); console.log('Clear verified'); }}
-              data-testid="clear-verified"
-            >
-              <X className="h-3.5 w-3.5" />
-            </span>
-          </Button>
+            );
+          })}
 
           {/* Spacer */}
           <div className="flex-1" />
