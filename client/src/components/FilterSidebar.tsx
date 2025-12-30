@@ -48,7 +48,7 @@ const projectStages = [
   { value: "ready_to_move", label: "Ready to Move" },
 ];
 
-export default function FilterSidebar({ onApplyFilters, initialCategory }: FilterSidebarProps) {
+export default function FilterSidebar({ onApplyFilters, initialCategory, initialFilters }: FilterSidebarProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -56,28 +56,49 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
   const locationContext = useLocationContext();
   const headerSelectedCity = locationContext?.selectedCity?.name || "";
   
-  const [priceRange, setPriceRange] = useState([0, 20000000]);
-  const [selectedTransactionTypes, setSelectedTransactionTypes] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || "all");
-  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
-  const [selectedProjectStages, setSelectedProjectStages] = useState<string[]>([]);
-  const [selectedBHK, setSelectedBHK] = useState<string[]>([]);
-  const [selectedSeller, setSelectedSeller] = useState<string[]>([]);
-  const [selectedState, setSelectedState] = useState<string>("");
-  const [selectedCity, setSelectedCity] = useState<string>("");
-  const [selectedLocality, setSelectedLocality] = useState<string>("");
-  const [selectedPropertyAge, setSelectedPropertyAge] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState<[number, number]>(
+    initialFilters?.priceRange || [0, 20000000]
+  );
+  const [selectedTransactionTypes, setSelectedTransactionTypes] = useState<string[]>(
+    initialFilters?.transactionTypes || []
+  );
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    initialFilters?.category || initialCategory || "all"
+  );
+  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>(
+    initialFilters?.subcategories || []
+  );
+  const [selectedProjectStages, setSelectedProjectStages] = useState<string[]>(
+    initialFilters?.projectStages || []
+  );
+  const [selectedBHK, setSelectedBHK] = useState<string[]>(
+    initialFilters?.bhk || []
+  );
+  const [selectedSeller, setSelectedSeller] = useState<string[]>(
+    initialFilters?.sellerTypes || []
+  );
+  const [selectedState, setSelectedState] = useState<string>(
+    initialFilters?.state || ""
+  );
+  const [selectedCity, setSelectedCity] = useState<string>(
+    initialFilters?.city || headerSelectedCity || ""
+  );
+  const [selectedLocality, setSelectedLocality] = useState<string>(
+    initialFilters?.locality || ""
+  );
+  const [selectedPropertyAge, setSelectedPropertyAge] = useState<string[]>(
+    initialFilters?.propertyAge || []
+  );
   const [corporateSearch, setCorporateSearch] = useState<string>("");
   const [saveSearchOpen, setSaveSearchOpen] = useState(false);
   const [searchName, setSearchName] = useState("");
   
-  // Sync FilterSidebar city display with header city selection (display only, no auto-apply)
-  // Only sync if filter sidebar city is empty
+  // Sync FilterSidebar city display with header city selection (only if no city filter is set)
   useEffect(() => {
-    if (headerSelectedCity && !selectedCity) {
+    if (headerSelectedCity && !selectedCity && !initialFilters?.city) {
       setSelectedCity(headerSelectedCity);
     }
-  }, [headerSelectedCity]); // Remove selectedCity from deps to avoid conflicts
+  }, [headerSelectedCity]); // Only sync when header city changes
 
   const saveSearchMutation = useMutation({
     mutationFn: async () => {
