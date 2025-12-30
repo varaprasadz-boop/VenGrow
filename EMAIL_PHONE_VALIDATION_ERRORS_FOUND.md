@@ -7,18 +7,18 @@ This document lists all bugs and errors found while checking email and phone num
 
 ## Summary
 
-**Total Bugs Found: 14**
+**Total Bugs Found: 18**
 
 **By Priority:**
 - **Critical**: 6 bugs
-- **High**: 6 bugs
+- **High**: 10 bugs
 - **Medium**: 2 bugs
 
 **By User Type:**
 - **Buyer Pages**: 2 bugs
-- **Admin Pages**: 6 bugs
+- **Admin Pages**: 8 bugs (6 frontend + 2 backend)
 - **Guest Pages**: 2 bugs
-- **Seller Pages**: 0 bugs (already validated)
+- **Seller Pages**: 2 bugs (property creation pages)
 - **General**: 4 bugs
 
 ---
@@ -220,23 +220,65 @@ This document lists all bugs and errors found while checking email and phone num
 
 ---
 
-## 8. Backend Validation Issues
+## 8. Seller Property Creation Pages
+
+### High Priority Issues
+
+**Bug 8.1: CreateListingStep4Page - No Email/Phone Format Validation**
+- **Location**: `CreateListingStep4Page.tsx`, `handleSubmit` function (line 231-294)
+- **Issue**: Checks if contact fields are filled but doesn't validate email format or phone format.
+- **Impact**: Invalid email/phone can be saved with property listing.
+- **User Types Affected**: Seller
+- **Code**:
+  ```typescript
+  if (!contactData.contactName || !contactData.contactPhone || !contactData.contactEmail) {
+    // ❌ Only checks if filled, doesn't validate format
+  }
+  ```
+
+**Bug 8.2: CreatePropertyPage - No Email/Phone Format Validation**
+- **Location**: `CreatePropertyPage.tsx`, `validateStep` function (line 470-477)
+- **Issue**: `validateStep(4)` only checks if contactPhone and contactEmail are filled, but doesn't validate format.
+- **Impact**: Invalid email/phone can be saved with property listing.
+- **User Types Affected**: Seller
+- **Code**:
+  ```typescript
+  case 4:
+    return !!(
+      formData.contactName &&
+      formData.contactPhone &&  // ❌ Only checks if filled
+      formData.contactEmail &&  // ❌ Only checks if filled
+      formData.agreedToTerms &&
+      formData.verifiedInfo
+    );
+  ```
+
+---
+
+## 9. Backend Validation Issues
 
 ### Medium Priority Issues
 
-**Bug 8.1: Profile Update Endpoint May Not Validate Phone**
-- **Location**: `/workspace/server/routes.ts`, `PATCH /api/auth/me`
-- **Issue**: Need to verify if phone validation is enforced on backend.
-- **Impact**: If backend doesn't validate, invalid data can be saved even if frontend validates.
+**Bug 9.1: Profile Update Endpoint Validates Phone (Backend OK, Frontend Missing)**
+- **Location**: `/workspace/server/routes.ts`, `PATCH /api/auth/me` (line 102)
+- **Issue**: Backend DOES validate phone, but frontend doesn't validate before submission, causing poor UX.
+- **Impact**: Users see error only after API call, not immediately.
 - **User Types Affected**: Buyer, Seller
-- **Status**: Needs verification
+- **Status**: Backend validates ✅, Frontend needs validation ❌
 
-**Bug 8.2: SMTP Settings Endpoint May Not Validate Email**
-- **Location**: `/workspace/server/routes.ts`, SMTP settings endpoint
-- **Issue**: Need to verify if email validation is enforced on backend.
-- **Impact**: Invalid SMTP email addresses could break email sending.
+**Bug 9.2: SMTP Settings Endpoint Does NOT Validate Email**
+- **Location**: `/workspace/server/routes.ts`, `PUT /api/admin/settings/smtp` (line 3091)
+- **Issue**: Backend does NOT validate email format before saving SMTP settings.
+- **Impact**: Invalid SMTP email addresses can be saved, breaking email sending functionality.
 - **User Types Affected**: Admin
-- **Status**: Needs verification
+- **Status**: Confirmed - Backend missing validation ❌
+
+**Bug 9.3: General Settings Endpoint Does NOT Validate Email/Phone**
+- **Location**: `/workspace/server/routes.ts`, `PUT /api/admin/settings/general` (line 3226)
+- **Issue**: Backend does NOT validate email/phone format before saving general settings.
+- **Impact**: Invalid contact email/phone can be saved and displayed on contact page.
+- **User Types Affected**: Admin
+- **Status**: Confirmed - Backend missing validation ❌
 
 ---
 
@@ -249,7 +291,9 @@ This document lists all bugs and errors found while checking email and phone num
 | Admin System Settings | ❌ Missing | ❌ Missing | ✅ Exists | Needs both |
 | Admin Impersonate | ❌ Missing | N/A | ❌ Missing | Needs both |
 | Newsletter | ❌ Missing | N/A | ❌ Missing | Needs both |
-| Property Tour Booking | ❌ Missing | ❌ Missing | ❓ Unknown | Needs both |
+| Property Tour Booking | ❌ Missing | ❌ Missing | ❌ Missing | Needs both |
+| Seller Create Listing Step 4 | ❌ Missing | ❌ Missing | ✅ Exists | Needs validation |
+| Seller Create Property | ❌ Missing | ❌ Missing | ✅ Exists | Needs validation |
 | Buyer Registration | ✅ Validated | ✅ Validated | ✅ Exists | ✅ Good |
 | Seller Registration (All) | ✅ Validated | ✅ Validated | ✅ Exists | ✅ Good |
 | Contact Form | ✅ Validated | ✅ Validated | ✅ Exists | ✅ Good |
@@ -266,8 +310,10 @@ This document lists all bugs and errors found while checking email and phone num
 4. **Fix Admin System Settings Validation** (Bug 7.1, 7.2) - High priority for data quality
 5. **Fix Newsletter Subscription** (Bug 4.1, 4.2) - High priority for lead generation
 6. **Fix Property Tour Booking Validation** (Bug 5.1, 5.2) - High priority for user experience
-7. **Standardize Validation Utilities** (Bug 6.1, 6.2) - Medium priority for maintainability
-8. **Verify Backend Validation** (Bug 8.1, 8.2) - Medium priority for security
+7. **Add Backend Validation for Admin Settings** (Bug 9.2, 9.3) - High priority for data integrity
+8. **Fix Seller Property Creation Validation** (Bug 8.1, 8.2) - High priority for data quality
+9. **Standardize Validation Utilities** (Bug 6.1, 6.2) - Medium priority for maintainability
+10. **Add Frontend Validation for Profile Update** (Bug 9.1) - Medium priority for UX
 
 ---
 
