@@ -26,6 +26,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { PropertyCategory, PropertySubcategory } from "@shared/schema";
+import { validateEmail, validatePhone, cleanPhone, normalizeEmail } from "@/utils/validation";
 
 interface Step1Data {
   categoryId: string;
@@ -247,6 +248,26 @@ export default function CreateListingStep4Page() {
       return;
     }
 
+    // Validate email format
+    if (!validateEmail(contactData.contactEmail.trim())) {
+      toast({
+        title: "Invalid email format",
+        description: "Please enter a valid email address for contact email.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate phone format
+    if (!validatePhone(contactData.contactPhone)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid 10-digit Indian mobile number starting with 6-9.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!step1Data || !step2Data || !step3Data) {
       toast({
         title: "Error",
@@ -284,9 +305,9 @@ export default function CreateListingStep4Page() {
       locality: step1Data.locality,
       youtubeVideoUrl: step3Data.youtubeVideoUrl || null,
       images: step3Data.photos || [],
-      contactName: contactData.contactName,
-      contactPhone: contactData.contactPhone,
-      contactEmail: contactData.contactEmail,
+      contactName: contactData.contactName.trim(),
+      contactPhone: cleanPhone(contactData.contactPhone),
+      contactEmail: normalizeEmail(contactData.contactEmail),
       contactWhatsapp: contactData.whatsappNumber || null,
     };
 

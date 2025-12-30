@@ -20,6 +20,7 @@ import { Mail, Phone, MapPin, Clock, Send, Loader2, Settings } from "lucide-reac
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { validateEmail, validatePhone } from "@/utils/validation";
 
 interface SiteSetting {
   key: string;
@@ -84,16 +85,6 @@ export default function ContactPage() {
   const hasContactInfo = contactEmail || contactPhone || contactAddress || businessHours;
 
   // Validation functions
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePhone = (phone: string): boolean => {
-    const cleaned = phone.replace(/\D/g, "");
-    return cleaned.length === 10 && /^[6-9]\d{9}$/.test(cleaned);
-  };
-
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 

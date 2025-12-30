@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Camera, Save, X, Loader2, AlertCircle } from "lucide-react";
 import type { User } from "@shared/schema";
+import { validatePhone, cleanPhone } from "@/utils/validation";
 
 export default function ProfilePage() {
   const [, setLocation] = useLocation();
@@ -118,13 +119,25 @@ export default function ProfilePage() {
   });
 
   const handleSave = () => {
+    // Validate phone if provided
+    if (formData.phone && formData.phone.trim()) {
+      if (!validatePhone(formData.phone)) {
+        toast({
+          title: "Invalid phone number",
+          description: "Please enter a valid 10-digit Indian mobile number starting with 6-9.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const [firstName, ...lastNameParts] = formData.firstName.split(" ");
     const lastName = lastNameParts.join(" ") || formData.lastName;
     
     updateProfileMutation.mutate({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      phone: formData.phone,
+      phone: formData.phone ? cleanPhone(formData.phone) : null,
       bio: formData.bio,
     });
   };

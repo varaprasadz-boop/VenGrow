@@ -1,10 +1,79 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { UserCog } from "lucide-react";
+import { UserCog, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
+import { validateEmail } from "@/utils/validation";
 
 export default function ImpersonatePage() {
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [reason, setReason] = useState("");
+  
+  const impersonateMutation = useMutation({
+    mutationFn: async (data: { email: string; reason: string }) => {
+      return apiRequest("POST", "/api/admin/impersonate", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Impersonation started",
+        description: "You are now viewing as the selected user.",
+      });
+      setEmail("");
+      setReason("");
+      // Reload page to switch user context
+      window.location.reload();
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.error || error?.message || "Failed to start impersonation";
+      toast({
+        title: "Impersonation failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim()) {
+      toast({
+        title: "Email required",
+        description: "Please enter a user email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!validateEmail(email.trim())) {
+      toast({
+        title: "Invalid email format",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!reason.trim()) {
+      toast({
+        title: "Reason required",
+        description: "Please provide a reason for impersonation.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    impersonateMutation.mutate({
+      email: email.trim(),
+      reason: reason.trim(),
+    });
+  };
+
   const recentImpersonations = [
     { id: "1", email: "user@example.com", date: "Nov 23, 2025", role: "Buyer" },
     { id: "2", email: "seller@example.com", date: "Nov 20, 2025", role: "Seller" },
@@ -33,28 +102,48 @@ export default function ImpersonatePage() {
 
           <Card className="p-6 mb-8">
             <h3 className="font-semibold text-lg mb-6">Impersonate User</h3>
-            <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="email">User Email</Label>
+                <Label htmlFor="email">User Email *</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="user@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   data-testid="input-email"
+                  required
+                  aria-required="true"
                 />
               </div>
               <div>
-                <Label htmlFor="reason">Reason for Impersonation</Label>
+                <Label htmlFor="reason">Reason for Impersonation *</Label>
                 <Input
                   id="reason"
                   placeholder="Support ticket #1234"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
                   data-testid="input-reason"
+                  required
+                  aria-required="true"
                 />
               </div>
-              <Button className="w-full" data-testid="button-impersonate">
-                Start Impersonation Session
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={impersonateMutation.isPending}
+                data-testid="button-impersonate"
+              >
+                {impersonateMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Starting...
+                  </>
+                ) : (
+                  "Start Impersonation Session"
+                )}
               </Button>
-            </div>
+            </form>
           </Card>
 
           <Card className="p-6">

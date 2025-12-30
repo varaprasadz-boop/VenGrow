@@ -3,11 +3,124 @@ import Header from "@/components/Header";
 import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { validateEmail, validatePhone } from "@/utils/validation";
 
 export default function PropertyTourBookingPage() {
+  const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [contactData, setContactData] = useState({
+    name: "",
+    phone: "",
+    email: "",
+  });
+
+  const bookTourMutation = useMutation({
+    mutationFn: async (data: {
+      date: string;
+      time: string;
+      name: string;
+      phone: string;
+      email: string;
+    }) => {
+      return apiRequest("POST", "/api/appointments", {
+        propertyId: "temp-property-id", // TODO: Get from URL params or props
+        scheduledDate: data.date,
+        scheduledTime: data.time,
+        buyerName: data.name,
+        buyerPhone: data.phone,
+        buyerEmail: data.email,
+        visitType: "physical",
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Tour booked successfully!",
+        description: "The seller will confirm your tour request soon.",
+      });
+      setContactData({ name: "", phone: "", email: "" });
+      setSelectedDate(null);
+      setSelectedTime(null);
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.error || error?.message || "Failed to book tour";
+      toast({
+        title: "Booking failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedDate || !selectedTime) {
+      toast({
+        title: "Date and time required",
+        description: "Please select a date and time for your tour.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!contactData.name.trim()) {
+      toast({
+        title: "Name required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!contactData.phone.trim()) {
+      toast({
+        title: "Phone required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validatePhone(contactData.phone)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid 10-digit Indian mobile number starting with 6-9.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!contactData.email.trim()) {
+      toast({
+        title: "Email required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateEmail(contactData.email.trim())) {
+      toast({
+        title: "Invalid email format",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const dateStr = new Date(2025, 10, selectedDate).toISOString().split('T')[0];
+    bookTourMutation.mutate({
+      date: dateStr,
+      time: selectedTime,
+      name: contactData.name.trim(),
+      phone: contactData.phone.trim(),
+      email: contactData.email.trim(),
+    });
+  };
 
   const availableDates = [
     { day: 25, month: "Nov", available: true },
@@ -98,38 +211,51 @@ export default function PropertyTourBookingPage() {
               {selectedTime && (
                 <Card className="p-6">
                   <h3 className="font-semibold mb-6">Your Information</h3>
-                  <div className="space-y-4">
+                  <form id="tour-booking-form" onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Full Name
-                      </label>
-                      <input
+                      <Label htmlFor="name" className="text-sm font-medium mb-2 block">
+                        Full Name *
+                      </Label>
+                      <Input
+                        id="name"
                         type="text"
-                        className="w-full px-4 py-2 border rounded-lg"
                         placeholder="Enter your name"
+                        value={contactData.name}
+                        onChange={(e) => setContactData({ ...contactData, name: e.target.value })}
+                        required
+                        aria-required="true"
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Phone Number
-                      </label>
-                      <input
+                      <Label htmlFor="phone" className="text-sm font-medium mb-2 block">
+                        Phone Number *
+                      </Label>
+                      <Input
+                        id="phone"
                         type="tel"
-                        className="w-full px-4 py-2 border rounded-lg"
-                        placeholder="+91 XXXXX XXXXX"
+                        placeholder="98765 43210"
+                        value={contactData.phone}
+                        onChange={(e) => setContactData({ ...contactData, phone: e.target.value })}
+                        required
+                        aria-required="true"
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Email
-                      </label>
-                      <input
+                      <Label htmlFor="email" className="text-sm font-medium mb-2 block">
+                        Email *
+                      </Label>
+                      <Input
+                        id="email"
                         type="email"
-                        className="w-full px-4 py-2 border rounded-lg"
                         placeholder="your@email.com"
+                        value={contactData.email}
+                        onChange={(e) => setContactData({ ...contactData, email: e.target.value })}
+                        required
+                        aria-required="true"
                       />
                     </div>
                   </div>
+                  </form>
                 </Card>
               )}
             </div>
@@ -167,12 +293,23 @@ export default function PropertyTourBookingPage() {
                 </div>
 
                 <Button
+                  type="submit"
+                  form="tour-booking-form"
                   className="w-full"
-                  disabled={!selectedDate || !selectedTime}
+                  disabled={!selectedDate || !selectedTime || bookTourMutation.isPending}
                   data-testid="button-confirm"
                 >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Confirm Booking
+                  {bookTourMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Booking...
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Confirm Booking
+                    </>
+                  )}
                 </Button>
               </Card>
             </div>

@@ -1,11 +1,63 @@
+import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail, CheckCircle } from "lucide-react";
+import { Mail, CheckCircle, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { validateEmail } from "@/utils/validation";
 
 export default function NewsletterPage() {
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  
+  const subscribeMutation = useMutation({
+    mutationFn: async (email: string) => {
+      return apiRequest("POST", "/api/newsletter/subscribe", { email });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Subscribed successfully!",
+        description: "You'll receive our newsletter updates.",
+      });
+      setEmail("");
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.error || error?.message || "Failed to subscribe";
+      toast({
+        title: "Subscription failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim()) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!validateEmail(email.trim())) {
+      toast({
+        title: "Invalid email format",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    subscribeMutation.mutate(email.trim());
+  };
   const benefits = [
     "Weekly property market insights",
     "Exclusive property listings before they go public",
@@ -36,17 +88,33 @@ export default function NewsletterPage() {
 
             {/* Subscription Form */}
             <Card className="p-8 max-w-2xl mx-auto">
-              <div className="flex gap-4">
+              <form onSubmit={handleSubmit} className="flex gap-4">
                 <Input
                   type="email"
                   placeholder="Enter your email address"
                   className="flex-1"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   data-testid="input-email"
+                  required
+                  aria-required="true"
                 />
-                <Button size="lg" data-testid="button-subscribe">
-                  Subscribe
+                <Button 
+                  type="submit" 
+                  size="lg" 
+                  disabled={subscribeMutation.isPending}
+                  data-testid="button-subscribe"
+                >
+                  {subscribeMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Subscribing...
+                    </>
+                  ) : (
+                    "Subscribe"
+                  )}
                 </Button>
-              </div>
+              </form>
               <p className="text-xs text-muted-foreground mt-4">
                 We respect your privacy. Unsubscribe at any time.
               </p>

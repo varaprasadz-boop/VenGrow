@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { validateEmail, validatePhone } from "@/utils/validation";
 import { Calendar as CalendarIcon, Clock, MapPin, Building2, Loader2 } from "lucide-react";
 import type { Property } from "@shared/schema";
 
@@ -83,16 +84,6 @@ export default function ScheduleVisitPage() {
       });
     },
   });
-
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePhone = (phone: string): boolean => {
-    const cleaned = phone.replace(/\D/g, "");
-    return cleaned.length === 10 && /^[6-9]\d{9}$/.test(cleaned);
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

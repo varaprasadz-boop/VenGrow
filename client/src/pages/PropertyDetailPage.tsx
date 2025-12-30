@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { validateEmail, validatePhone } from "@/utils/validation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -174,17 +175,6 @@ export default function PropertyDetailPage() {
       });
     },
   });
-
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePhone = (phone: string): boolean => {
-    if (!phone || !phone.trim()) return true; // Phone is optional
-    const cleaned = phone.replace(/\D/g, "");
-    return cleaned.length === 10 && /^[6-9]\d{9}$/.test(cleaned);
-  };
 
   const handleInquiry = (e: React.FormEvent) => {
     e.preventDefault();

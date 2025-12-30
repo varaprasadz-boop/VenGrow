@@ -3090,6 +3090,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update SMTP settings
   app.put("/api/admin/settings/smtp", async (req: Request, res: Response) => {
     try {
+      const { fromEmail } = req.body;
+      
+      // Validate email if provided
+      if (fromEmail && fromEmail.trim()) {
+        if (!validateEmail(fromEmail.trim())) {
+          return res.status(400).json({ error: "Invalid email format for 'From Email'" });
+        }
+      }
+      
       const setting = await storage.setSystemSetting("smtp_settings", req.body);
       res.json(setting.value);
     } catch (error) {
@@ -3225,11 +3234,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update general/system settings
   app.put("/api/admin/settings/general", async (req: Request, res: Response) => {
     try {
+      const { contactEmail, contactPhone } = req.body;
+      
+      // Validate contact email if provided
+      if (contactEmail && contactEmail.trim()) {
+        if (!validateEmail(contactEmail.trim())) {
+          return res.status(400).json({ error: "Invalid email format for contact email" });
+        }
+      }
+      
+      // Validate contact phone if provided
+      if (contactPhone && contactPhone.trim()) {
+        const cleanedPhone = contactPhone.replace(/\D/g, "");
+        if (cleanedPhone && !validatePhone(cleanedPhone)) {
+          return res.status(400).json({ error: "Invalid phone number format. Must be 10 digits starting with 6-9" });
+        }
+      }
+      
       const setting = await storage.setSystemSetting("general_settings", req.body);
       res.json(setting.value);
     } catch (error) {
       console.error("Error updating general settings:", error);
       res.status(500).json({ error: "Failed to update general settings" });
+    }
+  });
+
+  // Impersonate user (admin only)
+  app.post("/api/admin/impersonate", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { email, reason } = req.body;
+
+      if (!email || !email.trim()) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      if (!validateEmail(email.trim())) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+
+      if (!reason || !reason.trim()) {
+        return res.status(400).json({ error: "Reason is required" });
+      }
+
+      const targetUser = await storage.getUserByEmail(email.trim());
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Set impersonation session
+      (req.session as any).impersonatingUserId = targetUser.id;
+      (req.session as any).impersonationReason = reason.trim();
+      (req.session as any).originalAdminId = userId;
+
+      // Log impersonation (you might want to create an audit log entry here)
+      console.log(`[Admin Impersonation] Admin ${user.email} impersonating ${targetUser.email}. Reason: ${reason.trim()}`);
+
+      res.json({
+        success: true,
+        message: "Impersonation started",
+        targetUser: {
+          id: targetUser.id,
+          email: targetUser.email,
+          role: targetUser.role,
+        },
+      });
+    } catch (error) {
+      console.error("Error starting impersonation:", error);
+      res.status(500).json({ error: "Failed to start impersonation" });
     }
   });
 
@@ -3243,6 +3322,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(setting);
     } catch (error) {
       res.status(500).json({ error: "Failed to get setting" });
+    }
+  });
+
+  // ============================================
+  // NEWSLETTER
+  // ============================================
+
+  // Subscribe to newsletter
+  app.post("/api/newsletter/subscribe", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+
+      if (!email || !email.trim()) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      if (!validateEmail(email.trim())) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+
+      // TODO: Store newsletter subscription in database
+      // For now, just return success
+      // You might want to create a newsletter_subscriptions table
+      
+      console.log(`[Newsletter] New subscription: ${email.trim()}`);
+
+      res.json({
+        success: true,
+        message: "Successfully subscribed to newsletter",
+      });
+    } catch (error) {
+      console.error("Error subscribing to newsletter:", error);
+      res.status(500).json({ error: "Failed to subscribe to newsletter" });
     }
   });
 
