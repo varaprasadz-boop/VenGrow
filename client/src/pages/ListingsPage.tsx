@@ -38,11 +38,14 @@ interface FilterState {
 }
 
 export default function ListingsPage() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [viewType, setViewType] = useState<"grid" | "list" | "map">("grid");
   const [sortBy, setSortBy] = useState("newest");
   const [filters, setFilters] = useState<FilterState>({});
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isApplyingFilters, setIsApplyingFilters] = useState(false);
+  const itemsPerPage = 20;
   
   // Get selected city from LocationContext (header city selector)
   const locationContext = useLocationContext();
@@ -51,10 +54,38 @@ export default function ListingsPage() {
   // Parse URL parameters
   const urlParams = useMemo(() => {
     const params = new URLSearchParams(location.split('?')[1] || '');
+    const parsedFilters: FilterState = {};
+    
+    // Parse filters from URL
+    if (params.get('category')) parsedFilters.category = params.get('category')!;
+    if (params.get('city')) parsedFilters.city = params.get('city')!;
+    if (params.get('state')) parsedFilters.state = params.get('state')!;
+    if (params.get('locality')) parsedFilters.locality = params.get('locality')!;
+    if (params.get('minPrice') && params.get('maxPrice')) {
+      parsedFilters.priceRange = [
+        parseInt(params.get('minPrice')!),
+        parseInt(params.get('maxPrice')!)
+      ];
+    }
+    if (params.get('bhk')) {
+      parsedFilters.bhk = params.get('bhk')!.split(',');
+    }
+    if (params.get('transactionTypes')) {
+      parsedFilters.transactionTypes = params.get('transactionTypes')!.split(',');
+    }
+    if (params.get('sellerTypes')) {
+      parsedFilters.sellerTypes = params.get('sellerTypes')!.split(',');
+    }
+    if (params.get('propertyAge')) {
+      parsedFilters.propertyAge = params.get('propertyAge')!.split(',');
+    }
+    
     return {
       category: params.get('category') || params.get('type') || null,
       featured: params.get('featured') === 'true',
       sort: params.get('sort') || null,
+      page: parseInt(params.get('page') || '1'),
+      filters: parsedFilters,
     };
   }, [location]);
   
@@ -72,25 +103,144 @@ export default function ListingsPage() {
     return "All Properties";
   }, [location]);
   
-  // Initialize filters from URL on mount
+  // Initialize filters and page from URL on mount
   useEffect(() => {
+    if (Object.keys(urlParams.filters).length > 0) {
+      setFilters(urlParams.filters);
+    }
     if (urlParams.category && !filters.category) {
       setFilters(prev => ({ ...prev, category: urlParams.category! }));
     }
-    if (urlParams.featured && !filters.category) {
-      // Featured is handled separately
+    if (urlParams.sort) {
+      setSortBy(urlParams.sort);
     }
-  }, [urlParams.category, urlParams.featured]);
+    if (urlParams.page) {
+      setCurrentPage(urlParams.page);
+    }
+  }, [location]); // Only run when location changes
+
+  // Update URL with current filters and page
+  const updateURL = useCallback((newFilters: FilterState, newPage: number = 1, newSort?: string) => {
+    const params = new URLSearchParams();
+    
+    if (newFilters.category && newFilters.category !== "all") {
+      params.set('category', newFilters.category);
+    }
+    if (newFilters.city && newFilters.city !== "all") {
+      params.set('city', newFilters.city);
+    }
+    if (newFilters.state && newFilters.state !== "all") {
+      params.set('state', newFilters.state);
+    }
+    if (newFilters.locality) {
+      params.set('locality', newFilters.locality);
+    }
+    if (newFilters.priceRange) {
+      params.set('minPrice', newFilters.priceRange[0].toString());
+      params.set('maxPrice', newFilters.priceRange[1].toString());
+    }
+    if (newFilters.bhk && newFilters.bhk.length > 0) {
+      params.set('bhk', newFilters.bhk.join(','));
+    }
+    if (newFilters.transactionTypes && newFilters.transactionTypes.length > 0) {
+      params.set('transactionTypes', newFilters.transactionTypes.join(','));
+    }
+    if (newFilters.sellerTypes && newFilters.sellerTypes.length > 0) {
+      params.set('sellerTypes', newFilters.sellerTypes.join(','));
+    }
+    if (newFilters.propertyAge && newFilters.propertyAge.length > 0) {
+      params.set('propertyAge', newFilters.propertyAge.join(','));
+    }
+    if (newPage > 1) {
+      params.set('page', newPage.toString());
+    }
+    if (newSort) {
+      params.set('sort', newSort);
+    } else if (sortBy !== "newest") {
+      params.set('sort', sortBy);
+    }
+    
+    const basePath = location.split('?')[0];
+    const queryString = params.toString();
+    const newPath = queryString ? `${basePath}?${queryString}` : basePath;
+    setLocation(newPath);
+  }, [location, sortBy, setLocation]);
 
   // Handle filter application
   const handleApplyFilters = useCallback((newFilters: FilterState) => {
+    setIsApplyingFilters(true);
     setFilters(newFilters);
+    setCurrentPage(1); // Reset to first page when filters change
+    updateURL(newFilters, 1);
     setMobileFilterOpen(false);
-  }, []);
+    setTimeout(() => setIsApplyingFilters(false), 300);
+  }, [updateURL]);
 
-  // Fetch real properties from the API
-  const { data: propertiesData, isLoading } = useQuery<Property[]>({
-    queryKey: ["/api/properties"],
+  // Build API query parameters from filters
+  const apiQueryParams = useMemo(() => {
+    const params: Record<string, string> = {
+      limit: itemsPerPage.toString(),
+      offset: ((currentPage - 1) * itemsPerPage).toString(),
+    };
+    
+    if (filters.city && filters.city !== "all") {
+      params.city = filters.city;
+    }
+    if (filters.state && filters.state !== "all") {
+      params.state = filters.state;
+    }
+    if (filters.priceRange) {
+      params.minPrice = filters.priceRange[0].toString();
+      params.maxPrice = filters.priceRange[1].toString();
+    }
+    if (filters.bhk && filters.bhk.length > 0) {
+      // Convert "1 BHK" format to "1" format for API
+      const bhkValues = filters.bhk.map(bhk => {
+        if (bhk === "4+ BHK") return "5+";
+        return bhk.replace(" BHK", "");
+      });
+      params.bedrooms = bhkValues.join(',');
+    }
+    if (filters.transactionTypes && filters.transactionTypes.length > 0) {
+      // Map "buy" to "sale", "rent" to "rent", "lease" to "lease"
+      const mappedTypes = filters.transactionTypes.map(t => {
+        if (t === "buy") return "sale";
+        return t;
+      });
+      params.transactionType = mappedTypes.join(',');
+    }
+    if (filters.sellerTypes && filters.sellerTypes.length > 0) {
+      // Map "Corporate" to "builder"
+      const mappedTypes = filters.sellerTypes.map(t => {
+        if (t === "Corporate") return "builder";
+        return t.toLowerCase();
+      });
+      params.sellerType = mappedTypes.join(',');
+    }
+    if (filters.category && filters.category !== "all") {
+      params.propertyType = filters.category;
+    }
+    if (urlParams.featured) {
+      params.isFeatured = "true";
+    }
+    if (transactionTypeFromPath) {
+      params.transactionType = transactionTypeFromPath.toLowerCase();
+    }
+    
+    return params;
+  }, [filters, currentPage, urlParams.featured, transactionTypeFromPath]);
+
+  // Fetch real properties from the API with filters
+  const { data: propertiesData, isLoading, error } = useQuery<Property[]>({
+    queryKey: ["/api/properties", apiQueryParams],
+    queryFn: async () => {
+      const queryString = new URLSearchParams(apiQueryParams).toString();
+      const response = await fetch(`/api/properties?${queryString}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch properties");
+      }
+      return response.json();
+    },
   });
 
   // Transform API data for PropertyCard component
@@ -181,22 +331,28 @@ export default function ListingsPage() {
       );
     }
     
-    // BHK filter
+    // BHK filter - handle both "1 BHK" and "1" formats
     if (filters.bhk && filters.bhk.length > 0) {
       result = result.filter(p => {
         if (!p.bedrooms) return false;
         return filters.bhk!.some(bhk => {
-          if (bhk === "5+") return p.bedrooms! >= 5;
-          return p.bedrooms === parseInt(bhk);
+          // Handle "1 BHK", "2 BHK", "3 BHK", "4+ BHK" format
+          const bhkNum = bhk.replace(" BHK", "").replace("+", "");
+          if (bhk.includes("+") || bhk === "5+") {
+            return p.bedrooms! >= parseInt(bhkNum);
+          }
+          return p.bedrooms === parseInt(bhkNum);
         });
       });
     }
     
-    // Seller type filter
+    // Seller type filter - map "Corporate" to "Builder"
     if (filters.sellerTypes && filters.sellerTypes.length > 0) {
-      result = result.filter(p => 
-        filters.sellerTypes!.includes(p.sellerType)
-      );
+      result = result.filter(p => {
+        const normalizedSellerType = p.sellerType === "Builder" ? "Corporate" : p.sellerType;
+        return filters.sellerTypes!.includes(normalizedSellerType) || 
+               filters.sellerTypes!.includes(p.sellerType);
+      });
     }
     
     // Project stage filter
@@ -206,20 +362,29 @@ export default function ListingsPage() {
       );
     }
     
-    // Property age filter
+    // Property age filter - improved logic
     if (filters.propertyAge && filters.propertyAge.length > 0) {
       result = result.filter(p => {
-        if (!p.ageOfProperty) return filters.propertyAge!.includes("new");
-        const age = parseInt(p.ageOfProperty);
-        if (isNaN(age)) return filters.propertyAge!.includes("new");
-        if (age === 0) return filters.propertyAge!.includes("new");
-        if (age >= 1 && age <= 5) return filters.propertyAge!.includes("1-5");
-        if (age > 5) return filters.propertyAge!.includes("5+");
+        // If property has no ageOfProperty, it's likely new construction
+        if (!p.ageOfProperty || p.ageOfProperty === "" || p.ageOfProperty === "0") {
+          return filters.propertyAge!.includes("new");
+        }
+        
+        const age = parseInt(String(p.ageOfProperty));
+        if (isNaN(age) || age === 0) {
+          return filters.propertyAge!.includes("new");
+        }
+        
+        // Check if property matches any selected age range
+        if (filters.propertyAge!.includes("new") && age === 0) return true;
+        if (filters.propertyAge!.includes("1-5") && age >= 1 && age <= 5) return true;
+        if (filters.propertyAge!.includes("5+") && age > 5) return true;
+        
         return false;
       });
     }
     
-    // Sort properties
+    // Sort properties (if not already sorted by API)
     switch (sortBy) {
       case "price-low":
         result = [...result].sort((a, b) => a.price - b.price);
@@ -239,6 +404,25 @@ export default function ListingsPage() {
     return result;
   }, [transactionTypeFromPath, allProperties, filters, sortBy, urlParams, headerSelectedCity]);
 
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage);
+  const paginatedProperties = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredProperties.slice(start, end);
+  }, [filteredProperties, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    updateURL(filters, page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSortChange = (newSort: string) => {
+    setSortBy(newSort);
+    updateURL(filters, currentPage, newSort);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <SEO 
@@ -248,7 +432,15 @@ export default function ListingsPage() {
       <Header />
       
       {/* Filter Header with Selected Filters */}
-      <ListingsFilterHeader />
+      <ListingsFilterHeader 
+        filters={filters}
+        onFilterChange={(newFilters) => {
+          setFilters(newFilters);
+          setCurrentPage(1);
+          updateURL(newFilters, 1);
+        }}
+        onOpenFilters={() => setMobileFilterOpen(true)}
+      />
       
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -256,7 +448,11 @@ export default function ListingsPage() {
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block w-64 flex-shrink-0">
               <div className="sticky top-24">
-                <FilterSidebar onApplyFilters={handleApplyFilters} />
+                <FilterSidebar 
+                  onApplyFilters={handleApplyFilters}
+                  initialCategory={filters.category}
+                  initialFilters={filters}
+                />
               </div>
             </aside>
 
@@ -307,7 +503,7 @@ export default function ListingsPage() {
                     </div>
 
                     {/* Sort */}
-                    <Select value={sortBy} onValueChange={setSortBy}>
+                    <Select value={sortBy} onValueChange={handleSortChange}>
                       <SelectTrigger className="w-32 sm:w-40" data-testid="select-sort">
                         <SelectValue placeholder="Sort by" />
                       </SelectTrigger>
@@ -325,15 +521,39 @@ export default function ListingsPage() {
                         <Button variant="outline" className="lg:hidden" data-testid="button-mobile-filters">
                           <Filter className="h-4 w-4 mr-2" />
                           Filters
+                          {Object.keys(filters).length > 0 && (
+                            <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
+                              {Object.keys(filters).filter(k => {
+                                const val = filters[k as keyof FilterState];
+                                if (Array.isArray(val)) return val.length > 0;
+                                if (typeof val === 'object' && val !== null) return true;
+                                return val && val !== "all" && val !== "";
+                              }).length}
+                            </Badge>
+                          )}
                         </Button>
                       </SheetTrigger>
                       <SheetContent side="left" className="w-80 p-0 flex flex-col h-full">
                         <div className="p-4 border-b">
                           <h2 className="font-semibold text-lg">Filters</h2>
+                          {Object.keys(filters).length > 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {Object.keys(filters).filter(k => {
+                                const val = filters[k as keyof FilterState];
+                                if (Array.isArray(val)) return val.length > 0;
+                                if (typeof val === 'object' && val !== null) return true;
+                                return val && val !== "all" && val !== "";
+                              }).length} filter(s) applied
+                            </p>
+                          )}
                         </div>
                         <ScrollArea className="flex-1">
                           <div className="p-4">
-                            <FilterSidebar onApplyFilters={handleApplyFilters} />
+                            <FilterSidebar 
+                              onApplyFilters={handleApplyFilters}
+                              initialCategory={filters.category}
+                              initialFilters={filters}
+                            />
                           </div>
                         </ScrollArea>
                       </SheetContent>
@@ -343,10 +563,22 @@ export default function ListingsPage() {
               </div>
 
               {/* Properties Display */}
-              {isLoading ? (
+              {(isLoading || isApplyingFilters) ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <span className="ml-2 text-muted-foreground">Loading properties...</span>
+                  <span className="ml-2 text-muted-foreground">
+                    {isApplyingFilters ? "Applying filters..." : "Loading properties..."}
+                  </span>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12">
+                  <p className="text-destructive mb-4">Failed to load properties. Please try again.</p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.location.reload()}
+                  >
+                    Retry
+                  </Button>
                 </div>
               ) : viewType === 'map' ? (
                 <PropertyMapView 
@@ -355,11 +587,14 @@ export default function ListingsPage() {
                 />
               ) : filteredProperties.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-muted-foreground">No properties found matching your criteria.</p>
+                  <p className="text-muted-foreground mb-4">No properties found matching your criteria.</p>
                   <Button 
                     variant="outline" 
-                    className="mt-4"
-                    onClick={() => setFilters({})}
+                    onClick={() => {
+                      setFilters({});
+                      setCurrentPage(1);
+                      updateURL({}, 1);
+                    }}
                   >
                     Clear Filters
                   </Button>
@@ -371,21 +606,56 @@ export default function ListingsPage() {
                       ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
                       : "space-y-4"
                   }>
-                    {filteredProperties.map((property) => (
+                    {paginatedProperties.map((property) => (
                       <PropertyCard key={property.id} {...property} />
                     ))}
                   </div>
 
                   {/* Pagination */}
-                  <div className="flex justify-center pt-8">
-                    <div className="flex gap-2">
-                      <Button variant="outline" disabled>Previous</Button>
-                      <Button variant="default">1</Button>
-                      <Button variant="outline">2</Button>
-                      <Button variant="outline">3</Button>
-                      <Button variant="outline">Next</Button>
+                  {totalPages > 1 && (
+                    <div className="flex justify-center pt-8">
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          disabled={currentPage === 1}
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          data-testid="button-pagination-prev"
+                        >
+                          Previous
+                        </Button>
+                        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              onClick={() => handlePageChange(pageNum)}
+                              data-testid={`button-pagination-${pageNum}`}
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                        <Button 
+                          variant="outline" 
+                          disabled={currentPage === totalPages}
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          data-testid="button-pagination-next"
+                        >
+                          Next
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </>
               )}
             </div>

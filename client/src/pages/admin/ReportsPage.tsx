@@ -10,8 +10,10 @@ import {
   DollarSign,
   Calendar,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ReportsPage() {
+  const { toast } = useToast();
   const reports = [
     {
       id: "1",
@@ -69,6 +71,26 @@ export default function ReportsPage() {
     },
   ];
 
+  const handleDownloadReport = (reportTitle: string) => {
+    toast({
+      title: "Generating Report",
+      description: `${reportTitle} is being prepared for download...`,
+    });
+    setTimeout(() => {
+      toast({
+        title: "Report Ready",
+        description: `${reportTitle} has been generated. In a production environment, this would download the actual report.`,
+      });
+    }, 1500);
+  };
+
+  const handleGenerateCustomReport = () => {
+    toast({
+      title: "Custom Report",
+      description: "Custom report generation feature coming soon.",
+    });
+  };
+
   return (
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -81,7 +103,7 @@ export default function ReportsPage() {
                 Download and analyze platform reports
               </p>
             </div>
-            <Button data-testid="button-generate">
+            <Button onClick={handleGenerateCustomReport} data-testid="button-generate">
               <FileText className="h-4 w-4 mr-2" />
               Generate Custom Report
             </Button>
@@ -116,6 +138,7 @@ export default function ReportsPage() {
                         variant="outline"
                         size="sm"
                         className="w-full"
+                        onClick={() => handleDownloadReport(report.title)}
                         data-testid={`button-download-${report.id}`}
                       >
                         <Download className="h-4 w-4 mr-2" />
@@ -153,6 +176,7 @@ export default function ReportsPage() {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => handleDownloadReport(report.name)}
                             data-testid={`button-download-custom-${index}`}
                           >
                             <Download className="h-4 w-4 mr-2" />

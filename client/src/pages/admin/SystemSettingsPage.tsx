@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { validateEmail, validatePhone } from "@/utils/validation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +77,31 @@ export default function SystemSettingsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate contact email if provided
+    if (settings.contactEmail && settings.contactEmail.trim()) {
+      if (!validateEmail(settings.contactEmail.trim())) {
+        toast({
+          title: "Invalid email format",
+          description: "Please enter a valid email address for the contact email.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
+    // Validate contact phone if provided
+    if (settings.contactPhone && settings.contactPhone.trim()) {
+      if (!validatePhone(settings.contactPhone.trim())) {
+        toast({
+          title: "Invalid phone number",
+          description: "Please enter a valid 10-digit Indian mobile number starting with 6-9.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     saveMutation.mutate(settings);
   };
 

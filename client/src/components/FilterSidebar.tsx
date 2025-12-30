@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Filter, X, Search, MapPin, Calendar, Building2, Layers, Milestone, Bookmark, Loader2 } from "lucide-react";
 import { useLocation as useLocationContext } from "@/contexts/LocationContext";
@@ -48,7 +48,7 @@ const projectStages = [
   { value: "ready_to_move", label: "Ready to Move" },
 ];
 
-export default function FilterSidebar({ onApplyFilters, initialCategory }: FilterSidebarProps) {
+export default function FilterSidebar({ onApplyFilters, initialCategory, initialFilters }: FilterSidebarProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -56,27 +56,49 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
   const locationContext = useLocationContext();
   const headerSelectedCity = locationContext?.selectedCity?.name || "";
   
-  const [priceRange, setPriceRange] = useState([0, 20000000]);
-  const [selectedTransactionTypes, setSelectedTransactionTypes] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || "all");
-  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
-  const [selectedProjectStages, setSelectedProjectStages] = useState<string[]>([]);
-  const [selectedBHK, setSelectedBHK] = useState<string[]>([]);
-  const [selectedSeller, setSelectedSeller] = useState<string[]>([]);
-  const [selectedState, setSelectedState] = useState<string>("");
-  const [selectedCity, setSelectedCity] = useState<string>("");
-  const [selectedLocality, setSelectedLocality] = useState<string>("");
-  const [selectedPropertyAge, setSelectedPropertyAge] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState<[number, number]>(
+    initialFilters?.priceRange || [0, 20000000]
+  );
+  const [selectedTransactionTypes, setSelectedTransactionTypes] = useState<string[]>(
+    initialFilters?.transactionTypes || []
+  );
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    initialFilters?.category || initialCategory || "all"
+  );
+  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>(
+    initialFilters?.subcategories || []
+  );
+  const [selectedProjectStages, setSelectedProjectStages] = useState<string[]>(
+    initialFilters?.projectStages || []
+  );
+  const [selectedBHK, setSelectedBHK] = useState<string[]>(
+    initialFilters?.bhk || []
+  );
+  const [selectedSeller, setSelectedSeller] = useState<string[]>(
+    initialFilters?.sellerTypes || []
+  );
+  const [selectedState, setSelectedState] = useState<string>(
+    initialFilters?.state || ""
+  );
+  const [selectedCity, setSelectedCity] = useState<string>(
+    initialFilters?.city || headerSelectedCity || ""
+  );
+  const [selectedLocality, setSelectedLocality] = useState<string>(
+    initialFilters?.locality || ""
+  );
+  const [selectedPropertyAge, setSelectedPropertyAge] = useState<string[]>(
+    initialFilters?.propertyAge || []
+  );
   const [corporateSearch, setCorporateSearch] = useState<string>("");
   const [saveSearchOpen, setSaveSearchOpen] = useState(false);
   const [searchName, setSearchName] = useState("");
   
-  // Sync FilterSidebar city display with header city selection (display only, no auto-apply)
+  // Sync FilterSidebar city display with header city selection (only if no city filter is set)
   useEffect(() => {
-    if (headerSelectedCity && headerSelectedCity !== selectedCity) {
+    if (headerSelectedCity && !selectedCity && !initialFilters?.city) {
       setSelectedCity(headerSelectedCity);
     }
-  }, [headerSelectedCity, selectedCity]);
+  }, [headerSelectedCity]); // Only sync when header city changes
 
   const saveSearchMutation = useMutation({
     mutationFn: async () => {
@@ -208,19 +230,37 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
   };
 
   const handleClearFilters = () => {
-    setPriceRange([0, 20000000]);
-    setSelectedTransactionTypes([]);
-    setSelectedCategory("all");
-    setSelectedSubcategories([]);
-    setSelectedProjectStages([]);
-    setSelectedBHK([]);
-    setSelectedSeller([]);
-    setSelectedState("");
-    setSelectedCity("");
-    setSelectedLocality("");
-    setSelectedPropertyAge([]);
-    setCorporateSearch("");
-    console.log('Filters cleared');
+    if (window.confirm("Are you sure you want to clear all filters?")) {
+      setPriceRange([0, 20000000]);
+      setSelectedTransactionTypes([]);
+      setSelectedCategory("all");
+      setSelectedSubcategories([]);
+      setSelectedProjectStages([]);
+      setSelectedBHK([]);
+      setSelectedSeller([]);
+      setSelectedState("");
+      setSelectedCity("");
+      setSelectedLocality("");
+      setSelectedPropertyAge([]);
+      setCorporateSearch("");
+      
+      // Apply cleared filters
+      const clearedFilters = {
+        priceRange: [0, 20000000],
+        transactionTypes: [],
+        category: "all",
+        subcategories: [],
+        projectStages: [],
+        bhk: [],
+        sellerTypes: [],
+        state: "",
+        city: "",
+        locality: "",
+        propertyAge: [],
+        corporateSearch: "",
+      };
+      onApplyFilters?.(clearedFilters);
+    }
   };
 
   const handleApply = () => {
@@ -257,16 +297,32 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
     return `${value.toLocaleString('en-IN')}`;
   };
 
-  const activeFiltersCount = selectedTransactionTypes.length + 
-    (selectedCategory !== "all" ? 1 : 0) + 
-    selectedSubcategories.length +
-    selectedProjectStages.length +
-    selectedBHK.length + 
-    selectedSeller.length + 
-    selectedPropertyAge.length + 
-    (selectedState ? 1 : 0) +
-    (selectedCity ? 1 : 0) + 
-    (corporateSearch ? 1 : 0);
+  // Calculate active filters count in real-time
+  const activeFiltersCount = useMemo(() => {
+    return selectedTransactionTypes.length + 
+      (selectedCategory !== "all" ? 1 : 0) + 
+      selectedSubcategories.length +
+      selectedProjectStages.length +
+      selectedBHK.length + 
+      selectedSeller.length + 
+      selectedPropertyAge.length + 
+      (selectedState ? 1 : 0) +
+      (selectedCity && selectedCity !== "all" ? 1 : 0) + 
+      (corporateSearch ? 1 : 0) +
+      (priceRange[0] !== 0 || priceRange[1] !== 20000000 ? 1 : 0);
+  }, [
+    selectedTransactionTypes,
+    selectedCategory,
+    selectedSubcategories,
+    selectedProjectStages,
+    selectedBHK,
+    selectedSeller,
+    selectedPropertyAge,
+    selectedState,
+    selectedCity,
+    corporateSearch,
+    priceRange,
+  ]);
 
   return (
     <div className="w-full space-y-4">
@@ -428,13 +484,23 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
             </div>
             {selectedCity && (
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Locality</Label>
+                <Label className="text-xs text-muted-foreground">Locality (Optional)</Label>
                 <Input
-                  placeholder="Enter locality"
+                  placeholder={`Enter locality in ${selectedCity}`}
                   value={selectedLocality}
                   onChange={(e) => setSelectedLocality(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      // Auto-apply locality filter on Enter
+                      handleApply();
+                    }
+                  }}
                   data-testid="input-locality"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Type locality name and press Enter to filter, or leave empty for all localities
+                </p>
               </div>
             )}
           </AccordionContent>
@@ -458,7 +524,22 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
                 <span className="text-muted-foreground">{formatPrice(priceRange[1])}</span>
               </div>
             </div>
-            <Select defaultValue="all">
+            <Select 
+              value="all"
+              onValueChange={(value) => {
+                const presetMap: Record<string, [number, number]> = {
+                  "under50": [0, 5000000],
+                  "50to1cr": [5000000, 10000000],
+                  "1to2cr": [10000000, 20000000],
+                  "above2cr": [20000000, 20000000],
+                };
+                if (value !== "all" && presetMap[value]) {
+                  setPriceRange(presetMap[value]);
+                } else if (value === "all") {
+                  setPriceRange([0, 20000000]);
+                }
+              }}
+            >
               <SelectTrigger data-testid="select-price-preset">
                 <SelectValue placeholder="Quick select" />
               </SelectTrigger>
@@ -601,7 +682,7 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
           Apply Filters
         </Button>
         
-        {user && (
+        {user ? (
           <Dialog open={saveSearchOpen} onOpenChange={setSaveSearchOpen}>
             <DialogTrigger asChild>
               <Button 
@@ -653,6 +734,22 @@ export default function FilterSidebar({ onApplyFilters, initialCategory }: Filte
               </DialogFooter>
             </DialogContent>
           </Dialog>
+        ) : (
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={() => {
+              toast({
+                title: "Please login to save searches",
+                description: "You'll be redirected to the login page",
+              });
+              window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname + window.location.search);
+            }}
+            data-testid="button-save-search-guest"
+          >
+            <Bookmark className="h-4 w-4 mr-2" />
+            Save Search (Login Required)
+          </Button>
         )}
       </div>
     </div>

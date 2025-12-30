@@ -32,13 +32,14 @@ async function getEmailConfig(): Promise<EmailConfig | null> {
       return null;
     }
 
+    const port = parseInt(smtpPort || "587", 10);
     return {
       host: smtpHost,
-      port: parseInt(smtpPort || "587", 10),
-      secure: smtpPort === "465",
+      port: port,
+      secure: port === 465,
       user: smtpUser,
       pass: smtpPass,
-      from: smtpFrom || `VenGrow <noreply@vengrow.com>`,
+      from: smtpFrom || `VenGrow <${smtpUser}>`,
     };
   } catch (error) {
     console.log("[Email] Failed to get SMTP config:", error);
@@ -69,11 +70,24 @@ async function getTransporter(): Promise<nodemailer.Transporter | null> {
   return transporter;
 }
 
+function escapeHtml(text: string): string {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+}
+
 function replaceVariables(template: string, variables: Record<string, string>): string {
   let result = template;
   for (const [key, value] of Object.entries(variables)) {
+    // Escape HTML in variables for security (XSS prevention)
+    const escapedValue = escapeHtml(value || "");
     const regex = new RegExp(`{{${key}}}`, "g");
-    result = result.replace(regex, value || "");
+    result = result.replace(regex, escapedValue);
   }
   return result;
 }
@@ -90,17 +104,22 @@ export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
   }
 
   try {
-    await transport.sendMail({
+    const result = await transport.sendMail({
       from: emailConfig.from,
       to: options.to,
       subject: options.subject,
       html: options.html,
       text: options.text || options.html.replace(/<[^>]+>/g, ""),
     });
-    console.log(`[Email] Sent to ${options.to}: ${options.subject}`);
+    console.log(`[Email] Sent successfully to ${options.to}: ${options.subject} (MessageId: ${result.messageId})`);
     return true;
-  } catch (error) {
-    console.error("[Email] Failed to send:", error);
+  } catch (error: any) {
+    console.error(`[Email] Failed to send to ${options.to}:`, {
+      error: error.message,
+      code: error.code,
+      command: error.command,
+      subject: options.subject,
+    });
     return false;
   }
 }
@@ -117,8 +136,23 @@ export async function sendTemplatedEmail(
     );
 
     if (!template) {
-      console.log(`[Email] No active template found for trigger: ${triggerEvent}`);
+      console.warn(`[Email] No active template found for trigger: ${triggerEvent}. Email not sent to ${to}`);
+      // Optionally send a fallback plain text email for critical events
+      if (["welcome_buyer", "welcome_seller", "property_approved", "payment_success"].includes(triggerEvent)) {
+        console.log(`[Email] Attempting fallback email for critical event: ${triggerEvent}`);
+        const fallbackSubject = `Notification from VenGrow - ${triggerEvent}`;
+        const fallbackBody = `<p>This is an automated notification from VenGrow.</p><p>Event: ${triggerEvent}</p><p>Please check your dashboard for details.</p>`;
+        return await sendEmail({ to, subject: fallbackSubject, html: fallbackBody });
+      }
       return false;
+    }
+
+    // Validate required variables
+    const requiredVars = template.variables || [];
+    const missingVars = requiredVars.filter(v => !variables[v]);
+    if (missingVars.length > 0) {
+      console.warn(`[Email] Missing variables for template ${triggerEvent}: ${missingVars.join(", ")}`);
+      // Continue anyway, missing vars will be empty strings
     }
 
     const subject = replaceVariables(template.subject, variables);
@@ -126,7 +160,7 @@ export async function sendTemplatedEmail(
 
     return await sendEmail({ to, subject, html });
   } catch (error) {
-    console.error("[Email] Failed to send templated email:", error);
+    console.error(`[Email] Failed to send templated email (${triggerEvent}) to ${to}:`, error);
     return false;
   }
 }
@@ -158,22 +192,25 @@ export async function sendAppointmentNotification(
   otherPartyName: string,
   isForSeller: boolean
 ): Promise<boolean> {
+  // Use template instead of hardcoded HTML
+  // For now, use simple template with conditional logic in variables
+  const triggerEvent = "appointment_requested";
   const subject = isForSeller 
     ? `New Visit Request for ${propertyTitle}`
     : `Your Visit Request for ${propertyTitle}`;
   
   const html = isForSeller
     ? `<h1>New Visit Request</h1>
-       <p>Hi ${recipientName},</p>
-       <p>You have a new visit request for your property: <strong>${propertyTitle}</strong></p>
-       <p><strong>Requested by:</strong> ${otherPartyName}</p>
-       <p><strong>Requested Time:</strong> ${dateTime}</p>
+       <p>Hi ${escapeHtml(recipientName)},</p>
+       <p>You have a new visit request for your property: <strong>${escapeHtml(propertyTitle)}</strong></p>
+       <p><strong>Requested by:</strong> ${escapeHtml(otherPartyName)}</p>
+       <p><strong>Requested Time:</strong> ${escapeHtml(dateTime)}</p>
        <p>Login to your seller dashboard to accept or reschedule this appointment.</p>
        <p>Best regards,<br>The VenGrow Team</p>`
     : `<h1>Visit Request Submitted</h1>
-       <p>Hi ${recipientName},</p>
-       <p>Your visit request for <strong>${propertyTitle}</strong> has been submitted.</p>
-       <p><strong>Requested Time:</strong> ${dateTime}</p>
+       <p>Hi ${escapeHtml(recipientName)},</p>
+       <p>Your visit request for <strong>${escapeHtml(propertyTitle)}</strong> has been submitted.</p>
+       <p><strong>Requested Time:</strong> ${escapeHtml(dateTime)}</p>
        <p>The seller will review your request and confirm the appointment.</p>
        <p>Best regards,<br>The VenGrow Team</p>`;
 

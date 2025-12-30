@@ -680,11 +680,15 @@ export default function PaymentPage() {
                 <p className="text-muted-foreground">
                   Contact our support team if you have any questions about packages or payments
                 </p>
-                <Link href="/contact">
-                  <Button variant="outline" size="sm" className="w-full" data-testid="button-contact">
-                    Contact Support
-                  </Button>
-                </Link>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full" 
+                  onClick={() => window.open("mailto:support@vengrow.com?subject=Payment Support", "_blank")}
+                  data-testid="button-contact"
+                >
+                  Contact Support
+                </Button>
               </div>
             </Card>
           </div>

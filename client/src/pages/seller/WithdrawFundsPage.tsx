@@ -1,8 +1,10 @@
-
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -10,11 +12,108 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DollarSign, AlertTriangle } from "lucide-react";
+import { DollarSign, AlertTriangle, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import type { Payment } from "@shared/schema";
+
+interface BankAccount {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
+  accountHolderName: string;
+}
 
 export default function WithdrawFundsPage() {
-  const availableBalance = 45000;
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [amount, setAmount] = useState("");
+  const [selectedBankId, setSelectedBankId] = useState("");
+  const [note, setNote] = useState("");
   const minWithdrawal = 1000;
+
+  const { data: payments = [], isLoading: paymentsLoading } = useQuery<Payment[]>({
+    queryKey: ["/api/me/payments"],
+    enabled: !!user,
+  });
+
+  const { data: bankAccounts = [], isLoading: bankAccountsLoading } = useQuery<BankAccount[]>({
+    queryKey: ["/api/me/bank-accounts"],
+    enabled: !!user,
+  });
+
+  const withdrawalMutation = useMutation({
+    mutationFn: async (data: { amount: number; bankAccountId: string; note?: string }) => {
+      return apiRequest("POST", "/api/withdrawals", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/me/payments"] });
+      toast({ title: "Withdrawal request submitted successfully" });
+      setAmount("");
+      setSelectedBankId("");
+      setNote("");
+    },
+    onError: () => {
+      toast({ title: "Failed to submit withdrawal request", variant: "destructive" });
+    },
+  });
+
+  const completedPayments = payments.filter(p => p.status === "completed");
+  const availableBalance = completedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const withdrawalAmount = parseFloat(amount) || 0;
+  const processingFee = 0; // No fees
+  const amountToReceive = withdrawalAmount - processingFee;
+
+  const handleWithdraw = () => {
+    if (!amount || withdrawalAmount < minWithdrawal) {
+      toast({ 
+        title: `Minimum withdrawal amount is ₹${minWithdrawal.toLocaleString()}`,
+        variant: "destructive" 
+      });
+      return;
+    }
+    if (withdrawalAmount > availableBalance) {
+      toast({ 
+        title: "Insufficient balance",
+        variant: "destructive" 
+      });
+      return;
+    }
+    if (!selectedBankId) {
+      toast({ 
+        title: "Please select a bank account",
+        variant: "destructive" 
+      });
+      return;
+    }
+    withdrawalMutation.mutate({
+      amount: withdrawalAmount,
+      bankAccountId: selectedBankId,
+      note: note || undefined,
+    });
+  };
+
+  const isLoading = paymentsLoading || bankAccountsLoading;
+
+  if (isLoading) {
+    return (
+      <main className="flex-1">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Skeleton className="h-10 w-64 mb-8" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <Skeleton className="h-96" />
+            </div>
+            <div>
+              <Skeleton className="h-64" />
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex-1">
@@ -42,6 +141,8 @@ export default function WithdrawFundsPage() {
                       placeholder="Enter amount"
                       min={minWithdrawal}
                       max={availableBalance}
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
                       data-testid="input-amount"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
@@ -51,19 +152,29 @@ export default function WithdrawFundsPage() {
 
                   <div>
                     <Label htmlFor="bank">Select Bank Account</Label>
-                    <Select>
-                      <SelectTrigger id="bank" data-testid="select-bank">
-                        <SelectValue placeholder="Choose account" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="hdfc">
-                          HDFC Bank - ****4242
-                        </SelectItem>
-                        <SelectItem value="icici">
-                          ICICI Bank - ****5555
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {bankAccounts.length === 0 ? (
+                      <div className="p-4 border rounded-lg bg-muted/50">
+                        <p className="text-sm text-muted-foreground mb-2">
+                          No bank accounts added. Please add a bank account first.
+                        </p>
+                        <Button variant="outline" size="sm" asChild>
+                          <a href="/seller/settings">Add Bank Account</a>
+                        </Button>
+                      </div>
+                    ) : (
+                      <Select value={selectedBankId} onValueChange={setSelectedBankId}>
+                        <SelectTrigger id="bank" data-testid="select-bank">
+                          <SelectValue placeholder="Choose account" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {bankAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.bankName} - ****{account.accountNumber.slice(-4)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
 
                   <div>
@@ -71,6 +182,8 @@ export default function WithdrawFundsPage() {
                     <Input
                       id="note"
                       placeholder="Add a note for this withdrawal"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
                       data-testid="input-note"
                     />
                   </div>
@@ -102,28 +215,42 @@ export default function WithdrawFundsPage() {
                     Available Balance
                   </p>
                   <p className="text-4xl font-bold font-serif text-primary">
-                    ₹{availableBalance.toLocaleString()}
+                    ₹{availableBalance.toLocaleString("en-IN")}
                   </p>
                 </div>
 
                 <div className="space-y-4 mb-6 p-4 bg-muted rounded-lg">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Withdrawal</span>
-                    <span className="font-medium">₹0</span>
+                    <span className="font-medium">₹{withdrawalAmount.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Processing Fee</span>
-                    <span className="font-medium">₹0</span>
+                    <span className="font-medium">₹{processingFee.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="pt-4 border-t flex items-center justify-between">
                     <span className="font-semibold">You'll Receive</span>
-                    <span className="font-semibold text-lg">₹0</span>
+                    <span className="font-semibold text-lg">₹{amountToReceive.toLocaleString("en-IN")}</span>
                   </div>
                 </div>
 
-                <Button className="w-full" data-testid="button-withdraw">
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Withdraw Funds
+                <Button 
+                  className="w-full" 
+                  data-testid="button-withdraw"
+                  onClick={handleWithdraw}
+                  disabled={withdrawalMutation.isPending || availableBalance === 0 || bankAccounts.length === 0}
+                >
+                  {withdrawalMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Withdraw Funds
+                    </>
+                  )}
                 </Button>
               </Card>
             </div>

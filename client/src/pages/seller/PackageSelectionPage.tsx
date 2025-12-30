@@ -183,7 +183,7 @@ export default function PackageSelectionPage() {
                         {isExpired ? "Renew Package" : "Upgrade"}
                       </Button>
                     </Link>
-                    <Link href="/seller/package-history">
+                    <Link href="/seller/subscription-history">
                       <Button variant="outline" className="w-full" data-testid="button-view-history">
                         View History
                       </Button>

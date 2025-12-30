@@ -1,15 +1,55 @@
-
+import { useParams } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Eye, Target, Zap } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TrendingUp, Eye, Target, Zap, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { Property } from "@shared/schema";
+
+interface PromotionPackage {
+  id: string;
+  name: string;
+  price: number;
+  duration: number; // days
+  features: string[];
+  popular?: boolean;
+}
 
 export default function PropertyPromotionPage() {
-  const promotionPackages = [
+  const params = useParams();
+  const propertyId = params.id;
+  const { toast } = useToast();
+
+  const { data: property, isLoading: propertyLoading } = useQuery<Property>({
+    queryKey: [`/api/properties/${propertyId}`],
+    enabled: !!propertyId,
+  });
+
+  const promotionPurchaseMutation = useMutation({
+    mutationFn: async (packageId: string) => {
+      return apiRequest("POST", `/api/properties/${propertyId}/promote`, { packageId });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/properties/${propertyId}`] });
+      toast({ title: "Promotion purchased successfully!" });
+      if (data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+      }
+    },
+    onError: () => {
+      toast({ title: "Failed to purchase promotion", variant: "destructive" });
+    },
+  });
+
+  const promotionPackages: PromotionPackage[] = [
     {
+      id: "featured",
       name: "Featured Listing",
-      price: "₹999",
-      duration: "7 days",
+      price: 999,
+      duration: 7,
       features: [
         "Top position in search results",
         "Homepage featured section",
@@ -19,9 +59,10 @@ export default function PropertyPromotionPage() {
       popular: false,
     },
     {
+      id: "spotlight",
       name: "Spotlight",
-      price: "₹2,499",
-      duration: "15 days",
+      price: 2499,
+      duration: 15,
       features: [
         "All Featured Listing benefits",
         "Social media promotion",
@@ -32,9 +73,10 @@ export default function PropertyPromotionPage() {
       popular: true,
     },
     {
+      id: "premium-plus",
       name: "Premium Plus",
-      price: "₹4,999",
-      duration: "30 days",
+      price: 4999,
+      duration: 30,
       features: [
         "All Spotlight benefits",
         "Dedicated account manager",
@@ -47,17 +89,35 @@ export default function PropertyPromotionPage() {
     },
   ];
 
-  const activePromotions = [
-    {
-      id: "1",
-      property: "Luxury 3BHK Apartment",
-      package: "Featured Listing",
-      startDate: "Nov 20, 2025",
-      endDate: "Nov 27, 2025",
-      views: 1234,
-      inquiries: 45,
-    },
-  ];
+  const formatPrice = (price: number) => {
+    return `₹${price.toLocaleString("en-IN")}`;
+  };
+
+  const handleSelectPackage = (pkg: PromotionPackage) => {
+    if (!propertyId) {
+      toast({ title: "Property ID is missing", variant: "destructive" });
+      return;
+    }
+    promotionPurchaseMutation.mutate(pkg.id);
+  };
+
+  if (propertyLoading) {
+    return (
+      <main className="flex-1">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Skeleton className="h-10 w-64 mb-8" />
+          <Skeleton className="h-48 mb-12" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-96" />
+            ))}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  const activePromotions: any[] = []; // TODO: Fetch from API
 
   return (
     <main className="flex-1">
@@ -138,9 +198,9 @@ export default function PropertyPromotionPage() {
                     </h3>
                     <div className="mb-4">
                       <span className="text-5xl font-bold font-serif text-primary">
-                        {pkg.price}
+                        {formatPrice(pkg.price)}
                       </span>
-                      <span className="text-muted-foreground">/{pkg.duration}</span>
+                      <span className="text-muted-foreground">/{pkg.duration} days</span>
                     </div>
                   </div>
 
@@ -157,8 +217,17 @@ export default function PropertyPromotionPage() {
                     className="w-full"
                     variant={pkg.popular ? "default" : "outline"}
                     data-testid={`button-select-${index}`}
+                    onClick={() => handleSelectPackage(pkg)}
+                    disabled={promotionPurchaseMutation.isPending}
                   >
-                    Get Started
+                    {promotionPurchaseMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      "Get Started"
+                    )}
                   </Button>
                 </Card>
               ))}

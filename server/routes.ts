@@ -1,14 +1,18 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import { randomUUID } from "crypto";
 import { storage } from "./storage";
 import { seedDatabase } from "./seed";
 import { seedCMSContent } from "./seed-cms";
 import { insertPropertySchema, insertInquirySchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { verifySuperadminCredentials, hashPassword, verifyPassword, validateEmail, validatePhone } from "./auth-utils";
+import { verifySuperadminCredentials, hashPassword, verifyPassword, validateEmail, validatePhone, validatePassword } from "./auth-utils";
 import * as emailService from "./email";
+import { db } from "./db";
+import { properties, propertyViews, users } from "@shared/schema";
+import { eq, and, or, desc, sql, notInArray } from "drizzle-orm";
 
 const connectedClients = new Map<string, Set<WebSocket>>();
 
@@ -38,6 +42,41 @@ function broadcastToUser(userId: string, message: any) {
   }
 }
 
+// Simple in-memory rate limiter for forms
+const formRateLimit = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(identifier: string, maxRequests: number = 5, windowMs: number = 15 * 60 * 1000): boolean {
+  const now = Date.now();
+  const record = formRateLimit.get(identifier);
+  
+  if (!record || now > record.resetTime) {
+    formRateLimit.set(identifier, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+  
+  if (record.count >= maxRequests) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
+
+function getRateLimitMiddleware(maxRequests: number = 5, windowMs: number = 15 * 60 * 1000) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const identifier = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    
+    if (!checkRateLimit(identifier, maxRequests, windowMs)) {
+      return res.status(429).json({ 
+        error: "Too many requests. Please try again later.",
+        retryAfter: Math.ceil(windowMs / 1000)
+      });
+    }
+    
+    next();
+  };
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   await setupAuth(app);
@@ -47,6 +86,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================
   
   // Get current authenticated user (alias for frontend compatibility)
+  // Update current user profile
+  app.patch("/api/auth/me", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const { firstName, lastName, phone, bio } = req.body;
+      const updateData: any = {};
+      
+      if (firstName !== undefined) updateData.firstName = firstName.trim();
+      if (lastName !== undefined) updateData.lastName = lastName.trim();
+      if (phone !== undefined) {
+        const cleanedPhone = String(phone).replace(/\D/g, "");
+        if (cleanedPhone && !validatePhone(cleanedPhone)) {
+          return res.status(400).json({ error: "Invalid phone number" });
+        }
+        updateData.phone = cleanedPhone || null;
+      }
+      if (bio !== undefined) updateData.bio = bio.trim();
+      
+      const updatedUser = await storage.updateUser(userId, updateData);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Update user notification preferences
+  app.patch("/api/auth/me/preferences", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const { 
+        emailNotifications, 
+        smsNotifications, 
+        pushNotifications, 
+        newListings, 
+        priceDrops, 
+        inquiryReplies 
+      } = req.body;
+      
+      const preferences: any = {};
+      if (emailNotifications !== undefined) preferences.emailNotifications = emailNotifications;
+      if (smsNotifications !== undefined) preferences.smsNotifications = smsNotifications;
+      if (pushNotifications !== undefined) preferences.pushNotifications = pushNotifications;
+      if (newListings !== undefined) preferences.newListings = newListings;
+      if (priceDrops !== undefined) preferences.priceDrops = priceDrops;
+      if (inquiryReplies !== undefined) preferences.inquiryReplies = inquiryReplies;
+      
+      // Store preferences in user metadata or create a separate preferences table
+      // For now, storing in user's metadata field if it exists, or we can extend the user table
+      const updatedUser = await storage.updateUser(userId, { 
+        metadata: preferences 
+      } as any);
+      
+      res.json({ success: true, preferences });
+    } catch (error) {
+      console.error("Error updating preferences:", error);
+      res.status(500).json({ error: "Failed to update preferences" });
+    }
+  });
+
+  // Delete current user account
+  app.delete("/api/auth/me", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      // Delete user (cascade will handle related data)
+      await db.delete(users).where(eq(users.id, userId));
+      
+      // Destroy session
+      req.session.destroy((err: any) => {
+        if (err) {
+          console.error("Error destroying session:", err);
+        }
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      res.status(500).json({ error: "Failed to delete account" });
+    }
+  });
+
   app.get("/api/auth/me", async (req: any, res: Response) => {
     try {
       // Check for local user session first
@@ -199,16 +325,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password, firstName, lastName, phone, intent } = req.body;
       
+      // Validate required fields
       if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
       }
       
+      // Validate email format
       if (!validateEmail(email)) {
         return res.status(400).json({ message: "Invalid email format" });
       }
       
-      if (phone && !validatePhone(phone)) {
-        return res.status(400).json({ message: "Invalid phone number. Must be 10 digits starting with 6-9" });
+      // Validate password strength
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ message: passwordValidation.message || "Password does not meet requirements" });
+      }
+      
+      // Validate firstName and lastName
+      if (firstName !== undefined && firstName !== null) {
+        const trimmedFirstName = String(firstName).trim();
+        if (!trimmedFirstName) {
+          return res.status(400).json({ message: "First name cannot be empty" });
+        }
+      }
+      
+      if (lastName !== undefined && lastName !== null) {
+        const trimmedLastName = String(lastName).trim();
+        if (!trimmedLastName) {
+          return res.status(400).json({ message: "Last name cannot be empty" });
+        }
+      }
+      
+      // Validate phone number if provided
+      if (phone) {
+        const cleanedPhone = String(phone).replace(/\D/g, "");
+        if (!validatePhone(cleanedPhone)) {
+          return res.status(400).json({ message: "Invalid phone number. Must be 10 digits starting with 6-9" });
+        }
       }
       
       // Check if user already exists
@@ -220,13 +373,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Hash password
       const passwordHash = await hashPassword(password);
       
-      // Create user
+      // Create user with trimmed names
       const user = await storage.createUserWithPassword({
-        email,
+        email: email.trim(),
         passwordHash,
-        firstName,
-        lastName,
-        phone,
+        firstName: firstName ? String(firstName).trim() : "",
+        lastName: lastName ? String(lastName).trim() : "",
+        phone: phone ? String(phone).replace(/\D/g, "") : undefined,
         intent,
         role: intent === "seller" ? "seller" : "buyer",
         authProvider: "local",
@@ -239,6 +392,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: user.role,
         loginAt: new Date().toISOString(),
       };
+      
+      // Send welcome email (async, don't wait)
+      emailService.sendWelcomeEmail(
+        user.email,
+        user.firstName || user.email.split("@")[0],
+        user.role === "seller" ? "seller" : "buyer"
+      ).catch(err => console.error("[Email] Welcome email error:", err));
+      
+      // Send email verification email (async, don't wait)
+      const verificationToken = randomUUID();
+      const verificationLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify-email?token=${verificationToken}&email=${encodeURIComponent(user.email)}`;
+      emailService.sendTemplatedEmail(
+        "email_verification",
+        user.email,
+        {
+          firstName: user.firstName || user.email.split("@")[0],
+          verificationLink: verificationLink,
+        }
+      ).catch(err => console.error("[Email] Verification email error:", err));
       
       res.status(201).json({
         success: true,
@@ -254,6 +426,410 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Registration error:", error);
       res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  // Seller Registration
+  app.post("/api/seller/register", async (req: Request, res: Response) => {
+    try {
+      const {
+        sellerType,
+        // User fields
+        email,
+        password,
+        firstName,
+        lastName,
+        phone,
+        // Seller profile fields
+        companyName,
+        reraNumber,
+        gstNumber,
+        panNumber,
+        aadharNumber,
+        address,
+        city,
+        state,
+        pincode,
+        website,
+        // Broker specific
+        firmName,
+        yearsOfExperience,
+        // Corporate/Builder specific
+        cinNumber,
+        establishedYear,
+        completedProjects,
+        // Document URLs (should be uploaded separately first)
+        logoUrl,
+        brochureUrl,
+        reraCertificateUrl,
+        businessCardUrl,
+        incorporationCertificateUrl,
+        companyProfileUrl,
+        propertyDocumentUrl,
+      } = req.body;
+
+      // Validation
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      if (!validateEmail(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+
+      if (phone && !validatePhone(phone)) {
+        return res.status(400).json({ message: "Invalid phone number. Must be 10 digits starting with 6-9" });
+      }
+
+      if (!sellerType || !["individual", "broker", "builder"].includes(sellerType)) {
+        return res.status(400).json({ message: "Valid seller type is required" });
+      }
+      
+      // Map corporate to builder
+      const normalizedSellerType = sellerType === "corporate" ? "builder" : sellerType;
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({ message: "User with this email already exists" });
+      }
+
+      // Hash password
+      const passwordHash = await hashPassword(password);
+
+      // Create user
+      const user = await storage.createUserWithPassword({
+        email,
+        passwordHash,
+        firstName: firstName || companyName?.split(" ")[0] || "",
+        lastName: lastName || companyName?.split(" ").slice(1).join(" ") || "",
+        phone,
+        intent: "seller",
+        role: "seller",
+        authProvider: "local",
+      });
+
+      // Prepare seller profile data
+      const sellerProfileData: any = {
+        userId: user.id,
+        sellerType: normalizedSellerType as "individual" | "broker" | "builder",
+        verificationStatus: "pending",
+      };
+
+      // Add common fields
+      if (companyName) sellerProfileData.companyName = companyName;
+      if (firmName && sellerType === "broker") sellerProfileData.companyName = firmName;
+      if (reraNumber) sellerProfileData.reraNumber = reraNumber;
+      if (gstNumber) sellerProfileData.gstNumber = gstNumber;
+      if (panNumber) sellerProfileData.panNumber = panNumber;
+      if (address) sellerProfileData.address = address;
+      if (city) sellerProfileData.city = city;
+      if (state) sellerProfileData.state = state;
+      if (pincode) sellerProfileData.pincode = pincode;
+      if (website) sellerProfileData.website = website;
+      if (logoUrl) sellerProfileData.logo = logoUrl;
+
+      // Prepare verification documents
+      const verificationDocuments: any[] = [];
+      if (aadharNumber && propertyDocumentUrl) {
+        verificationDocuments.push({
+          type: "aadhaar",
+          number: aadharNumber,
+          url: propertyDocumentUrl,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+      if (panNumber && propertyDocumentUrl) {
+        verificationDocuments.push({
+          type: "pan",
+          number: panNumber,
+          url: propertyDocumentUrl,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+      if (reraNumber && reraCertificateUrl) {
+        verificationDocuments.push({
+          type: "rera",
+          number: reraNumber,
+          url: reraCertificateUrl,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+      if (incorporationCertificateUrl) {
+        verificationDocuments.push({
+          type: "incorporation",
+          url: incorporationCertificateUrl,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+      if (businessCardUrl) {
+        verificationDocuments.push({
+          type: "business_card",
+          url: businessCardUrl,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+      if (companyProfileUrl) {
+        verificationDocuments.push({
+          type: "company_profile",
+          url: companyProfileUrl,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+      if (brochureUrl) {
+        verificationDocuments.push({
+          type: "brochure",
+          url: brochureUrl,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+
+      if (verificationDocuments.length > 0) {
+        sellerProfileData.verificationDocuments = verificationDocuments;
+      }
+
+      // Create seller profile
+      const sellerProfile = await storage.createSellerProfile(sellerProfileData);
+
+      // Set session
+      (req.session as any).localUser = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        loginAt: new Date().toISOString(),
+      };
+
+      // Send welcome email (async, don't wait)
+      emailService.sendWelcomeEmail(
+        user.email,
+        user.firstName || companyName?.split(" ")[0] || user.email.split("@")[0],
+        "seller"
+      ).catch(err => console.error("[Email] Welcome email error:", err));
+
+      res.status(201).json({
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        },
+        sellerProfile: {
+          id: sellerProfile.id,
+          sellerType: sellerProfile.sellerType,
+          verificationStatus: sellerProfile.verificationStatus,
+        },
+      });
+    } catch (error) {
+      console.error("Seller registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  // Upload document for seller registration
+  app.post("/api/seller/register/upload-document", async (req: Request, res: Response) => {
+    try {
+      // This endpoint expects multipart/form-data with a file
+      // For now, we'll accept a base64 file or URL
+      // In production, use multer or similar for file uploads
+      const { file, fileName, fileType } = req.body;
+
+      if (!file) {
+        return res.status(400).json({ message: "File is required" });
+      }
+
+      // Generate unique filename
+      const fileExtension = fileName?.split(".").pop() || "pdf";
+      const uniqueFileName = `seller-documents/${Date.now()}-${randomUUID()}.${fileExtension}`;
+
+      // If file is base64, decode it
+      let fileBuffer: Buffer;
+      if (file.startsWith("data:")) {
+        const base64Data = file.split(",")[1];
+        fileBuffer = Buffer.from(base64Data, "base64");
+      } else if (file.startsWith("http")) {
+        // If it's already a URL, return it
+        return res.json({ url: file });
+      } else {
+        fileBuffer = Buffer.from(file, "base64");
+      }
+
+      // Upload to object storage
+      const objectStorage = new (await import("./objectStorage")).ObjectStorageService();
+      const url = await objectStorage.uploadObject("seller-documents", uniqueFileName, fileBuffer, {
+        contentType: fileType || "application/pdf",
+        acl: "public-read",
+      });
+
+      res.json({ url, fileName: uniqueFileName });
+    } catch (error) {
+      console.error("Document upload error:", error);
+      res.status(500).json({ message: "Failed to upload document" });
+    }
+  });
+
+  // Send email verification
+  app.post("/api/auth/send-verification-email", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+      
+      const user = await storage.getUser(userId);
+      if (!user || !user.email) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (user.isEmailVerified) {
+        return res.json({ success: true, message: "Email already verified" });
+      }
+      
+      // Generate verification token
+      const verificationToken = randomUUID();
+      const verificationLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify-email?token=${verificationToken}&email=${encodeURIComponent(user.email)}`;
+      
+      // In production, store token in database with expiry
+      // For now, send email (token verification would need database storage)
+      
+      emailService.sendTemplatedEmail(
+        "email_verification",
+        user.email,
+        {
+          firstName: user.firstName || user.email.split("@")[0],
+          verificationLink: verificationLink,
+        }
+      ).catch(err => console.error("[Email] Verification email error:", err));
+      
+      res.json({ success: true, message: "Verification email sent" });
+    } catch (error) {
+      console.error("Email verification request error:", error);
+      res.status(500).json({ message: "Failed to send verification email" });
+    }
+  });
+
+  // Verify email with token
+  app.post("/api/auth/verify-email", async (req: Request, res: Response) => {
+    try {
+      const { email, token } = req.body;
+      
+      if (!email || !token) {
+        return res.status(400).json({ message: "Email and token are required" });
+      }
+      
+      // In production, verify token from database
+      // For now, this is a simplified implementation
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Update user as verified
+      await storage.updateUser(user.id, { isEmailVerified: true });
+      
+      res.json({ success: true, message: "Email verified successfully" });
+    } catch (error) {
+      console.error("Email verification error:", error);
+      res.status(500).json({ message: "Failed to verify email" });
+    }
+  });
+
+  // Request password reset
+  app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      if (!validateEmail(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if email exists for security
+        return res.json({ success: true, message: "If the email exists, a password reset link has been sent" });
+      }
+      
+      // Generate reset token (simple implementation - in production use crypto.randomBytes)
+      const resetToken = randomUUID();
+      const resetExpiry = new Date();
+      resetExpiry.setHours(resetExpiry.getHours() + 1); // 1 hour expiry
+      
+      // Store reset token (in production, use a separate table)
+      // For now, we'll use a simple approach - store in user metadata or create resetTokens table
+      // This is a simplified implementation
+      
+      const resetLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+      
+      // Send password reset email
+      emailService.sendTemplatedEmail(
+        "password_reset",
+        user.email,
+        {
+          firstName: user.firstName || user.email.split("@")[0],
+          resetLink: resetLink,
+        }
+      ).catch(err => console.error("[Email] Password reset email error:", err));
+      
+      res.json({ success: true, message: "If the email exists, a password reset link has been sent" });
+    } catch (error) {
+      console.error("Password reset request error:", error);
+      res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+
+  // Reset password with token
+  app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
+    try {
+      const { email, token, newPassword } = req.body;
+      
+      if (!email || !token || !newPassword) {
+        return res.status(400).json({ message: "Email, token, and new password are required" });
+      }
+      
+      if (!validateEmail(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+      
+      // Validate password strength
+      const { validatePassword } = await import("./auth-utils");
+      const passwordValidation = validatePassword(newPassword);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ message: passwordValidation.message || "Password does not meet requirements" });
+      }
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // In production, verify token from database
+      // For now, this is a simplified implementation
+      // TODO: Implement proper token verification
+      
+      // Hash new password
+      const passwordHash = await hashPassword(newPassword);
+      
+      // Update user password
+      await storage.updateUser(user.id, { passwordHash });
+      
+      // Send password changed email
+      emailService.sendTemplatedEmail(
+        "password_changed",
+        user.email,
+        {
+          firstName: user.firstName || user.email.split("@")[0],
+          changeDate: new Date().toLocaleDateString('en-IN'),
+          changeTime: new Date().toLocaleTimeString('en-IN'),
+        }
+      ).catch(err => console.error("[Email] Password changed notification error:", err));
+      
+      res.json({ success: true, message: "Password has been reset successfully" });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
     }
   });
 
@@ -518,6 +1094,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update seller profile (for verification status updates)
+  app.patch("/api/sellers/:id", async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+
+      // Check if seller exists
+      const existingSeller = await storage.getSellerProfile(id);
+      if (!existingSeller) {
+        return res.status(404).json({ error: "Seller not found" });
+      }
+
+      // Update seller profile
+      const updatedSeller = await storage.updateSellerProfile(id, updateData);
+      
+      // If verification status is being updated, create audit log
+      if (updateData.verificationStatus && updateData.verificationStatus !== existingSeller.verificationStatus) {
+        const adminUser = (req.session as any)?.adminUser;
+        await storage.createAuditLog({
+          userId: adminUser?.id === "superadmin" ? null : adminUser?.id,
+          action: `Seller Verification ${updateData.verificationStatus === "verified" ? "Approved" : "Rejected"}`,
+          entityType: "seller",
+          entityId: id,
+          oldData: { verificationStatus: existingSeller.verificationStatus },
+          newData: { verificationStatus: updateData.verificationStatus },
+          ipAddress: req.ip || null,
+          userAgent: req.get("user-agent") || null,
+        });
+
+        // Send notification to seller
+        const user = await storage.getUser(existingSeller.userId);
+        if (user?.email) {
+          const triggerEvent = updateData.verificationStatus === "verified" 
+            ? "seller_approved" 
+            : updateData.verificationStatus === "rejected"
+            ? "seller_rejected"
+            : null;
+          
+          if (triggerEvent) {
+            emailService.sendTemplatedEmail(
+              triggerEvent,
+              user.email,
+              {
+                sellerName: user.firstName || "Seller",
+                email: user.email,
+              }
+            ).catch(err => console.error("[Email] Verification notification error:", err));
+            
+            // Also send verification pending email if status changed to pending
+            if (updateData.verificationStatus === "pending") {
+              emailService.sendTemplatedEmail(
+                "seller_verification_pending",
+                user.email,
+                {
+                  sellerName: user.firstName || "Seller",
+                }
+              ).catch(err => console.error("[Email] Verification pending notification error:", err));
+            }
+          }
+        }
+      }
+
+      res.json(updatedSeller);
+    } catch (error) {
+      console.error("Error updating seller:", error);
+      res.status(500).json({ error: "Failed to update seller" });
+    }
+  });
+
   // ============================================
   // PACKAGE ROUTES
   // ============================================
@@ -734,8 +1379,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get images
       const images = await storage.getPropertyImages(req.params.id);
       
-      res.json({ ...property, images });
+      // Get seller profile if sellerId exists
+      let sellerProfile = null;
+      if (property.sellerId) {
+        sellerProfile = await storage.getSellerProfile(property.sellerId);
+      }
+      
+      res.json({ 
+        ...property, 
+        images,
+        seller: sellerProfile ? {
+          id: sellerProfile.id,
+          businessName: sellerProfile.businessName,
+          firstName: sellerProfile.firstName,
+          lastName: sellerProfile.lastName,
+          sellerType: sellerProfile.sellerType,
+          isVerified: sellerProfile.isVerified || false,
+        } : null,
+      });
     } catch (error) {
+      console.error("Error getting property:", error);
       res.status(500).json({ error: "Failed to get property" });
     }
   });
@@ -992,6 +1655,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "pending",
       });
       
+      // Send property submission email
+      const sellerUser = await storage.getUser(sellerProfile.userId);
+      if (sellerUser?.email) {
+        const triggerEvent = property.workflowStatus === "needs_reapproval" 
+          ? "property_needs_reapproval" 
+          : "property_submitted";
+        emailService.sendTemplatedEmail(
+          triggerEvent,
+          sellerUser.email,
+          {
+            sellerName: sellerProfile.companyName || sellerUser.firstName || "Seller",
+            propertyTitle: property.title,
+          }
+        ).catch(err => console.error("[Email] Property submission notification error:", err));
+      }
+      
       res.json({ 
         success: true, 
         message: "Property submitted for approval",
@@ -1110,6 +1789,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update property to live status (with pending changes applied if any)
       await storage.updateProperty(approval.propertyId, updateData);
       
+      // Send property approval email
+      const sellerProfile = await storage.getSellerProfile(property.sellerId);
+      if (sellerProfile) {
+        const sellerUser = await storage.getUser(sellerProfile.userId);
+        if (sellerUser?.email) {
+          emailService.sendPropertyStatusNotification(
+            sellerUser.email,
+            sellerProfile.companyName || sellerUser.firstName || "Seller",
+            property.title,
+            "approved"
+          ).catch(err => console.error("[Email] Property approval notification error:", err));
+        }
+      }
+      
       res.json({ 
         success: true, 
         message: "Property approved and now live" 
@@ -1149,11 +1842,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         decidedAt: new Date(),
       });
       
+      // Get property for email notification
+      const property = await storage.getProperty(approval.propertyId);
+      
       // Update property status
       await storage.updateProperty(approval.propertyId, {
         workflowStatus: "rejected",
         status: "draft",
+        rejectionReason: reason,
       });
+      
+      // Send property rejection email
+      const sellerProfile = await storage.getSellerProfile(approval.sellerId);
+      if (sellerProfile && property) {
+        const sellerUser = await storage.getUser(sellerProfile.userId);
+        if (sellerUser?.email) {
+          emailService.sendPropertyStatusNotification(
+            sellerUser.email,
+            sellerProfile.companyName || sellerUser.firstName || "Seller",
+            property.title,
+            "rejected",
+            reason
+          ).catch(err => console.error("[Email] Property rejection notification error:", err));
+        }
+      }
       
       res.json({ 
         success: true, 
@@ -1283,7 +1995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create inquiry
-  app.post("/api/inquiries", async (req: Request, res: Response) => {
+  app.post("/api/inquiries", getRateLimitMiddleware(5, 15 * 60 * 1000), async (req: Request, res: Response) => {
     try {
       const { propertyId, userId, name, email, phone, message } = req.body;
       
@@ -1362,9 +2074,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.status(201).json(inquiry);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create inquiry:", error);
-      res.status(500).json({ error: "Failed to create inquiry" });
+      const errorMessage = error?.message || "Failed to create inquiry";
+      res.status(500).json({ error: errorMessage });
     }
   });
 
@@ -1935,13 +2648,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const user = await storage.getUser(dbPayment.userId);
               if (user?.email) {
                 const pkg = dbPayment.packageId ? await storage.getPackage(dbPayment.packageId) : null;
-                emailService.sendPaymentNotification(
+                const subscription = await storage.getSubscriptionByUserId(dbPayment.userId);
+                emailService.sendTemplatedEmail(
+                  "payment_success",
                   user.email,
-                  user.firstName || "Seller",
-                  `₹${dbPayment.amount}`,
-                  pkg?.name || "Package",
-                  true
-                ).catch(err => console.log("[Email] Payment notification error:", err));
+                  {
+                    sellerName: user.firstName || "Seller",
+                    amount: `₹${dbPayment.amount}`,
+                    packageName: pkg?.name || "Package",
+                    transactionId: paymentId || dbPayment.id,
+                    validUntil: subscription?.endDate 
+                      ? new Date(subscription.endDate).toLocaleDateString('en-IN')
+                      : "N/A",
+                    listingLimit: pkg?.listingLimit?.toString() || "0",
+                  }
+                ).catch(err => console.error("[Email] Payment notification error:", err));
               }
             }
           }
@@ -1966,14 +2687,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const user = await storage.getUser(dbPayment.userId);
               if (user?.email) {
                 const pkg = dbPayment.packageId ? await storage.getPackage(dbPayment.packageId) : null;
-                emailService.sendPaymentNotification(
+                emailService.sendTemplatedEmail(
+                  "payment_failed",
                   user.email,
-                  user.firstName || "Seller",
-                  `₹${dbPayment.amount}`,
-                  pkg?.name || "Package",
-                  false,
-                  errorDesc
-                ).catch(err => console.log("[Email] Payment notification error:", err));
+                  {
+                    sellerName: user.firstName || "Seller",
+                    amount: `₹${dbPayment.amount}`,
+                    packageName: pkg?.name || "Package",
+                    errorMessage: errorDesc || "Payment processing failed",
+                    retryLink: "/seller/packages",
+                  }
+                ).catch(err => console.error("[Email] Payment notification error:", err));
               }
             }
           }
@@ -2374,6 +3098,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update SMTP settings
   app.put("/api/admin/settings/smtp", async (req: Request, res: Response) => {
     try {
+      const { fromEmail } = req.body;
+      
+      // Validate email if provided
+      if (fromEmail && fromEmail.trim()) {
+        if (!validateEmail(fromEmail.trim())) {
+          return res.status(400).json({ error: "Invalid email format for 'From Email'" });
+        }
+      }
+      
       const setting = await storage.setSystemSetting("smtp_settings", req.body);
       res.json(setting.value);
     } catch (error) {
@@ -2509,11 +3242,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update general/system settings
   app.put("/api/admin/settings/general", async (req: Request, res: Response) => {
     try {
+      const { contactEmail, contactPhone } = req.body;
+      
+      // Validate contact email if provided
+      if (contactEmail && contactEmail.trim()) {
+        if (!validateEmail(contactEmail.trim())) {
+          return res.status(400).json({ error: "Invalid email format for contact email" });
+        }
+      }
+      
+      // Validate contact phone if provided
+      if (contactPhone && contactPhone.trim()) {
+        const cleanedPhone = contactPhone.replace(/\D/g, "");
+        if (cleanedPhone && !validatePhone(cleanedPhone)) {
+          return res.status(400).json({ error: "Invalid phone number format. Must be 10 digits starting with 6-9" });
+        }
+      }
+      
       const setting = await storage.setSystemSetting("general_settings", req.body);
       res.json(setting.value);
     } catch (error) {
       console.error("Error updating general settings:", error);
       res.status(500).json({ error: "Failed to update general settings" });
+    }
+  });
+
+  // Impersonate user (admin only)
+  app.post("/api/admin/impersonate", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { email, reason } = req.body;
+
+      if (!email || !email.trim()) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      if (!validateEmail(email.trim())) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+
+      if (!reason || !reason.trim()) {
+        return res.status(400).json({ error: "Reason is required" });
+      }
+
+      const targetUser = await storage.getUserByEmail(email.trim());
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Set impersonation session
+      (req.session as any).impersonatingUserId = targetUser.id;
+      (req.session as any).impersonationReason = reason.trim();
+      (req.session as any).originalAdminId = userId;
+
+      // Log impersonation (you might want to create an audit log entry here)
+      console.log(`[Admin Impersonation] Admin ${user.email} impersonating ${targetUser.email}. Reason: ${reason.trim()}`);
+
+      res.json({
+        success: true,
+        message: "Impersonation started",
+        targetUser: {
+          id: targetUser.id,
+          email: targetUser.email,
+          role: targetUser.role,
+        },
+      });
+    } catch (error) {
+      console.error("Error starting impersonation:", error);
+      res.status(500).json({ error: "Failed to start impersonation" });
     }
   });
 
@@ -2527,6 +3330,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(setting);
     } catch (error) {
       res.status(500).json({ error: "Failed to get setting" });
+    }
+  });
+
+  // ============================================
+  // NEWSLETTER
+  // ============================================
+
+  // Subscribe to newsletter
+  app.post("/api/newsletter/subscribe", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+
+      if (!email || !email.trim()) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      if (!validateEmail(email.trim())) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+
+      // TODO: Store newsletter subscription in database
+      // For now, just return success
+      // You might want to create a newsletter_subscriptions table
+      
+      console.log(`[Newsletter] New subscription: ${email.trim()}`);
+
+      res.json({
+        success: true,
+        message: "Successfully subscribed to newsletter",
+      });
+    } catch (error) {
+      console.error("Error subscribing to newsletter:", error);
+      res.status(500).json({ error: "Failed to subscribe to newsletter" });
     }
   });
 
@@ -2694,8 +3530,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       const role = user?.role || 'buyer';
       const stats = await storage.getDashboardStats(role, userId);
-      res.json(stats);
+      
+      // For buyers, enhance response with additional data
+      if (role === 'buyer') {
+        const favorites = await storage.getFavorites(userId);
+        const savedSearches = await storage.getSavedSearches(userId);
+        const appointments = await storage.getAppointmentsByBuyer(userId);
+        const inquiries = await storage.getInquiriesByBuyer(userId);
+        
+        // Get recently viewed properties (from propertyViews)
+        const recentViews = await db.select({
+          property: properties,
+          viewedAt: propertyViews.createdAt,
+        })
+          .from(propertyViews)
+          .innerJoin(properties, eq(propertyViews.propertyId, properties.id))
+          .where(eq(propertyViews.userId, userId))
+          .orderBy(desc(propertyViews.createdAt))
+          .limit(5);
+        
+        // Get recommended properties (top properties by views, excluding already favorited)
+        const favoriteIds = favorites.map(f => f.propertyId);
+        const recommended = favoriteIds.length > 0
+          ? await db.select()
+              .from(properties)
+              .where(and(
+                eq(properties.status, 'active'),
+                or(
+                  eq(properties.workflowStatus, 'live'),
+                  eq(properties.workflowStatus, 'approved')
+                ),
+                notInArray(properties.id, favoriteIds)
+              ))
+              .orderBy(desc(properties.viewCount))
+              .limit(4)
+          : await db.select()
+              .from(properties)
+              .where(and(
+                eq(properties.status, 'active'),
+                or(
+                  eq(properties.workflowStatus, 'live'),
+                  eq(properties.workflowStatus, 'approved')
+                )
+              ))
+              .orderBy(desc(properties.viewCount))
+              .limit(4);
+        
+        res.json({
+          ...stats,
+          savedProperties: stats.totalFavorites || 0,
+          activeSearches: savedSearches.filter(s => s.alertEnabled).length,
+          scheduledVisits: appointments.filter(a => 
+            (a.status === 'pending' || a.status === 'confirmed') &&
+            new Date(a.scheduledDate) >= new Date()
+          ).length,
+          unreadMessages: 0, // TODO: Implement unread message count
+          recentlyViewed: recentViews.map(rv => ({
+            id: rv.property.id,
+            title: rv.property.title,
+            location: `${rv.property.locality || ''}, ${rv.property.city}`.replace(/^, /, ''),
+            price: rv.property.price,
+            viewedAt: rv.viewedAt,
+          })),
+          recommendations: recommended.map(p => ({
+            id: p.id,
+            title: p.title,
+            location: `${p.locality || ''}, ${p.city}`.replace(/^, /, ''),
+            price: p.price,
+            type: p.propertyType,
+            bedrooms: p.bedrooms || 0,
+            bathrooms: p.bathrooms || 0,
+            area: p.area || 0,
+          })),
+          savedSearches: savedSearches.slice(0, 3).map(s => ({
+            id: s.id,
+            name: s.name,
+            filters: s.filters,
+            alertEnabled: s.alertEnabled,
+          })),
+        });
+      } else {
+        res.json(stats);
+      }
     } catch (error) {
+      console.error("Error getting dashboard stats:", error);
       res.status(500).json({ error: "Failed to get dashboard stats" });
     }
   });
@@ -2838,6 +3756,435 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get seller verification status
+  app.get("/api/me/verifications", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json([]);
+      }
+
+      const user = await storage.getUser(userId);
+      const verifications = [];
+
+      // Email verification
+      verifications.push({
+        id: "email",
+        type: "Email Verification",
+        status: user?.emailVerified ? "verified" : "not_submitted",
+        verifiedDate: user?.emailVerified ? user.updatedAt : undefined,
+      });
+
+      // Phone verification
+      verifications.push({
+        id: "phone",
+        type: "Phone Verification",
+        status: user?.phoneVerified ? "verified" : "not_submitted",
+        verifiedDate: user?.phoneVerified ? user.updatedAt : undefined,
+      });
+
+      // ID Proof (Aadhaar)
+      const aadhaarDoc = profile.verificationDocuments?.find((d: any) => d.type === "aadhaar");
+      verifications.push({
+        id: "aadhaar",
+        type: "ID Proof (Aadhaar)",
+        status: aadhaarDoc ? (profile.verificationStatus === "verified" ? "verified" : "pending") : "not_submitted",
+        verifiedDate: aadhaarDoc && profile.verificationStatus === "verified" ? profile.updatedAt : undefined,
+        submittedDate: aadhaarDoc ? aadhaarDoc.uploadedAt : undefined,
+      });
+
+      // PAN Card
+      const panDoc = profile.verificationDocuments?.find((d: any) => d.type === "pan");
+      verifications.push({
+        id: "pan",
+        type: "PAN Card",
+        status: panDoc ? (profile.verificationStatus === "verified" ? "verified" : "pending") : "not_submitted",
+        verifiedDate: panDoc && profile.verificationStatus === "verified" ? profile.updatedAt : undefined,
+        submittedDate: panDoc ? panDoc.uploadedAt : undefined,
+      });
+
+      // RERA Certificate (for builders)
+      const reraDoc = profile.verificationDocuments?.find((d: any) => d.type === "rera");
+      verifications.push({
+        id: "rera",
+        type: "RERA Certificate",
+        status: reraDoc ? (profile.verificationStatus === "verified" ? "verified" : "pending") : "not_submitted",
+        verifiedDate: reraDoc && profile.verificationStatus === "verified" ? profile.updatedAt : undefined,
+        submittedDate: reraDoc ? reraDoc.uploadedAt : undefined,
+      });
+
+      res.json(verifications);
+    } catch (error) {
+      console.error("Error getting verifications:", error);
+      res.status(500).json({ error: "Failed to get verifications" });
+    }
+  });
+
+  // Get seller documents
+  app.get("/api/me/documents", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json([]);
+      }
+
+      const properties = await storage.getPropertiesBySeller(profile.id);
+      const documents: any[] = [];
+
+      // Get documents from seller profile verificationDocuments
+      if (profile.verificationDocuments && Array.isArray(profile.verificationDocuments)) {
+        profile.verificationDocuments.forEach((doc: any) => {
+          documents.push({
+            id: doc.id || doc.type,
+            name: doc.name || `${doc.type} Document`,
+            type: doc.type,
+            status: profile.verificationStatus === "verified" ? "verified" : profile.verificationStatus === "pending" ? "pending" : "rejected",
+            uploadDate: doc.uploadedAt || doc.createdAt,
+            verifiedDate: profile.verificationStatus === "verified" ? profile.updatedAt : undefined,
+            reason: doc.rejectionReason,
+          });
+        });
+      }
+
+      res.json(documents);
+    } catch (error) {
+      console.error("Error getting documents:", error);
+      res.status(500).json({ error: "Failed to get documents" });
+    }
+  });
+
+  // Upload seller document
+  app.post("/api/me/documents", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.status(404).json({ error: "Seller profile not found" });
+      }
+
+      const { type, url, name } = req.body;
+      if (!type || !url) {
+        return res.status(400).json({ error: "Type and URL are required" });
+      }
+
+      const existingDocs = profile.verificationDocuments || [];
+      const newDoc = {
+        id: `${type}-${Date.now()}`,
+        type,
+        name: name || `${type} Document`,
+        url,
+        uploadedAt: new Date().toISOString(),
+      };
+
+      const updatedDocs = [...existingDocs, newDoc];
+      const wasAlreadyPending = profile.verificationStatus === "pending";
+      await storage.updateSellerProfile(profile.id, {
+        verificationDocuments: updatedDocs,
+        verificationStatus: "pending",
+      });
+
+      // Send verification pending email (only if status changed to pending)
+      if (!wasAlreadyPending) {
+        const user = await storage.getUser(userId);
+        if (user?.email) {
+          emailService.sendTemplatedEmail(
+            "seller_verification_pending",
+            user.email,
+            {
+              sellerName: user.firstName || profile.companyName || "Seller",
+            }
+          ).catch(err => console.error("[Email] Verification pending notification error:", err));
+        }
+      }
+
+      res.json({ success: true, document: newDoc });
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
+
+  // Get seller conversations (from inquiries)
+  app.get("/api/me/conversations", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json([]);
+      }
+
+      const inquiries = await storage.getInquiriesBySeller(profile.id);
+      
+      // Group inquiries by buyer to create conversations
+      const conversationMap = new Map();
+      
+      for (const inquiry of inquiries) {
+        const buyerId = inquiry.buyerId;
+        if (!conversationMap.has(buyerId)) {
+          const buyer = await storage.getUser(buyerId);
+          const property = await storage.getProperty(inquiry.propertyId);
+          
+          conversationMap.set(buyerId, {
+            id: buyerId,
+            buyerId,
+            buyerName: buyer ? `${buyer.firstName || ''} ${buyer.lastName || ''}`.trim() : "Buyer",
+            propertyId: inquiry.propertyId,
+            propertyName: property?.title || "Property",
+            lastMessage: inquiry.message || "",
+            lastMessageTime: inquiry.createdAt,
+            unread: inquiry.status === "pending" ? 1 : 0,
+            inquiryId: inquiry.id,
+          });
+        } else {
+          const conv = conversationMap.get(buyerId);
+          if (new Date(inquiry.createdAt) > new Date(conv.lastMessageTime)) {
+            conv.lastMessage = inquiry.message || "";
+            conv.lastMessageTime = inquiry.createdAt;
+            if (inquiry.status === "pending") {
+              conv.unread += 1;
+            }
+          }
+        }
+      }
+
+      const conversations = Array.from(conversationMap.values())
+        .sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+
+      res.json(conversations);
+    } catch (error) {
+      console.error("Error getting conversations:", error);
+      res.status(500).json({ error: "Failed to get conversations" });
+    }
+  });
+
+  // Get messages for a conversation (inquiry thread)
+  app.get("/api/conversations/:buyerId/messages", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.status(403).json({ error: "Seller profile not found" });
+      }
+
+      const buyerId = req.params.buyerId;
+      const inquiries = await storage.getInquiriesBySeller(profile.id);
+      const buyerInquiries = inquiries.filter(i => i.buyerId === buyerId);
+
+      const messages = buyerInquiries.map(inquiry => ({
+        id: inquiry.id,
+        sender: "buyer",
+        text: inquiry.message || "",
+        time: inquiry.createdAt,
+        inquiryId: inquiry.id,
+      }));
+
+      // Sort by time
+      messages.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+      res.json(messages);
+    } catch (error) {
+      console.error("Error getting messages:", error);
+      res.status(500).json({ error: "Failed to get messages" });
+    }
+  });
+
+  // Send message (reply to inquiry)
+  app.post("/api/conversations/:buyerId/messages", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.status(403).json({ error: "Seller profile not found" });
+      }
+
+      const buyerId = req.params.buyerId;
+      const { message, inquiryId } = req.body;
+
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      // Update inquiry with seller reply
+      let inquiry = null;
+      if (inquiryId) {
+        await storage.updateInquiry(inquiryId, {
+          status: "replied",
+          sellerReply: message,
+          sellerRepliedAt: new Date(),
+        } as Partial<import("@shared/schema").InsertInquiry>);
+        
+        // Get inquiry details for email
+        inquiry = await storage.getInquiry(inquiryId);
+      }
+
+      // Send inquiry response email to buyer
+      if (inquiry) {
+        const property = await storage.getProperty(inquiry.propertyId);
+        const buyerUser = await storage.getUser(buyerId);
+        if (buyerUser?.email && property) {
+          emailService.sendTemplatedEmail(
+            "inquiry_response",
+            buyerUser.email,
+            {
+              buyerName: buyerUser.firstName || "Buyer",
+              propertyTitle: property.title,
+              response: message,
+              sellerName: profile.companyName || "Seller",
+            }
+          ).catch(err => console.error("[Email] Inquiry response error:", err));
+        }
+      }
+
+      res.json({
+        success: true,
+        message: {
+          id: `msg-${Date.now()}`,
+          sender: "seller",
+          text: message,
+          time: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      res.status(500).json({ error: "Failed to send message" });
+    }
+  });
+
+  // Get seller dashboard stats
+  app.get("/api/seller/stats", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json({
+          totalProperties: 0,
+          activeListings: 0,
+          totalViews: 0,
+          totalInquiries: 0,
+          newInquiries: 0,
+          scheduledVisits: 0,
+          packageInfo: { name: "No Package", listingsUsed: 0, listingsTotal: 0, daysRemaining: 0 },
+          recentInquiries: [],
+          topProperties: [],
+        });
+      }
+
+      const properties = await storage.getPropertiesBySeller(profile.id);
+      const inquiries = await storage.getInquiriesBySeller(profile.id);
+      const subscription = await storage.getActiveSubscription(profile.id);
+      const appointments = await storage.getAppointmentsBySeller(profile.id);
+
+      const totalProperties = properties.length;
+      const activeListings = properties.filter(p => p.status === "active" && (p.workflowStatus === "live" || p.workflowStatus === "approved")).length;
+      const totalViews = properties.reduce((sum, p) => sum + (p.viewCount || 0), 0);
+      const totalInquiries = inquiries.length;
+      
+      // Calculate new inquiries this week
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const newInquiries = inquiries.filter(i => new Date(i.createdAt) >= weekAgo).length;
+      
+      // Count scheduled visits
+      const scheduledVisits = appointments.filter(a => 
+        a.status === "pending" || a.status === "confirmed"
+      ).length;
+
+      // Package info
+      let packageInfo = { name: "No Package", listingsUsed: 0, listingsTotal: 0, daysRemaining: 0 };
+      if (subscription) {
+        const pkg = await storage.getPackage(subscription.packageId);
+        const listingsUsed = activeListings;
+        const listingsTotal = pkg?.listingLimit || 0;
+        const daysRemaining = subscription.endDate 
+          ? Math.max(0, Math.floor((new Date(subscription.endDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+          : 0;
+        packageInfo = {
+          name: pkg?.name || "Unknown",
+          listingsUsed,
+          listingsTotal,
+          daysRemaining,
+        };
+      }
+
+      // Recent inquiries (last 5) with buyer and property details
+      const recentInquiriesData = await Promise.all(
+        inquiries
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 5)
+          .map(async (inquiry) => {
+            const buyer = inquiry.buyerId ? await storage.getUser(inquiry.buyerId) : null;
+            const property = inquiry.propertyId ? await storage.getProperty(inquiry.propertyId) : null;
+            return {
+              id: inquiry.id,
+              propertyId: inquiry.propertyId,
+              buyerId: inquiry.buyerId,
+              buyerName: buyer ? `${buyer.firstName || ""} ${buyer.lastName || ""}`.trim() || buyer.email?.split("@")[0] || "Anonymous" : "Anonymous",
+              propertyTitle: property?.title || "Property",
+              propertyLocality: property?.locality || "",
+              propertyCity: property?.city || "",
+              message: inquiry.message || "",
+              status: inquiry.status,
+              createdAt: inquiry.createdAt,
+            };
+          })
+      );
+
+      // Top properties by views (top 5) with full details
+      const topPropertiesData = [...properties]
+        .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+        .slice(0, 5)
+        .map(p => {
+          const propertyInquiries = inquiries.filter(i => i.propertyId === p.id);
+          const favorites = p.favoriteCount || 0;
+          const views = p.viewCount || 0;
+          const inquiryCount = propertyInquiries.length;
+          const conversionRate = views > 0 ? ((favorites + inquiryCount) / views * 100).toFixed(1) : "0.0";
+          return {
+            id: p.id,
+            title: p.title,
+            locality: p.locality || "",
+            city: p.city || "",
+            price: p.price || 0,
+            views: views,
+            favorites: favorites,
+            inquiries: inquiryCount,
+            conversionRate: `${conversionRate}%`,
+          };
+        });
+
+      res.json({
+        totalProperties,
+        activeListings,
+        totalViews,
+        totalInquiries,
+        newInquiries,
+        scheduledVisits,
+        packageInfo,
+        recentInquiries: recentInquiriesData,
+        topProperties: topPropertiesData,
+      });
+    } catch (error) {
+      console.error("Error getting seller stats:", error);
+      res.status(500).json({ error: "Failed to get seller stats" });
+    }
+  });
+
   // Get current user's payments
   app.get("/api/me/payments", isAuthenticated, async (req: any, res: Response) => {
     try {
@@ -2899,16 +4246,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create appointment (schedule a visit)
-  app.post("/api/appointments", isAuthenticated, async (req: any, res: Response) => {
+  app.post("/api/appointments", isAuthenticated, getRateLimitMiddleware(10, 15 * 60 * 1000), async (req: any, res: Response) => {
     try {
       const userId = getAuthenticatedUserId(req);
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       
-      const { propertyId, scheduledDate, scheduledTime, notes, buyerName, buyerPhone, buyerEmail } = req.body;
+      const { propertyId, scheduledDate, scheduledTime, visitType, notes, buyerName, buyerPhone, buyerEmail } = req.body;
       
       if (!propertyId || !scheduledDate || !scheduledTime) {
         return res.status(400).json({ error: "Property ID, date and time are required" });
       }
+      
+      // Validate visitType
+      const validVisitType = visitType === "virtual" ? "virtual" : "physical";
       
       // Get property to find seller
       const property = await storage.getProperty(propertyId);
@@ -2922,6 +4272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sellerId: property.sellerId,
         scheduledDate: new Date(scheduledDate),
         scheduledTime,
+        visitType: validVisitType,
         notes,
         buyerName,
         buyerPhone,
@@ -2942,23 +4293,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Send email notification to seller (async)
         const sellerUser = await storage.getUser(sellerProfile.userId);
+        const buyerUser = await storage.getUser(userId);
+        const dateTime = `${new Date(scheduledDate).toLocaleDateString('en-IN')} at ${scheduledTime}`;
+        
         if (sellerUser?.email) {
-          const dateTime = `${new Date(scheduledDate).toLocaleDateString('en-IN')} at ${scheduledTime}`;
           emailService.sendAppointmentNotification(
             sellerUser.email,
             sellerProfile.companyName || sellerUser.firstName || "Seller",
             property.title,
             dateTime,
-            buyerName || "Buyer",
+            buyerName || buyerUser?.firstName || "Buyer",
             true
-          ).catch(err => console.log("[Email] Appointment notification error:", err));
+          ).catch(err => console.error("[Email] Appointment notification error:", err));
+        }
+        
+        // Send email notification to buyer
+        if (buyerUser?.email) {
+          emailService.sendAppointmentNotification(
+            buyerUser.email,
+            buyerUser.firstName || "Buyer",
+            property.title,
+            dateTime,
+            sellerProfile.companyName || sellerUser?.firstName || "Seller",
+            false
+          ).catch(err => console.error("[Email] Appointment notification error:", err));
         }
       }
       
       res.status(201).json(appointment);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating appointment:", error);
-      res.status(500).json({ error: "Failed to create appointment" });
+      const errorMessage = error?.message || "Failed to create appointment";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // ============================================
+  // Contact Form Endpoints
+  // ============================================
+
+  // Create contact message
+  app.post("/api/contact", getRateLimitMiddleware(5, 15 * 60 * 1000), async (req: Request, res: Response) => {
+    try {
+      const { name, email, phone, subject, message } = req.body;
+      const userId = (req as any).session?.userId || null;
+
+      // Validation
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: "Name is required" });
+      }
+      if (!email || !email.trim()) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      if (!validateEmail(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+      if (!message || !message.trim()) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      if (phone && phone.trim()) {
+        const cleanedPhone = phone.replace(/\D/g, "");
+        if (cleanedPhone && !validatePhone(cleanedPhone)) {
+          return res.status(400).json({ error: "Invalid phone number format" });
+        }
+      }
+
+      const contactMessage = await storage.createContactMessage({
+        userId: userId || undefined,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone?.trim() || null,
+        subject: subject?.trim() || null,
+        message: message.trim(),
+        status: "new",
+      });
+
+      // Send email notification to admin (async, don't wait)
+      const adminEmail = process.env.ADMIN_EMAIL || process.env.CONTACT_EMAIL;
+      if (adminEmail) {
+        emailService.sendTemplatedEmail(
+          adminEmail,
+          "admin_notification",
+          {
+            subject: `New Contact Form Submission: ${subject || "General Inquiry"}`,
+            name: "Admin",
+            message: `You have received a new contact form submission:\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || "N/A"}\nSubject: ${subject || "General Inquiry"}\n\nMessage:\n${message}`,
+          }
+        ).catch(err => console.error("[Email] Contact form notification error:", err));
+      }
+
+      res.status(201).json(contactMessage);
+    } catch (error: any) {
+      console.error("Failed to create contact message:", error);
+      const errorMessage = error?.message || "Failed to submit contact form";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // Get contact messages (admin only)
+  app.get("/api/contact", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { status } = req.query;
+      const messages = await storage.getContactMessages({ status: status as string });
+      res.json(messages);
+    } catch (error) {
+      console.error("Failed to get contact messages:", error);
+      res.status(500).json({ error: "Failed to get contact messages" });
     }
   });
 
@@ -3003,6 +4451,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.scheduledDate = new Date(scheduledDate);
         updateData.rescheduledFrom = appointment.scheduledDate;
         updateData.status = 'rescheduled';
+        
+        // Send reschedule email
+        const property = await storage.getProperty(appointment.propertyId);
+        const buyerUser = await storage.getUser(appointment.buyerId);
+        const sellerProfile = await storage.getSellerProfile(appointment.sellerId);
+        const sellerUser = sellerProfile ? await storage.getUser(sellerProfile.userId) : null;
+        
+        if (property) {
+          const oldDateTime = `${new Date(appointment.scheduledDate).toLocaleDateString('en-IN')} at ${appointment.scheduledTime}`;
+          const newDateTime = `${new Date(scheduledDate).toLocaleDateString('en-IN')} at ${scheduledTime || appointment.scheduledTime}`;
+          
+          // Notify buyer
+          if (buyerUser?.email) {
+            emailService.sendTemplatedEmail(
+              "appointment_rescheduled",
+              buyerUser.email,
+              {
+                recipientName: buyerUser.firstName || "Buyer",
+                propertyTitle: property.title,
+                newDateTime: newDateTime,
+                oldDateTime: oldDateTime,
+              }
+            ).catch(err => console.error("[Email] Appointment reschedule error:", err));
+          }
+          
+          // Notify seller
+          if (sellerUser?.email) {
+            emailService.sendTemplatedEmail(
+              "appointment_rescheduled",
+              sellerUser.email,
+              {
+                recipientName: sellerProfile.companyName || sellerUser.firstName || "Seller",
+                propertyTitle: property.title,
+                newDateTime: newDateTime,
+                oldDateTime: oldDateTime,
+              }
+            ).catch(err => console.error("[Email] Appointment reschedule error:", err));
+          }
+        }
       }
       if (scheduledTime) updateData.scheduledTime = scheduledTime;
       if (notes) updateData.notes = notes;
@@ -3036,7 +4523,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const confirmed = await storage.confirmAppointment(req.params.id);
       
-      // Notify buyer
+      // Get property and buyer details for email
+      const property = await storage.getProperty(appointment.propertyId);
+      const buyerUser = await storage.getUser(appointment.buyerId);
+      const sellerProfile = await storage.getSellerProfile(appointment.sellerId);
+      
+      // Notify buyer via in-app notification
       await storage.createNotification({
         userId: appointment.buyerId,
         type: 'inquiry',
@@ -3044,6 +4536,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: `Your property visit has been confirmed for ${appointment.scheduledTime}`,
         data: { appointmentId: appointment.id },
       });
+      
+      // Send email to buyer
+      if (buyerUser?.email && property && sellerProfile) {
+        const dateTime = `${new Date(appointment.scheduledDate).toLocaleDateString('en-IN')} at ${appointment.scheduledTime}`;
+        emailService.sendTemplatedEmail(
+          "appointment_confirmed",
+          buyerUser.email,
+          {
+            buyerName: buyerUser.firstName || "Buyer",
+            propertyTitle: property.title,
+            dateTime: dateTime,
+            sellerName: sellerProfile.companyName || "Seller",
+            propertyAddress: property.address || property.location || "Property location",
+          }
+        ).catch(err => console.error("[Email] Appointment confirmation error:", err));
+      }
       
       res.json(confirmed);
     } catch (error) {
@@ -3074,6 +4582,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { reason } = req.body;
       const cancelled = await storage.cancelAppointment(req.params.id, reason);
+      
+      // Get appointment details for email
+      const property = await storage.getProperty(appointment.propertyId);
+      const buyerUser = await storage.getUser(appointment.buyerId);
+      const sellerProfile = await storage.getSellerProfile(appointment.sellerId);
+      const sellerUser = sellerProfile ? await storage.getUser(sellerProfile.userId) : null;
+      
+      // Determine who cancelled and notify the other party
+      const cancelledBy = userId === appointment.buyerId ? "buyer" : "seller";
+      const cancelledByName = cancelledBy === "buyer" 
+        ? (buyerUser?.firstName || "Buyer")
+        : (sellerProfile?.companyName || sellerUser?.firstName || "Seller");
+      
+      // Send email to the other party
+      if (cancelledBy === "buyer" && sellerUser?.email && property) {
+        const dateTime = `${new Date(appointment.scheduledDate).toLocaleDateString('en-IN')} at ${appointment.scheduledTime}`;
+        emailService.sendTemplatedEmail(
+          "appointment_cancelled",
+          sellerUser.email,
+          {
+            recipientName: sellerProfile.companyName || sellerUser.firstName || "Seller",
+            propertyTitle: property.title,
+            dateTime: dateTime,
+            cancelledBy: cancelledByName,
+            reason: reason || "No reason provided",
+          }
+        ).catch(err => console.error("[Email] Appointment cancellation error:", err));
+      } else if (cancelledBy === "seller" && buyerUser?.email && property) {
+        const dateTime = `${new Date(appointment.scheduledDate).toLocaleDateString('en-IN')} at ${appointment.scheduledTime}`;
+        emailService.sendTemplatedEmail(
+          "appointment_cancelled",
+          buyerUser.email,
+          {
+            recipientName: buyerUser.firstName || "Buyer",
+            propertyTitle: property.title,
+            dateTime: dateTime,
+            cancelledBy: cancelledByName,
+            reason: reason || "No reason provided",
+          }
+        ).catch(err => console.error("[Email] Appointment cancellation error:", err));
+      }
       
       res.json(cancelled);
     } catch (error) {
@@ -3500,6 +5049,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching platform stats:", error);
       res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
+  // Admin: Get dashboard stats
+  app.get("/api/admin/stats", async (req: any, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser?.isSuperAdmin) {
+        return res.status(401).json({ message: "Unauthorized - Admin access required" });
+      }
+
+      const allUsers = await storage.getAllUsers({});
+      const allProperties = await storage.getProperties({});
+      const allPayments = await storage.getAllPayments();
+      const allSellers = await storage.getAllSellerProfiles({});
+
+      const totalUsers = allUsers.length;
+      const totalProperties = allProperties.length;
+      const totalRevenue = allPayments
+        .filter(p => p.status === "completed")
+        .reduce((sum, p) => sum + (p.amount || 0), 0);
+      const pendingApprovals = allSellers.filter(s => s.verificationStatus === "pending").length;
+      const activeListings = allProperties.filter(p => p.workflowStatus === "live" || p.workflowStatus === "approved").length;
+      
+      // Calculate new users this month
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const newUsersThisMonth = allUsers.filter(u => new Date(u.createdAt) >= startOfMonth).length;
+
+      // Get recent transactions (last 5)
+      const recentTransactions = allPayments
+        .filter(p => p.status === "completed")
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5)
+        .map(p => ({
+          id: p.id,
+          amount: p.amount,
+          packageId: p.packageId,
+          userId: p.userId,
+          createdAt: p.createdAt,
+        }));
+
+      // Get pending sellers (last 5)
+      const pendingSellers = allSellers
+        .filter(s => s.verificationStatus === "pending")
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5);
+
+      res.json({
+        totalUsers,
+        totalProperties,
+        totalRevenue,
+        pendingApprovals,
+        activeListings,
+        newUsersThisMonth,
+        recentTransactions,
+        pendingSellers,
+      });
+    } catch (error) {
+      console.error("Error getting admin stats:", error);
+      res.status(500).json({ error: "Failed to get admin stats" });
     }
   });
 

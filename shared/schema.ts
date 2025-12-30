@@ -34,8 +34,10 @@ export const emailTriggerEnum = pgEnum("email_trigger", [
   "welcome_buyer", "welcome_seller", "email_verification", "password_reset", "password_changed",
   "inquiry_received", "inquiry_response", "new_message", 
   "property_submitted", "property_approved", "property_rejected", "property_needs_reapproval", "property_live",
+  "property_expired", "property_renewed", "property_boosted", "property_featured",
   "seller_approved", "seller_rejected", "seller_verification_pending",
-  "payment_success", "payment_failed", "subscription_activated", "subscription_expiring", "subscription_expired",
+  "payment_success", "payment_failed", "subscription_activated", "subscription_expiring", "subscription_expired", "subscription_renewed",
+  "appointment_requested", "appointment_confirmed", "appointment_cancelled", "appointment_rescheduled",
   "account_deactivated", "account_reactivated", "admin_notification"
 ]);
 
@@ -268,6 +270,7 @@ export const appointments = pgTable("appointments", {
   sellerId: varchar("seller_id").notNull().references(() => sellerProfiles.id),
   scheduledDate: timestamp("scheduled_date").notNull(),
   scheduledTime: text("scheduled_time").notNull(),
+  visitType: text("visit_type").default("physical"), // physical or virtual
   status: appointmentStatusEnum("status").notNull().default("pending"),
   buyerName: text("buyer_name"),
   buyerPhone: text("buyer_phone"),
@@ -281,6 +284,19 @@ export const appointments = pgTable("appointments", {
   cancelledAt: timestamp("cancelled_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const contactMessages = pgTable("contact_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  subject: text("subject"),
+  message: text("message").notNull(),
+  status: text("status").notNull().default("new"), // new, read, replied, archived
+  repliedAt: timestamp("replied_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const payments = pgTable("payments", {
@@ -800,6 +816,12 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   updatedAt: true,
 });
 
+export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({
+  id: true,
+  createdAt: true,
+  repliedAt: true,
+});
+
 export const insertReviewSchema = createInsertSchema(reviews).omit({
   id: true,
   createdAt: true,
@@ -844,6 +866,9 @@ export type Payment = typeof payments.$inferSelect;
 
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Review = typeof reviews.$inferSelect;
+
+export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
+export type ContactMessage = typeof contactMessages.$inferSelect;
 
 export type AdminApproval = typeof adminApprovals.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;

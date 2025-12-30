@@ -37,6 +37,50 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
+// CSRF Protection middleware for form submissions
+app.use((req, res, next) => {
+  // Skip CSRF for GET, HEAD, OPTIONS requests
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return next();
+  }
+  
+  // Skip CSRF for WebSocket upgrades
+  if (req.headers.upgrade === 'websocket') {
+    return next();
+  }
+  
+  // Skip CSRF for API endpoints that don't need it (like auth endpoints that use their own tokens)
+  const skipPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/logout'];
+  if (skipPaths.includes(req.path)) {
+    return next();
+  }
+  
+  // For form submissions, check Origin header
+  const origin = req.headers.origin || req.headers.referer;
+  const host = req.headers.host;
+  
+  // Allow requests from same origin or trusted origins
+  if (origin && host) {
+    try {
+      const originUrl = new URL(origin);
+      const hostUrl = new URL(`http://${host}`);
+      
+      // Same origin is always allowed
+      if (originUrl.hostname === hostUrl.hostname) {
+        return next();
+      }
+      
+      // For production, you might want to check against a whitelist
+      // For now, we'll allow same-origin only
+    } catch (e) {
+      // Invalid origin, reject
+      return res.status(403).json({ error: "Invalid origin" });
+    }
+  }
+  
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

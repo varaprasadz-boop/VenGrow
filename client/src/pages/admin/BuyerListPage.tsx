@@ -22,10 +22,13 @@ import {
   AlertCircle,
   Heart,
   MessageSquare,
+  Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import type { User } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { exportToCSV } from "@/lib/utils";
 
 interface BuyerWithStats extends User {
   favoritesCount: number;
@@ -34,6 +37,7 @@ interface BuyerWithStats extends User {
 
 export default function BuyerListPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
 
   const { data: buyers = [], isLoading, isError, refetch } = useQuery<BuyerWithStats[]>({
     queryKey: ["/api/admin/buyers"],
@@ -44,6 +48,34 @@ export default function BuyerListPage() {
     buyer.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     buyer.lastName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleExport = () => {
+    const exportData = filteredBuyers.map(buyer => ({
+      name: `${buyer.firstName || ''} ${buyer.lastName || ''}`.trim() || 'N/A',
+      email: buyer.email || 'N/A',
+      emailVerified: buyer.isEmailVerified ? 'Yes' : 'No',
+      favorites: buyer.favoritesCount || 0,
+      inquiries: buyer.inquiriesCount || 0,
+      status: buyer.isActive ? 'Active' : 'Inactive',
+      joined: buyer.createdAt ? format(new Date(buyer.createdAt), "yyyy-MM-dd") : 'N/A',
+    }));
+    exportToCSV(exportData, `buyers_export_${format(new Date(), 'yyyy-MM-dd')}`, [
+      { key: 'name', header: 'Name' },
+      { key: 'email', header: 'Email' },
+      { key: 'emailVerified', header: 'Email Verified' },
+      { key: 'favorites', header: 'Favorites' },
+      { key: 'inquiries', header: 'Inquiries' },
+      { key: 'status', header: 'Status' },
+      { key: 'joined', header: 'Joined' },
+    ]);
+  };
+
+  const handleView = (buyer: BuyerWithStats) => {
+    toast({
+      title: "Buyer Details",
+      description: `Viewing ${buyer.firstName || ''} ${buyer.lastName || ''} (${buyer.email})`,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -81,6 +113,10 @@ export default function BuyerListPage() {
               <h1 className="font-serif font-bold text-3xl">Buyer Accounts</h1>
               <p className="text-muted-foreground">View all registered buyers</p>
             </div>
+            <Button onClick={handleExport} data-testid="button-export-buyers">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
           </div>
 
           <Card className="p-6">
@@ -158,7 +194,7 @@ export default function BuyerListPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" data-testid={`button-view-${buyer.id}`}>
+                          <Button variant="ghost" size="sm" onClick={() => handleView(buyer)} data-testid={`button-view-${buyer.id}`}>
                             <Eye className="h-4 w-4" />
                           </Button>
                         </TableCell>

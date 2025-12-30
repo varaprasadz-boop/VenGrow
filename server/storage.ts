@@ -20,6 +20,7 @@ import {
   type VerifiedBuilder, type InsertVerifiedBuilder,
   type Project, type InsertProject,
   type Appointment, type InsertAppointment,
+  type ContactMessage, type InsertContactMessage,
   type Testimonial, type InsertTestimonial,
   type TeamMember, type InsertTeamMember,
   type CompanyValue, type InsertCompanyValue,
@@ -27,6 +28,7 @@ import {
   users, sellerProfiles, packages, properties, propertyImages, propertyDocuments,
   inquiries, favorites, savedSearches, propertyViews, appointments,
   chatThreads, chatMessages, notifications, payments, reviews,
+  contactMessages,
   adminApprovals, auditLogs, systemSettings, sellerSubscriptions, propertyAlerts,
   propertyApprovalRequests, faqItems, staticPages, banners, platformSettings,
   popularCities, navigationLinks, propertyTypesManaged, siteSettings, emailTemplates,
@@ -122,6 +124,11 @@ export interface IStorage {
   cancelAppointment(id: string, reason?: string): Promise<Appointment | undefined>;
   confirmAppointment(id: string): Promise<Appointment | undefined>;
   completeAppointment(id: string): Promise<Appointment | undefined>;
+  
+  createContactMessage(message: InsertContactMessage): Promise<ContactMessage>;
+  getContactMessages(filters?: { userId?: string; status?: string }): Promise<ContactMessage[]>;
+  getContactMessage(id: string): Promise<ContactMessage | undefined>;
+  updateContactMessage(id: string, data: Partial<InsertContactMessage>): Promise<ContactMessage | undefined>;
   
   getPayments(userId: string): Promise<Payment[]>;
   getAllPayments(): Promise<Payment[]>;
@@ -1640,6 +1647,36 @@ export class DatabaseStorage implements IStorage {
 
   async getPropertiesByProject(projectId: string): Promise<Property[]> {
     return db.select().from(properties).where(eq(properties.projectId, projectId)).orderBy(desc(properties.createdAt));
+  }
+
+  async createContactMessage(message: InsertContactMessage): Promise<ContactMessage> {
+    const [created] = await db.insert(contactMessages).values(message).returning();
+    return created;
+  }
+
+  async getContactMessages(filters?: { userId?: string; status?: string }): Promise<ContactMessage[]> {
+    let query = db.select().from(contactMessages);
+    const conditions = [];
+    if (filters?.userId) {
+      conditions.push(eq(contactMessages.userId, filters.userId));
+    }
+    if (filters?.status) {
+      conditions.push(eq(contactMessages.status, filters.status));
+    }
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    return query.orderBy(desc(contactMessages.createdAt));
+  }
+
+  async getContactMessage(id: string): Promise<ContactMessage | undefined> {
+    const [message] = await db.select().from(contactMessages).where(eq(contactMessages.id, id));
+    return message;
+  }
+
+  async updateContactMessage(id: string, data: Partial<InsertContactMessage>): Promise<ContactMessage | undefined> {
+    const [updated] = await db.update(contactMessages).set(data).where(eq(contactMessages.id, id)).returning();
+    return updated;
   }
 }
 

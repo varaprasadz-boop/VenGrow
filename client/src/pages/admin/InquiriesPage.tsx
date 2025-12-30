@@ -26,10 +26,13 @@ import {
   RefreshCw,
   AlertCircle,
   Building,
+  Download,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { useState } from "react";
 import type { Inquiry } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { exportToCSV } from "@/lib/utils";
 
 interface InquiryWithDetails extends Inquiry {
   property?: {
@@ -46,6 +49,7 @@ interface InquiryWithDetails extends Inquiry {
 export default function InquiriesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const { data: inquiries = [], isLoading, isError, refetch } = useQuery<InquiryWithDetails[]>({
     queryKey: ["/api/admin/inquiries"],
@@ -62,6 +66,34 @@ export default function InquiriesPage() {
   const formInquiries = filteredInquiries.filter(i => i.sourceType === "form");
   const chatInquiries = filteredInquiries.filter(i => i.sourceType === "chat");
   const callInquiries = filteredInquiries.filter(i => i.sourceType === "call");
+
+  const handleExport = () => {
+    const exportData = filteredInquiries.map(inquiry => ({
+      property: inquiry.property?.title || 'N/A',
+      city: inquiry.property?.city || 'N/A',
+      buyer: inquiry.buyer?.email || 'N/A',
+      sourceType: inquiry.sourceType || 'N/A',
+      status: inquiry.status || 'pending',
+      message: inquiry.message?.slice(0, 100) || '',
+      createdAt: inquiry.createdAt ? format(new Date(inquiry.createdAt), "yyyy-MM-dd HH:mm") : 'N/A',
+    }));
+    exportToCSV(exportData, `inquiries_export_${format(new Date(), 'yyyy-MM-dd')}`, [
+      { key: 'property', header: 'Property' },
+      { key: 'city', header: 'City' },
+      { key: 'buyer', header: 'Buyer Email' },
+      { key: 'sourceType', header: 'Source' },
+      { key: 'status', header: 'Status' },
+      { key: 'message', header: 'Message (truncated)' },
+      { key: 'createdAt', header: 'Date' },
+    ]);
+  };
+
+  const handleView = (inquiry: InquiryWithDetails) => {
+    toast({
+      title: "Inquiry Details",
+      description: `Viewing inquiry for ${inquiry.property?.title || 'property'}`,
+    });
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -192,7 +224,7 @@ export default function InquiriesPage() {
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" data-testid={`button-view-${inquiry.id}`}>
+                  <Button variant="ghost" size="sm" onClick={() => handleView(inquiry)} data-testid={`button-view-${inquiry.id}`}>
                     <Eye className="h-4 w-4" />
                   </Button>
                 </TableCell>
@@ -207,13 +239,19 @@ export default function InquiriesPage() {
   return (
       <main className="flex-1 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <h1 className="font-serif font-bold text-3xl mb-2">
-              Inquiry Management
-            </h1>
-            <p className="text-muted-foreground">
-              View and manage all property inquiries across the platform
-            </p>
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="font-serif font-bold text-3xl mb-2">
+                Inquiry Management
+              </h1>
+              <p className="text-muted-foreground">
+                View and manage all property inquiries across the platform
+              </p>
+            </div>
+            <Button onClick={handleExport} data-testid="button-export-inquiries">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

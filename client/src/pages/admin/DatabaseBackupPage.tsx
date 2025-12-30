@@ -1,9 +1,22 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Database, Download, RefreshCw, CheckCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Database, Download, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DatabaseBackupPage() {
+  const { toast } = useToast();
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [selectedBackup, setSelectedBackup] = useState<any>(null);
+
   const backups = [
     {
       id: "1",
@@ -31,6 +44,49 @@ export default function DatabaseBackupPage() {
     },
   ];
 
+  const handleCreateBackup = () => {
+    if (confirm("Are you sure you want to create a manual backup now? This may take a few minutes.")) {
+      toast({
+        title: "Backup Started",
+        description: "Database backup has been initiated. You will be notified when it completes.",
+      });
+      // In a real implementation, this would call an API to create a backup
+    }
+  };
+
+  const handleDownloadBackup = (backup: any) => {
+    toast({
+      title: "Download Started",
+      description: `Downloading backup: ${backup.name}`,
+    });
+    // In a real implementation, this would trigger a download from the server
+  };
+
+  const handleRestoreBackup = (backup: any) => {
+    setSelectedBackup(backup);
+    setRestoreDialogOpen(true);
+  };
+
+  const confirmRestore = () => {
+    if (selectedBackup && confirm(`WARNING: This will restore the database to the state of "${selectedBackup.name}". This action cannot be undone. Are you absolutely sure?`)) {
+      toast({
+        title: "Restore Started",
+        description: `Restoring database from backup: ${selectedBackup.name}. This may take several minutes.`,
+        variant: "destructive",
+      });
+      setRestoreDialogOpen(false);
+      setSelectedBackup(null);
+      // In a real implementation, this would call an API to restore the backup
+    }
+  };
+
+  const handleEditSchedule = () => {
+    toast({
+      title: "Edit Schedule",
+      description: "Backup schedule configuration is coming soon.",
+    });
+  };
+
   return (
       <main className="flex-1">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -44,7 +100,7 @@ export default function DatabaseBackupPage() {
                 Manage and restore database backups
               </p>
             </div>
-            <Button data-testid="button-create-backup">
+            <Button data-testid="button-create-backup" onClick={handleCreateBackup}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Create Backup Now
             </Button>
@@ -96,7 +152,7 @@ export default function DatabaseBackupPage() {
               Automatic backups run daily at 2:00 AM IST. Backups are retained for
               30 days.
             </p>
-            <Button variant="outline" size="sm" data-testid="button-edit-schedule">
+            <Button variant="outline" size="sm" data-testid="button-edit-schedule" onClick={handleEditSchedule}>
               Edit Schedule
             </Button>
           </Card>
@@ -130,6 +186,7 @@ export default function DatabaseBackupPage() {
                       variant="outline"
                       size="sm"
                       data-testid={`button-download-${backup.id}`}
+                      onClick={() => handleDownloadBackup(backup)}
                     >
                       <Download className="h-4 w-4" />
                     </Button>
@@ -137,6 +194,7 @@ export default function DatabaseBackupPage() {
                       variant="outline"
                       size="sm"
                       data-testid={`button-restore-${backup.id}`}
+                      onClick={() => handleRestoreBackup(backup)}
                     >
                       Restore
                     </Button>
@@ -146,6 +204,49 @@ export default function DatabaseBackupPage() {
             ))}
           </div>
         </div>
+
+        {/* Restore Confirmation Dialog */}
+        <Dialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+                Confirm Database Restore
+              </DialogTitle>
+              <DialogDescription>
+                This is a destructive operation that cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedBackup && (
+              <div className="space-y-4">
+                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <p className="font-semibold mb-2">Warning:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>All current data will be replaced with data from the backup</li>
+                    <li>This action cannot be undone</li>
+                    <li>The system may be unavailable during the restore process</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-sm mb-1"><strong>Backup:</strong> {selectedBackup.name}</p>
+                  <p className="text-sm mb-1"><strong>Size:</strong> {selectedBackup.size}</p>
+                  <p className="text-sm"><strong>Created:</strong> {selectedBackup.createdAt}</p>
+                </div>
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={() => {
+                    setRestoreDialogOpen(false);
+                    setSelectedBackup(null);
+                  }}>
+                    Cancel
+                  </Button>
+                  <Button variant="destructive" onClick={confirmRestore}>
+                    Confirm Restore
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     );
 }

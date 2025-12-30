@@ -515,8 +515,7 @@ export default function AppointmentsPage() {
                 <Label htmlFor="reschedule-time">New Time</Label>
                 <Input
                   id="reschedule-time"
-                  type="text"
-                  placeholder="e.g., 10:00 AM"
+                  type="time"
                   value={rescheduleTime}
                   onChange={(e) => setRescheduleTime(e.target.value)}
                   data-testid="input-reschedule-time"

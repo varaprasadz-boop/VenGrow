@@ -4,11 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { 
   Building2, Eye, MessageSquare, TrendingUp, Plus, 
   Clock, Calendar, ArrowUpRight, Package, Star
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 function StatCard({ 
   title, 
@@ -45,6 +46,7 @@ function StatCard({
 }
 
 export default function SellerDashboardPage() {
+  const [, setLocation] = useLocation();
   const { data: stats, isLoading } = useQuery<{
     totalProperties: number;
     activeListings: number;
@@ -53,8 +55,27 @@ export default function SellerDashboardPage() {
     newInquiries: number;
     scheduledVisits: number;
     packageInfo: { name: string; listingsUsed: number; listingsTotal: number; daysRemaining: number };
-    recentInquiries: any[];
-    topProperties: any[];
+    recentInquiries: Array<{
+      id: string;
+      buyerId: string;
+      buyerName: string;
+      propertyTitle: string;
+      propertyLocality: string;
+      propertyCity: string;
+      message: string;
+      createdAt: string;
+    }>;
+    topProperties: Array<{
+      id: string;
+      title: string;
+      locality: string;
+      city: string;
+      price: number;
+      views: number;
+      favorites: number;
+      inquiries: number;
+      conversionRate: string;
+    }>;
   }>({
     queryKey: ["/api/seller/stats"],
   });
@@ -173,50 +194,42 @@ export default function SellerDashboardPage() {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Amit Patel</p>
-                    <p className="text-xs text-muted-foreground">Interested in 3BHK Apartment, Andheri</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      <Clock className="h-3 w-3 mr-1" /> 30m ago
-                    </Badge>
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href="/seller/inquiries/1" data-testid="button-reply-inquiry">Reply</Link>
-                    </Button>
-                  </div>
+              {stats?.recentInquiries && stats.recentInquiries.length > 0 ? (
+                <div className="space-y-4">
+                  {stats.recentInquiries.map((inquiry) => (
+                    <div key={inquiry.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div>
+                        <p className="font-medium">{inquiry.buyerName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {inquiry.propertyTitle}
+                          {inquiry.propertyLocality && inquiry.propertyCity && `, ${inquiry.propertyLocality}, ${inquiry.propertyCity}`}
+                        </p>
+                        {inquiry.message && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{inquiry.message}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          <Clock className="h-3 w-3 mr-1" /> {formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true })}
+                        </Badge>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => setLocation(`/seller/messages?buyerId=${inquiry.buyerId}`)}
+                          data-testid={`button-reply-inquiry-${inquiry.id}`}
+                        >
+                          Reply
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Priya Sharma</p>
-                    <p className="text-xs text-muted-foreground">Wants to schedule a visit for Villa</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      <Clock className="h-3 w-3 mr-1" /> 2h ago
-                    </Badge>
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href="/seller/inquiries/2" data-testid="button-reply-inquiry-2">Reply</Link>
-                    </Button>
-                  </div>
+              ) : (
+                <div className="text-center py-8">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">No recent inquiries</p>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Rajesh Kumar</p>
-                    <p className="text-xs text-muted-foreground">Asked about payment terms for plot</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      <Clock className="h-3 w-3 mr-1" /> 1d ago
-                    </Badge>
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href="/seller/inquiries/3" data-testid="button-reply-inquiry-3">Reply</Link>
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -235,78 +248,66 @@ export default function SellerDashboardPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 bg-muted rounded-lg flex items-center justify-center">
-                    <Building2 className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-medium">3BHK Premium Apartment</p>
-                    <p className="text-sm text-muted-foreground">Andheri West, Mumbai</p>
-                    <p className="text-sm font-medium text-primary mt-1">₹1.85 Cr</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-6 text-sm">
-                  <div className="text-center">
-                    <p className="font-medium flex items-center gap-1">
-                      <Eye className="h-4 w-4" /> 245
-                    </p>
-                    <p className="text-xs text-muted-foreground">Views</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium flex items-center gap-1">
-                      <MessageSquare className="h-4 w-4" /> 12
-                    </p>
-                    <p className="text-xs text-muted-foreground">Inquiries</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium flex items-center gap-1 text-green-600">
-                      <ArrowUpRight className="h-4 w-4" /> 18%
-                    </p>
-                    <p className="text-xs text-muted-foreground">Conversion</p>
-                  </div>
-                  <Button size="sm" asChild>
-                    <Link href="/seller/property/1" data-testid="button-view-property">View</Link>
-                  </Button>
-                </div>
+            {stats?.topProperties && stats.topProperties.length > 0 ? (
+              <div className="space-y-4">
+                {stats.topProperties.map((property) => {
+                  const formatPrice = (price: number) => {
+                    if (price >= 10000000) return `₹${(price / 10000000).toFixed(2)} Cr`;
+                    if (price >= 100000) return `₹${(price / 100000).toFixed(2)} L`;
+                    return `₹${price.toLocaleString("en-IN")}`;
+                  };
+                  return (
+                    <div key={property.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-4">
+                        <div className="h-16 w-16 bg-muted rounded-lg flex items-center justify-center">
+                          <Building2 className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{property.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {property.locality && property.city ? `${property.locality}, ${property.city}` : property.city || "Location not specified"}
+                          </p>
+                          <p className="text-sm font-medium text-primary mt-1">{formatPrice(property.price)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-6 text-sm">
+                        <div className="text-center">
+                          <p className="font-medium flex items-center gap-1">
+                            <Eye className="h-4 w-4" /> {property.views}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Views</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-medium flex items-center gap-1">
+                            <MessageSquare className="h-4 w-4" /> {property.inquiries}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Inquiries</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-medium flex items-center gap-1 text-green-600">
+                            <ArrowUpRight className="h-4 w-4" /> {property.conversionRate}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Conversion</p>
+                        </div>
+                        <Button size="sm" asChild>
+                          <Link href={`/property/${property.id}`} data-testid={`button-view-property-${property.id}`}>
+                            View
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 bg-muted rounded-lg flex items-center justify-center">
-                    <Building2 className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Luxury Villa with Garden</p>
-                    <p className="text-sm text-muted-foreground">Juhu, Mumbai</p>
-                    <p className="text-sm font-medium text-primary mt-1">₹5.5 Cr</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-6 text-sm">
-                  <div className="text-center">
-                    <p className="font-medium flex items-center gap-1">
-                      <Eye className="h-4 w-4" /> 180
-                    </p>
-                    <p className="text-xs text-muted-foreground">Views</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium flex items-center gap-1">
-                      <MessageSquare className="h-4 w-4" /> 8
-                    </p>
-                    <p className="text-xs text-muted-foreground">Inquiries</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium flex items-center gap-1 text-green-600">
-                      <ArrowUpRight className="h-4 w-4" /> 15%
-                    </p>
-                    <p className="text-xs text-muted-foreground">Conversion</p>
-                  </div>
-                  <Button size="sm" asChild>
-                    <Link href="/seller/property/2" data-testid="button-view-property-2">View</Link>
-                  </Button>
-                </div>
+            ) : (
+              <div className="text-center py-8">
+                <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">No properties yet</p>
+                <Link href="/seller/property/add">
+                  <Button size="sm" variant="outline" className="mt-4">Add Your First Property</Button>
+                </Link>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 

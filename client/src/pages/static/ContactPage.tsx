@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
@@ -17,6 +17,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Mail, Phone, MapPin, Clock, Send, Loader2, Settings } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { validateEmail, validatePhone } from "@/utils/validation";
 
 interface SiteSetting {
   key: string;
@@ -31,6 +35,8 @@ interface StaticPage {
 }
 
 export default function ContactPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -38,7 +44,7 @@ export default function ContactPage() {
     subject: "",
     message: "",
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { data: settings = [], isLoading: settingsLoading } = useQuery<SiteSetting[]>({
     queryKey: ["/api/site-settings"],
@@ -49,6 +55,18 @@ export default function ContactPage() {
     queryKey: ["/api/static-pages", "contact"],
     staleTime: 5 * 60 * 1000,
   });
+
+  // Pre-fill form for logged-in users
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || prev.name,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+      }));
+    }
+  }, [user]);
 
   const getSettingValue = (key: string): string | null => {
     const setting = settings.find(s => s.key === key);
@@ -65,6 +83,63 @@ export default function ContactPage() {
   const formSubtitle = getSettingValue("contact_form_subtitle");
 
   const hasContactInfo = contactEmail || contactPhone || contactAddress || businessHours;
+
+  // Validation functions
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Name is required";
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = "Invalid email format";
+    }
+
+    if (formData.phone && formData.phone.trim()) {
+      if (!validatePhone(formData.phone)) {
+        newErrors.phone = "Invalid phone number (10 digits required)";
+      }
+    }
+
+    if (!formData.message.trim()) {
+      newErrors.message = "Message is required";
+    } else if (formData.message.trim().length < 10) {
+      newErrors.message = "Message must be at least 10 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const contactMutation = useMutation({
+    mutationFn: async (data: {
+      name: string;
+      email: string;
+      phone?: string;
+      subject?: string;
+      message: string;
+    }) => {
+      return apiRequest("POST", "/api/contact", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Message sent successfully!",
+        description: "We'll get back to you soon.",
+      });
+      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
+      setErrors({});
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to send message",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const contactCards = [
     contactEmail ? {
@@ -95,14 +170,23 @@ export default function ContactPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      console.log("Contact form submitted:", formData);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
-    } finally {
-      setIsSubmitting(false);
+    
+    if (!validateForm()) {
+      toast({
+        title: "Please fix the errors",
+        description: "Some fields have validation errors.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    contactMutation.mutate({
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim() || undefined,
+      subject: formData.subject || undefined,
+      message: formData.message.trim(),
+    });
   };
 
   if (settingsLoading || pageLoading) {
@@ -219,32 +303,44 @@ export default function ContactPage() {
                 <Card className="p-6">
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="space-y-2">
-                      <Label htmlFor="name">{getSettingValue("contact_form_name_label") || "Name"}</Label>
+                      <Label htmlFor="name">{getSettingValue("contact_form_name_label") || "Name"} *</Label>
                       <Input
                         id="name"
                         placeholder={getSettingValue("contact_form_name_placeholder") || ""}
                         value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setFormData({ ...formData, name: e.target.value });
+                          if (errors.name) setErrors({ ...errors, name: "" });
+                        }}
                         data-testid="input-name"
+                        className={errors.name ? "border-destructive" : ""}
                         required
+                        aria-required="true"
+                        aria-invalid={!!errors.name}
+                        aria-describedby={errors.name ? "name-error" : undefined}
                       />
+                      {errors.name && <p id="name-error" className="text-sm text-destructive" role="alert">{errors.name}</p>}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="email">{getSettingValue("contact_form_email_label") || "Email"}</Label>
+                      <Label htmlFor="email">{getSettingValue("contact_form_email_label") || "Email"} *</Label>
                       <Input
                         id="email"
                         type="email"
                         placeholder={getSettingValue("contact_form_email_placeholder") || ""}
                         value={formData.email}
-                        onChange={(e) =>
-                          setFormData({ ...formData, email: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setFormData({ ...formData, email: e.target.value });
+                          if (errors.email) setErrors({ ...errors, email: "" });
+                        }}
                         data-testid="input-email"
+                        className={errors.email ? "border-destructive" : ""}
                         required
+                        aria-required="true"
+                        aria-invalid={!!errors.email}
+                        aria-describedby={errors.email ? "email-error" : undefined}
                       />
+                      {errors.email && <p id="email-error" className="text-sm text-destructive" role="alert">{errors.email}</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -252,13 +348,16 @@ export default function ContactPage() {
                       <Input
                         id="phone"
                         type="tel"
-                        placeholder={getSettingValue("contact_form_phone_placeholder") || ""}
+                        placeholder={getSettingValue("contact_form_phone_placeholder") || "+91 98765 43210"}
                         value={formData.phone}
-                        onChange={(e) =>
-                          setFormData({ ...formData, phone: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setFormData({ ...formData, phone: e.target.value });
+                          if (errors.phone) setErrors({ ...errors, phone: "" });
+                        }}
                         data-testid="input-phone"
+                        className={errors.phone ? "border-destructive" : ""}
                       />
+                      {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -283,27 +382,33 @@ export default function ContactPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="message">{getSettingValue("contact_form_message_label") || "Message"}</Label>
+                      <Label htmlFor="message">{getSettingValue("contact_form_message_label") || "Message"} *</Label>
                       <Textarea
                         id="message"
                         rows={6}
                         placeholder={getSettingValue("contact_form_message_placeholder") || ""}
                         value={formData.message}
-                        onChange={(e) =>
-                          setFormData({ ...formData, message: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setFormData({ ...formData, message: e.target.value });
+                          if (errors.message) setErrors({ ...errors, message: "" });
+                        }}
                         data-testid="textarea-message"
+                        className={errors.message ? "border-destructive" : ""}
                         required
+                        aria-required="true"
+                        aria-invalid={!!errors.message}
+                        aria-describedby={errors.message ? "message-error" : undefined}
                       />
+                      {errors.message && <p id="message-error" className="text-sm text-destructive" role="alert">{errors.message}</p>}
                     </div>
 
                     <Button 
                       type="submit" 
                       className="w-full" 
-                      disabled={isSubmitting}
+                      disabled={contactMutation.isPending}
                       data-testid="button-submit"
                     >
-                      {isSubmitting ? (
+                      {contactMutation.isPending ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
                         <Send className="h-4 w-4 mr-2" />

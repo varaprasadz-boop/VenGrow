@@ -1,8 +1,17 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import {
   Package,
   Plus,
@@ -32,9 +41,16 @@ function formatPrice(amount: number): string {
 }
 
 export default function PackagesPage() {
+  const { toast } = useToast();
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+
   const { data: packages = [], isLoading, isError, refetch } = useQuery<SubscriptionPackage[]>({
     queryKey: ["/api/packages"],
   });
+
+  const handleAddPackage = () => {
+    setAddDialogOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -78,7 +94,7 @@ export default function PackagesPage() {
                 <p className="text-muted-foreground">Manage seller subscription tiers</p>
               </div>
             </div>
-            <Button data-testid="button-add-package">
+            <Button data-testid="button-add-package" onClick={handleAddPackage}>
               <Plus className="h-4 w-4 mr-2" />
               Add Package
             </Button>
@@ -138,6 +154,37 @@ export default function PackagesPage() {
             ))}
           </div>
         </div>
+
+        {/* Add Package Dialog */}
+        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Package</DialogTitle>
+              <DialogDescription>
+                Create a new subscription package for sellers
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-muted-foreground">
+                Package creation form will be implemented here. This feature is coming soon.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                toast({
+                  title: "Coming Soon",
+                  description: "Package creation feature is under development.",
+                });
+                setAddDialogOpen(false);
+              }}>
+                Create Package
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     );
 }

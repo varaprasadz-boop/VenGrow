@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ interface InquiryWithDetails extends Inquiry {
 }
 
 export default function InquiriesPage() {
+  const [, setLocation] = useLocation();
   const [selectedTab, setSelectedTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
@@ -229,6 +231,17 @@ export default function InquiriesPage() {
                               variant="outline"
                               size="sm"
                               className="flex-1 lg:flex-none"
+                              onClick={() => {
+                                if (inquiry.buyerId) {
+                                  setLocation(`/seller/messages?buyerId=${inquiry.buyerId}`);
+                                } else {
+                                  toast({
+                                    title: "Cannot start chat",
+                                    description: "Buyer information not available",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
                               data-testid={`button-chat-${inquiry.id}`}
                             >
                               <MessageSquare className="h-4 w-4 lg:mr-2" />

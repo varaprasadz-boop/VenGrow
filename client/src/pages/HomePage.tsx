@@ -185,7 +185,10 @@ export default function HomePage() {
 
   // Transform API data for PropertyCard component
   const displayFeatured = useMemo(() => {
-    if (featuredPropertiesData.length === 0) return sampleFeaturedProperties;
+    if (featuredPropertiesData.length === 0) {
+      // Don't show sample data - show empty state instead
+      return [];
+    }
     return featuredPropertiesData.map(property => {
       // Extract first image URL from images array
       const imageUrl = (property as any).images?.length > 0
@@ -213,7 +216,10 @@ export default function HomePage() {
   }, [featuredPropertiesData]);
 
   const displayNew = useMemo(() => {
-    if (newPropertiesData.length === 0) return sampleNewProperties;
+    if (newPropertiesData.length === 0) {
+      // Don't show sample data - show empty state instead
+      return [];
+    }
     return newPropertiesData.map(property => {
       // Extract first image URL from images array
       const imageUrl = (property as any).images?.length > 0
@@ -346,6 +352,15 @@ export default function HomePage() {
                   <div key={i} className="aspect-[4/3] bg-muted animate-pulse rounded-lg" />
                 ))}
               </div>
+            ) : displayFeatured.length === 0 ? (
+              <div className="hidden md:flex items-center justify-center py-12">
+                <div className="text-center">
+                  <p className="text-muted-foreground mb-2">No featured properties available</p>
+                  <Link href="/listings">
+                    <Button variant="outline">Browse All Properties</Button>
+                  </Link>
+                </div>
+              </div>
             ) : (
               <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="grid-featured-properties-desktop">
                 {displayFeatured.slice(0, 4).map((property) => (
@@ -374,6 +389,15 @@ export default function HomePage() {
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="flex-shrink-0 w-[calc(50%-8px)] aspect-[4/3] bg-muted animate-pulse rounded-lg" />
                   ))}
+                </div>
+              ) : displayFeatured.length === 0 ? (
+                <div className="flex items-center justify-center py-12 px-6">
+                  <div className="text-center">
+                    <p className="text-muted-foreground mb-2">No featured properties available</p>
+                    <Link href="/listings">
+                      <Button variant="outline" size="sm">Browse All</Button>
+                    </Link>
+                  </div>
                 </div>
               ) : (
                 <div
@@ -427,6 +451,15 @@ export default function HomePage() {
                   <div key={i} className="aspect-[4/3] bg-muted animate-pulse rounded-lg" />
                 ))}
               </div>
+            ) : displayNew.length === 0 ? (
+              <div className="hidden md:flex items-center justify-center py-12">
+                <div className="text-center">
+                  <p className="text-muted-foreground mb-2">No new listings available</p>
+                  <Link href="/listings">
+                    <Button variant="outline">Browse All Properties</Button>
+                  </Link>
+                </div>
+              </div>
             ) : (
               <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="grid-new-listings-desktop">
                 {displayNew.slice(0, 4).map((property) => (
@@ -455,6 +488,15 @@ export default function HomePage() {
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="flex-shrink-0 w-[calc(50%-8px)] aspect-[4/3] bg-muted animate-pulse rounded-lg" />
                   ))}
+                </div>
+              ) : displayNew.length === 0 ? (
+                <div className="flex items-center justify-center py-12 px-6">
+                  <div className="text-center">
+                    <p className="text-muted-foreground mb-2">No new listings available</p>
+                    <Link href="/listings">
+                      <Button variant="outline" size="sm">Browse All</Button>
+                    </Link>
+                  </div>
                 </div>
               ) : (
                 <div

@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Link } from "wouter";
-import { Building2, Upload, ArrowLeft } from "lucide-react";
+import { useState, useRef } from "react";
+import { Link, useLocation } from "wouter";
+import { Building2, Upload, ArrowLeft, Loader2, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,23 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StateSelect, CitySelect, PinCodeInput, PhoneInput } from "@/components/ui/location-select";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { ObjectUploader } from "@/components/ObjectUploader";
 
 export default function IndividualRegisterPage() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [propertyDocumentUrl, setPropertyDocumentUrl] = useState<string | null>(null);
+  const [propertyDocumentName, setPropertyDocumentName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
+    password: "",
+    confirmPassword: "",
     phone: "",
     address: "",
     city: "",
@@ -20,13 +32,152 @@ export default function IndividualRegisterPage() {
     pincode: "",
     panNumber: "",
     aadharNumber: "",
-    propertyDocument: null,
     agreeToTerms: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = "Full name is required";
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Invalid email format";
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    if (!formData.phone) {
+      newErrors.phone = "Phone number is required";
+    } else if (!/^[6-9]\d{9}$/.test(formData.phone.replace(/\D/g, ""))) {
+      newErrors.phone = "Invalid phone number";
+    }
+
+    if (!formData.state) {
+      newErrors.state = "State is required";
+    }
+
+    if (!formData.city) {
+      newErrors.city = "City is required";
+    }
+
+    if (!formData.pincode) {
+      newErrors.pincode = "PIN code is required";
+    } else if (!/^\d{6}$/.test(formData.pincode)) {
+      newErrors.pincode = "PIN code must be 6 digits";
+    }
+
+    if (!formData.panNumber) {
+      newErrors.panNumber = "PAN number is required";
+    } else if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.panNumber.toUpperCase())) {
+      newErrors.panNumber = "Invalid PAN format (e.g., ABCDE1234F)";
+    }
+
+    if (!formData.aadharNumber) {
+      newErrors.aadharNumber = "Aadhar number is required";
+    } else if (!/^\d{12}$/.test(formData.aadharNumber.replace(/\D/g, ""))) {
+      newErrors.aadharNumber = "Aadhar number must be 12 digits";
+    }
+
+    if (!formData.address.trim()) {
+      newErrors.address = "Address is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleFileUpload = async (results: any[]) => {
+    if (results.length === 0) return;
+    
+    const file = results[0];
+    setPropertyDocumentUrl(file.url);
+    setPropertyDocumentName(file.name);
+    toast({ title: "Document uploaded successfully" });
+  };
+
+  const handleRemoveDocument = () => {
+    setPropertyDocumentUrl(null);
+    setPropertyDocumentName(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Individual registration:", formData);
+
+    if (!validateForm()) {
+      toast({
+        title: "Please fix the errors",
+        description: "Some fields have errors. Please check and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.agreeToTerms) {
+      toast({
+        title: "Terms not accepted",
+        description: "Please accept the terms and conditions",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const nameParts = formData.fullName.trim().split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
+      const response = await apiRequest("POST", "/api/seller/register", {
+        sellerType: "individual",
+        email: formData.email.trim(),
+        password: formData.password,
+        firstName,
+        lastName,
+        phone: formData.phone.replace(/\D/g, ""),
+        panNumber: formData.panNumber.toUpperCase(),
+        aadharNumber: formData.aadharNumber.replace(/\D/g, ""),
+        address: formData.address.trim(),
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode,
+        propertyDocumentUrl,
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Registration Successful",
+          description: "Your registration is pending admin approval.",
+        });
+        setLocation("/seller/approval-pending");
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Registration failed");
+      }
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      toast({
+        title: "Registration Failed",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -71,7 +222,11 @@ export default function IndividualRegisterPage() {
                     }
                     data-testid="input-fullname"
                     required
+                    className={errors.fullName ? "border-destructive" : ""}
                   />
+                  {errors.fullName && (
+                    <p className="text-sm text-destructive">{errors.fullName}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -86,7 +241,11 @@ export default function IndividualRegisterPage() {
                     }
                     data-testid="input-email"
                     required
+                    className={errors.email ? "border-destructive" : ""}
                   />
+                  {errors.email && (
+                    <p className="text-sm text-destructive">{errors.email}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -98,6 +257,47 @@ export default function IndividualRegisterPage() {
                     }
                     data-testid="input-phone"
                   />
+                  {errors.phone && (
+                    <p className="text-sm text-destructive">{errors.phone}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Create a password (min 8 characters)"
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                    data-testid="input-password"
+                    required
+                    className={errors.password ? "border-destructive" : ""}
+                  />
+                  {errors.password && (
+                    <p className="text-sm text-destructive">{errors.password}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirm your password"
+                    value={formData.confirmPassword}
+                    onChange={(e) =>
+                      setFormData({ ...formData, confirmPassword: e.target.value })
+                    }
+                    data-testid="input-confirm-password"
+                    required
+                    className={errors.confirmPassword ? "border-destructive" : ""}
+                  />
+                  {errors.confirmPassword && (
+                    <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -109,6 +309,9 @@ export default function IndividualRegisterPage() {
                     }
                     data-testid="select-state"
                   />
+                  {errors.state && (
+                    <p className="text-sm text-destructive">{errors.state}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -129,7 +332,11 @@ export default function IndividualRegisterPage() {
                     }
                     data-testid="textarea-address"
                     required
+                    className={errors.address ? "border-destructive" : ""}
                   />
+                  {errors.address && (
+                    <p className="text-sm text-destructive">{errors.address}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -143,6 +350,9 @@ export default function IndividualRegisterPage() {
                       stateValue={formData.state}
                       data-testid="select-city"
                     />
+                    {errors.city && (
+                      <p className="text-sm text-destructive">{errors.city}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -154,6 +364,9 @@ export default function IndividualRegisterPage() {
                       }
                       data-testid="input-pincode"
                     />
+                    {errors.pincode && (
+                      <p className="text-sm text-destructive">{errors.pincode}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -170,11 +383,16 @@ export default function IndividualRegisterPage() {
                     placeholder="ABCDE1234F"
                     value={formData.panNumber}
                     onChange={(e) =>
-                      setFormData({ ...formData, panNumber: e.target.value })
+                      setFormData({ ...formData, panNumber: e.target.value.toUpperCase() })
                     }
                     data-testid="input-pan"
                     required
+                    maxLength={10}
+                    className={errors.panNumber ? "border-destructive" : ""}
                   />
+                  {errors.panNumber && (
+                    <p className="text-sm text-destructive">{errors.panNumber}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -183,29 +401,47 @@ export default function IndividualRegisterPage() {
                     id="aadharNumber"
                     placeholder="1234 5678 9012"
                     value={formData.aadharNumber}
-                    onChange={(e) =>
-                      setFormData({ ...formData, aadharNumber: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "").slice(0, 12);
+                      setFormData({ ...formData, aadharNumber: value });
+                    }}
                     data-testid="input-aadhar"
                     required
+                    maxLength={12}
+                    className={errors.aadharNumber ? "border-destructive" : ""}
                   />
+                  {errors.aadharNumber && (
+                    <p className="text-sm text-destructive">{errors.aadharNumber}</p>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-2 mt-4">
                 <Label htmlFor="propertyDocument">Property Document (Optional)</Label>
-                <div className="border-2 border-dashed rounded-lg p-8 text-center hover-elevate active-elevate-2 cursor-pointer">
-                  <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-sm mb-2">
-                    Upload property ownership documents (Sale Deed, Title Deed, etc.)
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    PDF, JPG, PNG up to 10MB
-                  </p>
-                  <Button type="button" variant="outline" size="sm" data-testid="button-upload-doc">
-                    Choose File
-                  </Button>
-                </div>
+                {propertyDocumentUrl ? (
+                  <div className="border-2 border-dashed rounded-lg p-6 text-center relative">
+                    <div className="flex items-center justify-center gap-2">
+                      <p className="text-sm font-medium truncate">{propertyDocumentName || "Document uploaded"}</p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={handleRemoveDocument}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <ObjectUploader
+                    bucket="seller-documents"
+                    prefix="individual/"
+                    onComplete={handleFileUpload}
+                    maxFiles={1}
+                    accept="image/*,.pdf"
+                  />
+                )}
               </div>
             </div>
 
@@ -232,12 +468,19 @@ export default function IndividualRegisterPage() {
             {/* Submit */}
             <div className="flex gap-3 pt-4">
               <Link href="/seller/type">
-                <Button type="button" variant="outline" className="flex-1" data-testid="button-cancel">
+                <Button type="button" variant="outline" className="flex-1" data-testid="button-cancel" disabled={isLoading}>
                   Cancel
                 </Button>
               </Link>
-              <Button type="submit" className="flex-1" disabled={!formData.agreeToTerms} data-testid="button-submit">
-                Submit Registration
+              <Button type="submit" className="flex-1" disabled={!formData.agreeToTerms || isLoading} data-testid="button-submit">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Registration"
+                )}
               </Button>
             </div>
           </form>

@@ -1,19 +1,24 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Building2, Upload, ArrowLeft, Image, FileText, X } from "lucide-react";
+import { Building2, Upload, ArrowLeft, Image, FileText, X, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { StateSelect, CitySelect, PinCodeInput } from "@/components/ui/location-select";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { ObjectUploader } from "@/components/ObjectUploader";
 
 export default function CorporateRegisterPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [brochureUrl, setBrochureUrl] = useState<string | null>(null);
   const [brochureName, setBrochureName] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
@@ -32,72 +37,138 @@ export default function CorporateRegisterPage() {
     city: "",
     state: "",
     pincode: "",
-    companyLogo: null as File | null,
-    companyBrochure: null as File | null,
     agreeToTerms: false,
   });
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Logo must be less than 2MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      setFormData({ ...formData, companyLogo: file });
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.companyName.trim()) {
+      newErrors.companyName = "Company name is required";
     }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Invalid email format";
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    if (!formData.phone) {
+      newErrors.phone = "Phone number is required";
+    } else if (!/^[6-9]\d{9}$/.test(formData.phone.replace(/\D/g, ""))) {
+      newErrors.phone = "Invalid phone number";
+    }
+
+    if (!formData.cinNumber.trim()) {
+      newErrors.cinNumber = "CIN number is required";
+    }
+
+    if (!formData.gstNumber.trim()) {
+      newErrors.gstNumber = "GST number is required";
+    } else if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gstNumber.toUpperCase())) {
+      newErrors.gstNumber = "Invalid GST format (e.g., 22AAAAA0000A1Z5)";
+    }
+
+    if (!formData.reraNumber.trim()) {
+      newErrors.reraNumber = "RERA registration number is required";
+    }
+
+    if (!formData.establishedYear) {
+      newErrors.establishedYear = "Year established is required";
+    } else {
+      const year = parseInt(formData.establishedYear);
+      const currentYear = new Date().getFullYear();
+      if (year < 1900 || year > currentYear) {
+        newErrors.establishedYear = `Year must be between 1900 and ${currentYear}`;
+      }
+    }
+
+    if (!formData.completedProjects) {
+      newErrors.completedProjects = "Number of completed projects is required";
+    } else if (parseInt(formData.completedProjects) < 0) {
+      newErrors.completedProjects = "Must be a positive number";
+    }
+
+    if (!formData.state) {
+      newErrors.state = "State is required";
+    }
+
+    if (!formData.city) {
+      newErrors.city = "City is required";
+    }
+
+    if (!formData.pincode) {
+      newErrors.pincode = "PIN code is required";
+    } else if (!/^\d{6}$/.test(formData.pincode)) {
+      newErrors.pincode = "PIN code must be 6 digits";
+    }
+
+    if (!formData.address.trim()) {
+      newErrors.address = "Address is required";
+    }
+
+    if (!logoUrl) {
+      newErrors.logo = "Company logo is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleBrochureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Brochure must be less than 10MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      if (file.type !== "application/pdf") {
-        toast({
-          title: "Invalid file type",
-          description: "Please upload a PDF file",
-          variant: "destructive",
-        });
-        return;
-      }
-      setFormData({ ...formData, companyBrochure: file });
-      setBrochureName(file.name);
-    }
+  const handleLogoUpload = async (results: any[]) => {
+    if (results.length === 0) return;
+    const file = results[0];
+    setLogoUrl(file.url);
+    setLogoPreview(file.url);
+    toast({ title: "Logo uploaded successfully" });
+  };
+
+  const handleBrochureUpload = async (results: any[]) => {
+    if (results.length === 0) return;
+    const file = results[0];
+    setBrochureUrl(file.url);
+    setBrochureName(file.name);
+    toast({ title: "Brochure uploaded successfully" });
   };
 
   const removeLogo = () => {
-    setFormData({ ...formData, companyLogo: null });
+    setLogoUrl(null);
     setLogoPreview(null);
   };
 
   const removeBrochure = () => {
-    setFormData({ ...formData, companyBrochure: null });
+    setBrochureUrl(null);
     setBrochureName(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
+    if (!validateForm()) {
       toast({
-        title: "Passwords don't match",
-        description: "Please make sure your passwords match.",
+        title: "Please fix the errors",
+        description: "Some fields have errors. Please check and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.agreeToTerms) {
+      toast({
+        title: "Terms not accepted",
+        description: "Please accept the terms and conditions",
         variant: "destructive",
       });
       return;
@@ -106,15 +177,45 @@ export default function CorporateRegisterPage() {
     setIsLoading(true);
 
     try {
-      toast({
-        title: "Registration Submitted",
-        description: "Your corporate registration is pending admin approval.",
+      const nameParts = formData.companyName.trim().split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
+      const response = await apiRequest("POST", "/api/seller/register", {
+        sellerType: "builder", // Corporate is treated as builder
+        email: formData.email.trim(),
+        password: formData.password,
+        firstName,
+        lastName,
+        phone: formData.phone.replace(/\D/g, ""),
+        companyName: formData.companyName.trim(),
+        cinNumber: formData.cinNumber.trim(),
+        gstNumber: formData.gstNumber.toUpperCase(),
+        reraNumber: formData.reraNumber.trim(),
+        website: formData.website.trim() || undefined,
+        address: formData.address.trim(),
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode,
+        logoUrl,
+        brochureUrl,
       });
-      setLocation("/seller/approval-pending");
-    } catch (error) {
+
+      if (response.ok) {
+        toast({
+          title: "Registration Successful",
+          description: "Your corporate registration is pending admin approval.",
+        });
+        setLocation("/seller/approval-pending");
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Registration failed");
+      }
+    } catch (error: any) {
+      console.error("Registration error:", error);
       toast({
         title: "Registration Failed",
-        description: "Something went wrong. Please try again.",
+        description: error.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -154,9 +255,9 @@ export default function CorporateRegisterPage() {
                 {/* Company Logo Upload */}
                 <div className="space-y-2">
                   <Label>Company Logo *</Label>
-                  <div className="border-2 border-dashed rounded-lg p-6 text-center hover-elevate active-elevate-2 cursor-pointer relative">
-                    {logoPreview ? (
-                      <div className="relative">
+                  {logoPreview ? (
+                    <div className="border-2 border-dashed rounded-lg p-6 text-center relative">
+                      <div className="relative inline-block">
                         <img 
                           src={logoPreview} 
                           alt="Company logo preview" 
@@ -171,29 +272,21 @@ export default function CorporateRegisterPage() {
                         >
                           <X className="h-4 w-4" />
                         </Button>
-                        <p className="text-sm text-muted-foreground mt-2">Logo uploaded</p>
                       </div>
-                    ) : (
-                      <>
-                        <Image className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-                        <p className="text-sm mb-1">Upload company logo</p>
-                        <p className="text-xs text-muted-foreground mb-3">PNG, JPG up to 2MB (Square recommended)</p>
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg"
-                          onChange={handleLogoChange}
-                          className="hidden"
-                          id="logo-upload"
-                          data-testid="input-logo-upload"
-                        />
-                        <Label htmlFor="logo-upload">
-                          <Button type="button" variant="outline" size="sm" asChild>
-                            <span>Choose Logo</span>
-                          </Button>
-                        </Label>
-                      </>
-                    )}
-                  </div>
+                      <p className="text-sm text-muted-foreground mt-2">Logo uploaded</p>
+                    </div>
+                  ) : (
+                    <ObjectUploader
+                      bucket="seller-documents"
+                      prefix="corporate/logo/"
+                      onComplete={handleLogoUpload}
+                      maxFiles={1}
+                      accept="image/*"
+                    />
+                  )}
+                  {errors.logo && (
+                    <p className="text-sm text-destructive">{errors.logo}</p>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     This logo will be displayed on the Verified Builders section
                   </p>
@@ -202,11 +295,11 @@ export default function CorporateRegisterPage() {
                 {/* Company Brochure Upload */}
                 <div className="space-y-2">
                   <Label>Company Brochure (PDF)</Label>
-                  <div className="border-2 border-dashed rounded-lg p-6 text-center hover-elevate active-elevate-2 cursor-pointer relative">
-                    {brochureName ? (
-                      <div className="relative">
+                  {brochureUrl ? (
+                    <div className="border-2 border-dashed rounded-lg p-6 text-center relative">
+                      <div className="relative inline-block">
                         <FileText className="h-12 w-12 mx-auto mb-2 text-primary" />
-                        <p className="text-sm font-medium truncate max-w-[200px] mx-auto">{brochureName}</p>
+                        <p className="text-sm font-medium truncate max-w-[200px] mx-auto">{brochureName || "Brochure uploaded"}</p>
                         <Button
                           type="button"
                           variant="destructive"
@@ -216,29 +309,18 @@ export default function CorporateRegisterPage() {
                         >
                           <X className="h-4 w-4" />
                         </Button>
-                        <p className="text-xs text-muted-foreground mt-1">PDF uploaded</p>
                       </div>
-                    ) : (
-                      <>
-                        <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-                        <p className="text-sm mb-1">Upload company brochure</p>
-                        <p className="text-xs text-muted-foreground mb-3">PDF up to 10MB</p>
-                        <input
-                          type="file"
-                          accept="application/pdf"
-                          onChange={handleBrochureChange}
-                          className="hidden"
-                          id="brochure-upload"
-                          data-testid="input-brochure-upload"
-                        />
-                        <Label htmlFor="brochure-upload">
-                          <Button type="button" variant="outline" size="sm" asChild>
-                            <span>Choose Brochure</span>
-                          </Button>
-                        </Label>
-                      </>
-                    )}
-                  </div>
+                      <p className="text-xs text-muted-foreground mt-1">PDF uploaded</p>
+                    </div>
+                  ) : (
+                    <ObjectUploader
+                      bucket="seller-documents"
+                      prefix="corporate/brochure/"
+                      onComplete={handleBrochureUpload}
+                      maxFiles={1}
+                      accept=".pdf"
+                    />
+                  )}
                   <p className="text-xs text-muted-foreground">
                     Buyers can download this brochure from your profile
                   </p>
@@ -261,7 +343,11 @@ export default function CorporateRegisterPage() {
                     }
                     data-testid="input-company"
                     required
+                    className={errors.companyName ? "border-destructive" : ""}
                   />
+                  {errors.companyName && (
+                    <p className="text-sm text-destructive">{errors.companyName}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -276,7 +362,11 @@ export default function CorporateRegisterPage() {
                     }
                     data-testid="input-email"
                     required
+                    className={errors.email ? "border-destructive" : ""}
                   />
+                  {errors.email && (
+                    <p className="text-sm text-destructive">{errors.email}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -291,7 +381,11 @@ export default function CorporateRegisterPage() {
                     }
                     data-testid="input-phone"
                     required
+                    className={errors.phone ? "border-destructive" : ""}
                   />
+                  {errors.phone && (
+                    <p className="text-sm text-destructive">{errors.phone}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -299,14 +393,18 @@ export default function CorporateRegisterPage() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Create a password"
+                    placeholder="Create a password (min 8 characters)"
                     value={formData.password}
                     onChange={(e) =>
                       setFormData({ ...formData, password: e.target.value })
                     }
                     data-testid="input-password"
                     required
+                    className={errors.password ? "border-destructive" : ""}
                   />
+                  {errors.password && (
+                    <p className="text-sm text-destructive">{errors.password}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -321,7 +419,11 @@ export default function CorporateRegisterPage() {
                     }
                     data-testid="input-confirm-password"
                     required
+                    className={errors.confirmPassword ? "border-destructive" : ""}
                   />
+                  {errors.confirmPassword && (
+                    <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
@@ -351,11 +453,15 @@ export default function CorporateRegisterPage() {
                     placeholder="U12345MH2010PTC123456"
                     value={formData.cinNumber}
                     onChange={(e) =>
-                      setFormData({ ...formData, cinNumber: e.target.value })
+                      setFormData({ ...formData, cinNumber: e.target.value.toUpperCase() })
                     }
                     data-testid="input-cin"
                     required
+                    className={errors.cinNumber ? "border-destructive" : ""}
                   />
+                  {errors.cinNumber && (
+                    <p className="text-sm text-destructive">{errors.cinNumber}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -365,11 +471,16 @@ export default function CorporateRegisterPage() {
                     placeholder="22AAAAA0000A1Z5"
                     value={formData.gstNumber}
                     onChange={(e) =>
-                      setFormData({ ...formData, gstNumber: e.target.value })
+                      setFormData({ ...formData, gstNumber: e.target.value.toUpperCase() })
                     }
                     data-testid="input-gst"
                     required
+                    maxLength={15}
+                    className={errors.gstNumber ? "border-destructive" : ""}
                   />
+                  {errors.gstNumber && (
+                    <p className="text-sm text-destructive">{errors.gstNumber}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -383,7 +494,11 @@ export default function CorporateRegisterPage() {
                     }
                     data-testid="input-rera"
                     required
+                    className={errors.reraNumber ? "border-destructive" : ""}
                   />
+                  {errors.reraNumber && (
+                    <p className="text-sm text-destructive">{errors.reraNumber}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -392,13 +507,19 @@ export default function CorporateRegisterPage() {
                     id="establishedYear"
                     type="number"
                     placeholder="2010"
+                    min="1900"
+                    max={new Date().getFullYear()}
                     value={formData.establishedYear}
                     onChange={(e) =>
                       setFormData({ ...formData, establishedYear: e.target.value })
                     }
                     data-testid="input-year"
                     required
+                    className={errors.establishedYear ? "border-destructive" : ""}
                   />
+                  {errors.establishedYear && (
+                    <p className="text-sm text-destructive">{errors.establishedYear}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
@@ -407,13 +528,18 @@ export default function CorporateRegisterPage() {
                     id="completedProjects"
                     type="number"
                     placeholder="25"
+                    min="0"
                     value={formData.completedProjects}
                     onChange={(e) =>
                       setFormData({ ...formData, completedProjects: e.target.value })
                     }
                     data-testid="input-projects"
                     required
+                    className={errors.completedProjects ? "border-destructive" : ""}
                   />
+                  {errors.completedProjects && (
+                    <p className="text-sm text-destructive">{errors.completedProjects}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -434,50 +560,55 @@ export default function CorporateRegisterPage() {
                     }
                     data-testid="textarea-address"
                     required
+                    className={errors.address ? "border-destructive" : ""}
                   />
+                  {errors.address && (
+                    <p className="text-sm text-destructive">{errors.address}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="city">City *</Label>
-                    <Input
-                      id="city"
-                      placeholder="Mumbai"
-                      value={formData.city}
-                      onChange={(e) =>
-                        setFormData({ ...formData, city: e.target.value })
+                    <Label htmlFor="state">State *</Label>
+                    <StateSelect
+                      value={formData.state}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, state: value, city: "" })
                       }
-                      data-testid="input-city"
-                      required
+                      data-testid="select-state"
                     />
+                    {errors.state && (
+                      <p className="text-sm text-destructive">{errors.state}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="state">State *</Label>
-                    <Input
-                      id="state"
-                      placeholder="Maharashtra"
-                      value={formData.state}
-                      onChange={(e) =>
-                        setFormData({ ...formData, state: e.target.value })
+                    <Label htmlFor="city">City *</Label>
+                    <CitySelect
+                      value={formData.city}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, city: value })
                       }
-                      data-testid="input-state"
-                      required
+                      stateValue={formData.state}
+                      data-testid="select-city"
                     />
+                    {errors.city && (
+                      <p className="text-sm text-destructive">{errors.city}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="pincode">PIN Code *</Label>
-                    <Input
-                      id="pincode"
-                      placeholder="400001"
+                    <PinCodeInput
                       value={formData.pincode}
-                      onChange={(e) =>
-                        setFormData({ ...formData, pincode: e.target.value })
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, pincode: value })
                       }
                       data-testid="input-pincode"
-                      required
                     />
+                    {errors.pincode && (
+                      <p className="text-sm text-destructive">{errors.pincode}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -517,7 +648,14 @@ export default function CorporateRegisterPage() {
                 disabled={!formData.agreeToTerms || isLoading}
                 data-testid="button-submit"
               >
-                {isLoading ? "Submitting..." : "Submit Registration"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Registration"
+                )}
               </Button>
             </div>
           </form>

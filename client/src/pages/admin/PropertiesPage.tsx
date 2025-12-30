@@ -30,10 +30,12 @@ import {
   RefreshCw,
   AlertCircle,
   Star,
+  Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import type { Property } from "@shared/schema";
+import { exportToCSV } from "@/lib/utils";
 
 function formatPrice(amount: number): string {
   if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Cr`;
@@ -55,6 +57,29 @@ export default function PropertiesPage() {
     const matchesStatus = statusFilter === "all" || property.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const handleExport = () => {
+    const exportData = filteredProperties.map(property => ({
+      title: property.title || 'N/A',
+      city: property.city || 'N/A',
+      state: property.state || 'N/A',
+      propertyType: property.propertyType || 'N/A',
+      price: property.price || 0,
+      status: property.status || 'N/A',
+      featured: property.isFeatured ? 'Yes' : 'No',
+      createdAt: property.createdAt ? format(new Date(property.createdAt), "yyyy-MM-dd") : 'N/A',
+    }));
+    exportToCSV(exportData, `properties_export_${format(new Date(), 'yyyy-MM-dd')}`, [
+      { key: 'title', header: 'Title' },
+      { key: 'city', header: 'City' },
+      { key: 'state', header: 'State' },
+      { key: 'propertyType', header: 'Type' },
+      { key: 'price', header: 'Price' },
+      { key: 'status', header: 'Status' },
+      { key: 'featured', header: 'Featured' },
+      { key: 'createdAt', header: 'Created' },
+    ]);
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -109,6 +134,10 @@ export default function PropertiesPage() {
                 <p className="text-muted-foreground">Manage all property listings</p>
               </div>
             </div>
+            <Button onClick={handleExport} data-testid="button-export-properties">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
           </div>
 
           <Card className="p-6">

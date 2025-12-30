@@ -4,8 +4,38 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Database, Download, Clock, CheckCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function BackupSettingsPage() {
+  const { toast } = useToast();
+
+  const handleDownloadBackup = (backupName: string) => {
+    toast({
+      title: "Preparing Download",
+      description: `Preparing ${backupName} for download...`,
+    });
+    setTimeout(() => {
+      toast({
+        title: "Download Ready",
+        description: "In a production environment, the backup file would start downloading now.",
+      });
+    }, 1500);
+  };
+
+  const handleCreateBackup = () => {
+    toast({
+      title: "Creating Backup",
+      description: "A new manual backup is being created...",
+    });
+  };
+
+  const handleRestore = (backupName: string) => {
+    toast({
+      title: "Restore Requested",
+      description: `Restore from ${backupName} requires confirmation. This action cannot be undone.`,
+      variant: "destructive",
+    });
+  };
   const backups = [
     {
       id: "1",
@@ -45,7 +75,7 @@ export default function BackupSettingsPage() {
                 Manage database backups and restoration
               </p>
             </div>
-            <Button data-testid="button-create-backup">
+            <Button onClick={handleCreateBackup} data-testid="button-create-backup">
               <Database className="h-4 w-4 mr-2" />
               Create Backup
             </Button>
@@ -131,6 +161,7 @@ export default function BackupSettingsPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => handleDownloadBackup(backup.name)}
                       data-testid={`button-download-${backup.id}`}
                     >
                       <Download className="h-4 w-4 mr-2" />
@@ -138,6 +169,7 @@ export default function BackupSettingsPage() {
                     </Button>
                     <Button
                       size="sm"
+                      onClick={() => handleRestore(backup.name)}
                       data-testid={`button-restore-${backup.id}`}
                     >
                       Restore

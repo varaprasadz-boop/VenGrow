@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, MapPin, Home, IndianRupee, Building2, Building, Map, House, Crown, Briefcase, Handshake, Users, Trees, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   Select,
   SelectContent,
@@ -56,7 +56,8 @@ const defaultCategories = [
 ];
 
 export default function HeroSection({ onSearch }: HeroSectionProps) {
-  const [location, setLocation] = useState("");
+  const [, setLocation] = useLocation();
+  const [searchLocation, setSearchLocation] = useState("");
   const [propertyType, setPropertyType] = useState("all");
   const [transactionType, setTransactionType] = useState("buy");
   const [budget, setBudget] = useState("all");
@@ -66,7 +67,49 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
   });
 
   const handleSearch = () => {
-    onSearch?.({ location, propertyType, transactionType, budget });
+    // Map budget to price range
+    const budgetMap: Record<string, { min?: number; max?: number }> = {
+      "under-25l": { max: 2500000 },
+      "25l-50l": { min: 2500000, max: 5000000 },
+      "50l-1cr": { min: 5000000, max: 10000000 },
+      "1cr-2cr": { min: 10000000, max: 20000000 },
+      "2cr-5cr": { min: 20000000, max: 50000000 },
+      "above-5cr": { min: 50000000 },
+    };
+
+    const budgetRange = budget !== "all" ? budgetMap[budget] : null;
+
+    // Build query parameters
+    const params = new URLSearchParams();
+    
+    // Determine base path based on transaction type
+    let basePath = "/listings";
+    if (transactionType === "buy") {
+      basePath = "/buy";
+    } else if (transactionType === "lease") {
+      basePath = "/lease";
+    } else if (transactionType === "rent") {
+      basePath = "/rent";
+    }
+
+    if (searchLocation) {
+      params.set("location", searchLocation);
+    }
+    if (propertyType && propertyType !== "all") {
+      params.set("category", propertyType);
+    }
+    if (budgetRange?.min) {
+      params.set("minPrice", budgetRange.min.toString());
+    }
+    if (budgetRange?.max) {
+      params.set("maxPrice", budgetRange.max.toString());
+    }
+
+    const queryString = params.toString();
+    const finalPath = queryString ? `${basePath}?${queryString}` : basePath;
+    
+    setLocation(finalPath);
+    onSearch?.({ location: searchLocation, propertyType, transactionType, budget });
   };
 
   const propertyTypes = [
@@ -138,39 +181,45 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
 
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-center gap-6 mb-4">
-            <button
-              className={`text-sm font-medium transition-colors ${
-                transactionType === "buy"
-                  ? "text-primary border-b-2 border-primary pb-1"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              onClick={() => setTransactionType("buy")}
-              data-testid="tab-buy"
-            >
-              Buy
-            </button>
-            <button
-              className={`text-sm font-medium transition-colors ${
-                transactionType === "lease"
-                  ? "text-primary border-b-2 border-primary pb-1"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              onClick={() => setTransactionType("lease")}
-              data-testid="tab-lease"
-            >
-              Lease
-            </button>
-            <button
-              className={`text-sm font-medium transition-colors ${
-                transactionType === "rent"
-                  ? "text-primary border-b-2 border-primary pb-1"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              onClick={() => setTransactionType("rent")}
-              data-testid="tab-rent"
-            >
-              Rent
-            </button>
+            <Link href="/buy">
+              <button
+                className={`text-sm font-medium transition-colors ${
+                  transactionType === "buy"
+                    ? "text-primary border-b-2 border-primary pb-1"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                onClick={() => setTransactionType("buy")}
+                data-testid="tab-buy"
+              >
+                Buy
+              </button>
+            </Link>
+            <Link href="/lease">
+              <button
+                className={`text-sm font-medium transition-colors ${
+                  transactionType === "lease"
+                    ? "text-primary border-b-2 border-primary pb-1"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                onClick={() => setTransactionType("lease")}
+                data-testid="tab-lease"
+              >
+                Lease
+              </button>
+            </Link>
+            <Link href="/rent">
+              <button
+                className={`text-sm font-medium transition-colors ${
+                  transactionType === "rent"
+                    ? "text-primary border-b-2 border-primary pb-1"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                onClick={() => setTransactionType("rent")}
+                data-testid="tab-rent"
+              >
+                Rent
+              </button>
+            </Link>
             <Link href="/login" data-testid="link-post-free-property">
               <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Post Property <span className="text-primary font-bold">FREE</span>
@@ -184,8 +233,13 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
               <Input
                 type="text"
                 placeholder="Enter city, locality..."
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                value={searchLocation}
+                onChange={(e) => setSearchLocation(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearch();
+                  }
+                }}
                 className="border-0 shadow-none focus-visible:ring-0 bg-transparent text-sm"
                 data-testid="input-hero-location"
               />

@@ -1,9 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import {
   Users,
   Building,
@@ -36,6 +38,9 @@ function formatPrice(amount: number): string {
 }
 
 export default function AdminDashboardPage() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const { data: users = [], isLoading: loadingUsers, isError: errorUsers, refetch: refetchUsers } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
   });
@@ -60,6 +65,33 @@ export default function AdminDashboardPage() {
     refetchProperties();
     refetchPayments();
     refetchProfiles();
+  };
+
+  const updateVerificationMutation = useMutation({
+    mutationFn: async ({ sellerId, status }: { sellerId: string; status: string }) => {
+      return apiRequest("PATCH", `/api/sellers/${sellerId}`, { verificationStatus: status });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sellers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Status Updated",
+        description: `Seller verification has been ${variables.status === "verified" ? "approved" : "rejected"}.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to update verification status.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleApproveSeller = (sellerId: string) => {
+    if (confirm("Are you sure you want to approve this seller's verification?")) {
+      updateVerificationMutation.mutate({ sellerId, status: "verified" });
+    }
   };
 
   const stats: DashboardStats = {
@@ -216,7 +248,13 @@ export default function AdminDashboardPage() {
                           </div>
                         </div>
                         <div className="flex gap-2 flex-wrap">
-                          <Button size="sm" data-testid={`button-approve-${approval.id}`}>
+                          <Button 
+                            size="sm" 
+                            data-testid={`button-approve-${approval.id}`}
+                            onClick={() => handleApproveSeller(approval.id)}
+                            disabled={updateVerificationMutation.isPending}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
                             Approve
                           </Button>
                           <Link href={`/admin/seller-approvals`}>

@@ -416,7 +416,7 @@ export default function ManageListingsPage() {
                                 <span className="hidden lg:inline">View</span>
                               </Button>
                             </Link>
-                            <Link href={`/seller/listings/edit/${listing.id}`}>
+                            <Link href={`/seller/property/edit/${listing.id}`}>
                               <Button
                                 variant="outline"
                                 size="sm"

@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import Header from "@/components/Header";
 import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
@@ -7,30 +9,233 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Camera, Save, X } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Camera, Save, X, Loader2, AlertCircle } from "lucide-react";
+import type { User } from "@shared/schema";
+import { validatePhone, cleanPhone } from "@/utils/validation";
 
 export default function ProfilePage() {
+  const [, setLocation] = useLocation();
+  const { user: currentUser } = useAuth();
+  const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const { data: user, isLoading } = useQuery<User>({
+    queryKey: ["/api/auth/me"],
+    enabled: !!currentUser,
+  });
+
   const [formData, setFormData] = useState({
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+91 98765 43210",
-    location: "Mumbai, Maharashtra",
-    bio: "Looking for a 3BHK apartment in Mumbai",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    bio: "",
+  });
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        bio: (user as any).bio || "",
+      });
+    }
+  }, [user]);
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { firstName?: string; lastName?: string; phone?: string; bio?: string }) => {
+      return apiRequest("PATCH", "/api/auth/me", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({
+        title: "Profile updated successfully",
+      });
+      setIsEditing(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update profile",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      return apiRequest("POST", "/api/auth/reset-password", {
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password changed successfully",
+      });
+      setShowPasswordDialog(false);
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to change password",
+        description: error.message || "Please check your current password",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", "/api/auth/me");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Account deleted",
+        description: "Your account has been permanently deleted",
+      });
+      setLocation("/logout");
+    },
+    onError: () => {
+      toast({
+        title: "Failed to delete account",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleSave = () => {
-    console.log("Saving profile:", formData);
-    setIsEditing(false);
+    // Validate phone if provided
+    if (formData.phone && formData.phone.trim()) {
+      if (!validatePhone(formData.phone)) {
+        toast({
+          title: "Invalid phone number",
+          description: "Please enter a valid 10-digit Indian mobile number starting with 6-9.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    const [firstName, ...lastNameParts] = formData.firstName.split(" ");
+    const lastName = lastNameParts.join(" ") || formData.lastName;
+    
+    updateProfileMutation.mutate({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      phone: formData.phone ? cleanPhone(formData.phone) : null,
+      bio: formData.bio,
+    });
   };
 
   const handleCancel = () => {
+    if (user) {
+      setFormData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        bio: (user as any).bio || "",
+      });
+    }
     setIsEditing(false);
   };
 
+  const handleChangePassword = () => {
+    if (!passwordData.currentPassword || !passwordData.newPassword) {
+      toast({
+        title: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+    changePasswordMutation.mutate({
+      currentPassword: passwordData.currentPassword,
+      newPassword: passwordData.newPassword,
+    });
+  };
+
+  const handleDeleteAccount = () => {
+    if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+      deleteAccountMutation.mutate();
+    }
+  };
+
+  const handleChangePhoto = () => {
+    toast({
+      title: "Photo upload",
+      description: "Photo upload functionality will be implemented",
+    });
+  };
+
+  const handleRemovePhoto = () => {
+    toast({
+      title: "Photo removal",
+      description: "Photo removal functionality will be implemented",
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header isLoggedIn={!!currentUser} userType="buyer" />
+        <main className="flex-1 pb-16 lg:pb-8">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Skeleton className="h-10 w-64 mb-8" />
+            <Skeleton className="h-96 w-full" />
+          </div>
+        </main>
+        <BuyerBottomNav />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header isLoggedIn={false} userType="buyer" />
+        <main className="flex-1 pb-16 lg:pb-8 flex items-center justify-center">
+          <Card className="p-8 text-center max-w-md">
+            <AlertCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="font-serif font-bold text-2xl mb-2">Not Logged In</h2>
+            <p className="text-muted-foreground mb-4">
+              Please log in to view your profile
+            </p>
+            <Button onClick={() => setLocation("/login")}>Login</Button>
+          </Card>
+        </main>
+        <BuyerBottomNav />
+      </div>
+    );
+  }
+
+  const displayName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email?.split("@")[0] || "User";
+  const initials = displayName.substring(0, 2).toUpperCase();
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="buyer" />
+      <Header isLoggedIn={!!currentUser} userType="buyer" />
 
       <main className="flex-1 pb-16 lg:pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -48,13 +253,14 @@ export default function ProfilePage() {
               <div className="text-center space-y-4">
                 <div className="relative inline-block">
                   <Avatar className="h-32 w-32">
-                    <AvatarImage src="" alt="Profile" />
-                    <AvatarFallback className="text-2xl">JD</AvatarFallback>
+                    <AvatarImage src={(user as any).avatarUrl || ""} alt="Profile" />
+                    <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
                   </Avatar>
                   {isEditing && (
                     <Button
                       size="icon"
                       className="absolute bottom-0 right-0 h-10 w-10 rounded-full"
+                      onClick={handleChangePhoto}
                       data-testid="button-change-photo"
                     >
                       <Camera className="h-5 w-5" />
@@ -62,14 +268,15 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">{formData.name}</h3>
+                  <h3 className="font-semibold text-lg">{displayName}</h3>
                   <p className="text-sm text-muted-foreground">Buyer</p>
                 </div>
-                {isEditing && (
+                {isEditing && (user as any).avatarUrl && (
                   <Button
                     variant="outline"
                     size="sm"
                     className="w-full"
+                    onClick={handleRemovePhoto}
                     data-testid="button-remove-photo"
                   >
                     Remove Photo
@@ -90,17 +297,31 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-6">
-                {/* Full Name */}
+                {/* First Name */}
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="firstName">First Name</Label>
                   <Input
-                    id="name"
-                    value={formData.name}
+                    id="firstName"
+                    value={formData.firstName}
                     onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
+                      setFormData({ ...formData, firstName: e.target.value })
                     }
                     disabled={!isEditing}
-                    data-testid="input-name"
+                    data-testid="input-first-name"
+                  />
+                </div>
+
+                {/* Last Name */}
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    value={formData.lastName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lastName: e.target.value })
+                    }
+                    disabled={!isEditing}
+                    data-testid="input-last-name"
                   />
                 </div>
 
@@ -111,14 +332,11 @@ export default function ProfilePage() {
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    disabled={!isEditing}
+                    disabled
                     data-testid="input-email"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Your email is verified
+                    {user.isEmailVerified ? "✓ Email verified" : "Email not verified"}
                   </p>
                 </div>
 
@@ -133,25 +351,12 @@ export default function ProfilePage() {
                       setFormData({ ...formData, phone: e.target.value })
                     }
                     disabled={!isEditing}
+                    placeholder="+91 98765 43210"
                     data-testid="input-phone"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Your phone is verified
+                    {user.phone ? "Phone number on file" : "No phone number"}
                   </p>
-                </div>
-
-                {/* Location */}
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) =>
-                      setFormData({ ...formData, location: e.target.value })
-                    }
-                    disabled={!isEditing}
-                    data-testid="input-location"
-                  />
                 </div>
 
                 {/* Bio */}
@@ -173,14 +378,29 @@ export default function ProfilePage() {
                 {/* Action Buttons */}
                 {isEditing && (
                   <div className="flex gap-3 pt-4">
-                    <Button onClick={handleSave} className="flex-1" data-testid="button-save-profile">
-                      <Save className="h-4 w-4 mr-2" />
-                      Save Changes
+                    <Button 
+                      onClick={handleSave} 
+                      className="flex-1" 
+                      disabled={updateProfileMutation.isPending}
+                      data-testid="button-save-profile"
+                    >
+                      {updateProfileMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Changes
+                        </>
+                      )}
                     </Button>
                     <Button
                       variant="outline"
                       onClick={handleCancel}
                       className="flex-1"
+                      disabled={updateProfileMutation.isPending}
                       data-testid="button-cancel-edit"
                     >
                       <X className="h-4 w-4 mr-2" />
@@ -203,7 +423,11 @@ export default function ProfilePage() {
                     Update your password to keep your account secure
                   </p>
                 </div>
-                <Button variant="outline" data-testid="button-change-password">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowPasswordDialog(true)}
+                  data-testid="button-change-password"
+                >
                   Change
                 </Button>
               </div>
@@ -214,14 +438,127 @@ export default function ProfilePage() {
                     Permanently delete your account and all data
                   </p>
                 </div>
-                <Button variant="destructive" data-testid="button-delete-account">
-                  Delete
+                <Button 
+                  variant="destructive" 
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={deleteAccountMutation.isPending}
+                  data-testid="button-delete-account"
+                >
+                  {deleteAccountMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete"
+                  )}
                 </Button>
               </div>
             </div>
           </Card>
         </div>
       </main>
+
+      {/* Change Password Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Enter your current password and choose a new password
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Current Password</Label>
+              <Input
+                id="current-password"
+                type="password"
+                value={passwordData.currentPassword}
+                onChange={(e) =>
+                  setPasswordData({ ...passwordData, currentPassword: e.target.value })
+                }
+                data-testid="input-current-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) =>
+                  setPasswordData({ ...passwordData, newPassword: e.target.value })
+                }
+                data-testid="input-new-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) =>
+                  setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                }
+                data-testid="input-confirm-password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleChangePassword}
+              disabled={changePasswordMutation.isPending}
+              data-testid="button-confirm-password-change"
+            >
+              {changePasswordMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Changing...
+                </>
+              ) : (
+                "Change Password"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Account Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Account</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete your account and remove all your data.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteAccount}
+              disabled={deleteAccountMutation.isPending}
+              data-testid="button-confirm-delete"
+            >
+              {deleteAccountMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Account"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <BuyerBottomNav />
     </div>

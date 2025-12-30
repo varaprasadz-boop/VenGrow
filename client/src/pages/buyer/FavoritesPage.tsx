@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Property } from "@shared/schema";
 
 export default function FavoritesPage() {
+  const { toast } = useToast();
   const [selectedTab, setSelectedTab] = useState("all");
   const { user } = useAuth();
   const { toast } = useToast();
@@ -108,7 +109,30 @@ export default function FavoritesPage() {
             </TabsList>
 
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" data-testid="button-share-favorites">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={async () => {
+                  const url = window.location.href;
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({
+                        title: "My Favorite Properties",
+                        text: "Check out my favorite properties on VenGrow",
+                        url: url,
+                      });
+                    } catch (err) {
+                      // User cancelled
+                    }
+                  } else {
+                    await navigator.clipboard.writeText(url);
+                    toast({
+                      title: "Link copied to clipboard",
+                    });
+                  }
+                }}
+                data-testid="button-share-favorites"
+              >
                 <Share2 className="h-4 w-4 mr-2" />
                 Share List
               </Button>

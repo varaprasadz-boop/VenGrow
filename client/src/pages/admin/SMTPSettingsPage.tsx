@@ -15,6 +15,7 @@ import {
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { validateEmail } from "@/utils/validation";
 
 interface SMTPSettings {
   host: string | null;
@@ -77,6 +78,19 @@ export default function SMTPSettingsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email if provided
+    if (formData.fromEmail && formData.fromEmail.trim()) {
+      if (!validateEmail(formData.fromEmail.trim())) {
+        toast({
+          title: "Invalid email format",
+          description: "Please enter a valid email address for the 'From Email' field.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     saveMutation.mutate(formData);
   };
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { validateEmail, validatePhone, cleanPhone, normalizeEmail } from "@/utils/validation";
 
 import { Card } from "@/components/ui/card";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -468,13 +469,18 @@ export default function CreatePropertyPage() {
         // User can add photos later or proceed to next step
         return true;
       case 4:
-        return !!(
-          formData.contactName &&
-          formData.contactPhone &&
-          formData.contactEmail &&
-          formData.agreedToTerms &&
-          formData.verifiedInfo
-        );
+        if (!formData.contactName || !formData.contactPhone || !formData.contactEmail ||
+            !formData.agreedToTerms || !formData.verifiedInfo) {
+          return false;
+        }
+        // Validate email and phone format
+        if (!validateEmail(formData.contactEmail.trim())) {
+          return false;
+        }
+        if (!validatePhone(formData.contactPhone)) {
+          return false;
+        }
+        return true;
       default:
         return false;
     }
@@ -493,11 +499,40 @@ export default function CreatePropertyPage() {
       setCurrentStep(prev => Math.min(prev + 1, 4));
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields before proceeding.",
-        variant: "destructive",
-      });
+      // Provide specific error messages for step 4
+      if (currentStep === 4) {
+        if (!formData.contactName || !formData.contactPhone || !formData.contactEmail) {
+          toast({
+            title: "Contact Information Required",
+            description: "Please fill in all contact fields.",
+            variant: "destructive",
+          });
+        } else if (!validateEmail(formData.contactEmail.trim())) {
+          toast({
+            title: "Invalid Email Format",
+            description: "Please enter a valid email address.",
+            variant: "destructive",
+          });
+        } else if (!validatePhone(formData.contactPhone)) {
+          toast({
+            title: "Invalid Phone Number",
+            description: "Please enter a valid 10-digit Indian mobile number starting with 6-9.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Missing Information",
+            description: "Please verify information and accept terms.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in all required fields before proceeding.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -508,11 +543,31 @@ export default function CreatePropertyPage() {
 
   const handleSubmit = async () => {
     if (!validateStep(4)) {
-      toast({
-        title: "Missing Information",
-        description: "Please complete all required fields and agreements.",
-        variant: "destructive",
-      });
+      if (!formData.contactName || !formData.contactPhone || !formData.contactEmail) {
+        toast({
+          title: "Contact Information Required",
+          description: "Please fill in all contact fields.",
+          variant: "destructive",
+        });
+      } else if (!validateEmail(formData.contactEmail.trim())) {
+        toast({
+          title: "Invalid Email Format",
+          description: "Please enter a valid email address.",
+          variant: "destructive",
+        });
+      } else if (!validatePhone(formData.contactPhone)) {
+        toast({
+          title: "Invalid Phone Number",
+          description: "Please enter a valid 10-digit Indian mobile number starting with 6-9.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Missing Information",
+          description: "Please complete all required fields and agreements.",
+          variant: "destructive",
+        });
+      }
       return;
     }
 
@@ -544,6 +599,9 @@ export default function CreatePropertyPage() {
       amenities: formData.amenities,
       highlights: formData.highlights,
       projectId: formData.projectId || null,
+      contactName: formData.contactName?.trim() || null,
+      contactPhone: formData.contactPhone ? cleanPhone(formData.contactPhone) : null,
+      contactEmail: formData.contactEmail ? normalizeEmail(formData.contactEmail) : null,
     };
 
     if (isEditMode) {

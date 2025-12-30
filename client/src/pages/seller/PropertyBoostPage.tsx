@@ -1,42 +1,118 @@
-
+import { useParams, useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Eye, Users, Clock } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TrendingUp, Eye, Users, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { Property, Inquiry } from "@shared/schema";
+
+interface BoostPlan {
+  id: string;
+  name: string;
+  duration: number; // days
+  price: number;
+  features: string[];
+  popular?: boolean;
+}
 
 export default function PropertyBoostPage() {
-  const property = {
-    id: "123",
-    title: "Luxury 3BHK Apartment",
-    location: "Bandra West, Mumbai",
-    currentViews: 145,
-    currentInquiries: 8,
+  const params = useParams();
+  const [, setLocation] = useLocation();
+  const propertyId = params.id;
+  const { toast } = useToast();
+
+  const { data: property, isLoading: propertyLoading } = useQuery<Property>({
+    queryKey: [`/api/properties/${propertyId}`],
+    enabled: !!propertyId,
+  });
+
+  const { data: inquiries = [], isLoading: inquiriesLoading } = useQuery<Inquiry[]>({
+    queryKey: [`/api/properties/${propertyId}/inquiries`],
+    enabled: !!propertyId,
+  });
+
+  const boostPurchaseMutation = useMutation({
+    mutationFn: async (planId: string) => {
+      return apiRequest("POST", `/api/properties/${propertyId}/boost`, { planId });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/properties/${propertyId}`] });
+      toast({ title: "Boost purchased successfully!" });
+      // Redirect to payment if needed
+      if (data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+      }
+    },
+    onError: () => {
+      toast({ title: "Failed to purchase boost", variant: "destructive" });
+    },
+  });
+
+  const handleBoost = (planId: string) => {
+    if (!propertyId) {
+      toast({ title: "Property ID is missing", variant: "destructive" });
+      return;
+    }
+    boostPurchaseMutation.mutate(planId);
   };
 
-  const boostPlans = [
+  const boostPlans: BoostPlan[] = [
     {
       id: "basic",
       name: "Basic Boost",
-      duration: "7 days",
-      price: "₹999",
+      duration: 7,
+      price: 999,
       features: ["Top search results", "2x visibility", "+50% inquiries"],
     },
     {
       id: "premium",
       name: "Premium Boost",
-      duration: "15 days",
-      price: "₹1,799",
+      duration: 15,
+      price: 1799,
       features: ["Featured listing", "4x visibility", "+100% inquiries", "Social media promotion"],
       popular: true,
     },
     {
       id: "ultimate",
       name: "Ultimate Boost",
-      duration: "30 days",
-      price: "₹2,999",
+      duration: 30,
+      price: 2999,
       features: ["Homepage banner", "6x visibility", "+150% inquiries", "Priority support"],
     },
   ];
+
+  const formatPrice = (price: number) => {
+    return `₹${price.toLocaleString("en-IN")}`;
+  };
+
+  if (propertyLoading || inquiriesLoading) {
+    return (
+      <main className="flex-1">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Skeleton className="h-10 w-64 mb-8" />
+          <div className="grid grid-cols-2 gap-6 mb-8">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-96" />
+            ))}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  const currentViews = property?.viewCount || 0;
+  const currentInquiries = inquiries.length;
+  const propertyTitle = property?.title || "Property";
+  const propertyLocation = property 
+    ? `${property.locality || ''}, ${property.city}`.replace(/^, /, '')
+    : "";
 
   return (
     <main className="flex-1">
@@ -47,7 +123,7 @@ export default function PropertyBoostPage() {
               Boost Your Property
             </h1>
             <p className="text-muted-foreground">
-              Increase visibility and get more inquiries
+              {propertyTitle} {propertyLocation ? `• ${propertyLocation}` : ''}
             </p>
           </div>
 
@@ -59,7 +135,7 @@ export default function PropertyBoostPage() {
                   <Eye className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold">{property.currentViews}</p>
+                  <p className="text-3xl font-bold">{currentViews.toLocaleString()}</p>
                   <p className="text-sm text-muted-foreground">Current Views</p>
                 </div>
               </div>
@@ -70,7 +146,7 @@ export default function PropertyBoostPage() {
                   <Users className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold">{property.currentInquiries}</p>
+                  <p className="text-3xl font-bold">{currentInquiries}</p>
                   <p className="text-sm text-muted-foreground">Total Inquiries</p>
                 </div>
               </div>
@@ -89,8 +165,8 @@ export default function PropertyBoostPage() {
                 )}
                 <h3 className="font-serif font-bold text-2xl mb-2">{plan.name}</h3>
                 <div className="flex items-baseline gap-2 mb-6">
-                  <span className="text-4xl font-bold text-primary">{plan.price}</span>
-                  <span className="text-muted-foreground">/{plan.duration}</span>
+                  <span className="text-4xl font-bold text-primary">{formatPrice(plan.price)}</span>
+                  <span className="text-muted-foreground">/{plan.duration} days</span>
                 </div>
 
                 <ul className="space-y-3 mb-8">
@@ -106,8 +182,17 @@ export default function PropertyBoostPage() {
                   className="w-full"
                   variant={plan.popular ? "default" : "outline"}
                   data-testid={`button-boost-${plan.id}`}
+                  onClick={() => handleBoost(plan.id)}
+                  disabled={boostPurchaseMutation.isPending}
                 >
-                  Boost Now
+                  {boostPurchaseMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Boost Now"
+                  )}
                 </Button>
               </Card>
             ))}
