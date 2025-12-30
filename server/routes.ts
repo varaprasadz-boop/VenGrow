@@ -2601,11 +2601,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verify webhook signature
+      // Razorpay signs the raw request body, not the parsed JSON
+      // Using req.rawBody ensures we verify against the exact bytes Razorpay signed
       const signature = req.headers["x-razorpay-signature"] as string;
-      const body = JSON.stringify(req.body);
+      const rawBody = (req as any).rawBody;
+      
+      if (!rawBody) {
+        console.log("[Razorpay Webhook] Raw body not available for signature verification");
+        return res.status(400).json({ error: "Raw body required for signature verification" });
+      }
+      
       const expectedSignature = crypto
         .createHmac("sha256", webhookSecret)
-        .update(body)
+        .update(rawBody)
         .digest("hex");
       
       if (signature !== expectedSignature) {
@@ -2626,9 +2634,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const orderId = payment.order_id;
             const paymentId = payment.id;
             
-            // Find and update our payment record
-            const payments = await storage.getAllPayments();
-            const dbPayment = payments.find(p => p.razorpayOrderId === orderId);
+            // Find and update our payment record by orderId
+            // Using direct query instead of loading all payments for better performance
+            const dbPayment = await storage.getPaymentByRazorpayOrderId(orderId);
             
             if (dbPayment) {
               await storage.updatePayment(dbPayment.id, {
@@ -2667,8 +2675,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const orderId = payment.order_id;
             const errorDesc = payment.error_description || "Payment failed";
             
-            const payments = await storage.getAllPayments();
-            const dbPayment = payments.find(p => p.razorpayOrderId === orderId);
+            // Find payment by orderId using direct query for better performance
+            const dbPayment = await storage.getPaymentByRazorpayOrderId(orderId);
             
             if (dbPayment) {
               await storage.updatePayment(dbPayment.id, {
@@ -3499,6 +3507,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const invoices = payments.map((payment) => ({
         id: payment.id,
         invoiceNumber: `VG-INV-${payment.id.slice(0, 8).toUpperCase()}`,
+        sellerId: payment.userId,
+        packageId: payment.packageId || undefined,
         amount: payment.amount,
         status: payment.status,
         paymentMethod: payment.paymentMethod,

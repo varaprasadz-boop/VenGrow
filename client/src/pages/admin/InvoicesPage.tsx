@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
+import InvoicePreview, { downloadInvoiceAsPDF } from "@/components/InvoicePreview";
 import {
   Table,
   TableBody,
@@ -496,8 +496,8 @@ function InvoicePreviewDialog({
 export default function InvoicesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const { data: invoices = [], isLoading, isError, refetch } = useQuery<Invoice[]>({
     queryKey: ["/api/admin/invoices"],
@@ -515,6 +515,12 @@ export default function InvoicesPage() {
     queryKey: ["/api/packages"],
   });
 
+  // Fetch invoice settings
+  const { data: invoiceSettings = null } = useQuery<any>({
+    queryKey: ["/api/admin/invoice-settings"],
+  });
+
+  // Create maps for seller, user, and package lookups
   const sellerMap = useMemo(() => {
     const map = new Map<string, SellerProfile>();
     sellers.forEach(seller => {
@@ -720,151 +726,142 @@ export default function InvoicesPage() {
                 <p className="text-sm text-muted-foreground">Pending Amount</p>
               </div>
             </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
-                <CheckCircle className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{invoices.filter(i => i.paidAt || i.status === "completed").length}</p>
-                <p className="text-sm text-muted-foreground">Paid Invoices</p>
-              </div>
+
+            <div className="border rounded-lg overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Invoice #</TableHead>
+                    <TableHead>Seller</TableHead>
+                    <TableHead>Package</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-center">Date</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredInvoices.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-16">
+                        <Receipt className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                        <h3 className="font-semibold text-xl mb-2">No Invoices Found</h3>
+                        <p className="text-muted-foreground">
+                          {searchQuery || statusFilter !== "all"
+                            ? "Try adjusting your search or filter criteria"
+                            : "No invoices have been created yet."}
+                        </p>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredInvoices.map((invoice) => {
+                      const seller = sellerMap.get(invoice.sellerId);
+                      const sellerName = seller?.companyName || "Unknown Seller";
+                      const sellerUser = seller ? userMap.get(seller.userId) : null;
+                      const sellerEmail = sellerUser?.email || "";
+                      
+                      return (
+                        <TableRow key={invoice.id} data-testid={`row-invoice-${invoice.id}`}>
+                          <TableCell>
+                            <span className="font-mono font-medium">{invoice.invoiceNumber}</span>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{sellerName}</p>
+                              <p className="text-sm text-muted-foreground">{sellerEmail || invoice.sellerId}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{packageMap.get(invoice.packageId) || "Unknown Package"}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div>
+                              <p className="font-semibold">{formatPrice(invoice.amount ?? 0)}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Payment: {invoice.paymentMethod || "N/A"}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {invoice.createdAt ? format(new Date(invoice.createdAt), "MMM d, yyyy") : "N/A"}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {invoice.status === "completed" ? (
+                              <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Paid
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Pending
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                data-testid={`button-view-${invoice.id}`}
+                                onClick={() => {
+                                  // Fetch full invoice details with seller info
+                                  const fullInvoice = {
+                                    ...invoice,
+                                    seller: sellerUser ? {
+                                      firstName: sellerUser.firstName || undefined,
+                                      lastName: sellerUser.lastName || undefined,
+                                      email: sellerUser.email || undefined,
+                                      phone: sellerUser.phone || undefined,
+                                    } : undefined,
+                                    package: packages.find(p => p.id === invoice.packageId) || undefined,
+                                  };
+                                  setPreviewInvoice(fullInvoice);
+                                  setIsPreviewOpen(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              {invoice.status === "completed" && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  data-testid={`button-download-${invoice.id}`}
+                                  onClick={() => {
+                                    const fullInvoice = {
+                                      ...invoice,
+                                      seller: sellerUser ? {
+                                        firstName: sellerUser.firstName || undefined,
+                                        lastName: sellerUser.lastName || undefined,
+                                        email: sellerUser.email || undefined,
+                                        phone: sellerUser.phone || undefined,
+                                      } : undefined,
+                                      package: packages.find(p => p.id === invoice.packageId) || undefined,
+                                    };
+                                    downloadInvoiceAsPDF(fullInvoice, invoiceSettings);
+                                  }}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
             </div>
           </Card>
         </div>
 
-        <Card className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by invoice number, seller name, or email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-                data-testid="input-search"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]" data-testid="select-status">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Invoices</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="border rounded-lg overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Invoice #</TableHead>
-                  <TableHead>Seller</TableHead>
-                  <TableHead>Package</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-center">Date</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredInvoices.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-16">
-                      <Receipt className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                      <h3 className="font-semibold text-xl mb-2">No Invoices Found</h3>
-                      <p className="text-muted-foreground">
-                        {searchQuery || statusFilter !== "all"
-                          ? "Try adjusting your search or filter criteria"
-                          : "No invoices have been created yet."}
-                      </p>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredInvoices.map((invoice) => {
-                    const { name: sellerName, email: sellerEmail } = getSellerInfo(invoice);
-                    const status = invoice.paidAt || invoice.status === "completed" ? "paid" : "pending";
-                    
-                    return (
-                      <TableRow key={invoice.id} data-testid={`row-invoice-${invoice.id}`}>
-                        <TableCell>
-                          <span className="font-mono font-medium">{invoice.invoiceNumber}</span>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{sellerName}</p>
-                            <p className="text-sm text-muted-foreground">{sellerEmail || invoice.sellerId}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{packageMap.get(invoice.packageId) || "Unknown Package"}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div>
-                            <p className="font-semibold">{formatPrice(invoice.totalAmount || invoice.amount || 0)}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {invoice.paymentMode || invoice.paymentMethod || "N/A"}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {invoice.invoiceDate || invoice.createdAt ? format(new Date(invoice.invoiceDate || invoice.createdAt), "MMM d, yyyy") : "N/A"}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {status === "paid" ? (
-                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Paid
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-500">
-                              <Clock className="h-3 w-3 mr-1" />
-                              Pending
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => handleViewInvoice(invoice)}
-                              data-testid={`button-view-${invoice.id}`}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => handleDownloadInvoice(invoice)}
-                              data-testid={`button-download-${invoice.id}`}
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      </div>
-
-      <InvoicePreviewDialog
-        invoice={selectedInvoice}
-        open={previewOpen}
-        onOpenChange={setPreviewOpen}
-        sellerName={selectedInvoice ? getSellerInfo(selectedInvoice).name : ""}
-        sellerEmail={selectedInvoice ? getSellerInfo(selectedInvoice).email : ""}
-        packageName={selectedInvoice ? packageMap.get(selectedInvoice.packageId) || "Unknown" : ""}
-      />
-    </main>
-  );
+        <InvoicePreview
+          invoice={previewInvoice}
+          settings={invoiceSettings}
+          open={isPreviewOpen}
+          onOpenChange={setIsPreviewOpen}
+        />
+      </main>
+    );
 }

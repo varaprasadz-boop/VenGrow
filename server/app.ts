@@ -120,8 +120,10 @@ export default async function runApp(
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    // Log error for debugging but don't throw after sending response
+    // Throwing after response is sent can cause unhandled promise rejections
+    console.error("Error handler:", err);
     res.status(status).json({ message });
-    throw err;
   });
 
   // importantly run the final setup after setting up all the other routes so
