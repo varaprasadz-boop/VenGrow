@@ -726,9 +726,12 @@ export default function InvoicesPage() {
                 <p className="text-sm text-muted-foreground">Pending Amount</p>
               </div>
             </div>
+          </Card>
+        </div>
 
-            <div className="border rounded-lg overflow-x-auto">
-              <Table>
+        <Card className="p-6">
+          <div className="border rounded-lg overflow-x-auto">
+            <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Invoice #</TableHead>

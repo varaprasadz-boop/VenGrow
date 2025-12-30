@@ -17,7 +17,6 @@ export default function FavoritesPage() {
   const { toast } = useToast();
   const [selectedTab, setSelectedTab] = useState("all");
   const { user } = useAuth();
-  const { toast } = useToast();
 
   const { data: favorites = [], isLoading } = useQuery<Property[]>({
     queryKey: ["/api/me/favorites"],

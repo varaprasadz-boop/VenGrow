@@ -4526,7 +4526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get property and buyer details for email
       const property = await storage.getProperty(appointment.propertyId);
       const buyerUser = await storage.getUser(appointment.buyerId);
-      const sellerProfile = await storage.getSellerProfile(appointment.sellerId);
+      const sellerProfileForEmail = await storage.getSellerProfile(appointment.sellerId);
       
       // Notify buyer via in-app notification
       await storage.createNotification({
@@ -4538,7 +4538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Send email to buyer
-      if (buyerUser?.email && property && sellerProfile) {
+      if (buyerUser?.email && property && sellerProfileForEmail) {
         const dateTime = `${new Date(appointment.scheduledDate).toLocaleDateString('en-IN')} at ${appointment.scheduledTime}`;
         emailService.sendTemplatedEmail(
           "appointment_confirmed",
@@ -4547,7 +4547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             buyerName: buyerUser.firstName || "Buyer",
             propertyTitle: property.title,
             dateTime: dateTime,
-            sellerName: sellerProfile.companyName || "Seller",
+            sellerName: sellerProfileForEmail.companyName || "Seller",
             propertyAddress: property.address || property.location || "Property location",
           }
         ).catch(err => console.error("[Email] Appointment confirmation error:", err));
@@ -4586,14 +4586,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get appointment details for email
       const property = await storage.getProperty(appointment.propertyId);
       const buyerUser = await storage.getUser(appointment.buyerId);
-      const sellerProfile = await storage.getSellerProfile(appointment.sellerId);
-      const sellerUser = sellerProfile ? await storage.getUser(sellerProfile.userId) : null;
+      const sellerProfileForEmail = await storage.getSellerProfile(appointment.sellerId);
+      const sellerUser = sellerProfileForEmail ? await storage.getUser(sellerProfileForEmail.userId) : null;
       
       // Determine who cancelled and notify the other party
       const cancelledBy = userId === appointment.buyerId ? "buyer" : "seller";
       const cancelledByName = cancelledBy === "buyer" 
         ? (buyerUser?.firstName || "Buyer")
-        : (sellerProfile?.companyName || sellerUser?.firstName || "Seller");
+        : (sellerProfileForEmail?.companyName || sellerUser?.firstName || "Seller");
       
       // Send email to the other party
       if (cancelledBy === "buyer" && sellerUser?.email && property) {
@@ -4602,7 +4602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "appointment_cancelled",
           sellerUser.email,
           {
-            recipientName: sellerProfile.companyName || sellerUser.firstName || "Seller",
+            recipientName: sellerProfileForEmail.companyName || sellerUser.firstName || "Seller",
             propertyTitle: property.title,
             dateTime: dateTime,
             cancelledBy: cancelledByName,

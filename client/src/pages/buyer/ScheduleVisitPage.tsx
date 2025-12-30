@@ -506,6 +506,7 @@ export default function ScheduleVisitPage() {
                 </div>
               </Card>
             </div>
+            )}
           </div>
         </div>
       </main>

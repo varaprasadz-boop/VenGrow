@@ -254,7 +254,6 @@ export default function PropertyTourBookingPage() {
                         aria-required="true"
                       />
                     </div>
-                  </div>
                   </form>
                 </Card>
               )}

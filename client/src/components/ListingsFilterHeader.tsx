@@ -190,12 +190,6 @@ export default function ListingsFilterHeader({ filters = {}, onFilterChange, onO
     setLocation(basePath);
   };
 
-  const formatPrice = (value: number) => {
-    if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)} Cr`;
-    if (value >= 100000) return `₹${(value / 100000).toFixed(0)} L`;
-    return `₹${value.toLocaleString('en-IN')}`;
-  };
-
   const cities = ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai", "Pune", "Gurgaon"];
   const bhkOptions = ["1 BHK", "2 BHK", "3 BHK", "4+ BHK"];
 
