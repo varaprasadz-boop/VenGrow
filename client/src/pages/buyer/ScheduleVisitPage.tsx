@@ -75,37 +75,107 @@ export default function ScheduleVisitPage() {
       }
     },
     onError: (error: any) => {
+      const errorMessage = error?.response?.data?.error || error?.message || "Failed to schedule visit";
       toast({
         title: "Failed to schedule visit",
-        description: error.message || "Please try again",
+        description: errorMessage,
         variant: "destructive",
       });
     },
   });
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhone = (phone: string): boolean => {
+    const cleaned = phone.replace(/\D/g, "");
+    return cleaned.length === 10 && /^[6-9]\d{9}$/.test(cleaned);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!propertyId) {
       toast({
         title: "Property ID missing",
+        description: "Please go back and select a property.",
         variant: "destructive",
       });
       return;
     }
-    if (!formData.date || !formData.time) {
+    
+    if (!formData.date) {
       toast({
-        title: "Please select date and time",
+        title: "Date is required",
         variant: "destructive",
       });
       return;
     }
-    if (!formData.name || !formData.email || !formData.phone) {
+    
+    const selectedDate = new Date(formData.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (selectedDate < today) {
       toast({
-        title: "Please fill in all contact details",
+        title: "Invalid date",
+        description: "Please select a future date.",
         variant: "destructive",
       });
       return;
     }
+    
+    if (!formData.time) {
+      toast({
+        title: "Time is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!formData.name || !formData.name.trim()) {
+      toast({
+        title: "Name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!formData.email || !formData.email.trim()) {
+      toast({
+        title: "Email is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!validateEmail(formData.email)) {
+      toast({
+        title: "Invalid email format",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!formData.phone || !formData.phone.trim()) {
+      toast({
+        title: "Phone is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!validatePhone(formData.phone)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid 10-digit phone number.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     scheduleMutation.mutate({
       propertyId,
       scheduledDate: formData.date,
@@ -245,8 +315,8 @@ export default function ScheduleVisitPage() {
 
                   {/* Date & Time */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="date">Preferred Date</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Preferred Date *</Label>
                       <div className="relative">
                         <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -262,8 +332,8 @@ export default function ScheduleVisitPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="time">Preferred Time</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="time">Preferred Time *</Label>
                       <div className="relative">
                         <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <select
@@ -288,8 +358,8 @@ export default function ScheduleVisitPage() {
 
                   {/* Contact Details */}
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Your Name</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Your Name *</Label>
                       <Input
                         id="name"
                         placeholder="Full name"
@@ -302,8 +372,8 @@ export default function ScheduleVisitPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email *</Label>
                         <Input
                           id="email"
                           type="email"

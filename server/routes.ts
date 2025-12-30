@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { randomUUID } from "crypto";
@@ -40,6 +40,41 @@ function broadcastToUser(userId: string, message: any) {
       }
     });
   }
+}
+
+// Simple in-memory rate limiter for forms
+const formRateLimit = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(identifier: string, maxRequests: number = 5, windowMs: number = 15 * 60 * 1000): boolean {
+  const now = Date.now();
+  const record = formRateLimit.get(identifier);
+  
+  if (!record || now > record.resetTime) {
+    formRateLimit.set(identifier, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+  
+  if (record.count >= maxRequests) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
+
+function getRateLimitMiddleware(maxRequests: number = 5, windowMs: number = 15 * 60 * 1000) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const identifier = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    
+    if (!checkRateLimit(identifier, maxRequests, windowMs)) {
+      return res.status(429).json({ 
+        error: "Too many requests. Please try again later.",
+        retryAfter: Math.ceil(windowMs / 1000)
+      });
+    }
+    
+    next();
+  };
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1960,7 +1995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create inquiry
-  app.post("/api/inquiries", async (req: Request, res: Response) => {
+  app.post("/api/inquiries", getRateLimitMiddleware(5, 15 * 60 * 1000), async (req: Request, res: Response) => {
     try {
       const { propertyId, userId, name, email, phone, message } = req.body;
       
@@ -2039,9 +2074,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.status(201).json(inquiry);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create inquiry:", error);
-      res.status(500).json({ error: "Failed to create inquiry" });
+      const errorMessage = error?.message || "Failed to create inquiry";
+      res.status(500).json({ error: errorMessage });
     }
   });
 
@@ -4088,16 +4124,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create appointment (schedule a visit)
-  app.post("/api/appointments", isAuthenticated, async (req: any, res: Response) => {
+  app.post("/api/appointments", isAuthenticated, getRateLimitMiddleware(10, 15 * 60 * 1000), async (req: any, res: Response) => {
     try {
       const userId = getAuthenticatedUserId(req);
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       
-      const { propertyId, scheduledDate, scheduledTime, notes, buyerName, buyerPhone, buyerEmail } = req.body;
+      const { propertyId, scheduledDate, scheduledTime, visitType, notes, buyerName, buyerPhone, buyerEmail } = req.body;
       
       if (!propertyId || !scheduledDate || !scheduledTime) {
         return res.status(400).json({ error: "Property ID, date and time are required" });
       }
+      
+      // Validate visitType
+      const validVisitType = visitType === "virtual" ? "virtual" : "physical";
       
       // Get property to find seller
       const property = await storage.getProperty(propertyId);
@@ -4111,6 +4150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sellerId: property.sellerId,
         scheduledDate: new Date(scheduledDate),
         scheduledTime,
+        visitType: validVisitType,
         notes,
         buyerName,
         buyerPhone,
@@ -4159,9 +4199,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.status(201).json(appointment);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating appointment:", error);
-      res.status(500).json({ error: "Failed to create appointment" });
+      const errorMessage = error?.message || "Failed to create appointment";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // ============================================
+  // Contact Form Endpoints
+  // ============================================
+
+  // Create contact message
+  app.post("/api/contact", getRateLimitMiddleware(5, 15 * 60 * 1000), async (req: Request, res: Response) => {
+    try {
+      const { name, email, phone, subject, message } = req.body;
+      const userId = (req as any).session?.userId || null;
+
+      // Validation
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: "Name is required" });
+      }
+      if (!email || !email.trim()) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      if (!validateEmail(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+      if (!message || !message.trim()) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      if (phone && phone.trim()) {
+        const cleanedPhone = phone.replace(/\D/g, "");
+        if (cleanedPhone && !validatePhone(cleanedPhone)) {
+          return res.status(400).json({ error: "Invalid phone number format" });
+        }
+      }
+
+      const contactMessage = await storage.createContactMessage({
+        userId: userId || undefined,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone?.trim() || null,
+        subject: subject?.trim() || null,
+        message: message.trim(),
+        status: "new",
+      });
+
+      // Send email notification to admin (async, don't wait)
+      const adminEmail = process.env.ADMIN_EMAIL || process.env.CONTACT_EMAIL;
+      if (adminEmail) {
+        emailService.sendTemplatedEmail(
+          adminEmail,
+          "admin_notification",
+          {
+            subject: `New Contact Form Submission: ${subject || "General Inquiry"}`,
+            name: "Admin",
+            message: `You have received a new contact form submission:\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || "N/A"}\nSubject: ${subject || "General Inquiry"}\n\nMessage:\n${message}`,
+          }
+        ).catch(err => console.error("[Email] Contact form notification error:", err));
+      }
+
+      res.status(201).json(contactMessage);
+    } catch (error: any) {
+      console.error("Failed to create contact message:", error);
+      const errorMessage = error?.message || "Failed to submit contact form";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // Get contact messages (admin only)
+  app.get("/api/contact", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { status } = req.query;
+      const messages = await storage.getContactMessages({ status: status as string });
+      res.json(messages);
+    } catch (error) {
+      console.error("Failed to get contact messages:", error);
+      res.status(500).json({ error: "Failed to get contact messages" });
     }
   });
 

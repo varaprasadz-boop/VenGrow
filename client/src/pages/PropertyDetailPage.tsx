@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams } from "wouter";
+import { useState, useEffect } from "react";
+import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -74,6 +74,7 @@ function YouTubeEmbed({ url }: { url: string }) {
 
 export default function PropertyDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState(0);
@@ -164,23 +165,77 @@ export default function PropertyDetailPage() {
       // Invalidate inquiries cache
       queryClient.invalidateQueries({ queryKey: ["/api/me/inquiries"] });
     },
-    onError: () => {
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.error || error?.message || "Failed to send inquiry";
       toast({
         title: "Failed to send inquiry",
-        description: "Please try again later.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
   });
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhone = (phone: string): boolean => {
+    if (!phone || !phone.trim()) return true; // Phone is optional
+    const cleaned = phone.replace(/\D/g, "");
+    return cleaned.length === 10 && /^[6-9]\d{9}$/.test(cleaned);
+  };
+
   const handleInquiry = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic validation
-    if (!inquiryName.trim() || !inquiryEmail.trim() || !inquiryMessage.trim()) {
+    // Validation
+    if (!inquiryName.trim()) {
       toast({
-        title: "Please fill in required fields",
-        description: "Name, email, and message are required.",
+        title: "Name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!inquiryEmail.trim()) {
+      toast({
+        title: "Email is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!validateEmail(inquiryEmail)) {
+      toast({
+        title: "Invalid email format",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (inquiryPhone && !validatePhone(inquiryPhone)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid 10-digit phone number.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!inquiryMessage.trim()) {
+      toast({
+        title: "Message is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (inquiryMessage.trim().length < 10) {
+      toast({
+        title: "Message too short",
+        description: "Please provide more details (at least 10 characters).",
         variant: "destructive",
       });
       return;
@@ -198,6 +253,7 @@ export default function PropertyDetailPage() {
         propertyId: id,
         scheduledDate: visitDate,
         scheduledTime: visitTime,
+        visitType: "physical", // Default to physical for modal (can add selector later)
         buyerName: visitName,
         buyerPhone: visitPhone,
         buyerEmail: visitEmail,
@@ -218,10 +274,11 @@ export default function PropertyDetailPage() {
       setVisitNotes("");
       queryClient.invalidateQueries({ queryKey: ["/api/me/appointments"] });
     },
-    onError: () => {
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.error || error?.message || "Failed to schedule visit";
       toast({
         title: "Failed to schedule visit",
-        description: "Please try again later.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -233,16 +290,74 @@ export default function PropertyDetailPage() {
     if (!user) {
       toast({
         title: "Please log in",
-        description: "You need to be logged in to schedule a visit.",
+        description: "You need to be logged in to schedule a visit. Redirecting to login...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        setLocation(`/login?redirect=${encodeURIComponent(`/property/${id}`)}`);
+      }, 1500);
+      return;
+    }
+    
+    // Validation
+    if (!visitDate) {
+      toast({
+        title: "Date is required",
         variant: "destructive",
       });
       return;
     }
     
-    if (!visitDate || !visitTime || !visitName.trim() || !visitPhone.trim()) {
+    const selectedDate = new Date(visitDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (selectedDate < today) {
       toast({
-        title: "Please fill in required fields",
-        description: "Date, time, name, and phone are required.",
+        title: "Invalid date",
+        description: "Please select a future date.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!visitTime) {
+      toast({
+        title: "Time is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!visitName.trim()) {
+      toast({
+        title: "Name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!visitPhone.trim()) {
+      toast({
+        title: "Phone is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const cleanedPhone = visitPhone.replace(/\D/g, "");
+    if (!/^[6-9]\d{9}$/.test(cleanedPhone)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid 10-digit phone number.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (visitEmail && !validateEmail(visitEmail)) {
+      toast({
+        title: "Invalid email format",
+        description: "Please enter a valid email address.",
         variant: "destructive",
       });
       return;
@@ -255,9 +370,13 @@ export default function PropertyDetailPage() {
     if (!user) {
       toast({
         title: "Please log in",
-        description: "You need to be logged in to schedule a visit.",
+        description: "You need to be logged in to schedule a visit. Redirecting to login...",
         variant: "destructive",
       });
+      // Redirect to login with return URL
+      setTimeout(() => {
+        setLocation(`/login?redirect=${encodeURIComponent(`/property/${id}`)}`);
+      }, 1500);
       return;
     }
     // Pre-fill with user data
@@ -290,13 +409,13 @@ export default function PropertyDetailPage() {
   };
 
   // Pre-fill form with user data if logged in
-  useState(() => {
+  useEffect(() => {
     if (user) {
       setInquiryName(`${user.firstName || ''} ${user.lastName || ''}`.trim());
       setInquiryEmail(user.email || '');
       setInquiryPhone(user.phone || '');
     }
-  });
+  }, [user]);
 
   if (propertyLoading) {
     return (
@@ -590,11 +709,42 @@ export default function PropertyDetailPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Button className="w-full" data-testid="button-call-seller">
-                      <Phone className="h-4 w-4 mr-2" />
-                      Call Seller
-                    </Button>
-                    <Button variant="outline" className="w-full" data-testid="button-chat-seller">
+                    {property.contactPhone && (
+                      <Button 
+                        className="w-full" 
+                        data-testid="button-call-seller"
+                        onClick={() => window.open(`tel:${property.contactPhone}`, '_self')}
+                      >
+                        <Phone className="h-4 w-4 mr-2" />
+                        Call Seller
+                      </Button>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      className="w-full" 
+                      data-testid="button-chat-seller"
+                      onClick={() => {
+                        if (!user) {
+                          toast({
+                            title: "Please log in",
+                            description: "You need to be logged in to start a chat.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        // Navigate to messages page - seller info should be available from property
+                        const sellerId = (property as any).seller?.id;
+                        if (sellerId) {
+                          setLocation(`/buyer/messages?sellerId=${sellerId}&propertyId=${property.id}`);
+                        } else {
+                          toast({
+                            title: "Cannot start chat",
+                            description: "Seller information not available",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    >
                       <Mail className="h-4 w-4 mr-2" />
                       Chat with Seller
                     </Button>
@@ -613,7 +763,9 @@ export default function PropertyDetailPage() {
                       placeholder="Your name" 
                       value={inquiryName}
                       onChange={(e) => setInquiryName(e.target.value)}
-                      data-testid="input-inquiry-name" 
+                      data-testid="input-inquiry-name"
+                      required
+                      aria-required="true"
                     />
                   </div>
                   <div className="space-y-2">
@@ -624,7 +776,9 @@ export default function PropertyDetailPage() {
                       placeholder="your@email.com" 
                       value={inquiryEmail}
                       onChange={(e) => setInquiryEmail(e.target.value)}
-                      data-testid="input-inquiry-email" 
+                      data-testid="input-inquiry-email"
+                      required
+                      aria-required="true"
                     />
                   </div>
                   <div className="space-y-2">
@@ -635,7 +789,8 @@ export default function PropertyDetailPage() {
                       placeholder="+91 98765 43210" 
                       value={inquiryPhone}
                       onChange={(e) => setInquiryPhone(e.target.value)}
-                      data-testid="input-inquiry-phone" 
+                      data-testid="input-inquiry-phone"
+                      aria-label="Phone number (optional)"
                     />
                   </div>
                   <div className="space-y-2">
@@ -647,6 +802,8 @@ export default function PropertyDetailPage() {
                       value={inquiryMessage}
                       onChange={(e) => setInquiryMessage(e.target.value)}
                       data-testid="textarea-inquiry-message"
+                      required
+                      aria-required="true"
                     />
                   </div>
                   <Button 
@@ -713,6 +870,7 @@ export default function PropertyDetailPage() {
                   onChange={(e) => setVisitDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
                   data-testid="input-visit-date"
+                  required
                 />
               </div>
               <div className="space-y-2">

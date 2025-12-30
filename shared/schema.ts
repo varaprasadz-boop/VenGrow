@@ -270,6 +270,7 @@ export const appointments = pgTable("appointments", {
   sellerId: varchar("seller_id").notNull().references(() => sellerProfiles.id),
   scheduledDate: timestamp("scheduled_date").notNull(),
   scheduledTime: text("scheduled_time").notNull(),
+  visitType: text("visit_type").default("physical"), // physical or virtual
   status: appointmentStatusEnum("status").notNull().default("pending"),
   buyerName: text("buyer_name"),
   buyerPhone: text("buyer_phone"),
@@ -283,6 +284,19 @@ export const appointments = pgTable("appointments", {
   cancelledAt: timestamp("cancelled_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const contactMessages = pgTable("contact_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  subject: text("subject"),
+  message: text("message").notNull(),
+  status: text("status").notNull().default("new"), // new, read, replied, archived
+  repliedAt: timestamp("replied_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const payments = pgTable("payments", {
@@ -802,6 +816,12 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   updatedAt: true,
 });
 
+export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({
+  id: true,
+  createdAt: true,
+  repliedAt: true,
+});
+
 export const insertReviewSchema = createInsertSchema(reviews).omit({
   id: true,
   createdAt: true,
@@ -846,6 +866,9 @@ export type Payment = typeof payments.$inferSelect;
 
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Review = typeof reviews.$inferSelect;
+
+export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
+export type ContactMessage = typeof contactMessages.$inferSelect;
 
 export type AdminApproval = typeof adminApprovals.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
