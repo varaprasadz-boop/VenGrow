@@ -143,86 +143,99 @@ export default function PropertyMap({
     );
   }
 
-  const mapCenter =
-    propertiesWithCoords.length > 0
-      ? getPropertyCoordinates(propertiesWithCoords[0]) || center
-      : center;
+  // For single property, show map even without coordinates (using default center)
+  const mapCenter = singleProperty
+    ? (propertiesWithCoords.length > 0 
+        ? getPropertyCoordinates(propertiesWithCoords[0]) 
+        : (properties.length > 0 && properties[0].city 
+            ? center // Use default center if no coordinates
+            : center))
+    : (propertiesWithCoords.length > 0
+        ? getPropertyCoordinates(propertiesWithCoords[0]) || center
+        : center);
 
   return (
-    <div ref={mapContainerRef} className="relative rounded-lg overflow-hidden" style={{ height }}>
-      <Button
-        variant="secondary"
-        size="icon"
-        className="absolute top-2 right-2 z-10"
-        onClick={toggleFullscreen}
-        data-testid="button-fullscreen-map"
-      >
-        {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-      </Button>
+    <div className="space-y-2">
+      <div className="flex justify-end">
+        <Button
+          variant="secondary"
+          size="icon"
+          className="bg-white/95 backdrop-blur-sm hover:bg-white shadow-md border border-gray-200/50 h-9 w-9"
+          onClick={toggleFullscreen}
+          data-testid="button-fullscreen-map"
+          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        >
+          {isFullscreen ? <Minimize2 className="h-4 w-4 text-gray-700" /> : <Maximize2 className="h-4 w-4 text-gray-700" />}
+        </Button>
+      </div>
+      <div ref={mapContainerRef} className="relative rounded-lg overflow-hidden bg-muted" style={{ height }}>
+        <GoogleMap
+          mapContainerStyle={mapContainerStyle}
+          center={mapCenter}
+          zoom={singleProperty && propertiesWithCoords.length === 0 ? 12 : zoom}
+          onLoad={onLoad}
+          onUnmount={onUnmount}
+          options={{
+            streetViewControl: false,
+            mapTypeControl: true,
+            fullscreenControl: false,
+            zoomControl: true,
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+          }}
+        >
+          {propertiesWithCoords.map((property) => {
+            const coords = getPropertyCoordinates(property)!;
+            return (
+              <Marker
+                key={property.id}
+                position={coords}
+                onClick={() => setSelectedProperty(property)}
+              />
+            );
+          })}
 
-      <GoogleMap
-        mapContainerStyle={mapContainerStyle}
-        center={mapCenter}
-        zoom={zoom}
-        onLoad={onLoad}
-        onUnmount={onUnmount}
-        options={{
-          streetViewControl: false,
-          mapTypeControl: true,
-          fullscreenControl: false,
-        }}
-      >
-        {propertiesWithCoords.map((property) => {
-          const coords = getPropertyCoordinates(property)!;
-          return (
-            <Marker
-              key={property.id}
-              position={coords}
-              onClick={() => setSelectedProperty(property)}
-            />
-          );
-        })}
-
-        {selectedProperty && showPropertyCards && (
-          <InfoWindow
-            position={getPropertyCoordinates(selectedProperty)!}
-            onCloseClick={() => setSelectedProperty(null)}
-          >
-            <div className="min-w-48 p-1">
-              <h4 className="font-semibold text-sm mb-1">{selectedProperty.title}</h4>
-              <p className="text-lg font-bold text-primary mb-1">
-                {formatPrice(selectedProperty.price)}
-              </p>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-                <MapPin className="h-3 w-3" />
-                <span>
-                  {selectedProperty.locality}, {selectedProperty.city}
-                </span>
-              </div>
-              <div className="flex gap-1 flex-wrap mb-2">
-                {selectedProperty.bedrooms && (
+          {selectedProperty && showPropertyCards && (
+            <InfoWindow
+              position={getPropertyCoordinates(selectedProperty)!}
+              onCloseClick={() => setSelectedProperty(null)}
+            >
+              <div className="min-w-48 p-1">
+                <h4 className="font-semibold text-sm mb-1">{selectedProperty.title}</h4>
+                <p className="text-lg font-bold text-primary mb-1">
+                  {formatPrice(selectedProperty.price)}
+                </p>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+                  <MapPin className="h-3 w-3" />
+                  <span>
+                    {selectedProperty.locality}, {selectedProperty.city}
+                  </span>
+                </div>
+                <div className="flex gap-1 flex-wrap mb-2">
+                  {selectedProperty.bedrooms && (
+                    <Badge variant="outline" className="text-xs">
+                      {selectedProperty.bedrooms} BHK
+                    </Badge>
+                  )}
                   <Badge variant="outline" className="text-xs">
-                    {selectedProperty.bedrooms} BHK
+                    {selectedProperty.area} sqft
                   </Badge>
+                </div>
+                {onPropertyClick && (
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    onClick={() => onPropertyClick(selectedProperty)}
+                    data-testid={`button-view-property-${selectedProperty.id}`}
+                  >
+                    View Details
+                  </Button>
                 )}
-                <Badge variant="outline" className="text-xs">
-                  {selectedProperty.area} sqft
-                </Badge>
               </div>
-              {onPropertyClick && (
-                <Button
-                  size="sm"
-                  className="w-full"
-                  onClick={() => onPropertyClick(selectedProperty)}
-                  data-testid={`button-view-property-${selectedProperty.id}`}
-                >
-                  View Details
-                </Button>
-              )}
-            </div>
-          </InfoWindow>
-        )}
-      </GoogleMap>
+            </InfoWindow>
+          )}
+        </GoogleMap>
+      </div>
     </div>
   );
 }

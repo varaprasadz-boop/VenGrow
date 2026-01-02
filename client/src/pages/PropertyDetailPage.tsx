@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Property } from "@shared/schema";
 import PropertyMap from "@/components/PropertyMap";
+import { getPropertyUrl, isUUID } from "@/lib/property-utils";
 import {
   MapPin,
   Bed,
@@ -79,6 +80,7 @@ export default function PropertyDetailPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState(0);
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
   
   // Inquiry form state
   const [inquiryName, setInquiryName] = useState("");
@@ -94,12 +96,28 @@ export default function PropertyDetailPage() {
   const [visitPhone, setVisitPhone] = useState("");
   const [visitEmail, setVisitEmail] = useState("");
   const [visitNotes, setVisitNotes] = useState("");
-
-  // Fetch property details
+  
+  // Fetch property details - supports both slug and ID
   const { data: property, isLoading: propertyLoading } = useQuery<Property>({
     queryKey: ["/api/properties", id],
+    queryFn: async () => {
+      const response = await fetch(`/api/properties/${id}`);
+      if (!response.ok) {
+        throw new Error("Property not found");
+      }
+      return response.json();
+    },
     enabled: !!id,
   });
+  
+  // Redirect to slug URL if property was accessed via ID and has a slug
+  useEffect(() => {
+    if (property && id && property.slug && isUUID(id) && property.slug !== id) {
+      // Redirect to slug URL for better SEO
+      const newUrl = getPropertyUrl(property);
+      setLocation(newUrl, { replace: true });
+    }
+  }, [property, id, setLocation]);
 
   // Check if property is favorited
   const { data: favoriteStatus } = useQuery<{ isFavorite: boolean }>({
@@ -284,7 +302,8 @@ export default function PropertyDetailPage() {
         variant: "destructive",
       });
       setTimeout(() => {
-        setLocation(`/login?redirect=${encodeURIComponent(`/property/${id}`)}`);
+        const redirectUrl = property ? getPropertyUrl(property) : `/property/${id}`;
+        setLocation(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
       }, 1500);
       return;
     }
@@ -365,7 +384,8 @@ export default function PropertyDetailPage() {
       });
       // Redirect to login with return URL
       setTimeout(() => {
-        setLocation(`/login?redirect=${encodeURIComponent(`/property/${id}`)}`);
+        const redirectUrl = property ? getPropertyUrl(property) : `/property/${id}`;
+        setLocation(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
       }, 1500);
       return;
     }
@@ -452,7 +472,7 @@ export default function PropertyDetailPage() {
   // Handle both array of objects (PropertyImage) and array of strings (legacy)
   const images = (property as any).images?.length > 0 
     ? (property as any).images.map((img: any) => typeof img === 'string' ? img : img.url)
-    : ['/placeholder-property.jpg'];
+    : [];
 
   const getTransactionLabel = (type: string) => {
     switch (type) {
@@ -492,11 +512,23 @@ export default function PropertyDetailPage() {
               {/* Image Gallery */}
               <div className="space-y-4">
                 <div className="relative aspect-[16/10] rounded-lg overflow-hidden bg-muted">
-                  <img
-                    src={images[selectedImage]}
-                    alt={property.title}
-                    className="w-full h-full object-cover"
-                  />
+                  {images.length > 0 && !failedImages.has(selectedImage) ? (
+                    <img
+                      src={images[selectedImage]}
+                      alt={property.title}
+                      className="w-full h-full object-cover"
+                      onError={() => {
+                        setFailedImages(prev => new Set(prev).add(selectedImage));
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="text-center">
+                        <Home className="h-20 w-20 text-muted-foreground/50 mx-auto mb-4" />
+                        <p className="text-muted-foreground">No Image Available</p>
+                      </div>
+                    </div>
+                  )}
                   <div className="absolute top-4 right-4 flex gap-2">
                     <Button
                       variant="ghost"
@@ -532,7 +564,20 @@ export default function PropertyDetailPage() {
                         }`}
                         onClick={() => setSelectedImage(index)}
                       >
-                        <img src={image} alt={`View ${index + 1}`} className="w-full h-full object-cover" />
+                        {!failedImages.has(index) ? (
+                          <img 
+                            src={image} 
+                            alt={`View ${index + 1}`} 
+                            className="w-full h-full object-cover"
+                            onError={() => {
+                              setFailedImages(prev => new Set(prev).add(index));
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-muted">
+                            <Home className="h-8 w-8 text-muted-foreground/50" />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

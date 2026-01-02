@@ -35,7 +35,7 @@ import {
   propertyCategories, propertySubcategories, verifiedBuilders, projects,
   testimonials, teamMembers, companyValues, heroSlides
 } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, desc, and, like, or, sql, gte, lte, inArray } from "drizzle-orm";
 
 export interface CreateUserWithPassword {
@@ -440,61 +440,263 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async getProperty(id: string): Promise<Property | undefined> {
-    const [property] = await db.select().from(properties).where(eq(properties.id, id));
-    return property;
+  async getProperty(idOrSlug: string): Promise<Property | undefined> {
+    try {
+      // Try to find by ID first (UUID format)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
+      
+      if (isUUID) {
+        try {
+          const [property] = await db.select().from(properties).where(eq(properties.id, idOrSlug));
+          return property;
+        } catch (error: any) {
+          // If error is due to missing slug column, use raw SQL
+          if (error?.code === '42703' || error?.message?.includes('column "slug" does not exist')) {
+            console.warn("Slug column doesn't exist, using raw SQL query");
+            const result = await pool.query('SELECT * FROM properties WHERE id = $1 LIMIT 1', [idOrSlug]);
+            return result.rows[0] as Property | undefined;
+          }
+          throw error;
+        }
+      }
+      
+      // If not UUID, try to find by slug (only if slug column exists)
+      try {
+        const [property] = await db.select().from(properties).where(eq(properties.slug, idOrSlug));
+        if (property) {
+          return property;
+        }
+      } catch (slugQueryError: any) {
+        // If slug column doesn't exist, we'll try ID extraction below
+        if (slugQueryError?.code !== '42703' && !slugQueryError?.message?.includes('column "slug" does not exist')) {
+          throw slugQueryError;
+        }
+      }
+      
+      // If not found by slug, try to extract ID from slug format: title-city-id
+      // Slug format is: title-city-id (where id is UUID without hyphens, 32 chars)
+      const slugParts = idOrSlug.split('-');
+      if (slugParts.length >= 1) {
+        // Last part should be the ID (32 chars for UUID without hyphens)
+        const lastPart = slugParts[slugParts.length - 1];
+        
+        // Try to reconstruct UUID from last part if it's 32 hex chars
+        if (lastPart.length === 32 && /^[0-9a-f]{32}$/i.test(lastPart)) {
+          // Reconstruct UUID format: 8-4-4-4-12
+          const possibleId = `${lastPart.slice(0, 8)}-${lastPart.slice(8, 12)}-${lastPart.slice(12, 16)}-${lastPart.slice(16, 20)}-${lastPart.slice(20, 32)}`;
+          
+          // Verify it's a valid UUID format
+          if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(possibleId)) {
+            try {
+              const [propertyById] = await db.select().from(properties).where(eq(properties.id, possibleId));
+              if (propertyById) {
+                return propertyById;
+              }
+            } catch (idError: any) {
+              // If error is due to missing slug column, use raw SQL
+              if (idError?.code === '42703' || idError?.message?.includes('column "slug" does not exist')) {
+                const result = await pool.query('SELECT * FROM properties WHERE id = $1 LIMIT 1', [possibleId]);
+                if (result.rows[0]) {
+                  return result.rows[0] as Property | undefined;
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      return undefined;
+    } catch (error) {
+      console.error("Error in getProperty:", error);
+      return undefined;
+    }
+  }
+  
+  async getPropertyBySlug(slug: string): Promise<Property | undefined> {
+    try {
+      const [property] = await db.select().from(properties).where(eq(properties.slug, slug));
+      return property || undefined;
+    } catch (error: any) {
+      // If slug column doesn't exist yet (error code 42703), return undefined
+      if (error?.code === '42703' || error?.message?.includes('column "slug" does not exist')) {
+        // Slug column doesn't exist, so we can't query by slug
+        return undefined;
+      }
+      // For other errors, log and return undefined
+      console.warn("getPropertyBySlug failed:", error);
+      return undefined;
+    }
+  }
+
+  // Helper to execute property queries with fallback to raw SQL if slug column doesn't exist
+  private async executePropertyQuery<T>(queryFn: () => Promise<T>, rawSqlFn: () => Promise<T>): Promise<T> {
+    try {
+      return await queryFn();
+    } catch (error: any) {
+      if (error?.code === '42703' || error?.message?.includes('column "slug" does not exist')) {
+        console.warn("Slug column doesn't exist, using raw SQL fallback");
+        return await rawSqlFn();
+      }
+      throw error;
+    }
   }
 
   async getPropertiesBySeller(sellerId: string): Promise<Property[]> {
-    return db.select().from(properties).where(eq(properties.sellerId, sellerId)).orderBy(desc(properties.createdAt));
+    return this.executePropertyQuery(
+      () => db.select().from(properties).where(eq(properties.sellerId, sellerId)).orderBy(desc(properties.createdAt)),
+      async () => {
+        const result = await pool.query(
+          'SELECT * FROM properties WHERE seller_id = $1 ORDER BY created_at DESC',
+          [sellerId]
+        );
+        return result.rows as Property[];
+      }
+    );
   }
 
   async getProperties(filters?: PropertyFilters): Promise<Property[]> {
-    let query = db.select().from(properties);
-    const conditions: any[] = [];
-    
-    if (filters?.city) conditions.push(eq(properties.city, filters.city));
-    if (filters?.state) conditions.push(eq(properties.state, filters.state));
-    if (filters?.propertyType) conditions.push(eq(properties.propertyType, filters.propertyType as any));
-    if (filters?.transactionType) conditions.push(eq(properties.transactionType, filters.transactionType as any));
-    if (filters?.minPrice) conditions.push(gte(properties.price, filters.minPrice));
-    if (filters?.maxPrice) conditions.push(lte(properties.price, filters.maxPrice));
-    if (filters?.minArea) conditions.push(gte(properties.area, filters.minArea));
-    if (filters?.maxArea) conditions.push(lte(properties.area, filters.maxArea));
-    if (filters?.bedrooms) conditions.push(eq(properties.bedrooms, filters.bedrooms));
-    if (filters?.status) conditions.push(eq(properties.status, filters.status as any));
-    if (filters?.isVerified !== undefined) conditions.push(eq(properties.isVerified, filters.isVerified));
-    if (filters?.isFeatured !== undefined) conditions.push(eq(properties.isFeatured, filters.isFeatured));
-    if (filters?.sellerId) conditions.push(eq(properties.sellerId, filters.sellerId));
-    if (filters?.search) {
-      conditions.push(or(
-        like(properties.title, `%${filters.search}%`),
-        like(properties.city, `%${filters.search}%`),
-        like(properties.locality, `%${filters.search}%`)
-      ));
-    }
-    
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions)) as any;
-    }
-    
-    let result = query.orderBy(desc(properties.createdAt));
-    
-    if (filters?.limit) {
-      result = result.limit(filters.limit) as any;
-    }
-    if (filters?.offset) {
-      result = result.offset(filters.offset) as any;
-    }
-    
-    return result;
+    return this.executePropertyQuery(
+      async () => {
+        let query = db.select().from(properties);
+        const conditions: any[] = [];
+        
+        if (filters?.city) conditions.push(eq(properties.city, filters.city));
+        if (filters?.state) conditions.push(eq(properties.state, filters.state));
+        if (filters?.propertyType) conditions.push(eq(properties.propertyType, filters.propertyType as any));
+        if (filters?.transactionType) conditions.push(eq(properties.transactionType, filters.transactionType as any));
+        if (filters?.minPrice) conditions.push(gte(properties.price, filters.minPrice));
+        if (filters?.maxPrice) conditions.push(lte(properties.price, filters.maxPrice));
+        if (filters?.minArea) conditions.push(gte(properties.area, filters.minArea));
+        if (filters?.maxArea) conditions.push(lte(properties.area, filters.maxArea));
+        if (filters?.bedrooms) conditions.push(eq(properties.bedrooms, filters.bedrooms));
+        if (filters?.status) conditions.push(eq(properties.status, filters.status as any));
+        if (filters?.isVerified !== undefined) conditions.push(eq(properties.isVerified, filters.isVerified));
+        if (filters?.isFeatured !== undefined) conditions.push(eq(properties.isFeatured, filters.isFeatured));
+        if (filters?.sellerId) conditions.push(eq(properties.sellerId, filters.sellerId));
+        if (filters?.search) {
+          conditions.push(or(
+            like(properties.title, `%${filters.search}%`),
+            like(properties.city, `%${filters.search}%`),
+            like(properties.locality, `%${filters.search}%`)
+          ));
+        }
+        
+        if (conditions.length > 0) {
+          query = query.where(and(...conditions)) as any;
+        }
+        
+        let result = query.orderBy(desc(properties.createdAt));
+        
+        if (filters?.limit) {
+          result = result.limit(filters.limit) as any;
+        }
+        if (filters?.offset) {
+          result = result.offset(filters.offset) as any;
+        }
+        
+        return result;
+      },
+      async () => {
+        // Build raw SQL query
+        const whereConditions: string[] = [];
+        const params: any[] = [];
+        let paramIndex = 1;
+        
+        if (filters?.city) {
+          whereConditions.push(`city = $${paramIndex++}`);
+          params.push(filters.city);
+        }
+        if (filters?.state) {
+          whereConditions.push(`state = $${paramIndex++}`);
+          params.push(filters.state);
+        }
+        if (filters?.propertyType) {
+          whereConditions.push(`property_type = $${paramIndex++}`);
+          params.push(filters.propertyType);
+        }
+        if (filters?.transactionType) {
+          whereConditions.push(`transaction_type = $${paramIndex++}`);
+          params.push(filters.transactionType);
+        }
+        if (filters?.minPrice) {
+          whereConditions.push(`price >= $${paramIndex++}`);
+          params.push(filters.minPrice);
+        }
+        if (filters?.maxPrice) {
+          whereConditions.push(`price <= $${paramIndex++}`);
+          params.push(filters.maxPrice);
+        }
+        if (filters?.minArea) {
+          whereConditions.push(`area >= $${paramIndex++}`);
+          params.push(filters.minArea);
+        }
+        if (filters?.maxArea) {
+          whereConditions.push(`area <= $${paramIndex++}`);
+          params.push(filters.maxArea);
+        }
+        if (filters?.bedrooms) {
+          whereConditions.push(`bedrooms = $${paramIndex++}`);
+          params.push(filters.bedrooms);
+        }
+        if (filters?.status) {
+          whereConditions.push(`status = $${paramIndex++}`);
+          params.push(filters.status);
+        }
+        if (filters?.isVerified !== undefined) {
+          whereConditions.push(`is_verified = $${paramIndex++}`);
+          params.push(filters.isVerified);
+        }
+        if (filters?.isFeatured !== undefined) {
+          whereConditions.push(`is_featured = $${paramIndex++}`);
+          params.push(filters.isFeatured);
+        }
+        if (filters?.sellerId) {
+          whereConditions.push(`seller_id = $${paramIndex++}`);
+          params.push(filters.sellerId);
+        }
+        if (filters?.search) {
+          whereConditions.push(`(title ILIKE $${paramIndex} OR city ILIKE $${paramIndex + 1} OR locality ILIKE $${paramIndex + 2})`);
+          const searchTerm = `%${filters.search}%`;
+          params.push(searchTerm, searchTerm, searchTerm);
+          paramIndex += 3;
+        }
+        
+        let sqlQuery = `SELECT * FROM properties`;
+        if (whereConditions.length > 0) {
+          sqlQuery += ` WHERE ${whereConditions.join(' AND ')}`;
+        }
+        sqlQuery += ` ORDER BY created_at DESC`;
+        
+        if (filters?.limit) {
+          sqlQuery += ` LIMIT $${paramIndex++}`;
+          params.push(filters.limit);
+        }
+        if (filters?.offset) {
+          sqlQuery += ` OFFSET $${paramIndex++}`;
+          params.push(filters.offset);
+        }
+        
+        // Use pool.query with proper parameterization
+        const result = await pool.query(sqlQuery, params);
+        return result.rows as Property[];
+      }
+    );
   }
 
   async getFeaturedProperties(limit: number = 10): Promise<Property[]> {
-    return db.select().from(properties)
-      .where(and(eq(properties.isFeatured, true), eq(properties.status, 'active')))
-      .orderBy(desc(properties.createdAt))
-      .limit(limit);
+    return this.executePropertyQuery(
+      () => db.select().from(properties)
+        .where(and(eq(properties.isFeatured, true), eq(properties.status, 'active')))
+        .orderBy(desc(properties.createdAt))
+        .limit(limit),
+      async () => {
+        const result = await pool.query(
+          "SELECT * FROM properties WHERE is_featured = true AND status = 'active' ORDER BY created_at DESC LIMIT $1",
+          [limit]
+        );
+        return result.rows as Property[];
+      }
+    );
   }
 
   async createProperty(property: InsertProperty): Promise<Property> {
@@ -503,8 +705,64 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProperty(id: string, data: Partial<InsertProperty>): Promise<Property | undefined> {
-    const [updated] = await db.update(properties).set({ ...data, updatedAt: new Date() } as any).where(eq(properties.id, id)).returning();
-    return updated;
+    try {
+      const [updated] = await db.update(properties).set({ ...data, updatedAt: new Date() } as any).where(eq(properties.id, id)).returning();
+      return updated;
+    } catch (error: any) {
+      // If error is due to missing slug column, use raw SQL
+      if (error?.code === '42703' || error?.message?.includes('column "slug" does not exist')) {
+        console.warn("Slug column doesn't exist, using raw SQL for update");
+        // Use raw SQL to update, excluding slug if column doesn't exist
+        const updateFields: string[] = [];
+        const values: any[] = [];
+        let paramIndex = 1;
+        
+        // Map of camelCase to snake_case for known fields
+        const fieldMap: Record<string, string> = {
+          title: 'title',
+          description: 'description',
+          city: 'city',
+          state: 'state',
+          price: 'price',
+          area: 'area',
+          bedrooms: 'bedrooms',
+          bathrooms: 'bathrooms',
+          slug: 'slug', // Include slug in case column exists
+        };
+        
+        Object.entries(data).forEach(([key, value]) => {
+          if (value !== undefined) {
+            const dbKey = fieldMap[key] || key.replace(/([A-Z])/g, '_$1').toLowerCase();
+            updateFields.push(`${dbKey} = $${paramIndex++}`);
+            values.push(value);
+          }
+        });
+        
+        if (updateFields.length > 0) {
+          updateFields.push(`updated_at = NOW()`);
+          values.push(id);
+          const query = `UPDATE properties SET ${updateFields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+          try {
+            const result = await pool.query(query, values);
+            return result.rows[0] as Property | undefined;
+          } catch (sqlError: any) {
+            // If slug column doesn't exist, remove it and try again
+            if (sqlError?.message?.includes('column "slug" does not exist')) {
+              const fieldsWithoutSlug = updateFields.filter(f => !f.includes('slug'));
+              if (fieldsWithoutSlug.length > 0) {
+                const cleanValues = values.slice(0, -1); // Remove id, we'll add it back
+                const cleanQuery = `UPDATE properties SET ${fieldsWithoutSlug.join(', ')} WHERE id = $${cleanValues.length + 1} RETURNING *`;
+                const result = await pool.query(cleanQuery, [...cleanValues, id]);
+                return result.rows[0] as Property | undefined;
+              }
+            }
+            throw sqlError;
+          }
+        }
+        return undefined;
+      }
+      throw error;
+    }
   }
 
   async deleteProperty(id: string): Promise<boolean> {
@@ -1646,7 +1904,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPropertiesByProject(projectId: string): Promise<Property[]> {
-    return db.select().from(properties).where(eq(properties.projectId, projectId)).orderBy(desc(properties.createdAt));
+    return this.executePropertyQuery(
+      () => db.select().from(properties).where(eq(properties.projectId, projectId)).orderBy(desc(properties.createdAt)),
+      async () => {
+        const result = await pool.query(
+          'SELECT * FROM properties WHERE project_id = $1 ORDER BY created_at DESC',
+          [projectId]
+        );
+        return result.rows as Property[];
+      }
+    );
   }
 
   async createContactMessage(message: InsertContactMessage): Promise<ContactMessage> {

@@ -1368,16 +1368,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get property by ID
   app.get("/api/properties/:id", async (req: Request, res: Response) => {
     try {
-      const property = await storage.getProperty(req.params.id);
+      const idOrSlug = req.params.id;
+      const property = await storage.getProperty(idOrSlug);
       if (!property) {
         return res.status(404).json({ error: "Property not found" });
       }
       
-      // Increment view count
-      await storage.incrementPropertyView(req.params.id);
+      // Increment view count (use property.id, not the slug/idOrSlug)
+      await storage.incrementPropertyView(property.id);
       
       // Get images
-      const images = await storage.getPropertyImages(req.params.id);
+      const images = await storage.getPropertyImages(property.id);
       
       // Get seller profile if sellerId exists
       let sellerProfile = null;
@@ -1456,6 +1457,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? (typeof rawLng === "string" ? parseFloat(rawLng) : rawLng)
         : null;
       
+      // Generate slug from title if not provided
+      // Format: title-city-id (ID at the end)
+      // Note: ID will be available after property creation, so we'll update it then
+      let slug = restBody.slug;
+      
       const propertyData = {
         ...restBody,
         sellerId: sellerProfile.id,
@@ -1463,6 +1469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         workflowStatus: "draft" as const,
         latitude,
         longitude,
+        slug,
       };
       
       console.log("Creating property with coordinates:", {
@@ -1470,9 +1477,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         longitude,
         hasLat: !!latitude,
         hasLng: !!longitude,
+        slug,
       });
       
       const property = await storage.createProperty(propertyData);
+      
+      // Generate slug with ID at the end (format: title-city-id)
+      if (!slug && property.title) {
+        try {
+          const { generatePropertySlug } = await import("@shared/utils");
+          const generatedSlug = generatePropertySlug(property.title, property.city, property.id);
+          
+          // Update property with generated slug
+          await storage.updateProperty(property.id, { slug: generatedSlug });
+          property.slug = generatedSlug;
+        } catch (error) {
+          console.warn("Slug generation skipped (column may not exist):", error);
+        }
+      }
       
       // Increment listings used count
       await storage.incrementSubscriptionListingUsage(sellerProfile.id);
@@ -1563,6 +1585,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
         const sanitizedBody = { ...req.body };
         protectedFields.forEach(field => delete sanitizedBody[field]);
+        
+        // Regenerate slug if title or city changed
+        // Format: title-city-id (ID at the end)
+        if (sanitizedBody.title || sanitizedBody.city) {
+          try {
+            const { generatePropertySlug } = await import("@shared/utils");
+            const newTitle = sanitizedBody.title || currentProperty.title;
+            const newCity = sanitizedBody.city || currentProperty.city;
+            
+            if (newTitle) {
+              // Generate slug with ID at the end for uniqueness
+              const generatedSlug = generatePropertySlug(newTitle, newCity, propertyId);
+              sanitizedBody.slug = generatedSlug;
+            }
+          } catch (error) {
+            // If slug generation fails (e.g., column doesn't exist), just skip it
+            console.warn("Slug generation skipped (column may not exist):", error);
+            delete sanitizedBody.slug;
+          }
+        }
         
         property = await storage.updateProperty(propertyId, sanitizedBody);
         

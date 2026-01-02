@@ -4,6 +4,7 @@ import { Heart, MapPin, Bed, Bath, Maximize, CheckCircle2, Home } from "lucide-r
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getPropertyUrl } from "@/lib/property-utils";
 
 interface PropertyCardProps {
   id: string;
@@ -24,6 +25,8 @@ interface PropertyCardProps {
   ageOfProperty?: string;
   sellerType: "Individual" | "Broker" | "Builder";
   transactionType: "Sale" | "Lease" | "Rent";
+  slug?: string | null;
+  city?: string;
   onFavoriteClick?: (id: string) => void;
   onClick?: (id: string) => void;
 }
@@ -54,6 +57,8 @@ export default function PropertyCard({
   ageOfProperty,
   sellerType,
   transactionType,
+  slug,
+  city,
   onFavoriteClick,
   onClick,
 }: PropertyCardProps) {
@@ -68,7 +73,9 @@ export default function PropertyCard({
 
   const handleCardClick = () => {
     onClick?.(id);
-    setLocation(`/property/${id}`);
+    // Use slug-based URL for better SEO
+    const propertyUrl = getPropertyUrl({ id, title, city, slug });
+    setLocation(propertyUrl);
   };
 
   const formatPrice = (amount: number) => {

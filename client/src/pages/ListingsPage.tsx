@@ -12,6 +12,7 @@ import PropertyMapView from "@/components/PropertyMapView";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { Filter, Grid3x3, List, Map, Loader2 } from "lucide-react";
 import {
   Select,
@@ -58,6 +59,8 @@ export default function ListingsPage() {
     
     // Parse filters from URL
     if (params.get('category')) parsedFilters.category = params.get('category')!;
+    // Also handle 'type' parameter (used by CategorySection from home page)
+    if (params.get('type') && !parsedFilters.category) parsedFilters.category = params.get('type')!;
     if (params.get('city')) parsedFilters.city = params.get('city')!;
     if (params.get('state')) parsedFilters.state = params.get('state')!;
     if (params.get('locality')) parsedFilters.locality = params.get('locality')!;
@@ -105,12 +108,12 @@ export default function ListingsPage() {
   
   // Initialize filters and page from URL on mount
   useEffect(() => {
-    if (Object.keys(urlParams.filters).length > 0) {
-      setFilters(urlParams.filters);
+    const newFilters: FilterState = { ...urlParams.filters };
+    // Always sync category from URL (handles both 'category' and 'type' params)
+    if (urlParams.category) {
+      newFilters.category = urlParams.category;
     }
-    if (urlParams.category && !filters.category) {
-      setFilters(prev => ({ ...prev, category: urlParams.category! }));
-    }
+    setFilters(newFilters);
     if (urlParams.sort) {
       setSortBy(urlParams.sort);
     }
@@ -276,6 +279,7 @@ export default function ListingsPage() {
         city: property.city,
         state: property.state,
         categoryId: property.categoryId,
+        slug: (property as any).slug || undefined,
       };
     });
   }, [propertiesData]);

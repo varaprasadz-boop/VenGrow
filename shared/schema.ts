@@ -117,6 +117,7 @@ export const properties = pgTable("properties", {
   sellerId: varchar("seller_id").notNull().references(() => sellerProfiles.id),
   projectId: varchar("project_id"),
   title: text("title").notNull(),
+  slug: text("slug").unique(),
   description: text("description"),
   propertyType: propertyTypeEnum("property_type").notNull(),
   transactionType: transactionTypeEnum("transaction_type").notNull(),

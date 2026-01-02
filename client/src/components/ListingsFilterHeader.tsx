@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, X, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useLocation as useLocationContext } from "@/contexts/LocationContext";
+import type { PropertyCategory } from "@shared/schema";
 
 interface FilterChip {
   id: string;
@@ -48,6 +50,12 @@ export default function ListingsFilterHeader({ filters = {}, onFilterChange, onO
   const [location, setLocation] = useLocation();
   const locationContext = useLocationContext();
   const headerSelectedCity = locationContext?.selectedCity?.name || null;
+
+  // Fetch categories to get category names
+  const { data: categoriesData = [] } = useQuery<PropertyCategory[]>({
+    queryKey: ["/api/property-categories"],
+  });
+  const categories = categoriesData || [];
 
   // Determine transaction type from URL path
   const transactionTypeFromPath = useMemo(() => {
@@ -114,9 +122,12 @@ export default function ListingsFilterHeader({ filters = {}, onFilterChange, onO
     
     // Category chip
     if (filters.category && filters.category !== "all") {
+      // Find category name from slug
+      const categoryObj = categories.find(c => c.slug === filters.category);
+      const categoryLabel = categoryObj?.name || filters.category;
       chips.push({
         id: "category",
-        label: filters.category,
+        label: categoryLabel,
         value: filters.category,
         isRemovable: true,
         hasDropdown: true,
@@ -148,7 +159,7 @@ export default function ListingsFilterHeader({ filters = {}, onFilterChange, onO
     }
     
     return chips;
-  }, [filters, transactionTypeFromPath, headerSelectedCity]);
+  }, [filters, transactionTypeFromPath, headerSelectedCity, categories]);
 
   const moreFiltersCount = useMemo(() => {
     let count = 0;

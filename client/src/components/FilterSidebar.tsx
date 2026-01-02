@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation as useWouterLocation } from "wouter";
 import { Filter, X, Search, MapPin, Calendar, Building2, Layers, Milestone, Bookmark, Loader2 } from "lucide-react";
 import { useLocation as useLocationContext } from "@/contexts/LocationContext";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,20 @@ import type { PropertyCategory, PropertySubcategory } from "@shared/schema";
 interface FilterSidebarProps {
   onApplyFilters?: (filters: any) => void;
   initialCategory?: string;
+  initialFilters?: {
+    priceRange?: [number, number];
+    transactionTypes?: string[];
+    category?: string;
+    subcategories?: string[];
+    projectStages?: string[];
+    bhk?: string[];
+    sellerTypes?: string[];
+    state?: string;
+    city?: string;
+    locality?: string;
+    propertyAge?: string[];
+    corporateSearch?: string;
+  };
 }
 
 const projectStages = [
@@ -51,10 +66,19 @@ const projectStages = [
 export default function FilterSidebar({ onApplyFilters, initialCategory, initialFilters }: FilterSidebarProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [wouterLocation] = useWouterLocation();
   
   // Get selected city from LocationContext (header city selector)
   const locationContext = useLocationContext();
   const headerSelectedCity = locationContext?.selectedCity?.name || "";
+  
+  // Read category directly from URL as fallback - use window.location to get query string
+  const categoryFromURL = useMemo(() => {
+    // wouterLocation only gives pathname, so use window.location.search for query params
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    const category = params.get('category') || params.get('type') || null;
+    return category;
+  }, [wouterLocation]);
   
   const [priceRange, setPriceRange] = useState<[number, number]>(
     initialFilters?.priceRange || [0, 20000000]
@@ -62,9 +86,13 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
   const [selectedTransactionTypes, setSelectedTransactionTypes] = useState<string[]>(
     initialFilters?.transactionTypes || []
   );
-  const [selectedCategory, setSelectedCategory] = useState<string>(
-    initialFilters?.category || initialCategory || "all"
-  );
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => {
+    // Use lazy initialization to ensure categoryFromURL is computed
+    // Use window.location.search to get query string since wouterLocation doesn't include it
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    const urlCategory = params.get('category') || params.get('type') || null;
+    return urlCategory || initialCategory || initialFilters?.category || "all";
+  });
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>(
     initialFilters?.subcategories || []
   );
@@ -92,6 +120,17 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
   const [corporateSearch, setCorporateSearch] = useState<string>("");
   const [saveSearchOpen, setSaveSearchOpen] = useState(false);
   const [searchName, setSearchName] = useState("");
+  const [accordionValue, setAccordionValue] = useState<string[]>(["category", "subcategory", "projectStage", "transaction", "location", "price", "seller"]);
+  
+  // Fetch categories - must be declared before useEffects that use it
+  const { data: categories = [] } = useQuery<PropertyCategory[]>({
+    queryKey: ["/api/property-categories"],
+  });
+
+  // Memoize the category from props/URL for stable dependency tracking
+  const categoryFromProps = useMemo(() => {
+    return categoryFromURL || initialFilters?.category || initialCategory || "all";
+  }, [categoryFromURL, initialCategory, initialFilters?.category]);
   
   // Sync FilterSidebar city display with header city selection (only if no city filter is set)
   useEffect(() => {
@@ -99,6 +138,88 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
       setSelectedCity(headerSelectedCity);
     }
   }, [headerSelectedCity]); // Only sync when header city changes
+
+  // Sync selectedCategory when categoryFromProps changes or URL changes
+  useEffect(() => {
+    const newCategory = categoryFromProps;
+    if (newCategory && newCategory !== selectedCategory) {
+      // Verify the category exists in the loaded categories (unless it's "all")
+      const categoryExists = categories.length > 0 ? categories.some(c => c.slug === newCategory) : false;
+      if (newCategory === "all" || categories.length === 0 || categoryExists) {
+        setSelectedCategory(newCategory);
+        // Clear subcategories when category changes from props (always clear to ensure clean state)
+        setSelectedSubcategories([]);
+        // Open category and subcategory accordion if category is selected from URL
+        if (newCategory !== "all") {
+          setAccordionValue(prev => {
+            const newValue = [...prev];
+            if (!newValue.includes("category")) {
+              newValue.push("category");
+            }
+            if (!newValue.includes("subcategory")) {
+              newValue.push("subcategory");
+            }
+            return newValue;
+          });
+        }
+      }
+    }
+  }, [categoryFromProps, selectedCategory, categories]);
+
+  // Also sync when categories load (in case category was set before categories were loaded)
+  useEffect(() => {
+    if (categories.length > 0 && categoryFromProps && categoryFromProps !== "all") {
+      const categoryExists = categories.some(c => c.slug === categoryFromProps);
+      if (categoryExists && selectedCategory !== categoryFromProps) {
+        setSelectedCategory(categoryFromProps);
+        // Open category and subcategory accordion when category loads
+        setAccordionValue(prev => {
+          const newValue = [...prev];
+          if (!newValue.includes("category")) {
+            newValue.push("category");
+          }
+          if (!newValue.includes("subcategory")) {
+            newValue.push("subcategory");
+          }
+          return newValue;
+        });
+      }
+    }
+  }, [categories, categoryFromProps, selectedCategory]);
+  
+  // Initial sync on mount - ensure URL category is set even if categories haven't loaded
+  // Also listen to URL changes via window.location
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const params = new URLSearchParams(window.location.search);
+      const urlCategory = params.get('category') || params.get('type') || null;
+      if (urlCategory && urlCategory !== selectedCategory) {
+        setSelectedCategory(urlCategory);
+        if (urlCategory !== "all") {
+          setAccordionValue(prev => {
+            const newValue = [...prev];
+            if (!newValue.includes("category")) {
+              newValue.push("category");
+            }
+            if (!newValue.includes("subcategory")) {
+              newValue.push("subcategory");
+            }
+            return newValue;
+          });
+        }
+      }
+    };
+    
+    // Check on mount
+    handleLocationChange();
+    
+    // Listen to popstate for browser back/forward
+    window.addEventListener('popstate', handleLocationChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+    };
+  }, [selectedCategory]);
 
   const saveSearchMutation = useMutation({
     mutationFn: async () => {
@@ -151,10 +272,6 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
     if (selectedTransactionTypes.length > 0) parts.push(selectedTransactionTypes.join('/'));
     return parts.length > 0 ? parts.join(' - ') : "My Search"
   };
-
-  const { data: categories = [] } = useQuery<PropertyCategory[]>({
-    queryKey: ["/api/property-categories"],
-  });
 
   // Get category ID from slug for subcategories query
   const selectedCategoryId = useMemo(() => {
@@ -227,6 +344,15 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
     setSelectedCategory(value);
     setSelectedSubcategories([]);
     setSelectedProjectStages([]);
+    // Open subcategory accordion if category is selected
+    if (value !== "all") {
+      setAccordionValue(prev => {
+        if (!prev.includes("subcategory")) {
+          return [...prev, "subcategory"];
+        }
+        return prev;
+      });
+    }
   };
 
   const handleClearFilters = () => {
@@ -344,7 +470,7 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
         </Button>
       </div>
 
-      <Accordion type="multiple" defaultValue={["category", "subcategory", "projectStage", "transaction", "location", "price", "seller"]} className="w-full">
+      <Accordion type="multiple" value={accordionValue} onValueChange={setAccordionValue} className="w-full">
         <AccordionItem value="category">
           <AccordionTrigger>
             <div className="flex items-center gap-2">
