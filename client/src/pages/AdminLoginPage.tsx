@@ -7,11 +7,16 @@ import { Input } from "@/components/ui/input";
 import { PasswordField } from "@/components/ui/passwordinput";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuthStore } from "@/stores/authStore";
+
+// Get store instance for direct access
+const { getState: getAuthState } = useAuthStore;
 
 export default function AdminLoginPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -25,11 +30,42 @@ export default function AdminLoginPage() {
       const data = await response.json();
       
       if (data.success) {
+        // Invalidate React Query cache to refetch user data
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+        // Re-initialize auth store with fresh data
+        await initializeAuth();
+        
         toast({
           title: "Welcome, Super Admin",
           description: "You have been logged in successfully.",
         });
-        setLocation("/admin/dashboard");
+        
+        // Give auth store time to update, then navigate
+        setTimeout(async () => {
+          // Re-check auth state one more time before navigating
+          await initializeAuth();
+          const authState = getAuthState();
+          console.log("Final auth check before navigation:", {
+            isAuthenticated: authState.isAuthenticated,
+            isAdmin: authState.isAdmin,
+            isSuperAdmin: authState.isSuperAdmin,
+            user: authState.user,
+          });
+          
+          if (authState.isAuthenticated && authState.isAdmin) {
+            setLocation("/admin/dashboard");
+          } else {
+            toast({
+              title: "Please Wait",
+              description: "Verifying authentication...",
+            });
+            // Try one more time after another short delay
+            setTimeout(async () => {
+              await initializeAuth();
+              setLocation("/admin/dashboard");
+            }, 500);
+          }
+        }, 200);
       } else {
         toast({
           title: "Login Failed",

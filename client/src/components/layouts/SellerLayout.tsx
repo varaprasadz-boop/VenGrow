@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { 
   LayoutDashboard, Building2, Plus, Package, CreditCard, MessageSquare, 
   Bell, Settings, BarChart3, HelpCircle, LogOut, ListPlus,
@@ -8,6 +9,7 @@ import {
 import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import type { SellerSubscription, Package as PackageType } from "@shared/schema";
 import {
   Sidebar,
   SidebarContent,
@@ -110,10 +112,43 @@ function NavSection({ title, items }: { title: string; items: typeof mainNavItem
   );
 }
 
+interface SubscriptionWithPackage extends SellerSubscription {
+  package?: PackageType;
+}
+
 export default function SellerLayout({ children }: SellerLayoutProps) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   
+  // Fetch subscription data
+  const { data: subscriptionResponse, isLoading: subscriptionLoading } = useQuery<{
+    success: boolean;
+    subscription: SellerSubscription | null;
+    package: PackageType | null;
+    usage?: {
+      listingsUsed: number;
+      listingLimit: number;
+      remainingListings: number;
+      featuredUsed: number;
+      featuredLimit: number;
+    };
+  }>({
+    queryKey: ["/api/subscriptions/current"],
+    enabled: !!user, // Only fetch when user is authenticated
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+  });
+
+  // Transform the API response to match the expected format
+  const subscription: SubscriptionWithPackage | undefined = subscriptionResponse?.subscription && subscriptionResponse?.package
+    ? {
+        ...subscriptionResponse.subscription,
+        package: subscriptionResponse.package,
+        totalListings: subscriptionResponse.usage?.listingsUsed || subscriptionResponse.subscription.listingsUsed || 0,
+        status: subscriptionResponse.subscription.isActive ? "active" : "inactive",
+      }
+    : undefined;
+
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
@@ -136,6 +171,13 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       : user.sellerType === 'builder' ? 'Builder' 
       : 'Seller'
     : 'Seller';
+
+  // Get package info
+  const packageName = subscription?.package?.name || "No Package";
+  const maxListings = subscription?.package?.listingLimit || subscription?.package?.maxListings || 0;
+  const usedListings = subscription?.totalListings || subscriptionResponse?.usage?.listingsUsed || 0;
+  const remainingListings = Math.max(0, maxListings - usedListings);
+  const hasActivePackage = subscription && (subscription.status === "active" || subscription.isActive === true);
 
   const handleLogout = async () => {
     await logout();
@@ -183,18 +225,41 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
           </SidebarContent>
 
           <SidebarFooter className="border-t p-4">
-            <div className="mb-3 p-3 bg-primary/10 rounded-lg">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium">Active Package</span>
-                <Badge variant="secondary" className="text-xs">Premium</Badge>
+            {subscriptionLoading ? (
+              <div className="mb-3 p-3 bg-primary/10 rounded-lg">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium">Loading...</span>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">3 listings remaining</p>
-              <Link href="/seller/packages/buy">
-                <Button size="sm" className="w-full mt-2" data-testid="button-upgrade-package">
-                  Upgrade
-                </Button>
-              </Link>
-            </div>
+            ) : hasActivePackage ? (
+              <div className="mb-3 p-3 bg-primary/10 rounded-lg">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium">Active Package</span>
+                  <Badge variant="secondary" className="text-xs">{packageName}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {remainingListings} {remainingListings === 1 ? 'listing' : 'listings'} remaining
+                </p>
+                {remainingListings === 0 && (
+                  <Link href="/seller/packages/buy">
+                    <Button size="sm" className="w-full mt-2" data-testid="button-upgrade-package">
+                      Upgrade
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="mb-3 p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium">No Active Package</span>
+                </div>
+                <Link href="/seller/packages/buy">
+                  <Button size="sm" className="w-full mt-2" data-testid="button-buy-package">
+                    Buy Package
+                  </Button>
+                </Link>
+              </div>
+            )}
             
             <div className="flex items-center gap-3">
               <Avatar className="h-8 w-8">

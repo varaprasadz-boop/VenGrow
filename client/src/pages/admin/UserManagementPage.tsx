@@ -50,8 +50,14 @@ export default function UserManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [confirmAction, setConfirmAction] = useState<"suspend" | "unsuspend" | null>(null);
+  const [viewUserDialogOpen, setViewUserDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const handleViewUser = (user: User) => {
+    setSelectedUser(user);
+    setViewUserDialogOpen(true);
+  };
 
   const { data: users = [], isLoading, isError, refetch } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
@@ -327,6 +333,7 @@ export default function UserManagementPage() {
                                 <Button
                                   variant="outline"
                                   size="sm"
+                                  onClick={() => handleViewUser(user)}
                                   data-testid={`button-view-${user.id}`}
                                 >
                                   <Eye className="h-4 w-4" />
@@ -385,6 +392,82 @@ export default function UserManagementPage() {
           </Tabs>
         </div>
       </main>
+
+      <Dialog open={viewUserDialogOpen} onOpenChange={setViewUserDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  User Information
+                </h3>
+                <div className="bg-muted/50 p-4 rounded-lg space-y-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Name</p>
+                    <p className="font-medium">
+                      {selectedUser.firstName || selectedUser.lastName 
+                        ? `${selectedUser.firstName || ""} ${selectedUser.lastName || ""}`.trim() 
+                        : "Not provided"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="font-medium">{selectedUser.email || "Not provided"}</p>
+                  </div>
+                  {selectedUser.phone && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Phone</p>
+                      <p className="font-medium">{selectedUser.phone}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm text-muted-foreground">Role</p>
+                    <Badge variant="outline" className="capitalize mt-1">
+                      {selectedUser.role}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    {selectedUser.isActive ? (
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500 mt-1">
+                        Active
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-500 mt-1">
+                        Suspended
+                      </Badge>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Joined</p>
+                    <p className="text-sm">
+                      {format(new Date(selectedUser.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatDistanceToNow(new Date(selectedUser.createdAt), { addSuffix: true })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Last Updated</p>
+                    <p className="text-sm">
+                      {format(new Date(selectedUser.updatedAt), "MMM d, yyyy 'at' h:mm a")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewUserDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
         <DialogContent>

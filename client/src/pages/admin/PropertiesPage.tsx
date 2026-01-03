@@ -1,10 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import {
   Table,
   TableBody,
@@ -46,9 +48,32 @@ function formatPrice(amount: number): string {
 export default function PropertiesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: properties = [], isLoading, isError, refetch } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
+  });
+
+  const toggleFeaturedMutation = useMutation({
+    mutationFn: async ({ propertyId, isFeatured }: { propertyId: string; isFeatured: boolean }) => {
+      const response = await apiRequest("PATCH", `/api/admin/properties/${propertyId}/featured`, { isFeatured });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+      toast({
+        title: "Featured Status Updated",
+        description: "Property featured status has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update featured status.",
+        variant: "destructive",
+      });
+    },
   });
 
   const filteredProperties = properties.filter(property => {
@@ -134,10 +159,16 @@ export default function PropertiesPage() {
                 <p className="text-muted-foreground">Manage all property listings</p>
               </div>
             </div>
-            <Button onClick={handleExport} data-testid="button-export-properties">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => refetch()} disabled={isLoading} data-testid="button-refresh">
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+              <Button onClick={handleExport} data-testid="button-export-properties">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </div>
 
           <Card className="p-6">
@@ -206,7 +237,21 @@ export default function PropertiesPage() {
                           {getStatusBadge(property.status)}
                         </TableCell>
                         <TableCell className="text-center">
-                          {property.isFeatured && <Star className="h-4 w-4 text-yellow-500 mx-auto" />}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleFeaturedMutation.mutate({ 
+                              propertyId: property.id, 
+                              isFeatured: !property.isFeatured 
+                            })}
+                            disabled={toggleFeaturedMutation.isPending}
+                            className="p-0 h-auto"
+                            data-testid={`button-toggle-featured-${property.id}`}
+                          >
+                            <Star 
+                              className={`h-5 w-5 ${property.isFeatured ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"}`} 
+                            />
+                          </Button>
                         </TableCell>
                         <TableCell className="text-center">
                           {format(new Date(property.createdAt), "MMM d, yyyy")}

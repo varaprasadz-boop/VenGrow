@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { Link } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { Building2, CheckCircle, Download, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +8,24 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 export default function PaymentSuccessPage() {
+  const queryClient = useQueryClient();
+
+  // Invalidate all relevant queries when page loads to refresh data
+  useEffect(() => {
+    const refreshData = async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/seller/subscription"] }),
+      ]);
+
+      // Refresh auth store
+      const { useAuthStore } = await import("@/stores/authStore");
+      await useAuthStore.getState().initializeAuth();
+    };
+
+    refreshData();
+  }, [queryClient]);
   const transaction = {
     id: "TXN-20251124-001",
     date: "November 24, 2025, 10:30 AM",

@@ -1,41 +1,29 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
+import { useAuthStore } from "@/stores/authStore";
 
 export default function LogoutPage() {
-  const [, setLocation] = useLocation();
   const [error, setError] = useState<string | null>(null);
+  const logout = useAuthStore((state) => state.logout);
 
   useEffect(() => {
     const performLogout = async () => {
       try {
-        const adminRes = await fetch("/api/admin/logout", {
-          method: "POST",
-          credentials: "include",
-        });
-
-        const userRes = await fetch("/api/auth/logout", {
-          method: "POST",
-          credentials: "include",
-        });
-
-        localStorage.removeItem("user");
-        localStorage.removeItem("adminUser");
-        
-        setTimeout(() => {
-          setLocation("/login");
-        }, 500);
+        // Use the auth store logout which handles everything
+        await logout();
+        // logout() already redirects, so we don't need to do anything here
       } catch (err) {
         console.error("Logout error:", err);
-        setError("Failed to logout. Redirecting to login...");
+        setError("Failed to logout. Redirecting...");
+        // Even on error, redirect to home
         setTimeout(() => {
-          setLocation("/login");
+          window.location.href = "/";
         }, 1500);
       }
     };
 
     performLogout();
-  }, [setLocation]);
+  }, [logout]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

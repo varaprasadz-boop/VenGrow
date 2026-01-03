@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Building2, Shield, CreditCard, CheckCircle, AlertCircle, Loader2, Sparkles, Lock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Package, User } from "@shared/schema";
@@ -23,10 +31,12 @@ declare global {
 export default function PaymentPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isProcessing, setIsProcessing] = useState(false);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [dummyPaymentProgress, setDummyPaymentProgress] = useState(0);
   const [dummyPaymentStep, setDummyPaymentStep] = useState("");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Card form state for dummy payment
   const [cardNumber, setCardNumber] = useState("");
@@ -46,7 +56,7 @@ export default function PaymentPage() {
     queryKey: ["/api/packages"],
   });
 
-  const { data: razorpayStatus, isLoading: statusLoading } = useQuery<{ configured: boolean; keyId: string; dummyMode: boolean }>({
+  const { data: razorpayStatus, isLoading: statusLoading } = useQuery<{ configured: boolean; keyId: string; dummyMode: boolean; bypassMode?: boolean }>({
     queryKey: ["/api/razorpay/status"],
   });
 
@@ -67,7 +77,27 @@ export default function PaymentPage() {
   const createOrderMutation = useMutation({
     mutationFn: async (data: { packageId: string; amount: number; userId: string }) => {
       const response = await apiRequest("POST", "/api/razorpay/orders", data);
-      return response.json();
+      const result = await response.json();
+      
+      // If bypass mode is active and order was completed, return bypass response
+      if (result.bypassMode) {
+        return result;
+      }
+      
+      // If response indicates bypass was used, return it
+      if (!response.ok && response.status === 500) {
+        // Check if it's a bypass mode error or actual error
+        if (result.error && result.error.includes("bypass")) {
+          // Try bypass endpoint instead
+          const bypassResponse = await apiRequest("POST", "/api/payments/bypass", {
+            packageId: data.packageId,
+            userId: data.userId,
+          });
+          return bypassResponse.json();
+        }
+      }
+      
+      return result;
     },
   });
 
@@ -94,6 +124,17 @@ export default function PaymentPage() {
       userId: string;
     }) => {
       const response = await apiRequest("POST", "/api/payments/dummy", data);
+      return response.json();
+    },
+  });
+
+  // Bypass payment mutation (for testing - auto-completes without card input)
+  const bypassPaymentMutation = useMutation({
+    mutationFn: async (data: {
+      packageId: string;
+      userId: string;
+    }) => {
+      const response = await apiRequest("POST", "/api/payments/bypass", data);
       return response.json();
     },
   });
@@ -139,11 +180,108 @@ export default function PaymentPage() {
     });
 
     if (verifyResult.success) {
+      // Invalidate all relevant queries to refresh data
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/seller/subscription"] }),
+      ]);
+
+      // Refresh auth store
+      const { useAuthStore } = await import("@/stores/authStore");
+      await useAuthStore.getState().initializeAuth();
+
       toast({
         title: "Payment Successful!",
         description: "Your subscription is now active. (Demo Mode)",
       });
       setTimeout(() => setLocation("/seller/dashboard"), 1000);
+    }
+  };
+
+  // Handle bypass payment (auto-completes without card input for testing)
+  const handleBypassPayment = async () => {
+    if (!selectedPackage) {
+      toast({
+        title: "Error",
+        description: "No package selected. Please go back and select a package.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to complete your purchase.",
+        variant: "destructive",
+      });
+      setTimeout(() => setLocation("/login"), 1500);
+      return;
+    }
+
+    setIsProcessing(true);
+    setDummyPaymentProgress(0);
+    setDummyPaymentStep("");
+
+    // Simulate progress
+    const steps = [
+      { progress: 20, message: "Processing payment..." },
+      { progress: 50, message: "Activating package..." },
+      { progress: 80, message: "Finalizing subscription..." },
+    ];
+
+    for (const step of steps) {
+      setDummyPaymentProgress(step.progress);
+      setDummyPaymentStep(step.message);
+      await new Promise(resolve => setTimeout(resolve, 400));
+    }
+
+    try {
+      const result = await bypassPaymentMutation.mutateAsync({
+        packageId: selectedPackage.id,
+        userId: user.id,
+      });
+
+      if (result.success) {
+        setDummyPaymentProgress(100);
+        setDummyPaymentStep("Payment confirmed!");
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Invalidate all relevant queries to refresh data
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/seller/subscription"] }),
+        ]);
+
+        // Refresh auth store
+        const { useAuthStore } = await import("@/stores/authStore");
+        await useAuthStore.getState().initializeAuth();
+
+        toast({
+          title: "Payment Successful!",
+          description: `Your ${selectedPackage.name} package has been activated. (Bypass Mode - Testing)`,
+        });
+
+        setTimeout(() => setLocation("/seller/dashboard"), 1500);
+      } else {
+        setIsProcessing(false);
+        setDummyPaymentProgress(0);
+        toast({
+          title: "Payment Failed",
+          description: result.message || "Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      setIsProcessing(false);
+      setDummyPaymentProgress(0);
+      toast({
+        title: "Payment Failed",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -228,6 +366,17 @@ export default function PaymentPage() {
         setDummyPaymentStep("Payment confirmed!");
         await new Promise(resolve => setTimeout(resolve, 500));
 
+        // Invalidate all relevant queries to refresh data
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/seller/subscription"] }),
+        ]);
+
+        // Refresh auth store
+        const { useAuthStore } = await import("@/stores/authStore");
+        await useAuthStore.getState().initializeAuth();
+
         toast({
           title: "Payment Successful!",
           description: `Your ${selectedPackage.name} package has been activated.`,
@@ -255,7 +404,21 @@ export default function PaymentPage() {
   };
 
   const handlePayment = async () => {
-    if (!selectedPackage || !user || !razorpayStatus?.keyId) return;
+    if (!selectedPackage || !user) return;
+
+    // Check if bypass mode is enabled - redirect to bypass payment
+    if (razorpayStatus?.bypassMode) {
+      await handleBypassPayment();
+      return;
+    }
+
+    // If Razorpay is not configured, use dummy payment
+    if (!razorpayStatus?.keyId) {
+      if (useDummyPayment) {
+        await handleDummyPayment();
+      }
+      return;
+    }
 
     setIsProcessing(true);
     setDummyPaymentProgress(0);
@@ -270,6 +433,28 @@ export default function PaymentPage() {
         amount: totalAmount,
         userId: user.id,
       });
+
+      // Check if the order response indicates bypass mode
+      if (orderData.bypassMode) {
+        // Order was already completed via bypass mode
+        // Invalidate all relevant queries to refresh data
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/seller/subscription"] }),
+        ]);
+
+        // Refresh auth store
+        const { useAuthStore } = await import("@/stores/authStore");
+        await useAuthStore.getState().initializeAuth();
+
+        toast({
+          title: "Payment Successful!",
+          description: "Your subscription is now active. (Bypass Mode - Testing)",
+        });
+        setTimeout(() => setLocation("/seller/dashboard"), 1500);
+        return;
+      }
 
       if (razorpayStatus.dummyMode) {
         await simulateDummyPayment(orderData, orderData.paymentId);
@@ -295,6 +480,17 @@ export default function PaymentPage() {
             });
 
             if (verifyResult.success) {
+              // Invalidate all relevant queries to refresh data
+              await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }),
+                queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] }),
+                queryClient.invalidateQueries({ queryKey: ["/api/seller/subscription"] }),
+              ]);
+
+              // Refresh auth store
+              const { useAuthStore } = await import("@/stores/authStore");
+              await useAuthStore.getState().initializeAuth();
+
               toast({
                 title: "Payment Successful!",
                 description: "Your subscription is now active.",
@@ -374,8 +570,9 @@ export default function PaymentPage() {
     );
   }
 
-  // Determine if we're using dummy payment mode
-  const useDummyPayment = !razorpayStatus?.configured;
+  // Determine payment mode
+  const useBypassPayment = razorpayStatus?.bypassMode === true;
+  const useDummyPayment = !razorpayStatus?.configured && !useBypassPayment;
 
   // Show processing animation for dummy payment
   if (isProcessing && dummyPaymentProgress > 0) {
@@ -402,9 +599,14 @@ export default function PaymentPage() {
           <Progress value={dummyPaymentProgress} className="mb-4" />
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Shield className="h-4 w-4" />
-            <span>{useDummyPayment ? "Test Mode - No actual charges" : "Secure Payment"}</span>
+            <span>{useBypassPayment ? "Bypass Mode - Auto-complete" : useDummyPayment ? "Test Mode - No actual charges" : "Secure Payment"}</span>
           </div>
-          {useDummyPayment && (
+          {useBypassPayment && (
+            <Badge variant="outline" className="mt-4">
+              Bypass Mode (Testing)
+            </Badge>
+          )}
+          {useDummyPayment && !useBypassPayment && (
             <Badge variant="outline" className="mt-4">
               Test Payment
             </Badge>
@@ -431,11 +633,16 @@ export default function PaymentPage() {
             Complete Your Payment
           </h1>
           <p className="text-muted-foreground">
-            {useDummyPayment 
+            {useBypassPayment 
+              ? "Bypass Mode - Payment will auto-complete for testing" 
+              : useDummyPayment 
               ? "Test mode - Use test card for demo" 
               : "Secure payment powered by Razorpay"}
           </p>
-          {useDummyPayment && (
+          {useBypassPayment && (
+            <Badge variant="secondary" className="mt-2">Bypass Mode (Testing)</Badge>
+          )}
+          {useDummyPayment && !useBypassPayment && (
             <Badge variant="secondary" className="mt-2">Test Mode</Badge>
           )}
         </div>
@@ -489,7 +696,28 @@ export default function PaymentPage() {
               </div>
             </div>
 
-            {useDummyPayment ? (
+            {useBypassPayment ? (
+              <div className="mb-6">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-200">Bypass Mode Enabled</p>
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        Payment will be automatically completed without requiring card details. This is for testing purposes only.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center py-8">
+                  <CheckCircle className="h-16 w-16 mx-auto mb-4 text-primary" />
+                  <p className="text-lg font-semibold mb-2">Ready to Complete Payment</p>
+                  <p className="text-sm text-muted-foreground">
+                    Click "Pay" to automatically activate your package. No card details required.
+                  </p>
+                </div>
+              </div>
+            ) : useDummyPayment ? (
               <div className="mb-6">
                 <h3 className="font-semibold mb-4">Card Details</h3>
                 <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800 rounded-lg mb-4">
@@ -603,7 +831,9 @@ export default function PaymentPage() {
                   {useDummyPayment ? "Test Payment" : "Secure Payment"}
                 </p>
                 <p className="text-xs text-blue-700 dark:text-blue-500">
-                  {useDummyPayment 
+                  {useBypassPayment
+                    ? "Bypass mode is active. Payment will be automatically completed for testing."
+                    : useDummyPayment 
                     ? "This is a test environment. No actual charges will be made."
                     : "Your payment information is encrypted and secure. We never store your card details."}
                 </p>
@@ -619,8 +849,8 @@ export default function PaymentPage() {
               <Button
                 className="flex-1"
                 size="lg"
-                onClick={useDummyPayment ? handleDummyPayment : handlePayment}
-                disabled={isProcessing || (!useDummyPayment && !razorpayLoaded)}
+                onClick={() => setShowConfirmDialog(true)}
+                disabled={isProcessing || (!useBypassPayment && !useDummyPayment && !razorpayLoaded)}
                 data-testid="button-pay"
               >
                 {isProcessing ? (
@@ -694,6 +924,69 @@ export default function PaymentPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Payment</DialogTitle>
+            <DialogDescription>
+              Please review your order details before proceeding with payment.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedPackage && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Package:</span>
+                  <span className="font-medium">{selectedPackage.name}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Duration:</span>
+                  <span className="font-medium">{selectedPackage.duration} days</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Listings Limit:</span>
+                  <span className="font-medium">{selectedPackage.listingLimit} listings</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal:</span>
+                  <span className="font-medium">₹{selectedPackage.price.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">GST (18%):</span>
+                  <span className="font-medium">₹{gstAmount.toLocaleString("en-IN")}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-semibold text-base">
+                  <span>Total Amount:</span>
+                  <span className="text-primary">₹{totalAmount.toLocaleString("en-IN")}</span>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setShowConfirmDialog(false);
+                if (useBypassPayment) {
+                  handleBypassPayment();
+                } else if (useDummyPayment) {
+                  handleDummyPayment();
+                } else {
+                  handlePayment();
+                }
+              }}
+              disabled={isProcessing}
+            >
+              Confirm & Pay
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -29,7 +29,44 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
+    // Extract base URL (first element) and process remaining elements
+    let baseUrl = queryKey[0] as string;
+    const queryParams: Record<string, string> = {};
+    const pathSegments: string[] = [];
+    
+    // Process remaining queryKey elements
+    for (let i = 1; i < queryKey.length; i++) {
+      const item = queryKey[i];
+      if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+        // Merge object properties into queryParams
+        Object.assign(queryParams, item);
+      } else if (typeof item === 'string' && item) {
+        // If it's a string, treat it as a path segment
+        pathSegments.push(item);
+      }
+    }
+    
+    // Append path segments if any
+    if (pathSegments.length > 0) {
+      // Remove trailing slash from baseUrl if present
+      baseUrl = baseUrl.replace(/\/$/, '');
+      baseUrl = baseUrl + '/' + pathSegments.join('/');
+    }
+    
+    // Build URL with query parameters
+    let finalUrl = baseUrl;
+    if (Object.keys(queryParams).length > 0) {
+      const url = new URL(baseUrl, window.location.origin);
+      Object.entries(queryParams).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          url.searchParams.append(key, String(value));
+        }
+      });
+      // Use pathname + search for relative URLs
+      finalUrl = url.pathname + url.search;
+    }
+    
+    const res = await fetch(finalUrl, {
       credentials: "include",
     });
 

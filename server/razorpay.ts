@@ -66,6 +66,28 @@ export interface RazorpayOrder {
 }
 
 export async function createOrder(params: CreateOrderParams): Promise<RazorpayOrder> {
+  // Check for bypass mode first
+  const bypassMode = process.env.PAYMENT_BYPASS_MODE === "true" || 
+                     process.env.PAYMENT_BYPASS_MODE === "1" ||
+                     process.env.PAYMENT_BYPASS_MODE === "TRUE";
+  
+  if (bypassMode) {
+    // In bypass mode, return a dummy order that indicates bypass was used
+    const dummyOrderId = `order_bypass_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    return {
+      id: dummyOrderId,
+      entity: "order",
+      amount: params.amount * 100,
+      amount_paid: params.amount * 100, // Mark as paid in bypass mode
+      amount_due: 0,
+      currency: params.currency || "INR",
+      receipt: params.receipt,
+      status: "paid", // Mark as paid
+      notes: { ...params.notes, bypassMode: "true" },
+      created_at: Math.floor(Date.now() / 1000),
+    };
+  }
+  
   if (isDummyModeEnabled()) {
     const dummyOrderId = `order_dummy_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     return {

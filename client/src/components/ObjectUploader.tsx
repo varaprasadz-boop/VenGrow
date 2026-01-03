@@ -14,15 +14,19 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Upload, X, Image as ImageIcon, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
   maxFileSize?: number;
   allowedFileTypes?: string[];
-  onGetUploadParameters: (file?: any) => Promise<{
+  onGetUploadParameters?: (file?: any) => Promise<{
     method: "PUT";
     url: string;
   }>;
+  // Support for bucket/prefix props (alternative to onGetUploadParameters)
+  bucket?: string;
+  prefix?: string;
   onComplete?: (
     result: UploadResult<Record<string, unknown>, Record<string, unknown>>
   ) => void;
@@ -30,6 +34,9 @@ interface ObjectUploaderProps {
   buttonVariant?: "default" | "outline" | "ghost" | "secondary";
   children: ReactNode;
   disabled?: boolean;
+  // Legacy props for backward compatibility
+  maxFiles?: number;
+  accept?: string;
 }
 
 interface FileWithPreview extends File {
@@ -41,16 +48,25 @@ interface FileWithPreview extends File {
 }
 
 export function ObjectUploader({
-  maxNumberOfFiles = 1,
+  maxNumberOfFiles: maxNumberOfFilesProp,
   maxFileSize = 10485760,
-  allowedFileTypes = ["image/*"],
-  onGetUploadParameters,
+  allowedFileTypes: allowedFileTypesProp,
+  onGetUploadParameters: onGetUploadParametersProp,
+  bucket,
+  prefix,
   onComplete,
   buttonClassName,
   buttonVariant = "default",
   children,
   disabled = false,
+  // Legacy props
+  maxFiles,
+  accept,
 }: ObjectUploaderProps) {
+  // Support legacy props
+  const maxNumberOfFiles = maxNumberOfFilesProp ?? maxFiles ?? 1;
+  const allowedFileTypes = allowedFileTypesProp ?? (accept ? [accept] : ["image/*"]);
+  
   const [showModal, setShowModal] = useState(false);
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -58,6 +74,57 @@ export function ObjectUploader({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const shouldAutoUploadRef = useRef(false);
+
+  // Create onGetUploadParameters function if bucket/prefix are provided
+  const onGetUploadParameters = onGetUploadParametersProp ?? (async (file?: any) => {
+    try {
+      // Build query string with bucket and prefix
+      const queryParams = new URLSearchParams();
+      if (bucket) {
+        queryParams.append('bucket', bucket);
+      }
+      if (prefix) {
+        queryParams.append('prefix', prefix);
+      }
+      
+      const url = `/api/objects/upload${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const response = await apiRequest("POST", url);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to get upload URL");
+      }
+      const data = await response.json();
+      if (!data.uploadURL) {
+        throw new Error("Upload URL not received from server");
+      }
+      
+      // Store the final object URL in file metadata for later retrieval
+      let finalURL = data.url;
+      if (!finalURL && data.uploadURL) {
+        try {
+          const urlObj = new URL(data.uploadURL);
+          finalURL = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
+        } catch (e) {
+          console.warn("Could not parse upload URL:", e);
+          finalURL = data.uploadURL;
+        }
+      }
+      
+      // Store in file metadata for retrieval after upload completes
+      if (file && finalURL) {
+        file.meta = file.meta || {};
+        file.meta.finalURL = finalURL;
+      }
+      
+      return {
+        method: "PUT" as const,
+        url: data.uploadURL,
+      };
+    } catch (error: any) {
+      console.error("Error getting upload parameters:", error);
+      throw error;
+    }
+  });
 
   const [uppy] = useState(() =>
     new Uppy({

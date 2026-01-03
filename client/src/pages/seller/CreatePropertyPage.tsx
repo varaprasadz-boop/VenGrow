@@ -207,6 +207,7 @@ export default function CreatePropertyPage() {
   const { data: subscriptionData, isLoading: loadingSubscription } = useQuery<{
     subscription?: { id: string; listingsUsed: number };
     package?: { name: string; listingLimit: number };
+    usage?: { listingsUsed: number; listingLimit: number; remainingListings: number };
   }>({
     queryKey: ["/api/subscriptions/current"],
   });
@@ -650,7 +651,7 @@ export default function CreatePropertyPage() {
             <AlertTitle>Listing Limit Reached</AlertTitle>
             <AlertDescription>
               {subscriptionData?.subscription 
-                ? `You've used ${subscriptionData.subscription.listingsUsed} of ${subscriptionData.package?.listingLimit} listings in your ${subscriptionData.package?.name} plan.`
+                ? `You've used ${subscriptionData.usage?.listingsUsed ?? subscriptionData.subscription.listingsUsed} of ${subscriptionData.usage?.listingLimit ?? subscriptionData.package?.listingLimit} listings in your ${subscriptionData.package?.name} plan.`
                 : "You don't have an active subscription."}
             </AlertDescription>
           </Alert>
@@ -683,7 +684,7 @@ export default function CreatePropertyPage() {
               <h1 className="text-2xl font-bold">{isEditMode ? "Edit Property" : "Add Property"}</h1>
               {!isEditMode && subscriptionData?.subscription && (
                 <Badge variant="outline">
-                  {subscriptionData.subscription.listingsUsed}/{subscriptionData.package?.listingLimit} listings used
+                  {subscriptionData.usage?.listingsUsed ?? subscriptionData.subscription.listingsUsed}/{subscriptionData.usage?.listingLimit ?? subscriptionData.package?.listingLimit} listings used
                 </Badge>
               )}
             </div>

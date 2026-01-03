@@ -1,70 +1,119 @@
 import { useState } from "react";
+import { Link } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Star, Search, MapPin, TrendingUp } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Star, Search, MapPin, TrendingUp, Eye, ArrowUpDown, X, RefreshCw, AlertCircle } from "lucide-react";
+import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import type { Property } from "@shared/schema";
 
-interface FeaturedListing {
-  id: string;
-  title: string;
-  seller: string;
-  location: string;
-  price: string;
-  views: number;
-  inquiries: number;
-  featuredSince: string;
-  daysRemaining: number;
-  position: number;
+function formatPrice(amount: number): string {
+  if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Cr`;
+  if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)} L`;
+  return `₹${amount.toLocaleString("en-IN")}`;
 }
 
 export default function FeaturedListingsPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [positionDialogOpen, setPositionDialogOpen] = useState(false);
+  const [newPosition, setNewPosition] = useState<number>(1);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const allFeaturedListings: FeaturedListing[] = [
-    {
-      id: "1",
-      title: "Luxury 3BHK Apartment in Prime Location",
-      seller: "Prestige Estates",
-      location: "Bandra West, Mumbai",
-      price: "₹85 L",
-      views: 2345,
-      inquiries: 45,
-      featuredSince: "Nov 20, 2025",
-      daysRemaining: 25,
-      position: 1,
-    },
-    {
-      id: "2",
-      title: "Commercial Office Space in IT Park",
-      seller: "DLF Properties",
-      location: "Cyber City, Gurgaon",
-      price: "₹1.5 Cr",
-      views: 1987,
-      inquiries: 32,
-      featuredSince: "Nov 18, 2025",
-      daysRemaining: 23,
-      position: 2,
-    },
-    {
-      id: "3",
-      title: "Spacious 4BHK Villa with Garden",
-      seller: "Real Estate Pro",
-      location: "Whitefield, Bangalore",
-      price: "₹1.25 Cr",
-      views: 1654,
-      inquiries: 28,
-      featuredSince: "Nov 15, 2025",
-      daysRemaining: 20,
-      position: 3,
-    },
-  ];
+  const { data: allProperties = [], isLoading, isError, refetch } = useQuery<Property[]>({
+    queryKey: ["/api/properties"],
+  });
 
-  const filteredListings = allFeaturedListings.filter(listing =>
-    listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    listing.seller.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    listing.location.toLowerCase().includes(searchQuery.toLowerCase())
+  const featuredProperties = allProperties.filter(p => p.isFeatured && p.status === "active");
+
+  const removeFeaturedMutation = useMutation({
+    mutationFn: async (propertyId: string) => {
+      const response = await apiRequest("PATCH", `/api/admin/properties/${propertyId}/featured`, { isFeatured: false });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+      toast({
+        title: "Feature Removed",
+        description: "Property has been removed from featured listings.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to remove featured status.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleRemoveFeatured = (property: Property) => {
+    removeFeaturedMutation.mutate(property.id);
+  };
+
+  const handleChangePosition = (property: Property) => {
+    setSelectedProperty(property);
+    setNewPosition(featuredProperties.indexOf(property) + 1);
+    setPositionDialogOpen(true);
+  };
+
+  const handleSavePosition = () => {
+    // Position management would require backend support for ordering
+    // For now, just show a message
+    toast({
+      title: "Position Change",
+      description: "Position change feature requires backend support. Feature coming soon.",
+    });
+    setPositionDialogOpen(false);
+  };
+
+  const filteredListings = featuredProperties.filter(listing =>
+    listing.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    listing.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    listing.locality?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <main className="flex-1">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Skeleton className="h-10 w-64 mb-8" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </main>
+    );
+  }
+
+  if (isError) {
+    return (
+      <main className="flex-1">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center p-8">
+            <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
+            <h2 className="text-xl font-semibold mb-2">Failed to Load Featured Listings</h2>
+            <Button onClick={() => refetch()} data-testid="button-retry">
+              <RefreshCw className="h-4 w-4 mr-2" />Retry
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
       <main className="flex-1">
@@ -86,7 +135,7 @@ export default function FeaturedListingsPage() {
                   <Star className="h-6 w-6 text-yellow-600" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold">{allFeaturedListings.length}</p>
+                  <p className="text-3xl font-bold">{featuredProperties.length}</p>
                   <p className="text-sm text-muted-foreground">
                     Active Featured
                   </p>
@@ -100,7 +149,9 @@ export default function FeaturedListingsPage() {
                   <TrendingUp className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold">5,986</p>
+                  <p className="text-3xl font-bold">
+                    {featuredProperties.reduce((sum, p) => sum + (p.viewCount || 0), 0).toLocaleString()}
+                  </p>
                   <p className="text-sm text-muted-foreground">Total Views</p>
                 </div>
               </div>
@@ -112,7 +163,9 @@ export default function FeaturedListingsPage() {
                   <TrendingUp className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold">105</p>
+                  <p className="text-3xl font-bold">
+                    {featuredProperties.reduce((sum, p) => sum + (p.inquiryCount || 0), 0)}
+                  </p>
                   <p className="text-sm text-muted-foreground">Total Inquiries</p>
                 </div>
               </div>
@@ -146,12 +199,12 @@ export default function FeaturedListingsPage() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {filteredListings.map((listing) => (
+              {filteredListings.map((listing, index) => (
               <Card key={listing.id} className="p-6">
                 <div className="flex items-start gap-4">
                   <div className="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/20 flex-shrink-0">
                     <span className="text-xl font-bold text-yellow-600">
-                      #{listing.position}
+                      #{index + 1}
                     </span>
                   </div>
 
@@ -168,16 +221,13 @@ export default function FeaturedListingsPage() {
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
-                          <span>
-                            <strong>Seller:</strong> {listing.seller}
-                          </span>
                           <div className="flex items-center gap-1">
                             <MapPin className="h-4 w-4" />
-                            <span>{listing.location}</span>
+                            <span>{listing.locality || listing.city}, {listing.city}, {listing.state}</span>
                           </div>
                         </div>
                         <p className="text-2xl font-bold font-serif text-primary mb-3">
-                          {listing.price}
+                          {formatPrice(listing.price)}
                         </p>
                       </div>
                     </div>
@@ -185,50 +235,58 @@ export default function FeaturedListingsPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div className="p-3 bg-muted rounded-lg">
                         <p className="text-xs text-muted-foreground mb-1">Views</p>
-                        <p className="font-semibold">{listing.views}</p>
+                        <p className="font-semibold">{(listing.viewCount || 0).toLocaleString()}</p>
                       </div>
                       <div className="p-3 bg-muted rounded-lg">
                         <p className="text-xs text-muted-foreground mb-1">
                           Inquiries
                         </p>
-                        <p className="font-semibold">{listing.inquiries}</p>
+                        <p className="font-semibold">{listing.inquiryCount || 0}</p>
                       </div>
                       <div className="p-3 bg-muted rounded-lg">
                         <p className="text-xs text-muted-foreground mb-1">
                           Featured Since
                         </p>
                         <p className="font-semibold text-xs">
-                          {listing.featuredSince}
+                          {listing.publishedAt ? format(new Date(listing.publishedAt), "MMM d, yyyy") : "N/A"}
                         </p>
                       </div>
                       <div className="p-3 bg-muted rounded-lg">
                         <p className="text-xs text-muted-foreground mb-1">
-                          Days Remaining
+                          Property Type
                         </p>
-                        <p className="font-semibold">{listing.daysRemaining}</p>
+                        <p className="font-semibold text-xs capitalize">{listing.propertyType}</p>
                       </div>
                     </div>
 
                     <div className="flex gap-2">
+                      <Link href={`/property/${listing.id}`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          data-testid={`button-view-${listing.id}`}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Listing
+                        </Button>
+                      </Link>
                       <Button
                         variant="outline"
                         size="sm"
-                        data-testid={`button-view-${listing.id}`}
-                      >
-                        View Listing
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
+                        onClick={() => handleChangePosition(listing)}
                         data-testid={`button-reorder-${listing.id}`}
                       >
+                        <ArrowUpDown className="h-4 w-4 mr-1" />
                         Change Position
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => handleRemoveFeatured(listing)}
+                        disabled={removeFeaturedMutation.isPending}
                         data-testid={`button-remove-${listing.id}`}
                       >
+                        <X className="h-4 w-4 mr-1" />
                         Remove Feature
                       </Button>
                     </div>
@@ -239,6 +297,40 @@ export default function FeaturedListingsPage() {
             </div>
           )}
         </div>
+
+        <Dialog open={positionDialogOpen} onOpenChange={setPositionDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Change Featured Position</DialogTitle>
+              <DialogDescription>
+                Set the display position for this featured property (lower numbers appear first).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="position">Position (1-{featuredProperties.length})</Label>
+              <Input
+                id="position"
+                type="number"
+                min={1}
+                max={featuredProperties.length}
+                value={newPosition}
+                onChange={(e) => setNewPosition(parseInt(e.target.value) || 1)}
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Note: Position management requires backend support for ordering. This feature will be available soon.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPositionDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSavePosition}>
+                Save Position
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     );
 }

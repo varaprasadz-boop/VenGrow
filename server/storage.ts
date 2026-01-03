@@ -1242,8 +1242,16 @@ export class DatabaseStorage implements IStorage {
       return { canCreate: false, reason: "Your subscription has expired. Please renew to continue listing properties." };
     }
     
+    // Calculate actual listingsUsed from active properties instead of using database field
+    const properties = await this.getPropertiesBySeller(sellerId);
+    const activeListings = properties.filter(p => 
+      p.status === "active" && (p.workflowStatus === "live" || p.workflowStatus === "approved")
+    ).length;
+    
+    const listingsUsed = activeListings;
+    
     // Check listing limit
-    const remaining = pkg.listingLimit - subscription.listingsUsed;
+    const remaining = pkg.listingLimit - listingsUsed;
     if (remaining <= 0) {
       return { canCreate: false, reason: "You have reached your listing limit. Please upgrade your package for more listings." };
     }

@@ -77,6 +77,13 @@ export const publicRoutes: RouteConfig[] = [
   { path: "/sell-your-property", component: lazy(() => import("@/pages/static/SellYourPropertyPage")), title: "Sell Property" },
   { path: "/sell-faster-guide", component: lazy(() => import("@/pages/static/SellFasterGuidePage")), title: "Sell Faster" },
   
+  // Seller Registration Flow (Public)
+  { path: "/seller/type", component: lazy(() => import("@/pages/seller/SellerTypePage")), title: "Seller Type" },
+  { path: "/seller/register/individual", component: lazy(() => import("@/pages/seller/IndividualRegisterPage")), title: "Individual Registration" },
+  { path: "/seller/register/broker", component: lazy(() => import("@/pages/seller/BrokerRegisterPage")), title: "Broker Registration" },
+  { path: "/seller/register/builder", component: lazy(() => import("@/pages/seller/BuilderRegisterPage")), title: "Builder Registration" },
+  { path: "/seller/register/corporate", component: lazy(() => import("@/pages/seller/CorporateRegisterPage")), title: "Corporate Registration" },
+  
   // Error Pages
   { path: "/404", component: lazy(() => import("@/pages/error/NotFoundPage")), title: "Not Found" },
   { path: "/403", component: lazy(() => import("@/pages/error/ForbiddenPage")), title: "Forbidden" },
@@ -216,12 +223,7 @@ export const buyerRoutes: RouteConfig[] = [
 
 // Seller Routes - Requires auth with seller or admin role
 export const sellerRoutes: RouteConfig[] = [
-  // Onboarding & Registration
-  { path: "/seller/type", component: lazy(() => import("@/pages/seller/SellerTypePage")), requireAuth: true, roles: ["seller", "admin"], title: "Seller Type" },
-  { path: "/seller/register/individual", component: lazy(() => import("@/pages/seller/IndividualRegisterPage")), requireAuth: true, roles: ["seller", "admin"], title: "Individual Registration" },
-  { path: "/seller/register/broker", component: lazy(() => import("@/pages/seller/BrokerRegisterPage")), requireAuth: true, roles: ["seller", "admin"], title: "Broker Registration" },
-  { path: "/seller/register/builder", component: lazy(() => import("@/pages/seller/BuilderRegisterPage")), requireAuth: true, roles: ["seller", "admin"], title: "Builder Registration" },
-  { path: "/seller/register/corporate", component: lazy(() => import("@/pages/seller/CorporateRegisterPage")), requireAuth: true, roles: ["seller", "admin"], title: "Corporate Registration" },
+  // Onboarding & Registration - Note: Registration routes are in publicRoutes
   { path: "/seller/verification", component: lazy(() => import("@/pages/seller/VerificationCenterPage")), requireAuth: true, roles: ["seller", "admin"], title: "Verification" },
   { path: "/seller/document-verification", component: lazy(() => import("@/pages/seller/DocumentVerificationPage")), requireAuth: true, roles: ["seller", "admin"], title: "Document Verification" },
   { path: "/seller/approval-pending", component: lazy(() => import("@/pages/seller/ApprovalPendingPage")), requireAuth: true, roles: ["seller", "admin"], title: "Approval Pending" },

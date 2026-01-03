@@ -158,6 +158,33 @@ export default function InvoiceSettingsPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
+                    <Label htmlFor="logo">Company Logo URL</Label>
+                    <Input
+                      id="logo"
+                      type="url"
+                      value={formData.logo || ""}
+                      onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
+                      placeholder="https://example.com/logo.png"
+                      data-testid="input-logo"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Enter the URL of your company logo. The logo will be displayed on invoices.
+                    </p>
+                    {formData.logo && (
+                      <div className="mt-2">
+                        <p className="text-xs text-muted-foreground mb-1">Preview:</p>
+                        <img 
+                          src={formData.logo} 
+                          alt="Logo Preview" 
+                          className="h-16 object-contain border rounded p-2"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div className="md:col-span-2">
                     <Label htmlFor="companyName">Company Name *</Label>
                     <Input
                       id="companyName"

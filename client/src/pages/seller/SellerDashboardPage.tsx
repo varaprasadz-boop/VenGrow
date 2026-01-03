@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import PropertyCard from "@/components/PropertyCard";
 import { ApprovalStatusTracker } from "@/components/ApprovalStatusTracker";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthStore } from "@/stores/authStore";
 import { formatDistanceToNow, differenceInDays } from "date-fns";
 import type { Property, Inquiry, SellerProfile, SellerSubscription, Package } from "@shared/schema";
 
@@ -30,26 +30,28 @@ interface InquiryWithBuyer extends Inquiry {
 }
 
 export default function SellerDashboardPage() {
-  const { user } = useAuth();
+  // Use Zustand store directly for faster access
+  const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const { data: sellerProfile, isLoading: profileLoading } = useQuery<SellerProfile>({
     queryKey: ["/api/me/seller-profile"],
-    enabled: !!user,
+    enabled: !!user && isAuthenticated,
   });
 
   const { data: properties = [], isLoading: propertiesLoading } = useQuery<Property[]>({
     queryKey: ["/api/me/properties"],
-    enabled: !!user,
+    enabled: !!user && isAuthenticated,
   });
 
   const { data: inquiries = [], isLoading: inquiriesLoading } = useQuery<InquiryWithBuyer[]>({
     queryKey: ["/api/me/seller-inquiries"],
-    enabled: !!user,
+    enabled: !!user && isAuthenticated,
   });
 
   const { data: subscription, isLoading: subscriptionLoading } = useQuery<SellerSubscription & { package?: Package }>({
     queryKey: ["/api/me/subscription"],
-    enabled: !!user,
+    enabled: !!user && isAuthenticated,
   });
 
   const totalViews = properties.reduce((sum, p) => sum + (p.viewCount || 0), 0);

@@ -89,10 +89,17 @@ export class LocalStorageService {
    * Get upload endpoint URL for direct file upload
    * Returns a URL that the frontend can POST to
    */
-  async getObjectEntityUploadURL(): Promise<string> {
+  async getObjectEntityUploadURL(bucket?: string, prefix?: string): Promise<string> {
     // For local storage, we return a direct upload endpoint
     const uploadId = randomUUID();
-    return `/api/upload/direct?uploadId=${uploadId}`;
+    let url = `/api/upload/direct?uploadId=${uploadId}`;
+    if (bucket) {
+      url += `&bucket=${encodeURIComponent(bucket)}`;
+    }
+    if (prefix) {
+      url += `&prefix=${encodeURIComponent(prefix)}`;
+    }
+    return url;
   }
 
   /**
@@ -102,7 +109,9 @@ export class LocalStorageService {
     buffer: Buffer,
     originalName: string,
     userId: string,
-    visibility: "public" | "private" = "public"
+    visibility: "public" | "private" = "public",
+    bucket?: string,
+    prefix?: string
   ): Promise<string> {
     if (!buffer || buffer.length === 0) {
       throw new Error("File buffer is empty");
@@ -125,9 +134,30 @@ export class LocalStorageService {
     }
     const fileName = `${uploadId}${fileExt}`;
     
-    const targetDir = visibility === "public" 
+    // Build target directory with bucket/prefix support
+    let baseDir = visibility === "public" 
       ? this.publicDir 
       : path.join(this.storageDir, "private", userId);
+    
+    // Add bucket and prefix to path if provided
+    if (bucket || prefix) {
+      const pathParts: string[] = [];
+      if (bucket) {
+        pathParts.push(bucket);
+      }
+      if (prefix) {
+        // Remove leading/trailing slashes and normalize
+        const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, '').replace(/\\/g, '/');
+        if (normalizedPrefix) {
+          pathParts.push(...normalizedPrefix.split('/'));
+        }
+      }
+      if (pathParts.length > 0) {
+        baseDir = path.join(baseDir, ...pathParts);
+      }
+    }
+    
+    const targetDir = baseDir;
     
     // Ensure user directory exists for private files
     if (visibility === "private") {
@@ -171,12 +201,29 @@ export class LocalStorageService {
       throw new Error(`Failed to save file: ${error.message}`);
     }
 
-    // Return the URL path
-    if (visibility === "public") {
-      return `${this.baseUrl}/public/${fileName}`;
-    } else {
-      return `${this.baseUrl}/private/${userId}/${fileName}`;
+    // Return the URL path with bucket/prefix if provided
+    let urlPath = visibility === "public" 
+      ? `${this.baseUrl}/public` 
+      : `${this.baseUrl}/private/${userId}`;
+    
+    // Add bucket and prefix to URL path
+    if (bucket || prefix) {
+      const pathParts: string[] = [];
+      if (bucket) {
+        pathParts.push(bucket);
+      }
+      if (prefix) {
+        const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, '').replace(/\\/g, '/');
+        if (normalizedPrefix) {
+          pathParts.push(...normalizedPrefix.split('/'));
+        }
+      }
+      if (pathParts.length > 0) {
+        urlPath += '/' + pathParts.join('/');
+      }
     }
+    
+    return `${urlPath}/${fileName}`;
   }
 
   /**

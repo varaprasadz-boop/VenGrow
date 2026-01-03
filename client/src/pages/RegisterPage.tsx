@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Shield, Check, Users, TrendingUp, Home, Store, Eye, EyeOff, Mail, Lock, Phone, User, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
+import { Shield, Check, Users, TrendingUp, Home, Store, Mail, Lock, Phone, User, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PasswordField } from "@/components/ui/passwordinput";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +13,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { SiGoogle } from "react-icons/si";
 
 type Intent = "buyer" | "seller" | null;
-type Step = "intent" | "buyer-form" | "seller-package";
+type Step = "intent" | "buyer-form" | "seller-form" | "seller-package";
 
 interface FormErrors {
   firstName?: string;
@@ -35,7 +36,6 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -166,6 +166,7 @@ export default function RegisterPage() {
     if (selectedIntent === "buyer") {
       setStep("buyer-form");
     } else if (selectedIntent === "seller") {
+      // Redirect directly to seller type selection
       setLocation("/seller/type");
     }
   };
@@ -256,6 +257,120 @@ export default function RegisterPage() {
         // Redirect after a brief delay to show success
         setTimeout(() => {
           setLocation("/buyer/dashboard");
+        }, 500);
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: data.message || "Something went wrong",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      // Handle network errors separately
+      if (error.name === "TypeError" && error.message.includes("fetch")) {
+        toast({
+          title: "Network Error",
+          description: "Unable to connect to the server. Please check your internet connection and try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: error.message || "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSellerRegistration = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate all fields
+    if (!validateForm()) {
+      toast({
+        title: "Please fix the errors",
+        description: "Some fields have errors. Please check and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await apiRequest("POST", "/api/auth/register", {
+        email: email.trim(),
+        password,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: phone.trim(),
+        intent: "seller",
+      });
+
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        let errorMessage = "Something went wrong";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+          // If response is not JSON, try to get text
+          try {
+            const text = await response.text();
+            errorMessage = text || errorMessage;
+          } catch {
+            // If that fails, use status text
+            errorMessage = response.statusText || errorMessage;
+          }
+        }
+
+        // Map common error messages to user-friendly ones
+        const userFriendlyMessages: Record<string, string> = {
+          "User with this email already exists": "This email is already registered. Please sign in or use a different email.",
+          "Invalid email format": "Please enter a valid email address.",
+          "Invalid phone number. Must be 10 digits starting with 6-9": "Please enter a valid 10-digit Indian mobile number.",
+          "Password must be at least 8 characters long": "Password must be at least 8 characters long.",
+          "Password must contain at least one uppercase letter": "Password must contain at least one uppercase letter.",
+          "Password must contain at least one lowercase letter": "Password must contain at least one lowercase letter.",
+          "Password must contain at least one number": "Password must contain at least one number.",
+          "Password must contain at least one special character": "Password must contain at least one special character.",
+        };
+
+        const friendlyMessage = userFriendlyMessages[errorMessage] || errorMessage;
+
+        toast({
+          title: "Registration Failed",
+          description: friendlyMessage,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+        toast({
+          title: "Welcome to VenGrow!",
+          description: "Your seller account has been created successfully.",
+        });
+        
+        // Reset form
+        setFirstName("");
+        setLastName("");
+        setEmail("");
+        setPhone("");
+        setPassword("");
+        setConfirmPassword("");
+        setErrors({});
+        setTouchedFields(new Set());
+        
+        // Redirect to seller type selection after a brief delay
+        setTimeout(() => {
+          setLocation("/seller/type");
         }, 500);
       } else {
         toast({
@@ -596,10 +711,9 @@ export default function RegisterPage() {
                 <div className="space-y-2">
                   <Label htmlFor="password">Password *</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    <Input
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" aria-hidden="true" />
+                    <PasswordField
                       id="password"
-                      type={showPassword ? "text" : "password"}
                       placeholder="Create a password"
                       value={password}
                       onChange={(e) => {
@@ -615,26 +729,12 @@ export default function RegisterPage() {
                         }
                       }}
                       onBlur={() => handleBlur("password")}
-                      className={`pl-10 pr-10 ${errors.password ? "border-destructive" : ""}`}
+                      className={`pl-10 ${errors.password ? "border-destructive" : ""}`}
                       required
                       data-testid="input-password"
                       aria-invalid={!!errors.password}
                       aria-describedby={errors.password ? "password-error password-requirements" : "password-requirements"}
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3"
-                      onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Button>
                   </div>
                   {errors.password && touchedFields.has("password") && (
                     <p id="password-error" className="text-sm text-destructive">{errors.password}</p>
@@ -654,10 +754,9 @@ export default function RegisterPage() {
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm Password *</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    <Input
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" aria-hidden="true" />
+                    <PasswordField
                       id="confirmPassword"
-                      type={showPassword ? "text" : "password"}
                       placeholder="Confirm your password"
                       value={confirmPassword}
                       onChange={(e) => {
@@ -693,6 +792,310 @@ export default function RegisterPage() {
                     </>
                   ) : (
                     "Create Account"
+                  )}
+                </Button>
+              </form>
+
+              <p className="text-center text-xs text-muted-foreground">
+                By signing up, you agree to our{" "}
+                <Link href="/terms" className="text-primary hover:underline">
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="text-primary hover:underline">
+                  Privacy Policy
+                </Link>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Seller Registration Form
+  if (step === "seller-form") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 py-12">
+        <div className="w-full max-w-4xl grid md:grid-cols-2 gap-8 items-center">
+          {/* Left Side - Benefits */}
+          <div className="hidden md:block space-y-6">
+            <div>
+              <Link href="/" className="inline-block mb-4">
+                <img 
+                  src={vengrowLogo} 
+                  alt="VenGrow - Verified Property Market" 
+                  className="h-12 object-contain"
+                />
+              </Link>
+              <h1 className="text-3xl font-bold mb-2">Create Your Seller Account</h1>
+              <p className="text-muted-foreground">
+                Start listing properties and connect with buyers.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {sellerBenefits.map((benefit, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Check className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <span className="text-sm">{benefit}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Side - Form */}
+          <Card className="w-full">
+            <CardHeader>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-fit mb-2"
+                onClick={() => setStep("intent")}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <CardTitle className="text-2xl">Seller Registration</CardTitle>
+              <CardDescription>
+                Create your free account to get started
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Google Signup */}
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={handleGoogleSignup}
+                disabled={isGoogleLoading || isLoading}
+                data-testid="button-google-seller-signup"
+                aria-label="Sign up with Google"
+              >
+                {isGoogleLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Redirecting...
+                  </>
+                ) : (
+                  <>
+                    <SiGoogle className="h-4 w-4 mr-2" />
+                    Sign up with Google
+                  </>
+                )}
+              </Button>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    Or register with email
+                  </span>
+                </div>
+              </div>
+
+              <form onSubmit={handleSellerRegistration} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="seller-firstName">First Name *</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                      <Input
+                        id="seller-firstName"
+                        placeholder="First name"
+                        value={firstName}
+                        onChange={(e) => {
+                          setFirstName(e.target.value);
+                          if (touchedFields.has("firstName")) {
+                            const error = validateField("firstName", e.target.value);
+                            setErrors((prev) => ({ ...prev, firstName: error }));
+                          }
+                        }}
+                        onBlur={() => handleBlur("firstName")}
+                        className={`pl-10 ${errors.firstName ? "border-destructive" : ""}`}
+                        required
+                        data-testid="input-seller-first-name"
+                        aria-invalid={!!errors.firstName}
+                        aria-describedby={errors.firstName ? "seller-firstName-error" : undefined}
+                      />
+                    </div>
+                    {errors.firstName && touchedFields.has("firstName") && (
+                      <p id="seller-firstName-error" className="text-sm text-destructive">{errors.firstName}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="seller-lastName">Last Name *</Label>
+                    <Input
+                      id="seller-lastName"
+                      placeholder="Last name"
+                      value={lastName}
+                      onChange={(e) => {
+                        setLastName(e.target.value);
+                        if (touchedFields.has("lastName")) {
+                          const error = validateField("lastName", e.target.value);
+                          setErrors((prev) => ({ ...prev, lastName: error }));
+                        }
+                      }}
+                      onBlur={() => handleBlur("lastName")}
+                      className={errors.lastName ? "border-destructive" : ""}
+                      required
+                      data-testid="input-seller-last-name"
+                      aria-invalid={!!errors.lastName}
+                      aria-describedby={errors.lastName ? "seller-lastName-error" : undefined}
+                    />
+                    {errors.lastName && touchedFields.has("lastName") && (
+                      <p id="seller-lastName-error" className="text-sm text-destructive">{errors.lastName}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="seller-email">Email *</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <Input
+                      id="seller-email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (touchedFields.has("email")) {
+                          const error = validateField("email", e.target.value);
+                          setErrors((prev) => ({ ...prev, email: error }));
+                        }
+                      }}
+                      onBlur={() => handleBlur("email")}
+                      className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
+                      required
+                      data-testid="input-seller-email"
+                      aria-invalid={!!errors.email}
+                      aria-describedby={errors.email ? "seller-email-error" : undefined}
+                    />
+                  </div>
+                  {errors.email && touchedFields.has("email") && (
+                    <p id="seller-email-error" className="text-sm text-destructive">{errors.email}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="seller-phone">Mobile Number (10 digits) *</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <Input
+                      id="seller-phone"
+                      type="tel"
+                      placeholder="Enter 10-digit mobile number"
+                      value={phone}
+                      onChange={(e) => {
+                        const cleaned = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        setPhone(cleaned);
+                        if (touchedFields.has("phone")) {
+                          const error = validateField("phone", cleaned);
+                          setErrors((prev) => ({ ...prev, phone: error }));
+                        }
+                      }}
+                      onBlur={() => handleBlur("phone")}
+                      className={`pl-10 ${errors.phone ? "border-destructive" : ""}`}
+                      required
+                      data-testid="input-seller-phone"
+                      aria-invalid={!!errors.phone}
+                      aria-describedby={errors.phone ? "seller-phone-error" : undefined}
+                    />
+                  </div>
+                  {errors.phone && touchedFields.has("phone") && (
+                    <p id="seller-phone-error" className="text-sm text-destructive">{errors.phone}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">Indian mobile number starting with 6-9</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="seller-password">Password *</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" aria-hidden="true" />
+                    <PasswordField
+                      id="seller-password"
+                      placeholder="Create a password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (touchedFields.has("password")) {
+                          const error = validateField("password", e.target.value);
+                          setErrors((prev) => ({ ...prev, password: error }));
+                        }
+                        // Also validate confirm password if it's been touched
+                        if (touchedFields.has("confirmPassword") && confirmPassword) {
+                          const confirmError = validateField("confirmPassword", confirmPassword);
+                          setErrors((prev) => ({ ...prev, confirmPassword: confirmError }));
+                        }
+                      }}
+                      onBlur={() => handleBlur("password")}
+                      className={`pl-10 ${errors.password ? "border-destructive" : ""}`}
+                      required
+                      data-testid="input-seller-password"
+                      aria-invalid={!!errors.password}
+                      aria-describedby={errors.password ? "seller-password-error seller-password-requirements" : "seller-password-requirements"}
+                    />
+                  </div>
+                  {errors.password && touchedFields.has("password") && (
+                    <p id="seller-password-error" className="text-sm text-destructive">{errors.password}</p>
+                  )}
+                  <div id="seller-password-requirements" className="text-xs text-muted-foreground space-y-1">
+                    <p className="font-medium">Password requirements:</p>
+                    <ul className="list-disc list-inside space-y-0.5 ml-2">
+                      <li className={password.length >= 8 ? "text-green-600" : ""}>At least 8 characters</li>
+                      <li className={/[A-Z]/.test(password) ? "text-green-600" : ""}>One uppercase letter</li>
+                      <li className={/[a-z]/.test(password) ? "text-green-600" : ""}>One lowercase letter</li>
+                      <li className={/[0-9]/.test(password) ? "text-green-600" : ""}>One number</li>
+                      <li className={/[!@#$%^&*(),.?":{}|<>]/.test(password) ? "text-green-600" : ""}>One special character</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="seller-confirmPassword">Confirm Password *</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" aria-hidden="true" />
+                    <PasswordField
+                      id="seller-confirmPassword"
+                      placeholder="Confirm your password"
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        if (touchedFields.has("confirmPassword")) {
+                          const error = validateField("confirmPassword", e.target.value);
+                          setErrors((prev) => ({ ...prev, confirmPassword: error }));
+                        }
+                      }}
+                      onBlur={() => handleBlur("confirmPassword")}
+                      className={`pl-10 ${errors.confirmPassword ? "border-destructive" : ""}`}
+                      required
+                      data-testid="input-seller-confirm-password"
+                      aria-invalid={!!errors.confirmPassword}
+                      aria-describedby={errors.confirmPassword ? "seller-confirmPassword-error" : undefined}
+                    />
+                  </div>
+                  {errors.confirmPassword && touchedFields.has("confirmPassword") && (
+                    <p id="seller-confirmPassword-error" className="text-sm text-destructive">{errors.confirmPassword}</p>
+                  )}
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isLoading || isGoogleLoading}
+                  data-testid="button-seller-register"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    "Create Seller Account"
                   )}
                 </Button>
               </form>

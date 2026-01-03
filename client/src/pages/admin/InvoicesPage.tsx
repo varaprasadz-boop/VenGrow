@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
@@ -116,7 +116,8 @@ function InvoicePreviewDialog({
   onOpenChange,
   sellerName,
   sellerEmail,
-  packageName
+  packageName,
+  invoiceSettings
 }: { 
   invoice: Invoice | null; 
   open: boolean; 
@@ -124,7 +125,10 @@ function InvoicePreviewDialog({
   sellerName: string;
   sellerEmail: string;
   packageName: string;
+  invoiceSettings?: any;
 }) {
+  const logoUrl = invoiceSettings?.logo || invoice?.companyDetails?.logo || null;
+
   const handlePrint = () => {
     if (!invoice) return;
     const printWindow = window.open('', '_blank');
@@ -141,8 +145,9 @@ function InvoicePreviewDialog({
             <title>Invoice ${invoice.invoiceNumber}</title>
             <style>
               body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
-              .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+              .header { display: flex; justify-content: space-between; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
               .company { }
+              .company img { max-width: 200px; height: auto; margin-bottom: 10px; display: block; }
               .company h1 { color: #0ea5e9; margin: 0; font-size: 28px; }
               .invoice-info { text-align: right; }
               .invoice-info h2 { margin: 0 0 10px 0; }
@@ -152,9 +157,11 @@ function InvoicePreviewDialog({
               .section { margin: 20px 0; }
               .grid { display: flex; justify-content: space-between; }
               .grid-item { flex: 1; }
-              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+              table { width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #e5e7eb; }
               th, td { border: 1px solid #e5e7eb; padding: 12px; text-align: left; }
-              th { background: #f9fafb; }
+              th { background: #f9fafb; font-weight: 600; }
+              th.text-center, td.text-center { text-align: center; }
+              th.text-right, td.text-right { text-align: right; }
               .totals { width: 300px; margin-left: auto; }
               .totals .row { display: flex; justify-content: space-between; padding: 8px 0; }
               .totals .total { font-weight: bold; font-size: 18px; border-top: 2px solid #000; margin-top: 8px; padding-top: 12px; }
@@ -164,7 +171,8 @@ function InvoicePreviewDialog({
           <body>
             <div class="header">
               <div class="company">
-                <img src="/vengrow-logo.png" alt="VenGrow Logo" style="max-width: 200px; height: auto; margin-bottom: 10px;" />
+                ${logoUrl ? `<img src="${logoUrl}" alt="Company Logo" onerror="this.style.display='none'" />` : ''}
+                <h1>${invoice.companyDetails?.companyName || 'VenGrow Real Estate'}</h1>
                 ${invoice.companyDetails?.address ? `<p>${invoice.companyDetails.address}</p>` : ''}
                 ${invoice.companyDetails?.state ? `<p>${invoice.companyDetails.state} - ${invoice.companyDetails.pinCode || ''}</p>` : ''}
                 ${invoice.companyDetails?.gstin ? `<p>GSTIN: ${invoice.companyDetails.gstin}</p>` : ''}
@@ -192,15 +200,15 @@ function InvoicePreviewDialog({
               <thead>
                 <tr>
                   <th>Description</th>
-                  <th>SAC Code</th>
-                  <th style="text-align: right;">Amount</th>
+                  <th class="text-center">SAC Code</th>
+                  <th class="text-right">Amount</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td>${invoice.packageDetails?.name || packageName} Package<br><small>Subscription for ${invoice.packageDetails?.duration || 30} days</small></td>
-                  <td>${invoice.sacCode || '997221'}</td>
-                  <td style="text-align: right;">₹${subtotal.toLocaleString('en-IN')}</td>
+                  <td class="text-center">${invoice.sacCode || '997221'}</td>
+                  <td class="text-right">₹${subtotal.toLocaleString('en-IN')}</td>
                 </tr>
               </tbody>
             </table>
@@ -236,6 +244,7 @@ function InvoicePreviewDialog({
       const sgst = invoice.sgstAmount || (invoice.gstAmount ? invoice.gstAmount / 2 : 0);
       const total = invoice.totalAmount || (subtotal + cgst + sgst);
       const status = invoice.paidAt || invoice.status === 'completed' ? 'Paid' : 'Pending';
+      const logoUrlToUse = logoUrl || invoice.companyDetails?.logo || null;
       
       const invoiceHTML = `
 <!DOCTYPE html>
@@ -248,7 +257,7 @@ function InvoicePreviewDialog({
     body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; background: #fff; }
     .header { display: flex; justify-content: space-between; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
     .company { }
-    .company img { max-width: 200px; height: auto; margin-bottom: 10px; }
+    .company img { max-width: 200px; height: auto; margin-bottom: 10px; display: block; }
     .company h1 { color: #0ea5e9; margin: 0; font-size: 28px; }
     .invoice-info { text-align: right; }
     .invoice-info h2 { margin: 0 0 10px 0; }
@@ -258,9 +267,11 @@ function InvoicePreviewDialog({
     .section { margin: 20px 0; }
     .grid { display: flex; justify-content: space-between; }
     .grid-item { flex: 1; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #e5e7eb; }
     th, td { border: 1px solid #e5e7eb; padding: 12px; text-align: left; }
-    th { background: #f9fafb; }
+    th { background: #f9fafb; font-weight: 600; }
+    th.text-center, td.text-center { text-align: center; }
+    th.text-right, td.text-right { text-align: right; }
     .totals { width: 300px; margin-left: auto; }
     .totals .row { display: flex; justify-content: space-between; padding: 8px 0; }
     .totals .total { font-weight: bold; font-size: 18px; border-top: 2px solid #000; margin-top: 8px; padding-top: 12px; }
@@ -271,7 +282,8 @@ function InvoicePreviewDialog({
 <body>
   <div class="header">
     <div class="company">
-      <img src="/vengrow-logo.png" alt="VenGrow Logo" />
+      ${logoUrlToUse ? `<img src="${logoUrlToUse}" alt="Company Logo" onerror="this.style.display='none'" />` : ''}
+      <h1>${invoice.companyDetails?.companyName || 'VenGrow Real Estate'}</h1>
       ${invoice.companyDetails?.address ? `<p>${invoice.companyDetails.address}</p>` : ''}
       ${invoice.companyDetails?.state ? `<p>${invoice.companyDetails.state} - ${invoice.companyDetails.pinCode || ''}</p>` : ''}
       ${invoice.companyDetails?.gstin ? `<p>GSTIN: ${invoice.companyDetails.gstin}</p>` : ''}
@@ -299,15 +311,15 @@ function InvoicePreviewDialog({
     <thead>
       <tr>
         <th>Description</th>
-        <th>SAC Code</th>
-        <th style="text-align: right;">Amount</th>
+        <th class="text-center">SAC Code</th>
+        <th class="text-right">Amount</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td>${invoice.packageDetails?.name || packageName} Package<br><small>Subscription for ${invoice.packageDetails?.duration || 30} days</small></td>
-        <td>${invoice.sacCode || '997221'}</td>
-        <td style="text-align: right;">₹${subtotal.toLocaleString('en-IN')}</td>
+        <td class="text-center">${invoice.sacCode || '997221'}</td>
+        <td class="text-right">₹${subtotal.toLocaleString('en-IN')}</td>
       </tr>
     </tbody>
   </table>

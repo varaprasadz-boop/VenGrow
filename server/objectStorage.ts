@@ -135,10 +135,10 @@ export class ObjectStorageService {
     }
   }
 
-  async getObjectEntityUploadURL(): Promise<string> {
+  async getObjectEntityUploadURL(bucket?: string, prefix?: string): Promise<string> {
     // Use local storage if not on Replit
     if (this.localStorage) {
-      return this.localStorage.getObjectEntityUploadURL();
+      return this.localStorage.getObjectEntityUploadURL(bucket, prefix);
     }
 
     const privateObjectDir = this.getPrivateObjectDir();
@@ -150,7 +150,19 @@ export class ObjectStorageService {
     }
 
     const objectId = randomUUID();
-    const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+    // Build path with bucket/prefix if provided
+    let pathParts = [privateObjectDir, "uploads"];
+    if (bucket) {
+      pathParts.push(bucket);
+    }
+    if (prefix) {
+      const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, '').replace(/\\/g, '/');
+      if (normalizedPrefix) {
+        pathParts.push(...normalizedPrefix.split('/'));
+      }
+    }
+    pathParts.push(objectId);
+    const fullPath = pathParts.join('/');
     const { bucketName, objectName } = parseObjectPath(fullPath);
 
     return signObjectURL({

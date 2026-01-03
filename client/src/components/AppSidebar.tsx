@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthStore } from "@/stores/authStore";
 import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import {
   Sidebar,
@@ -24,6 +24,7 @@ import {
   Settings,
   User,
   Building,
+  Building2,
   Plus,
   BarChart3,
   Package,
@@ -35,6 +36,8 @@ import {
   Bell,
   HelpCircle,
   LogOut,
+  LogIn,
+  UserPlus,
   ChevronUp,
   MapPin,
   TrendingUp,
@@ -86,6 +89,8 @@ interface NavGroup {
   label: string;
   items: NavItem[];
 }
+
+type NavigationGroup = NavGroup;
 
 const buyerNavigation: NavGroup[] = [
   {
@@ -274,23 +279,40 @@ const adminNavigation: NavGroup[] = [
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const { user, isAdmin, isSeller, logout } = useAuth();
+  const { user, isAdmin, isSeller, isAuthenticated, logout } = useAuthStore();
 
-  const navigation = isAdmin 
-    ? adminNavigation 
-    : isSeller 
-      ? sellerNavigation 
-      : buyerNavigation;
+  // For guest users, show limited navigation with only public pages
+  const guestNavigation: NavigationGroup[] = [
+    {
+      label: "Main",
+      items: [
+        { title: "Home", url: "/", icon: Home },
+        { title: "Listings", url: "/listings", icon: Building2 },
+        { title: "Login", url: "/login", icon: LogIn },
+        { title: "Register", url: "/register", icon: UserPlus },
+      ],
+    },
+  ];
+
+  const navigation = !isAuthenticated
+    ? guestNavigation
+    : isAdmin 
+      ? adminNavigation 
+      : isSeller 
+        ? sellerNavigation 
+        : buyerNavigation;
 
   const userInitials = user 
     ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || user.email?.[0] || 'U'}`.toUpperCase()
-    : 'U';
+    : 'GU';
 
   const userName = user 
     ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email 
-    : 'Guest';
+    : 'Guest User';
 
-  const userRole = isAdmin ? 'Super Admin' : isSeller ? 'Seller' : 'Buyer';
+  const userRole = !isAuthenticated 
+    ? 'Guest' 
+    : isAdmin ? 'Admin' : isSeller ? 'Seller' : 'Buyer';
 
   const handleLogout = async () => {
     await logout();
@@ -344,49 +366,65 @@ export function AppSidebar() {
       <SidebarFooter className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                  data-testid="button-user-menu"
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                    data-testid="button-user-menu"
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={user?.profileImageUrl || undefined} alt={userName} />
+                      <AvatarFallback>{userInitials}</AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">{userName}</span>
+                      <span className="truncate text-xs text-muted-foreground">{userRole}</span>
+                    </div>
+                    <ChevronUp className="ml-auto h-4 w-4" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  className="w-[--radix-dropdown-menu-trigger-width] min-w-56"
+                  side="top"
+                  align="start"
+                  sideOffset={4}
                 >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.profileImageUrl || undefined} alt={userName} />
-                    <AvatarFallback>{userInitials}</AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{userName}</span>
-                    <span className="truncate text-xs text-muted-foreground">{userRole}</span>
-                  </div>
-                  <ChevronUp className="ml-auto h-4 w-4" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-56"
-                side="top"
-                align="start"
-                sideOffset={4}
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} data-testid="button-logout">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <SidebarMenuButton
+                size="lg"
+                className="w-full cursor-default"
+                data-testid="button-guest-user"
               >
-                <DropdownMenuItem asChild>
-                  <Link href="/profile">
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} data-testid="button-logout">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>{userInitials}</AvatarFallback>
+                </Avatar>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">{userName}</span>
+                  <span className="truncate text-xs text-muted-foreground">{userRole}</span>
+                </div>
+              </SidebarMenuButton>
+            )}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

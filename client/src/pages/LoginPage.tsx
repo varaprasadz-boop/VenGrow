@@ -32,12 +32,37 @@ export default function LoginPage() {
       const data = await response.json();
       
       if (data.success) {
+        // Invalidate React Query cache to refetch user data
         queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+        // Re-initialize auth store with fresh data
+        const { useAuthStore } = await import("@/stores/authStore");
+        const authStore = useAuthStore.getState();
+        await authStore.initializeAuth();
+        
+        // Verify auth state is set correctly
+        const authState = useAuthStore.getState();
+        console.log("Auth state after login:", {
+          isAuthenticated: authState.isAuthenticated,
+          isSeller: authState.isSeller,
+          isBuyer: authState.isBuyer,
+          user: authState.user,
+        });
+        
+        if (!authState.isAuthenticated) {
+          toast({
+            title: "Authentication Error",
+            description: "Failed to verify authentication. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         toast({
           title: "Welcome back!",
           description: "You have been logged in successfully.",
         });
         
+        // Navigate immediately since auth is verified
         if (data.user.role === "seller") {
           setLocation("/seller/dashboard");
         } else {

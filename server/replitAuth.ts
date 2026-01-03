@@ -101,9 +101,29 @@ export async function setupAuth(app: Express) {
       res.status(503).json({ message: "Replit OAuth is not available." });
     });
 
+    // Handle both GET and POST for logout
     app.get("/api/logout", (req, res) => {
       req.logout(() => {
-        res.redirect("/");
+        // Destroy session
+        req.session.destroy((err: any) => {
+          if (err) {
+            console.error("Session destroy error:", err);
+          }
+          res.redirect("/");
+        });
+      });
+    });
+    
+    app.post("/api/logout", (req, res) => {
+      req.logout(() => {
+        // Destroy session
+        req.session.destroy((err: any) => {
+          if (err) {
+            console.error("Session destroy error:", err);
+            return res.status(500).json({ message: "Logout failed" });
+          }
+          res.json({ success: true });
+        });
       });
     });
     
@@ -167,12 +187,31 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/logout", (req, res) => {
     req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
+      // Destroy session
+      req.session.destroy((err: any) => {
+        if (err) {
+          console.error("Session destroy error:", err);
+        }
+        res.redirect(
+          client.buildEndSessionUrl(config, {
+            client_id: process.env.REPL_ID!,
+            post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+          }).href
+        );
+      });
+    });
+  });
+  
+  app.post("/api/logout", (req, res) => {
+    req.logout(() => {
+      // Destroy session
+      req.session.destroy((err: any) => {
+        if (err) {
+          console.error("Session destroy error:", err);
+          return res.status(500).json({ message: "Logout failed" });
+        }
+        res.json({ success: true });
+      });
     });
   });
 }

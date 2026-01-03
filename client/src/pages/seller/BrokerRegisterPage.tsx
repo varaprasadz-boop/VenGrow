@@ -73,19 +73,16 @@ export default function BrokerRegisterPage() {
       newErrors.firmName = "Firm/Agency name is required";
     }
 
-    if (!formData.reraNumber.trim()) {
-      newErrors.reraNumber = "RERA registration number is required";
+    // Professional details are optional for brokers - only validate format if provided
+    if (formData.reraNumber.trim() && formData.reraNumber.trim().length < 3) {
+      newErrors.reraNumber = "RERA number seems invalid";
     }
 
-    if (!formData.yearsOfExperience) {
-      newErrors.yearsOfExperience = "Years of experience is required";
-    } else if (parseInt(formData.yearsOfExperience) < 0) {
+    if (formData.yearsOfExperience && parseInt(formData.yearsOfExperience) < 0) {
       newErrors.yearsOfExperience = "Years of experience must be a positive number";
     }
 
-    if (!formData.panNumber) {
-      newErrors.panNumber = "PAN number is required";
-    } else if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.panNumber.toUpperCase())) {
+    if (formData.panNumber && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.panNumber.toUpperCase())) {
       newErrors.panNumber = "Invalid PAN format (e.g., ABCDE1234F)";
     }
 
@@ -97,9 +94,8 @@ export default function BrokerRegisterPage() {
       newErrors.city = "City is required";
     }
 
-    if (!formData.pincode) {
-      newErrors.pincode = "PIN code is required";
-    } else if (!/^\d{6}$/.test(formData.pincode)) {
+    // PIN code is optional - only validate format if provided
+    if (formData.pincode && !/^\d{6}$/.test(formData.pincode)) {
       newErrors.pincode = "PIN code must be 6 digits";
     }
 
@@ -107,9 +103,7 @@ export default function BrokerRegisterPage() {
       newErrors.address = "Address is required";
     }
 
-    if (!reraCertificateUrl) {
-      newErrors.reraCertificate = "RERA certificate is required";
-    }
+    // RERA certificate is optional for brokers
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -344,7 +338,7 @@ export default function BrokerRegisterPage() {
               <h2 className="font-semibold text-lg mb-4">Professional Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="reraNumber">RERA Registration Number *</Label>
+                  <Label htmlFor="reraNumber">RERA Registration Number (Optional)</Label>
                   <Input
                     id="reraNumber"
                     placeholder="RERA123456789"
@@ -353,7 +347,6 @@ export default function BrokerRegisterPage() {
                       setFormData({ ...formData, reraNumber: e.target.value })
                     }
                     data-testid="input-rera"
-                    required
                     className={errors.reraNumber ? "border-destructive" : ""}
                   />
                   {errors.reraNumber && (
@@ -362,7 +355,7 @@ export default function BrokerRegisterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="yearsOfExperience">Years of Experience *</Label>
+                  <Label htmlFor="yearsOfExperience">Years of Experience (Optional)</Label>
                   <Input
                     id="yearsOfExperience"
                     type="number"
@@ -373,7 +366,6 @@ export default function BrokerRegisterPage() {
                       setFormData({ ...formData, yearsOfExperience: e.target.value })
                     }
                     data-testid="input-experience"
-                    required
                     className={errors.yearsOfExperience ? "border-destructive" : ""}
                   />
                   {errors.yearsOfExperience && (
@@ -382,7 +374,7 @@ export default function BrokerRegisterPage() {
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="panNumber">PAN Number *</Label>
+                  <Label htmlFor="panNumber">PAN Number (Optional)</Label>
                   <Input
                     id="panNumber"
                     placeholder="ABCDE1234F"
@@ -391,7 +383,6 @@ export default function BrokerRegisterPage() {
                       setFormData({ ...formData, panNumber: e.target.value.toUpperCase() })
                     }
                     data-testid="input-pan"
-                    required
                     maxLength={10}
                     className={errors.panNumber ? "border-destructive" : ""}
                   />
@@ -456,7 +447,7 @@ export default function BrokerRegisterPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="pincode">PIN Code *</Label>
+                    <Label htmlFor="pincode">PIN Code (Optional)</Label>
                     <PinCodeInput
                       value={formData.pincode}
                       onValueChange={(value) =>
@@ -477,7 +468,7 @@ export default function BrokerRegisterPage() {
               <h2 className="font-semibold text-lg mb-4">Verification Documents</h2>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>RERA Certificate *</Label>
+                  <Label>RERA Certificate (Optional)</Label>
                   {reraCertificateUrl ? (
                     <div className="border-2 border-dashed rounded-lg p-6 text-center relative">
                       <div className="flex items-center justify-center gap-2">

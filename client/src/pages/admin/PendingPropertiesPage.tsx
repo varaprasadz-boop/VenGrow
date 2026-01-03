@@ -151,14 +151,20 @@ export default function PendingPropertiesPage() {
   return (
     <><main className="flex-1 bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/20">
-            <Clock className="h-6 w-6 text-yellow-600" />
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/20">
+              <Clock className="h-6 w-6 text-yellow-600" />
+            </div>
+            <div>
+              <h1 className="font-serif font-bold text-3xl">Pending Properties</h1>
+              <p className="text-muted-foreground">Properties awaiting approval ({properties.length})</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-serif font-bold text-3xl">Pending Properties</h1>
-            <p className="text-muted-foreground">Properties awaiting approval ({properties.length})</p>
-          </div>
+          <Button variant="outline" onClick={() => refetch()} disabled={isLoading} data-testid="button-refresh">
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         </div>
 
         <Card className="p-6">

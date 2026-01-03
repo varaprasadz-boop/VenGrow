@@ -31,6 +31,7 @@ interface InvoiceSettings {
   companyPin?: string;
   gstin?: string;
   pan?: string;
+  logo?: string | null;
   footerText?: string;
   bankDetails?: {
     bankName?: string;
@@ -58,7 +59,7 @@ function formatPrice(amount: number | undefined | null): string {
 }
 
 export function downloadInvoiceAsPDF(invoice: Invoice, settings: InvoiceSettings | null) {
-  const logoUrl = "/vengrow-logo.png";
+  const logoUrl = (settings as any)?.logo || "/vengrow-logo.png";
   
   // Calculate GST (assuming 18% GST)
   const gstRate = 0.18;
@@ -155,6 +156,7 @@ export function downloadInvoiceAsPDF(invoice: Invoice, settings: InvoiceSettings
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 30px;
+      border: 1px solid #e5e7eb;
     }
     .invoice-table th {
       background: #f9fafb;
@@ -162,16 +164,25 @@ export function downloadInvoiceAsPDF(invoice: Invoice, settings: InvoiceSettings
       text-align: left;
       font-weight: 600;
       color: #374151;
-      border-bottom: 2px solid #e5e7eb;
+      border: 1px solid #e5e7eb;
       font-size: 14px;
+    }
+    .invoice-table th.text-center {
+      text-align: center;
+    }
+    .invoice-table th.text-right {
+      text-align: right;
     }
     .invoice-table td {
       padding: 12px;
-      border-bottom: 1px solid #f3f4f6;
+      border: 1px solid #e5e7eb;
       color: #1f2937;
     }
     .invoice-table tr:last-child td {
-      border-bottom: none;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .text-center {
+      text-align: center;
     }
     .text-right {
       text-align: right;
@@ -228,7 +239,7 @@ export function downloadInvoiceAsPDF(invoice: Invoice, settings: InvoiceSettings
   <div class="invoice-container">
     <div class="header">
       <div class="logo-section">
-        <img src="${logoUrl}" alt="VenGrow Logo" />
+        ${logoUrl ? `<img src="${logoUrl}" alt="Company Logo" onerror="this.style.display='none'" />` : ''}
         <div class="company-details">
           <div class="company-name">${settings?.companyName || "VenGrow Real Estate Pvt. Ltd."}</div>
           <div class="company-address">
@@ -262,7 +273,7 @@ export function downloadInvoiceAsPDF(invoice: Invoice, settings: InvoiceSettings
       <thead>
         <tr>
           <th>Description</th>
-          <th class="text-right">SAC Code</th>
+          <th class="text-center">SAC Code</th>
           <th class="text-right">Amount</th>
         </tr>
       </thead>
@@ -274,7 +285,7 @@ export function downloadInvoiceAsPDF(invoice: Invoice, settings: InvoiceSettings
               Payment Method: ${invoice.paymentMethod || "Online"}
             </div>
           </td>
-          <td class="text-right">${settings?.sacCode || "997221"}</td>
+          <td class="text-center">${settings?.sacCode || "997221"}</td>
           <td class="text-right">${formatPrice(amountWithoutGST)}</td>
         </tr>
       </tbody>
@@ -340,7 +351,7 @@ export function downloadInvoiceAsPDF(invoice: Invoice, settings: InvoiceSettings
 export default function InvoicePreview({ invoice, settings, open, onOpenChange }: InvoicePreviewProps) {
   if (!invoice) return null;
 
-  const logoUrl = "/vengrow-logo.png";
+  const logoUrl = (settings as any)?.logo || "/vengrow-logo.png";
   const gstRate = 0.18;
   const amountWithoutGST = invoice.amount / (1 + gstRate);
   const gstAmount = invoice.amount - amountWithoutGST;
@@ -359,11 +370,16 @@ export default function InvoicePreview({ invoice, settings, open, onOpenChange }
           {/* Invoice Header */}
           <div className="flex justify-between items-start border-b pb-6">
             <div className="flex-1">
-              <img 
-                src={logoUrl} 
-                alt="VenGrow Logo" 
-                className="h-16 mb-4 object-contain"
-              />
+              {logoUrl && (
+                <img 
+                  src={logoUrl} 
+                  alt="Company Logo" 
+                  className="h-16 mb-4 object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              )}
               <div>
                 <h3 className="text-xl font-bold text-gray-900">
                   {settings?.companyName || "VenGrow Real Estate Pvt. Ltd."}
@@ -420,23 +436,23 @@ export default function InvoicePreview({ invoice, settings, open, onOpenChange }
 
           {/* Invoice Table */}
           <div className="border rounded-lg overflow-hidden">
-            <table className="w-full">
+            <table className="w-full border-collapse border border-gray-300">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
+                  <th className="border border-gray-300 px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
                     Description
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">
+                  <th className="border border-gray-300 px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">
                     SAC Code
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">
+                  <th className="border border-gray-300 px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">
                     Amount
                   </th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-t">
-                  <td className="px-4 py-4">
+                <tr>
+                  <td className="border border-gray-300 px-4 py-4">
                     <div className="font-semibold text-gray-900">
                       {invoice.package?.name || "Package Purchase"}
                     </div>
@@ -444,10 +460,10 @@ export default function InvoicePreview({ invoice, settings, open, onOpenChange }
                       Payment Method: {invoice.paymentMethod || "Online"}
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-right text-gray-700">
+                  <td className="border border-gray-300 px-4 py-4 text-center text-gray-700">
                     {settings?.sacCode || "997221"}
                   </td>
-                  <td className="px-4 py-4 text-right font-semibold text-gray-900">
+                  <td className="border border-gray-300 px-4 py-4 text-right font-semibold text-gray-900">
                     {formatPrice(amountWithoutGST)}
                   </td>
                 </tr>

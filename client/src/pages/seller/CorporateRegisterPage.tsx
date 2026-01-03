@@ -109,9 +109,8 @@ export default function CorporateRegisterPage() {
       newErrors.city = "City is required";
     }
 
-    if (!formData.pincode) {
-      newErrors.pincode = "PIN code is required";
-    } else if (!/^\d{6}$/.test(formData.pincode)) {
+    // PIN code is optional - only validate format if provided
+    if (formData.pincode && !/^\d{6}$/.test(formData.pincode)) {
       newErrors.pincode = "PIN code must be 6 digits";
     }
 
@@ -598,7 +597,7 @@ export default function CorporateRegisterPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="pincode">PIN Code *</Label>
+                    <Label htmlFor="pincode">PIN Code (Optional)</Label>
                     <PinCodeInput
                       value={formData.pincode}
                       onValueChange={(value) =>
