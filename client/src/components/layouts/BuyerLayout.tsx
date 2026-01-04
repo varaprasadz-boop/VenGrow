@@ -4,7 +4,6 @@ import {
   Building2, LogOut, Scale, Eye, Calendar, MapPin, Home,
   Filter, History, Star, HelpCircle, User
 } from "lucide-react";
-import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -92,9 +91,9 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
           <SidebarHeader className="border-b p-4">
             <Link href="/" className="flex items-center" data-testid="link-home">
               <img 
-                src={vengrowLogo} 
+                src="/VenGrow.png" 
                 alt="VenGrow - Verified Property Market" 
-                className="h-10 object-contain"
+                className="h-10 w-auto max-w-[180px] object-contain"
                 data-testid="img-buyer-logo"
               />
             </Link>

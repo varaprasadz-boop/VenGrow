@@ -18,10 +18,12 @@ import {
 } from "lucide-react";
 import type { Property } from "@shared/schema";
 
-function PropertyCard({ property }: { property: Property }) {
+function PropertyCard({ property, variant = "grid" }: { property: Property; variant?: "grid" | "list" }) {
+  const isListLayout = variant === "list";
+  
   return (
-    <Card className="overflow-hidden hover-elevate group">
-      <div className="relative h-48 bg-muted">
+    <Card className={`overflow-hidden hover-elevate group ${isListLayout ? "flex" : ""}`}>
+      <div className={`relative bg-muted ${isListLayout ? "w-64 h-48 flex-shrink-0" : "h-48"}`}>
         <div className="absolute inset-0 flex items-center justify-center">
           <Building2 className="h-16 w-16 text-muted-foreground" />
         </div>
@@ -43,25 +45,42 @@ function PropertyCard({ property }: { property: Property }) {
         >
           <Heart className="h-4 w-4" />
         </Button>
-        <div className="absolute bottom-3 left-3">
-          <Badge variant="outline" className="bg-background/80">
-            {property.transactionType === "sale" ? "For Sale" : "For Rent"}
-          </Badge>
-        </div>
+        {!isListLayout && (
+          <div className="absolute bottom-3 left-3">
+            <Badge variant="outline" className="bg-background/80">
+              {property.transactionType === "sale" ? "For Sale" : "For Rent"}
+            </Badge>
+          </div>
+        )}
       </div>
-      <CardContent className="p-4">
+      <CardContent className={`${isListLayout ? "flex-1" : ""} p-4`}>
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-semibold line-clamp-2">{property.title}</h3>
-          <Badge variant="secondary" className="shrink-0">{property.propertyType}</Badge>
+          <h3 className={`font-semibold ${isListLayout ? "text-xl" : ""} line-clamp-2 flex-1`}>{property.title}</h3>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {isListLayout && (
+              <p className="text-xl font-bold text-primary">
+                ₹{(property.price / 100000).toFixed(2)} L
+                {property.transactionType === "rent" && <span className="text-sm font-normal">/month</span>}
+              </p>
+            )}
+            <Badge variant="secondary">{property.propertyType}</Badge>
+          </div>
         </div>
         <p className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
           <MapPin className="h-3 w-3" /> 
           {property.city}, {property.state}
         </p>
-        <p className="text-xl font-bold text-primary mb-3">
-          ₹{(property.price / 100000).toFixed(2)} L
-          {property.transactionType === "rent" && <span className="text-sm font-normal">/month</span>}
-        </p>
+        {isListLayout && (
+          <Badge variant="outline" className="mb-2">
+            {property.transactionType === "sale" ? "For Sale" : "For Rent"}
+          </Badge>
+        )}
+        {!isListLayout && (
+          <p className="text-xl font-bold text-primary mb-3">
+            ₹{(property.price / 100000).toFixed(2)} L
+            {property.transactionType === "rent" && <span className="text-sm font-normal">/month</span>}
+          </p>
+        )}
         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
           {property.bedrooms && (
             <span className="flex items-center gap-1">
@@ -321,7 +340,7 @@ export default function PropertiesPage() {
                   : "space-y-4"
                 }>
                   {properties?.map((property) => (
-                    <PropertyCard key={property.id} property={property} />
+                    <PropertyCard key={property.id} property={property} variant={viewMode === "list" ? "list" : "grid"} />
                   ))}
                 </div>
               )}

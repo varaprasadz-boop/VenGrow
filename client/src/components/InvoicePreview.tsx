@@ -59,7 +59,7 @@ function formatPrice(amount: number | undefined | null): string {
 }
 
 export function downloadInvoiceAsPDF(invoice: Invoice, settings: InvoiceSettings | null) {
-  const logoUrl = (settings as any)?.logo || "/vengrow-logo.png";
+  const logoUrl = (settings as any)?.logo || "/VenGrow.png";
   
   // Calculate GST (assuming 18% GST)
   const gstRate = 0.18;
@@ -351,7 +351,7 @@ export function downloadInvoiceAsPDF(invoice: Invoice, settings: InvoiceSettings
 export default function InvoicePreview({ invoice, settings, open, onOpenChange }: InvoicePreviewProps) {
   if (!invoice) return null;
 
-  const logoUrl = (settings as any)?.logo || "/vengrow-logo.png";
+  const logoUrl = (settings as any)?.logo || "/VenGrow.png";
   const gstRate = 0.18;
   const amountWithoutGST = invoice.amount / (1 + gstRate);
   const gstAmount = invoice.amount - amountWithoutGST;

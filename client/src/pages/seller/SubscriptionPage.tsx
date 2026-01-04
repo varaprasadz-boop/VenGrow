@@ -70,7 +70,7 @@ export default function SubscriptionPage() {
 <body>
   <div class="header">
     <div class="company">
-      <img src="/vengrow-logo.png" alt="VenGrow Logo" />
+      <img src="/VenGrow.png" alt="VenGrow Logo" />
       <h1>VenGrow</h1>
     </div>
     <div class="invoice-info">

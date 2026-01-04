@@ -2,7 +2,6 @@ import { Link } from "wouter";
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { NavigationLink, SiteSetting } from "@shared/schema";
-import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 
 interface GroupedSettings {
   site_name?: string;
@@ -88,9 +87,9 @@ export default function Footer() {
           <div className="space-y-4">
             <Link href="/" className="block">
               <img 
-                src={vengrowLogo} 
+                src="/VenGrow.png" 
                 alt="VenGrow - Verified Property Market" 
-                className="h-16 object-contain"
+                className="h-16 w-auto max-w-[240px] object-contain"
                 data-testid="img-footer-logo"
               />
             </Link>

@@ -1,6 +1,5 @@
 import { Link, useLocation } from "wouter";
 import { useAuthStore } from "@/stores/authStore";
-import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import {
   Sidebar,
   SidebarContent,
@@ -323,9 +322,9 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <Link href="/">
           <img 
-            src={vengrowLogo} 
+            src="/VenGrow.png" 
             alt="VenGrow - Verified Property Market" 
-            className="h-10 object-contain cursor-pointer"
+            className="h-10 w-auto max-w-[180px] object-contain cursor-pointer"
           />
         </Link>
       </SidebarHeader>

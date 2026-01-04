@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Link, useLocation as useWouterLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, Heart, User, Home, ChevronDown, Plus, LogOut, LayoutDashboard, MessageSquare, Settings, Building2, MapPin } from "lucide-react";
-import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import {
   Sheet,
   SheetContent,
@@ -126,11 +125,11 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
         <div className="flex h-16 items-center justify-between gap-4">
           <div className="flex items-center gap-1">
             <Link href="/" className="flex items-center -ml-2 relative z-10" data-testid="link-home">
-              <div className="bg-background rounded-b-lg px-2  pt-1">
+              <div className="px-2 pt-1">
                 <img 
-                  src={vengrowLogo} 
+                  src="/VenGrow.png" 
                   alt="VenGrow - Verified Property Market" 
-                  className="h-12 md:h-14 object-contain"
+                  className="h-12 md:h-14 w-auto max-w-[200px] object-contain"
                   data-testid="img-header-logo"
                 />
               </div>

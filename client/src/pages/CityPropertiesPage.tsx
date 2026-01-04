@@ -304,6 +304,7 @@ export default function CityPropertiesPage() {
                         isVerified={property.isVerified || false}
                         sellerType="Individual"
                         transactionType={property.transactionType as "Sale" | "Lease" | "Rent"}
+                        variant={viewType === "list" ? "list" : "grid"}
                       />
                     );
                   })}

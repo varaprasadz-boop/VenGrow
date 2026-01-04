@@ -611,7 +611,7 @@ export default function ListingsPage() {
                       : "space-y-4"
                   }>
                     {paginatedProperties.map((property) => (
-                      <PropertyCard key={property.id} {...property} />
+                      <PropertyCard key={property.id} {...property} variant={viewType === "list" ? "list" : "grid"} />
                     ))}
                   </div>
 

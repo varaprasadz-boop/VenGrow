@@ -6,7 +6,6 @@ import {
   ChevronDown, Heart, Calendar, Star, FileText, Upload, Eye,
   TrendingUp, Users, Clock
 } from "lucide-react";
-import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import type { SellerSubscription, Package as PackageType } from "@shared/schema";
@@ -190,9 +189,9 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
           <SidebarHeader className="border-b p-4">
             <Link href="/seller/dashboard" className="flex items-center" data-testid="link-seller-home">
               <img 
-                src={vengrowLogo} 
+                src="/VenGrow.png" 
                 alt="VenGrow - Verified Property Market" 
-                className="h-10 object-contain"
+                className="h-10 w-auto max-w-[180px] object-contain"
                 data-testid="img-seller-logo"
               />
             </Link>

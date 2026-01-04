@@ -5,7 +5,6 @@ import {
   ChevronDown, UserCog, ListChecks, Globe, Mail, Clock, Star,
   Database, Activity, Megaphone, Image, Quote, BadgeCheck, Heart, UserCircle
 } from "lucide-react";
-import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -151,9 +150,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <SidebarHeader className="border-b p-4">
             <Link href="/admin/dashboard" className="flex items-center" data-testid="link-admin-home">
               <img 
-                src={vengrowLogo} 
+                src="/VenGrow.png" 
                 alt="VenGrow - Verified Property Market" 
-                className="h-10 object-contain"
+                className="h-10 w-auto max-w-[180px] object-contain"
                 data-testid="img-admin-logo"
               />
             </Link>

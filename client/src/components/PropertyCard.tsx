@@ -29,6 +29,7 @@ interface PropertyCardProps {
   city?: string;
   onFavoriteClick?: (id: string) => void;
   onClick?: (id: string) => void;
+  variant?: "grid" | "list";
 }
 
 const projectStageLabels: Record<string, string> = {
@@ -61,6 +62,7 @@ export default function PropertyCard({
   city,
   onFavoriteClick,
   onClick,
+  variant = "grid",
 }: PropertyCardProps) {
   const [isFavorited, setIsFavorited] = useState(false);
   const [, setLocation] = useLocation();
@@ -91,14 +93,20 @@ export default function PropertyCard({
   const hasValidImage = imageUrl && imageUrl.trim() !== '' && !imageUrl.includes('placeholder');
   const displayImage = hasValidImage ? imageUrl : undefined;
 
+  const isListLayout = variant === "list";
+
   return (
     <Card
-      className="group overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all"
+      className={`group overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all ${
+        isListLayout ? "flex" : ""
+      }`}
       onClick={handleCardClick}
       data-testid={`card-property-${id}`}
     >
       {/* Image Section */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+      <div className={`relative overflow-hidden bg-muted ${
+        isListLayout ? "w-64 h-48 flex-shrink-0" : "aspect-[4/3]"
+      }`}>
         {displayImage ? (
           <>
             <img
@@ -133,8 +141,10 @@ export default function PropertyCard({
             </div>
           </div>
         )}
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-0" />
+        {/* Gradient Overlay - Only show in grid layout */}
+        {!isListLayout && (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-0" />
+        )}
         
         {/* Top Bar - Badges Left, Favorite Right */}
         <div className="absolute top-3 left-3 right-3 z-10 flex items-start justify-between">
@@ -145,9 +155,11 @@ export default function PropertyCard({
                 Featured
               </Badge>
             )}
-            <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm text-xs">
-              For {transactionType}
-            </Badge>
+            {!isListLayout && (
+              <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm text-xs">
+                For {transactionType}
+              </Badge>
+            )}
             {isNewConstruction && (
               <Badge variant="secondary" className="bg-blue-500/90 text-white backdrop-blur-sm text-xs" data-testid={`badge-new-${id}`}>
                 New
@@ -174,26 +186,41 @@ export default function PropertyCard({
           </Button>
         </div>
 
-        {/* Price - Bottom Overlay */}
-        <div className="absolute bottom-3 left-3 right-3">
-          <p className="text-white font-bold text-2xl font-serif drop-shadow-lg">
-            {formatPrice(price)}
-            {(transactionType === "Rent" || transactionType === "Lease") && <span className="text-lg">/month</span>}
-          </p>
-        </div>
+        {/* Price - Bottom Overlay - Only in grid layout */}
+        {!isListLayout && (
+          <div className="absolute bottom-3 left-3 right-3">
+            <p className="text-white font-bold text-2xl font-serif drop-shadow-lg">
+              {formatPrice(price)}
+              {(transactionType === "Rent" || transactionType === "Lease") && <span className="text-lg">/month</span>}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Content Section */}
-      <div className="p-4 space-y-3">
+      <div className={`${isListLayout ? "flex-1 p-4" : "p-4"} space-y-3`}>
         {/* Title & Location */}
         <div>
-          <h3 className="font-semibold text-lg line-clamp-1 mb-1" data-testid={`text-title-${id}`}>
-            {title}
-          </h3>
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h3 className={`font-semibold ${isListLayout ? "text-xl" : "text-lg"} line-clamp-2 flex-1`} data-testid={`text-title-${id}`}>
+              {title}
+            </h3>
+            {isListLayout && (
+              <p className="text-primary font-bold text-xl font-serif flex-shrink-0">
+                {formatPrice(price)}
+                {(transactionType === "Rent" || transactionType === "Lease") && <span className="text-base">/month</span>}
+              </p>
+            )}
+          </div>
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4" />
             <span className="line-clamp-1">{location}</span>
           </div>
+          {isListLayout && (
+            <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm text-xs mt-1">
+              For {transactionType}
+            </Badge>
+          )}
         </div>
 
         {/* Specs */}
@@ -240,7 +267,7 @@ export default function PropertyCard({
             <Badge variant="secondary" className="text-xs">
               {propertyType}
             </Badge>
-            {subcategory && (
+            {subcategory && !isListLayout && (
               <Badge variant="outline" className="text-xs text-muted-foreground" data-testid={`badge-subcategory-${id}`}>
                 {subcategory}
               </Badge>

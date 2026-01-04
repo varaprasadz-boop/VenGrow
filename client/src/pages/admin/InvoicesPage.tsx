@@ -385,7 +385,7 @@ function InvoicePreviewDialog({
           <div className="flex justify-between items-start">
             <div>
               <img 
-                src="/vengrow-logo.png" 
+                src="/VenGrow.png" 
                 alt="VenGrow Logo" 
                 className="h-16 mb-4 object-contain"
               />
