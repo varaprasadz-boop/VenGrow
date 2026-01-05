@@ -7109,9 +7109,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Seller profile required" });
       }
       
-      // Only Broker, Builder, and Corporate can create projects
-      if (!['broker', 'builder', 'corporate'].includes(sellerProfile.sellerType)) {
-        return res.status(403).json({ message: "Only Brokers, Builders, and Corporate sellers can manage projects" });
+      // Only Broker and Builder can create/manage projects (not Individual sellers)
+      if (!['broker', 'builder'].includes(sellerProfile.sellerType)) {
+        return res.status(403).json({ message: "Only Brokers and Builders can manage projects. Individual sellers can create properties instead." });
       }
       
       const projects = await storage.getProjectsBySeller(sellerProfile.id);
@@ -7135,8 +7135,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Seller profile required" });
       }
       
-      if (!['broker', 'builder', 'corporate'].includes(sellerProfile.sellerType)) {
-        return res.status(403).json({ message: "Only Brokers, Builders, and Corporate sellers can create projects" });
+      if (!['broker', 'builder'].includes(sellerProfile.sellerType)) {
+        return res.status(403).json({ message: "Only Brokers and Builders can create projects. Individual sellers can create properties instead." });
       }
       
       const projectData = {
