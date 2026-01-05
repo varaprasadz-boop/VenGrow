@@ -117,10 +117,16 @@ export default function BuyerListPage() {
               <h1 className="font-serif font-bold text-3xl">Buyer Accounts</h1>
               <p className="text-muted-foreground">View all registered buyers</p>
             </div>
-            <Button onClick={handleExport} data-testid="button-export-buyers">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+              <Button onClick={handleExport} data-testid="button-export-buyers">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </div>
 
           <Card className="p-6">

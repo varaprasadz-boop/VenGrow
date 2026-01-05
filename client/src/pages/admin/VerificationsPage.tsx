@@ -142,14 +142,20 @@ export default function VerificationsPage() {
   return (
       <main className="flex-1 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <BadgeCheck className="h-6 w-6 text-primary" />
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <BadgeCheck className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="font-serif font-bold text-3xl">Verification Requests</h1>
+                <p className="text-muted-foreground">Review and verify seller documents</p>
+              </div>
             </div>
-            <div>
-              <h1 className="font-serif font-bold text-3xl">Verification Requests</h1>
-              <p className="text-muted-foreground">Review and verify seller documents</p>
-            </div>
+            <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
           </div>
 
           <Card className="p-6">
