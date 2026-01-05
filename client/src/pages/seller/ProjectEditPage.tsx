@@ -29,7 +29,7 @@ import {
 import { StateSelect, CitySelect } from "@/components/ui/location-select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, Send, AlertCircle } from "lucide-react";
+import { ArrowLeft, Save, Send, AlertCircle, Plus } from "lucide-react";
 import type { Project } from "@shared/schema";
 
 const projectFormSchema = z.object({
@@ -158,6 +158,34 @@ export default function ProjectEditPage() {
         return <Badge variant="secondary">Draft</Badge>;
     }
   };
+
+  // Check if seller is allowed to manage projects (only brokers and builders)
+  const canManageProjects = user?.sellerType && ['broker', 'builder'].includes(user.sellerType);
+
+  // Show restricted access message for individual sellers
+  if (!canManageProjects) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <Card className="p-8 max-w-lg text-center">
+          <AlertCircle className="h-16 w-16 mx-auto mb-4 text-amber-500" />
+          <h2 className="font-serif font-bold text-2xl mb-3">Projects Not Available</h2>
+          <p className="text-muted-foreground mb-6">
+            Projects are only available for Brokers and Builders. As an Individual seller, 
+            you can create individual property listings instead.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button onClick={() => navigate("/seller/property/add")} data-testid="button-add-property">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Property
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/seller/dashboard")} data-testid="button-go-dashboard">
+              Go to Dashboard
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
