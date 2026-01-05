@@ -261,12 +261,10 @@ export default function PackageSelectionPage() {
                           <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                           {pkg.duration}-day listing validity
                         </li>
-                        {pkg.featuredListings > 0 && (
-                          <li className="flex items-center gap-2 text-sm">
-                            <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                            {pkg.featuredListings} featured listing slots
-                          </li>
-                        )}
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          {pkg.featuredListings} featured listing slots
+                        </li>
                         {pkg.features?.map((feature, index) => (
                           <li key={index} className="flex items-center gap-2 text-sm">
                             <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
@@ -361,11 +359,7 @@ export default function PackageSelectionPage() {
                                 pkg.isPopular ? "bg-primary/5" : ""
                               }`}
                             >
-                              {pkg.featuredListings > 0 ? (
-                                <CheckCircle className="h-5 w-5 text-green-600 mx-auto" />
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
+                              {pkg.featuredListings} featured listings
                             </td>
                           ))}
                         </tr>

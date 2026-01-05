@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import type { SellerSubscription, Package as PackageType, Property, Payment } from "@shared/schema";
+import { generateSubscriptionInvoicePDF } from "@/utils/invoicePDF";
 
 interface SubscriptionWithPackage extends SellerSubscription {
   package?: PackageType;
@@ -38,108 +39,38 @@ export default function SubscriptionPage() {
   const subscription = response?.subscription || null;
   const packageData = response?.package || subscription?.package || null;
 
-  const handleDownloadInvoice = (payment: Payment) => {
-    const subtotal = payment.amount || 0;
-    const gstAmount = Math.round(subtotal * 0.18);
-    const cgst = Math.round(gstAmount / 2);
-    const sgst = Math.round(gstAmount / 2);
-    const total = subtotal + gstAmount;
-    const status = payment.status === 'completed' ? 'Paid' : 'Pending';
+  const handleDownloadInvoice = async (payment: Payment) => {
+    if (!subscription || !packageData) {
+      alert("Subscription information not available");
+      return;
+    }
+
     const invoiceNumber = payment.razorpayOrderId || `INV-${payment.id.slice(0, 8).toUpperCase()}`;
-    
-    const invoiceHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Invoice ${invoiceNumber}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; background: #fff; }
-    .header { display: flex; justify-content: space-between; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
-    .company { }
-    .company img { max-width: 200px; height: auto; margin-bottom: 10px; }
-    .company h1 { color: #0ea5e9; margin: 0; font-size: 28px; }
-    .invoice-info { text-align: right; }
-    .invoice-info h2 { margin: 0 0 10px 0; }
-    .status { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 12px; }
-    .status-paid { background: #dcfce7; color: #166534; }
-    .status-pending { background: #fef9c3; color: #854d0e; }
-    .section { margin: 20px 0; }
-    .grid { display: flex; justify-content: space-between; }
-    .grid-item { flex: 1; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th, td { border: 1px solid #e5e7eb; padding: 12px; text-align: left; }
-    th { background: #f9fafb; }
-    .totals { width: 300px; margin-left: auto; }
-    .totals .row { display: flex; justify-content: space-between; padding: 8px 0; }
-    .totals .total { font-weight: bold; font-size: 18px; border-top: 2px solid #000; margin-top: 8px; padding-top: 12px; }
-    .terms { margin-top: 40px; font-size: 12px; color: #6b7280; }
-    @media print { body { padding: 0; } }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="company">
-      <img src="/VenGrow.png" alt="VenGrow Logo" />
-      <h1>VenGrow</h1>
-    </div>
-    <div class="invoice-info">
-      <h2>TAX INVOICE</h2>
-      <p style="font-family: monospace; font-size: 18px;">${invoiceNumber}</p>
-      <span class="status ${status === 'Paid' ? 'status-paid' : 'status-pending'}">${status}</span>
-    </div>
-  </div>
-  <div class="section grid">
-    <div class="grid-item">
-      <strong>Bill To:</strong>
-      <p>Subscription Payment</p>
-    </div>
-    <div class="grid-item" style="text-align: right;">
-      <p>Invoice Date: ${payment.createdAt ? format(new Date(payment.createdAt), "MMM dd, yyyy") : "N/A"}</p>
-    </div>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Description</th>
-        <th>SAC Code</th>
-        <th style="text-align: right;">Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Subscription Package Payment</td>
-        <td>997221</td>
-        <td style="text-align: right;">₹${subtotal.toLocaleString('en-IN')}</td>
-      </tr>
-    </tbody>
-  </table>
-  <div class="totals">
-    <div class="row"><span>Subtotal:</span><span>₹${subtotal.toLocaleString('en-IN')}</span></div>
-    <div class="row"><span>CGST @ 9%:</span><span>₹${cgst.toLocaleString('en-IN')}</span></div>
-    <div class="row"><span>SGST @ 9%:</span><span>₹${sgst.toLocaleString('en-IN')}</span></div>
-    <div class="row total"><span>Total:</span><span>₹${total.toLocaleString('en-IN')}</span></div>
-  </div>
-  <div class="terms">
-    <p><strong>Terms & Conditions:</strong></p>
-    <p>1. Payment once made is non-refundable.</p>
-    <p>2. Invoice valid for accounting & GST purposes.</p>
-    <p>3. Any disputes subject to Bangalore jurisdiction.</p>
-  </div>
-</body>
-</html>
-    `;
-    
-    const blob = new Blob([invoiceHTML], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `invoice-${invoiceNumber}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const invoiceDate = payment.createdAt ? format(new Date(payment.createdAt), "MMM dd, yyyy") : format(new Date(), "MMM dd, yyyy");
+    const startDate = subscription.startDate ? format(new Date(subscription.startDate), "MMM dd, yyyy") : "N/A";
+    const endDate = subscription.endDate ? format(new Date(subscription.endDate), "MMM dd, yyyy") : "N/A";
+
+    try {
+      await generateSubscriptionInvoicePDF({
+        invoiceNumber,
+        invoiceDate,
+        subscription: {
+          packageName: packageData.name || "Package",
+          duration: packageData.duration || 30,
+          startDate,
+          endDate,
+        },
+        payment: {
+          amount: payment.amount || 0,
+          status: payment.status,
+          paymentMethod: payment.paymentMethod || undefined,
+          razorpayPaymentId: payment.razorpayPaymentId || undefined,
+        },
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate invoice. Please try again.');
+    }
   };
 
   const { data: properties = [], isLoading: propertiesLoading } = useQuery<Property[]>({

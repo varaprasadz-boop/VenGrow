@@ -167,7 +167,7 @@ export default function PackagesPage() {
       name: pkg.name,
       description: pkg.description || "",
       sellerType: pkg.sellerType,
-      planTier: pkg.planTier,
+      planTier: pkg.planTier as "Basic" | "Pro" | "Premium",
       price: pkg.price,
       duration: pkg.duration,
       listingLimit: pkg.listingLimit,
@@ -266,14 +266,16 @@ export default function PackagesPage() {
               {sellerPackages.map((pkg) => (
                 <Card
                   key={pkg.id}
-                  className={`p-6 relative ${pkg.isPopular ? 'ring-2 ring-primary' : ''}`}
+                  className={`p-6 relative flex flex-col ${pkg.isPopular ? 'ring-2 ring-primary' : ''}`}
                   data-testid={`card-package-${pkg.id}`}
                 >
                   {pkg.isPopular && (
-                    <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-primary">
-                      <Star className="h-3 w-3 mr-1" />
-                      Most Popular
-                    </Badge>
+                    <div className="absolute -top-2.5 right-3 z-10">
+                      <Badge className="bg-primary text-primary-foreground text-xs font-semibold shadow-sm flex items-center gap-1 px-2 py-0.5">
+                        <Star className="h-3 w-3 fill-current" />
+                        <span>Most Popular</span>
+                      </Badge>
+                    </div>
                   )}
                   <div className="text-center mb-6">
                     <h3 className="font-bold text-xl mb-2">{pkg.name}</h3>
@@ -286,7 +288,7 @@ export default function PackagesPage() {
                     )}
                   </div>
 
-                  <div className="space-y-3 mb-6">
+                  <div className="space-y-3 mb-6 flex-grow">
                     <div className="flex items-center gap-2 text-sm">
                       <Building className="h-4 w-4 text-muted-foreground" />
                       <span>{pkg.listingLimit} Listings</span>
@@ -295,24 +297,23 @@ export default function PackagesPage() {
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span>{pkg.duration} Days</span>
                     </div>
-                    {pkg.featuredListings > 0 && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Star className="h-4 w-4 text-yellow-500" />
-                        <span>{pkg.featuredListings} Featured Listings</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 text-sm">
+                      <Star className="h-4 w-4 text-yellow-500" />
+                      <span>{pkg.featuredListings} Featured Listings</span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mt-auto pt-4 border-t">
                     <Badge variant={pkg.isActive ? "default" : "secondary"}>
                       {pkg.isActive ? "Active" : "Inactive"}
                     </Badge>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEditPackage(pkg)}
                         data-testid={`button-edit-${pkg.id}`}
+                        className="h-8 w-8 p-0"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -321,6 +322,7 @@ export default function PackagesPage() {
                         size="sm"
                         onClick={() => handleDeletePackage(pkg)}
                         data-testid={`button-delete-${pkg.id}`}
+                        className="h-8 w-8 p-0"
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>

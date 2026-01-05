@@ -1,0 +1,78 @@
+name: Deploy to Staging VPS
+
+on:
+  push:
+    branches:
+      - main  # Change to 'staging' if you want to deploy from a different branch
+  workflow_dispatch:  # Allows manual triggering from GitHub Actions UI
+
+jobs:
+  deploy:
+    name: Deploy to Hostinger VPS
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+
+      - name: Add VPS to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VPS_HOST || '72.61.233.124' }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to VPS
+        run: |
+          PROJECT_PATH="${{ secrets.VPS_PROJECT_PATH || 'VenGrow' }}"
+          WEB_DIR="${{ secrets.VPS_WEB_DIR || '/var/www/staging.vengrow.net' }}"
+          BRANCH_NAME="${{ github.ref_name }}"
+          
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER || 'root' }}@${{ secrets.VPS_HOST || '72.61.233.124' }} << EOF
+            set -e  # Exit on error
+            
+            echo "🚀 Starting deployment..."
+            
+            # Navigate to project directory
+            cd ${PROJECT_PATH}
+            
+            # Pull latest changes
+            echo "📥 Pulling latest changes from branch: ${BRANCH_NAME}..."
+            git fetch origin
+            git checkout ${BRANCH_NAME}
+            git pull origin ${BRANCH_NAME}
+            
+            # Install dependencies
+            echo "📦 Installing dependencies..."
+            npm install
+            
+            # Build the project
+            echo "🔨 Building project..."
+            npm run build
+            
+            # Remove old files from web directory
+            echo "🧹 Cleaning web directory..."
+            sudo rm -rf ${WEB_DIR}/*
+            
+            # Copy new build files
+            echo "📋 Copying build files..."
+            sudo cp -r dist/* ${WEB_DIR}/
+            
+            # Restart PM2 process
+            echo "🔄 Restarting PM2 process..."
+            pm2 restart ecosystem.config.cjs --only vengrow-staging --update-env
+            
+            # Reload nginx
+            echo "🔄 Reloading nginx..."
+            sudo systemctl reload nginx
+            
+            echo "✅ Deployment completed successfully!"
+          EOF
+
+      - name: Deployment Status
+        run: |
+          echo "✅ Deployment to staging completed successfully!"
+
