@@ -45,7 +45,7 @@ function formatPrice(price: number): string {
 }
 
 export default function SellerProjectsPage() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,10 +54,12 @@ export default function SellerProjectsPage() {
   // Check if seller is allowed to manage projects (only brokers and builders)
   const canManageProjects = user?.sellerType && ['broker', 'builder'].includes(user.sellerType);
 
-  const { data: projects = [], isLoading } = useQuery<Project[]>({
+  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
     queryKey: ["/api/seller/projects"],
     enabled: !!user && canManageProjects,
   });
+  
+  const isLoading = authLoading || projectsLoading;
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -91,8 +93,26 @@ export default function SellerProjectsPage() {
     }
   };
 
-  // Show restricted access message for individual sellers
-  if (!canManageProjects) {
+  // Show loading state first, before checking restrictions
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <Skeleton className="h-10 w-full max-w-md" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-72" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Show restricted access message for individual sellers (only after auth loaded)
+  if (user && !canManageProjects) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[60vh]">
         <Card className="p-8 max-w-lg text-center">
@@ -112,23 +132,6 @@ export default function SellerProjectsPage() {
             </Button>
           </div>
         </Card>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <Skeleton className="h-10 w-full max-w-md" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-72" />
-          ))}
-        </div>
       </div>
     );
   }

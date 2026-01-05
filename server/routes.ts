@@ -7166,6 +7166,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Seller profile required" });
       }
       
+      // Only Broker and Builder can manage projects
+      if (!['broker', 'builder'].includes(sellerProfile.sellerType)) {
+        return res.status(403).json({ message: "Only Brokers and Builders can manage projects." });
+      }
+      
       const project = await storage.getProject(req.params.id);
       if (!project || project.sellerId !== sellerProfile.id) {
         return res.status(404).json({ message: "Project not found" });
@@ -7190,6 +7195,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sellerProfile = await storage.getSellerProfileByUserId(userId);
       if (!sellerProfile) {
         return res.status(403).json({ message: "Seller profile required" });
+      }
+      
+      // Only Broker and Builder can manage projects
+      if (!['broker', 'builder'].includes(sellerProfile.sellerType)) {
+        return res.status(403).json({ message: "Only Brokers and Builders can manage projects." });
       }
       
       const project = await storage.getProject(req.params.id);

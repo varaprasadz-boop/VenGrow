@@ -53,7 +53,7 @@ const projectFormSchema = z.object({
 type ProjectFormValues = z.infer<typeof projectFormSchema>;
 
 export default function ProjectCreatePage() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [selectedState, setSelectedState] = useState("");
@@ -118,8 +118,18 @@ export default function ProjectCreatePage() {
   // Check if seller is allowed to create projects (only brokers and builders)
   const canManageProjects = user?.sellerType && ['broker', 'builder'].includes(user.sellerType);
 
-  // Show restricted access message for individual sellers
-  if (!canManageProjects) {
+  // Show loading state first, before checking restrictions
+  if (authLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
+
+  // Show restricted access message for individual sellers (only after auth loaded)
+  if (user && !canManageProjects) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[60vh]">
         <Card className="p-8 max-w-lg text-center">
