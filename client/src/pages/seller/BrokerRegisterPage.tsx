@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Building2, Upload, ArrowLeft, Loader2, X } from "lucide-react";
+import { Building2, Upload, ArrowLeft, Loader2, X, CheckCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,17 +109,24 @@ export default function BrokerRegisterPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleReraUpload = async (results: any[]) => {
-    if (results.length === 0) return;
-    const file = results[0];
+  const handleReraUpload = async (results: any) => {
+    // Handle both array format (legacy) and object format (Uppy UploadResult)
+    const successful = Array.isArray(results) ? results : (results?.successful || []);
+    
+    if (successful.length === 0) {
+      return;
+    }
+    const file = successful[0];
     setReraCertificateUrl(file.url);
     setReraCertificateName(file.name);
     toast({ title: "RERA certificate uploaded successfully" });
   };
 
-  const handleBusinessCardUpload = async (results: any[]) => {
-    if (results.length === 0) return;
-    const file = results[0];
+  const handleBusinessCardUpload = async (results: any) => {
+    // Handle both array format (legacy) and object format (Uppy UploadResult)
+    const successful = Array.isArray(results) ? results : (results?.successful || []);
+    if (successful.length === 0) return;
+    const file = successful[0];
     setBusinessCardUrl(file.url);
     setBusinessCardName(file.name);
     toast({ title: "Business card uploaded successfully" });
@@ -198,17 +205,13 @@ export default function BrokerRegisterPage() {
       <div className="w-full max-w-3xl">
         {/* Logo & Back */}
         <div className="text-center mb-8">
-          <Link href="/">
-            <a className="inline-flex items-center gap-2 mb-4">
-              <Building2 className="h-8 w-8 text-primary" />
-              <span className="font-serif font-bold text-2xl">VenGrow</span>
-            </a>
+          <Link href="/" className="inline-flex items-center gap-2 mb-4">
+            <Building2 className="h-8 w-8 text-primary" />
+            <span className="font-serif font-bold text-2xl">VenGrow</span>
           </Link>
-          <Link href="/seller/type">
-            <a className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
-              <ArrowLeft className="h-4 w-4" />
-              Back to seller type selection
-            </a>
+          <Link href="/seller/type" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
+            <ArrowLeft className="h-4 w-4" />
+            Back to seller type selection
           </Link>
           <h1 className="font-serif font-bold text-3xl mb-2">
             Broker/Agent Registration
@@ -469,10 +472,21 @@ export default function BrokerRegisterPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>RERA Certificate (Optional)</Label>
-                  {reraCertificateUrl ? (
-                    <div className="border-2 border-dashed rounded-lg p-6 text-center relative">
-                      <div className="flex items-center justify-center gap-2">
-                        <p className="text-sm font-medium truncate">{reraCertificateName || "RERA Certificate uploaded"}</p>
+                  <div className="flex items-center gap-2">
+                    <ObjectUploader
+                      bucket="seller-documents"
+                      prefix="broker/rera/"
+                      onComplete={handleReraUpload}
+                      maxFiles={1}
+                      accept="image/*,.pdf"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload RERA Certificate
+                    </ObjectUploader>
+                    {reraCertificateUrl && (
+                      <>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm text-muted-foreground">{reraCertificateName || "RERA Certificate uploaded"}</span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -485,17 +499,9 @@ export default function BrokerRegisterPage() {
                         >
                           <X className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <ObjectUploader
-                      bucket="seller-documents"
-                      prefix="broker/rera/"
-                      onComplete={handleReraUpload}
-                      maxFiles={1}
-                      accept="image/*,.pdf"
-                    />
-                  )}
+                      </>
+                    )}
+                  </div>
                   {errors.reraCertificate && (
                     <p className="text-sm text-destructive">{errors.reraCertificate}</p>
                   )}
@@ -503,10 +509,21 @@ export default function BrokerRegisterPage() {
 
                 <div className="space-y-2">
                   <Label>Business Card (Optional)</Label>
-                  {businessCardUrl ? (
-                    <div className="border-2 border-dashed rounded-lg p-6 text-center relative">
-                      <div className="flex items-center justify-center gap-2">
-                        <p className="text-sm font-medium truncate">{businessCardName || "Business Card uploaded"}</p>
+                  <div className="flex items-center gap-2">
+                    <ObjectUploader
+                      bucket="seller-documents"
+                      prefix="broker/card/"
+                      onComplete={handleBusinessCardUpload}
+                      maxFiles={1}
+                      accept="image/*"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Business Card
+                    </ObjectUploader>
+                    {businessCardUrl && (
+                      <>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm text-muted-foreground">{businessCardName || "Business Card uploaded"}</span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -519,17 +536,9 @@ export default function BrokerRegisterPage() {
                         >
                           <X className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <ObjectUploader
-                      bucket="seller-documents"
-                      prefix="broker/card/"
-                      onComplete={handleBusinessCardUpload}
-                      maxFiles={1}
-                      accept="image/*"
-                    />
-                  )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -576,7 +585,7 @@ export default function BrokerRegisterPage() {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Already registered? <Link href="/login"><a className="text-primary hover:underline">Login here</a></Link>
+          Already registered? <Link href="/login" className="text-primary hover:underline">Login here</Link>
         </p>
       </div>
     </div>

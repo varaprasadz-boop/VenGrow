@@ -169,8 +169,8 @@ export default function PlatformAnalyticsPage() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
-                <RefreshCw className="h-4 w-4 mr-2" />
+              <Button variant="outline" onClick={() => refetch()} disabled={isLoading} data-testid="button-refresh">
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
                 Refresh
               </Button>
               <Button 

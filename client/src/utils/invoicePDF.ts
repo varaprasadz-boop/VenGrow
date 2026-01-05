@@ -58,7 +58,7 @@ async function loadLogoAsBase64(): Promise<{ data: string; width: number; height
   }
 }
 
-export async function generateSubscriptionInvoicePDF(data: SubscriptionInvoiceData): Promise<void> {
+export async function generateSubscriptionInvoicePDF(data: SubscriptionInvoiceData, printMode: boolean = false): Promise<void> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -337,6 +337,47 @@ export async function generateSubscriptionInvoicePDF(data: SubscriptionInvoiceDa
   doc.text('Thank you for your business!', pageWidth / 2, pageHeight - 16, { align: 'center' });
   doc.text('Visit us at: https://vengrow.com | Email: support@vengrow.com', pageWidth / 2, pageHeight - 11, { align: 'center' });
 
-  // Save
-  doc.save(`VenGrow-Invoice-${data.invoiceNumber}.pdf`);
+  // Save or open for printing
+  if (printMode) {
+    // Generate PDF as blob and open in new window for printing
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    
+    // Create an iframe for better print compatibility
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.src = pdfUrl;
+    
+    document.body.appendChild(iframe);
+    
+    iframe.onload = () => {
+      setTimeout(() => {
+        try {
+          iframe.contentWindow?.print();
+        } catch (error) {
+          // Fallback: open in new window
+          const printWindow = window.open(pdfUrl, '_blank');
+          if (printWindow) {
+            printWindow.onload = () => {
+              setTimeout(() => {
+                printWindow.print();
+              }, 250);
+            };
+          }
+        }
+        // Clean up after printing
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+          URL.revokeObjectURL(pdfUrl);
+        }, 1000);
+      }, 500);
+    };
+  } else {
+    doc.save(`VenGrow-Invoice-${data.invoiceNumber}.pdf`);
+  }
 }

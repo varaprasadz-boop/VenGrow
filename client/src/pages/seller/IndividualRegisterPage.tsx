@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
-import { Building2, Upload, ArrowLeft, Loader2, X } from "lucide-react";
+import { Building2, Upload, ArrowLeft, Loader2, X, CheckCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,10 +99,12 @@ export default function IndividualRegisterPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleFileUpload = async (results: any[]) => {
-    if (results.length === 0) return;
+  const handleFileUpload = async (results: any) => {
+    // Handle both array format (legacy) and object format (Uppy UploadResult)
+    const successful = Array.isArray(results) ? results : (results?.successful || []);
+    if (successful.length === 0) return;
     
-    const file = results[0];
+    const file = successful[0];
     setPropertyDocumentUrl(file.url);
     setPropertyDocumentName(file.name);
     toast({ title: "Document uploaded successfully" });
@@ -417,10 +419,21 @@ export default function IndividualRegisterPage() {
 
               <div className="space-y-2 mt-4">
                 <Label htmlFor="propertyDocument">Property Document (Optional)</Label>
-                {propertyDocumentUrl ? (
-                  <div className="border-2 border-dashed rounded-lg p-6 text-center relative">
-                    <div className="flex items-center justify-center gap-2">
-                      <p className="text-sm font-medium truncate">{propertyDocumentName || "Document uploaded"}</p>
+                <div className="flex items-center gap-2">
+                  <ObjectUploader
+                    bucket="seller-documents"
+                    prefix="individual/"
+                    onComplete={handleFileUpload}
+                    maxFiles={1}
+                    accept="image/*,.pdf"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Document
+                  </ObjectUploader>
+                  {propertyDocumentUrl && (
+                    <>
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-sm text-muted-foreground">{propertyDocumentName || "Document uploaded"}</span>
                       <Button
                         type="button"
                         variant="ghost"
@@ -430,17 +443,9 @@ export default function IndividualRegisterPage() {
                       >
                         <X className="h-4 w-4" />
                       </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <ObjectUploader
-                    bucket="seller-documents"
-                    prefix="individual/"
-                    onComplete={handleFileUpload}
-                    maxFiles={1}
-                    accept="image/*,.pdf"
-                  />
-                )}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Building2, Upload, ArrowLeft, Loader2, X } from "lucide-react";
+import { Building2, Upload, ArrowLeft, Loader2, X, CheckCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,25 +133,31 @@ export default function BuilderRegisterPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleIncorporationUpload = async (results: any[]) => {
-    if (results.length === 0) return;
-    const file = results[0];
+  const handleIncorporationUpload = async (results: any) => {
+    // Handle both array format (legacy) and object format (Uppy UploadResult)
+    const successful = Array.isArray(results) ? results : (results?.successful || []);
+    if (successful.length === 0) return;
+    const file = successful[0];
     setIncorporationCertificateUrl(file.url);
     setIncorporationCertificateName(file.name);
     toast({ title: "Incorporation certificate uploaded successfully" });
   };
 
-  const handleReraUpload = async (results: any[]) => {
-    if (results.length === 0) return;
-    const file = results[0];
+  const handleReraUpload = async (results: any) => {
+    // Handle both array format (legacy) and object format (Uppy UploadResult)
+    const successful = Array.isArray(results) ? results : (results?.successful || []);
+    if (successful.length === 0) return;
+    const file = successful[0];
     setReraCertificateUrl(file.url);
     setReraCertificateName(file.name);
     toast({ title: "RERA certificate uploaded successfully" });
   };
 
-  const handleCompanyProfileUpload = async (results: any[]) => {
-    if (results.length === 0) return;
-    const file = results[0];
+  const handleCompanyProfileUpload = async (results: any) => {
+    // Handle both array format (legacy) and object format (Uppy UploadResult)
+    const successful = Array.isArray(results) ? results : (results?.successful || []);
+    if (successful.length === 0) return;
+    const file = successful[0];
     setCompanyProfileUrl(file.url);
     setCompanyProfileName(file.name);
     toast({ title: "Company profile uploaded successfully" });
@@ -547,10 +553,21 @@ export default function BuilderRegisterPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Certificate of Incorporation *</Label>
-                  {incorporationCertificateUrl ? (
-                    <div className="border-2 border-dashed rounded-lg p-6 text-center relative">
-                      <div className="flex items-center justify-center gap-2">
-                        <p className="text-sm font-medium truncate">{incorporationCertificateName || "Certificate uploaded"}</p>
+                  <div className="flex items-center gap-2">
+                    <ObjectUploader
+                      bucket="seller-documents"
+                      prefix="builder/incorporation/"
+                      onComplete={handleIncorporationUpload}
+                      maxFiles={1}
+                      accept=".pdf"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Certificate
+                    </ObjectUploader>
+                    {incorporationCertificateUrl && (
+                      <>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm text-muted-foreground">{incorporationCertificateName || "Certificate uploaded"}</span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -563,17 +580,9 @@ export default function BuilderRegisterPage() {
                         >
                           <X className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <ObjectUploader
-                      bucket="seller-documents"
-                      prefix="builder/incorporation/"
-                      onComplete={handleIncorporationUpload}
-                      maxFiles={1}
-                      accept=".pdf"
-                    />
-                  )}
+                      </>
+                    )}
+                  </div>
                   {errors.incorporationCertificate && (
                     <p className="text-sm text-destructive">{errors.incorporationCertificate}</p>
                   )}
@@ -581,10 +590,21 @@ export default function BuilderRegisterPage() {
 
                 <div className="space-y-2">
                   <Label>RERA Certificate *</Label>
-                  {reraCertificateUrl ? (
-                    <div className="border-2 border-dashed rounded-lg p-6 text-center relative">
-                      <div className="flex items-center justify-center gap-2">
-                        <p className="text-sm font-medium truncate">{reraCertificateName || "RERA Certificate uploaded"}</p>
+                  <div className="flex items-center gap-2">
+                    <ObjectUploader
+                      bucket="seller-documents"
+                      prefix="builder/rera/"
+                      onComplete={handleReraUpload}
+                      maxFiles={1}
+                      accept="image/*,.pdf"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload RERA Certificate
+                    </ObjectUploader>
+                    {reraCertificateUrl && (
+                      <>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm text-muted-foreground">{reraCertificateName || "RERA Certificate uploaded"}</span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -597,17 +617,9 @@ export default function BuilderRegisterPage() {
                         >
                           <X className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <ObjectUploader
-                      bucket="seller-documents"
-                      prefix="builder/rera/"
-                      onComplete={handleReraUpload}
-                      maxFiles={1}
-                      accept="image/*,.pdf"
-                    />
-                  )}
+                      </>
+                    )}
+                  </div>
                   {errors.reraCertificate && (
                     <p className="text-sm text-destructive">{errors.reraCertificate}</p>
                   )}
@@ -615,10 +627,21 @@ export default function BuilderRegisterPage() {
 
                 <div className="space-y-2">
                   <Label>Company Profile (Optional)</Label>
-                  {companyProfileUrl ? (
-                    <div className="border-2 border-dashed rounded-lg p-6 text-center relative">
-                      <div className="flex items-center justify-center gap-2">
-                        <p className="text-sm font-medium truncate">{companyProfileName || "Company Profile uploaded"}</p>
+                  <div className="flex items-center gap-2">
+                    <ObjectUploader
+                      bucket="seller-documents"
+                      prefix="builder/profile/"
+                      onComplete={handleCompanyProfileUpload}
+                      maxFiles={1}
+                      accept=".pdf"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Company Profile
+                    </ObjectUploader>
+                    {companyProfileUrl && (
+                      <>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm text-muted-foreground">{companyProfileName || "Company Profile uploaded"}</span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -631,17 +654,9 @@ export default function BuilderRegisterPage() {
                         >
                           <X className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <ObjectUploader
-                      bucket="seller-documents"
-                      prefix="builder/profile/"
-                      onComplete={handleCompanyProfileUpload}
-                      maxFiles={1}
-                      accept=".pdf"
-                    />
-                  )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

@@ -43,6 +43,7 @@ interface InquiryWithDetails extends Inquiry {
     firstName: string | null;
     lastName: string | null;
     email: string | null;
+    phone: string | null;
   };
 }
 
@@ -71,7 +72,9 @@ export default function InquiriesPage() {
     const exportData = filteredInquiries.map(inquiry => ({
       property: inquiry.property?.title || 'N/A',
       city: inquiry.property?.city || 'N/A',
-      buyer: inquiry.buyer?.email || 'N/A',
+      buyerName: `${inquiry.buyer?.firstName || ''} ${inquiry.buyer?.lastName || ''}`.trim() || 'N/A',
+      buyerEmail: inquiry.buyer?.email || inquiry.buyerEmail || 'N/A',
+      buyerPhone: inquiry.buyerPhone || inquiry.buyer?.phone || 'N/A',
       sourceType: inquiry.sourceType || 'N/A',
       status: inquiry.status || 'pending',
       message: inquiry.message?.slice(0, 100) || '',
@@ -80,7 +83,9 @@ export default function InquiriesPage() {
     exportToCSV(exportData, `inquiries_export_${format(new Date(), 'yyyy-MM-dd')}`, [
       { key: 'property', header: 'Property' },
       { key: 'city', header: 'City' },
-      { key: 'buyer', header: 'Buyer Email' },
+      { key: 'buyerName', header: 'Buyer Name' },
+      { key: 'buyerEmail', header: 'Buyer Email' },
+      { key: 'buyerPhone', header: 'Buyer Phone Number' },
       { key: 'sourceType', header: 'Source' },
       { key: 'status', header: 'Status' },
       { key: 'message', header: 'Message (truncated)' },

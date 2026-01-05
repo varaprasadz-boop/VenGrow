@@ -1,39 +1,12 @@
-
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Upload, Download, CheckCircle, XCircle, Clock } from "lucide-react";
 
 export default function BulkUploadPage() {
-  const uploadHistory = [
-    {
-      id: "1",
-      filename: "properties_batch_1.csv",
-      uploadedDate: "Nov 20, 2025",
-      total: 50,
-      successful: 48,
-      failed: 2,
-      status: "completed",
-    },
-    {
-      id: "2",
-      filename: "properties_batch_2.csv",
-      uploadedDate: "Nov 18, 2025",
-      total: 30,
-      successful: 30,
-      failed: 0,
-      status: "completed",
-    },
-    {
-      id: "3",
-      filename: "properties_batch_3.csv",
-      uploadedDate: "Nov 24, 2025",
-      total: 100,
-      successful: 0,
-      failed: 0,
-      status: "processing",
-    },
-  ];
+  // For now, show empty state since bulk upload history endpoint doesn't exist yet
+  // This ensures users only see their own data (which is none until they upload)
+  const uploadHistory: any[] = [];
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -108,8 +81,17 @@ export default function BulkUploadPage() {
           {/* Upload History */}
           <div>
             <h2 className="font-semibold text-xl mb-4">Upload History</h2>
-            <div className="space-y-4">
-              {uploadHistory.map((upload) => (
+            {uploadHistory.length === 0 ? (
+              <Card className="p-12 text-center">
+                <Upload className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="font-semibold text-xl mb-2">No Upload History</h3>
+                <p className="text-muted-foreground">
+                  Your bulk upload history will appear here once you upload your first CSV file.
+                </p>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {uploadHistory.map((upload) => (
                 <Card key={upload.id} className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div>
@@ -155,8 +137,9 @@ export default function BulkUploadPage() {
                     </div>
                   )}
                 </Card>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>

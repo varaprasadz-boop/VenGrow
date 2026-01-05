@@ -3183,6 +3183,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Free package activation endpoint (for packages with price = 0)
+  app.post("/api/payments/free", async (req: any, res: Response) => {
+    try {
+      const { packageId, userId } = req.body;
+      
+      if (!packageId || !userId) {
+        return res.status(400).json({ success: false, message: "Package ID and User ID are required" });
+      }
+      
+      // Get user info
+      let currentUserId = userId;
+      if ((req.session as any)?.localUser?.id) {
+        currentUserId = (req.session as any).localUser.id;
+      } else if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+        currentUserId = req.user.claims.sub;
+      }
+      
+      // Get package details
+      const pkg = await storage.getPackage(packageId);
+      if (!pkg) {
+        return res.status(404).json({ success: false, message: "Package not found" });
+      }
+
+      // Verify that the package is actually free
+      if (pkg.price !== 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "This package is not free. Please use the regular payment flow." 
+        });
+      }
+      
+      // Get seller profile or create one if it doesn't exist
+      let sellerProfile = await storage.getSellerProfileByUserId(currentUserId);
+      if (!sellerProfile) {
+        // Auto-create a basic seller profile for the user
+        const user = await storage.getUser(currentUserId);
+        if (!user) {
+          return res.status(400).json({ success: false, message: "User not found. Please log in again." });
+        }
+        
+        sellerProfile = await storage.createSellerProfile({
+          userId: currentUserId,
+          companyName: user.firstName && user.lastName 
+            ? `${user.firstName} ${user.lastName}` 
+            : user.email?.split("@")[0] || "New Seller",
+          sellerType: "individual",
+        });
+      }
+      
+      // Deactivate any existing subscriptions
+      const existingSub = await storage.getActiveSubscription(sellerProfile.id);
+      if (existingSub) {
+        await storage.deactivateSubscription(existingSub.id);
+      }
+      
+      // Calculate end date based on package duration
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + pkg.duration);
+      
+      // Create subscription
+      const subscription = await storage.createSubscription(sellerProfile.id, packageId, endDate);
+      
+      // Create payment record with amount 0 (free package)
+      const payment = await storage.createPayment({
+        userId: currentUserId,
+        packageId,
+        subscriptionId: subscription.id,
+        amount: 0,
+        currency: "INR",
+        status: "completed",
+        paymentMethod: "free",
+        description: `Free package activation: ${pkg.name}`,
+        metadata: { 
+          freePackage: true,
+          transactionId: `FREE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          note: "This is a free package. No payment was required."
+        },
+      });
+      
+      // Create notification for user
+      await storage.createNotification({
+        userId: currentUserId,
+        type: "payment",
+        title: "Free Package Activated",
+        message: `Your ${pkg.name} package has been activated. You can now list up to ${pkg.listingLimit} properties.`,
+        data: { packageId, subscriptionId: subscription.id, paymentId: payment.id },
+      });
+      
+      res.json({
+        success: true,
+        message: "Free package activated successfully!",
+        payment,
+        subscription,
+        package: pkg,
+      });
+    } catch (error) {
+      console.error("Free package activation error:", error);
+      res.status(500).json({ success: false, message: "Package activation failed. Please try again." });
+    }
+  });
+
   // ============================================
   // RAZORPAY WEBHOOK
   // ============================================
@@ -3408,15 +3509,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get seller's subscription history
-  app.get("/api/subscriptions/history", async (req: any, res: Response) => {
+  app.get("/api/subscriptions/history", isAuthenticated, async (req: any, res: Response) => {
     try {
-      let userId = null;
-      if ((req.session as any)?.localUser?.id) {
-        userId = (req.session as any).localUser.id;
-      } else if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
-        userId = req.user.claims.sub;
-      }
-      
+      const userId = getAuthenticatedUserId(req);
       if (!userId) {
         return res.status(401).json({ success: false, message: "Not authenticated" });
       }
@@ -5343,8 +5438,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                     (prefix && prefix.includes("seller") && prefix.includes("register"));
       
       // For non-registration uploads, require authentication
+      let userId: string | undefined;
       if (!isRegistrationUpload) {
-        const userId = getAuthenticatedUserId(req);
+        userId = getAuthenticatedUserId(req);
         if (!userId) {
           return res.status(401).json({ error: "Not authenticated" });
         }
@@ -5409,7 +5505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileUrl = await localStorage.saveUploadedFile(
         fileBuffer,
         fileName,
-        userId,
+        userId || "registration-temp",
         "public",
         bucket,
         prefix

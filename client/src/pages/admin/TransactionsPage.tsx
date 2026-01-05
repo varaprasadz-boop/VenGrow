@@ -23,10 +23,19 @@ import {
   Clock,
   CreditCard,
   AlertCircle,
+  Printer,
+  ChevronDown,
 } from "lucide-react";
 import { format } from "date-fns";
-import type { Payment } from "@shared/schema";
+import type { Payment, Package } from "@shared/schema";
 import { exportToCSV } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { generateSubscriptionInvoicePDF } from "@/utils/invoicePDF";
 
 function formatCurrency(amount: number): string {
   return `₹${amount.toLocaleString("en-IN")}`;
@@ -40,6 +49,10 @@ export default function TransactionsPage() {
 
   const { data: payments = [], isLoading, isError, refetch } = useQuery<Payment[]>({
     queryKey: ["/api/payments"],
+  });
+
+  const { data: packages = [] } = useQuery<Package[]>({
+    queryKey: ["/api/packages"],
   });
 
   const filterTransactions = () => {
@@ -123,9 +136,81 @@ export default function TransactionsPage() {
     setViewOpen(true);
   };
 
-  const handleDownloadInvoice = (txn: Payment) => {
-    setSelectedTxn(txn);
-    setViewOpen(true);
+  const handleDownloadInvoice = async (txn: Payment) => {
+    try {
+      const packageInfo = txn.packageId 
+        ? packages.find(p => p.id === txn.packageId)
+        : null;
+
+      const invoiceNumber = txn.razorpayOrderId || `INV-${txn.id.slice(0, 8).toUpperCase()}`;
+      const invoiceDate = txn.createdAt ? format(new Date(txn.createdAt), "MMM dd, yyyy") : format(new Date(), "MMM dd, yyyy");
+      
+      // Calculate subscription dates (30 days default if no package info)
+      const duration = packageInfo?.duration || 30;
+      const startDate = txn.createdAt ? format(new Date(txn.createdAt), "MMM dd, yyyy") : format(new Date(), "MMM dd, yyyy");
+      const endDate = txn.createdAt 
+        ? format(new Date(new Date(txn.createdAt).getTime() + duration * 24 * 60 * 60 * 1000), "MMM dd, yyyy")
+        : format(new Date(new Date().getTime() + duration * 24 * 60 * 60 * 1000), "MMM dd, yyyy");
+
+      await generateSubscriptionInvoicePDF({
+        invoiceNumber,
+        invoiceDate,
+        subscription: {
+          packageName: packageInfo?.name || "Package",
+          duration: duration,
+          startDate,
+          endDate,
+        },
+        payment: {
+          amount: txn.amount || 0,
+          status: txn.status,
+          paymentMethod: txn.paymentMethod || undefined,
+          razorpayPaymentId: txn.razorpayPaymentId || undefined,
+        },
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate invoice. Please try again.');
+    }
+  };
+
+  const handlePrintInvoice = async (txn: Payment) => {
+    try {
+      const packageInfo = txn.packageId 
+        ? packages.find(p => p.id === txn.packageId)
+        : null;
+
+      const invoiceNumber = txn.razorpayOrderId || `INV-${txn.id.slice(0, 8).toUpperCase()}`;
+      const invoiceDate = txn.createdAt ? format(new Date(txn.createdAt), "MMM dd, yyyy") : format(new Date(), "MMM dd, yyyy");
+      
+      // Calculate subscription dates (30 days default if no package info)
+      const duration = packageInfo?.duration || 30;
+      const startDate = txn.createdAt ? format(new Date(txn.createdAt), "MMM dd, yyyy") : format(new Date(), "MMM dd, yyyy");
+      const endDate = txn.createdAt 
+        ? format(new Date(new Date(txn.createdAt).getTime() + duration * 24 * 60 * 60 * 1000), "MMM dd, yyyy")
+        : format(new Date(new Date().getTime() + duration * 24 * 60 * 60 * 1000), "MMM dd, yyyy");
+
+      // Generate PDF and open in new window for printing
+      await generateSubscriptionInvoicePDF({
+        invoiceNumber,
+        invoiceDate,
+        subscription: {
+          packageName: packageInfo?.name || "Package",
+          duration: duration,
+          startDate,
+          endDate,
+        },
+        payment: {
+          amount: txn.amount || 0,
+          status: txn.status,
+          paymentMethod: txn.paymentMethod || undefined,
+          razorpayPaymentId: txn.razorpayPaymentId || undefined,
+        },
+      }, true); // Pass true for print mode
+    } catch (error) {
+      console.error('Error generating PDF for print:', error);
+      alert('Failed to generate invoice for printing. Please try again.');
+    }
   };
 
   if (isLoading) {
@@ -327,16 +412,36 @@ export default function TransactionsPage() {
                               <Eye className="h-4 w-4 lg:mr-2" />
                               <span className="hidden lg:inline">View</span>
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 lg:flex-none"
-                              onClick={() => handleDownloadInvoice(txn)}
-                              data-testid={`button-download-${txn.id}`}
-                            >
-                              <Download className="h-4 w-4 lg:mr-2" />
-                              <span className="hidden lg:inline">Invoice</span>
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 lg:flex-none"
+                                  data-testid={`button-invoice-${txn.id}`}
+                                >
+                                  <Download className="h-4 w-4 lg:mr-2" />
+                                  <span className="hidden lg:inline">Invoice</span>
+                                  <ChevronDown className="h-3 w-3 ml-1 hidden lg:inline" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => handleDownloadInvoice(txn)}
+                                  data-testid={`button-download-${txn.id}`}
+                                >
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Download
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handlePrintInvoice(txn)}
+                                  data-testid={`button-print-${txn.id}`}
+                                >
+                                  <Printer className="h-4 w-4 mr-2" />
+                                  Print
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       </Card>

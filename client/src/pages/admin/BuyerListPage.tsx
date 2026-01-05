@@ -53,7 +53,9 @@ export default function BuyerListPage() {
     const exportData = filteredBuyers.map(buyer => ({
       name: `${buyer.firstName || ''} ${buyer.lastName || ''}`.trim() || 'N/A',
       email: buyer.email || 'N/A',
+      phone: buyer.phone || 'N/A',
       emailVerified: buyer.isEmailVerified ? 'Yes' : 'No',
+      phoneVerified: buyer.isPhoneVerified ? 'Yes' : 'No',
       favorites: buyer.favoritesCount || 0,
       inquiries: buyer.inquiriesCount || 0,
       status: buyer.isActive ? 'Active' : 'Inactive',
@@ -62,7 +64,9 @@ export default function BuyerListPage() {
     exportToCSV(exportData, `buyers_export_${format(new Date(), 'yyyy-MM-dd')}`, [
       { key: 'name', header: 'Name' },
       { key: 'email', header: 'Email' },
+      { key: 'phone', header: 'Phone Number' },
       { key: 'emailVerified', header: 'Email Verified' },
+      { key: 'phoneVerified', header: 'Phone Verified' },
       { key: 'favorites', header: 'Favorites' },
       { key: 'inquiries', header: 'Inquiries' },
       { key: 'status', header: 'Status' },

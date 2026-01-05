@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Building2, Upload, ArrowLeft, Image, FileText, X, Loader2 } from "lucide-react";
+import { Building2, Upload, ArrowLeft, Image, FileText, X, Loader2, CheckCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,17 +126,21 @@ export default function CorporateRegisterPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleLogoUpload = async (results: any[]) => {
-    if (results.length === 0) return;
-    const file = results[0];
+  const handleLogoUpload = async (results: any) => {
+    // Handle both array format (legacy) and object format (Uppy UploadResult)
+    const successful = Array.isArray(results) ? results : (results?.successful || []);
+    if (successful.length === 0) return;
+    const file = successful[0];
     setLogoUrl(file.url);
     setLogoPreview(file.url);
     toast({ title: "Logo uploaded successfully" });
   };
 
-  const handleBrochureUpload = async (results: any[]) => {
-    if (results.length === 0) return;
-    const file = results[0];
+  const handleBrochureUpload = async (results: any) => {
+    // Handle both array format (legacy) and object format (Uppy UploadResult)
+    const successful = Array.isArray(results) ? results : (results?.successful || []);
+    if (successful.length === 0) return;
+    const file = successful[0];
     setBrochureUrl(file.url);
     setBrochureName(file.name);
     toast({ title: "Brochure uploaded successfully" });
@@ -254,35 +258,33 @@ export default function CorporateRegisterPage() {
                 {/* Company Logo Upload */}
                 <div className="space-y-2">
                   <Label>Company Logo *</Label>
-                  {logoPreview ? (
-                    <div className="border-2 border-dashed rounded-lg p-6 text-center relative">
-                      <div className="relative inline-block">
-                        <img 
-                          src={logoPreview} 
-                          alt="Company logo preview" 
-                          className="h-24 w-24 mx-auto object-contain rounded-lg"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute -top-2 -right-2 h-6 w-6"
-                          onClick={removeLogo}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-2">Logo uploaded</p>
-                    </div>
-                  ) : (
+                  <div className="flex items-center gap-2">
                     <ObjectUploader
                       bucket="seller-documents"
                       prefix="corporate/logo/"
                       onComplete={handleLogoUpload}
                       maxFiles={1}
                       accept="image/*"
-                    />
-                  )}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Logo
+                    </ObjectUploader>
+                    {logoPreview && (
+                      <>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm text-muted-foreground">Logo uploaded</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={removeLogo}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                   {errors.logo && (
                     <p className="text-sm text-destructive">{errors.logo}</p>
                   )}
@@ -294,32 +296,33 @@ export default function CorporateRegisterPage() {
                 {/* Company Brochure Upload */}
                 <div className="space-y-2">
                   <Label>Company Brochure (PDF)</Label>
-                  {brochureUrl ? (
-                    <div className="border-2 border-dashed rounded-lg p-6 text-center relative">
-                      <div className="relative inline-block">
-                        <FileText className="h-12 w-12 mx-auto mb-2 text-primary" />
-                        <p className="text-sm font-medium truncate max-w-[200px] mx-auto">{brochureName || "Brochure uploaded"}</p>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute -top-2 -right-2 h-6 w-6"
-                          onClick={removeBrochure}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">PDF uploaded</p>
-                    </div>
-                  ) : (
+                  <div className="flex items-center gap-2">
                     <ObjectUploader
                       bucket="seller-documents"
                       prefix="corporate/brochure/"
                       onComplete={handleBrochureUpload}
                       maxFiles={1}
                       accept=".pdf"
-                    />
-                  )}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Brochure
+                    </ObjectUploader>
+                    {brochureUrl && (
+                      <>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm text-muted-foreground">{brochureName || "Brochure uploaded"}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={removeBrochure}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     Buyers can download this brochure from your profile
                   </p>

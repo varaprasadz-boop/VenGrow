@@ -35,8 +35,26 @@ export class LocalStorageService {
       ? '/var/www/storage'
       : path.join(process.cwd(), "storage");
     
-    this.storageDir = process.env.LOCAL_STORAGE_DIR || defaultStorageDir;
-    this.publicDir = process.env.PUBLIC_STORAGE_DIR || path.join(this.storageDir, "public");
+    let storageDir = process.env.LOCAL_STORAGE_DIR || defaultStorageDir;
+    
+    // In development, if the configured storage dir is a system path and we can't write to it,
+    // fall back to a local storage directory
+    if (process.env.NODE_ENV !== 'production' && storageDir.startsWith('/var/www')) {
+      console.warn(`[LocalStorage] Development mode detected but storage directory is set to system path: ${storageDir}`);
+      console.warn(`[LocalStorage] Falling back to local storage directory for development`);
+      storageDir = path.join(process.cwd(), "storage");
+    }
+    
+    this.storageDir = storageDir;
+    
+    // Set publicDir - also apply fallback if it's a system path in development
+    let publicDir = process.env.PUBLIC_STORAGE_DIR || path.join(this.storageDir, "public");
+    if (process.env.NODE_ENV !== 'production' && publicDir.startsWith('/var/www')) {
+      console.warn(`[LocalStorage] Development mode detected but public storage directory is set to system path: ${publicDir}`);
+      console.warn(`[LocalStorage] Falling back to local public storage directory for development`);
+      publicDir = path.join(this.storageDir, "public");
+    }
+    this.publicDir = publicDir;
     this.baseUrl = process.env.STORAGE_BASE_URL || "/storage";
     
     // Ensure directories exist
@@ -171,13 +189,39 @@ export class LocalStorageService {
       }
     }
 
-    // Ensure public directory exists
-    if (visibility === "public" && !existsSync(this.publicDir)) {
-      try {
-        mkdirSync(this.publicDir, { recursive: true, mode: 0o755 });
-      } catch (error: any) {
-        console.error(`Failed to create public directory ${this.publicDir}:`, error.message);
-        throw new Error(`Failed to create storage directory: ${error.message}`);
+    // Ensure public directory and all parent directories exist (including bucket/prefix paths)
+    if (visibility === "public") {
+      // First ensure base public directory exists
+      if (!existsSync(this.publicDir)) {
+        try {
+          mkdirSync(this.publicDir, { recursive: true, mode: 0o755 });
+        } catch (error: any) {
+          console.error(`Failed to create public directory ${this.publicDir}:`, error.message);
+          // Provide helpful error message with fix instructions
+          if (error.code === 'EACCES' || error.code === 'EPERM') {
+            const fixMessage = process.env.NODE_ENV === 'development' 
+              ? `Permission denied. For development, ensure the storage directory is writable or use a local path. Try: mkdir -p ${path.join(process.cwd(), "storage/public")} && chmod -R 755 ${path.join(process.cwd(), "storage")}`
+              : `Permission denied writing to ${this.publicDir}. Please check permissions. Run: sudo chown -R $USER:$USER ${this.storageDir} && chmod -R 755 ${this.storageDir}`;
+            throw new Error(`Failed to create storage directory: ${error.message}. ${fixMessage}`);
+          }
+          throw new Error(`Failed to create storage directory: ${error.message}`);
+        }
+      }
+      
+      // Then ensure the full target directory (with bucket/prefix) exists
+      if (!existsSync(targetDir)) {
+        try {
+          mkdirSync(targetDir, { recursive: true, mode: 0o755 });
+        } catch (error: any) {
+          console.error(`Failed to create target directory ${targetDir}:`, error.message);
+          if (error.code === 'EACCES' || error.code === 'EPERM') {
+            const fixMessage = process.env.NODE_ENV === 'development' 
+              ? `Permission denied. For development, ensure the storage directory is writable. Try: mkdir -p ${path.join(process.cwd(), "storage/public")} && chmod -R 755 ${path.join(process.cwd(), "storage")}`
+              : `Permission denied writing to ${targetDir}. Please check permissions. Run: sudo chown -R $USER:$USER ${this.storageDir} && chmod -R 755 ${this.storageDir}`;
+            throw new Error(`Failed to create storage directory: ${error.message}. ${fixMessage}`);
+          }
+          throw new Error(`Failed to create storage directory: ${error.message}`);
+        }
       }
     }
 

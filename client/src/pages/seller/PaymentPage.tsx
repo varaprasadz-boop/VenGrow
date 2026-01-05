@@ -185,6 +185,7 @@ export default function PaymentPage() {
         queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }),
         queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] }),
         queryClient.invalidateQueries({ queryKey: ["/api/seller/subscription"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/can-create-listing"] }),
       ]);
 
       // Refresh auth store
@@ -196,6 +197,87 @@ export default function PaymentPage() {
         description: "Your subscription is now active. (Demo Mode)",
       });
       setTimeout(() => setLocation("/seller/dashboard"), 1000);
+    }
+  };
+
+  // Handle free package activation (price = 0)
+  const handleFreePackageActivation = async () => {
+    if (!selectedPackage) {
+      toast({
+        title: "Error",
+        description: "No package selected. Please go back and select a package.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to complete your purchase.",
+        variant: "destructive",
+      });
+      setTimeout(() => setLocation("/login"), 1500);
+      return;
+    }
+
+    setIsProcessing(true);
+    setDummyPaymentProgress(0);
+    setDummyPaymentStep("Activating free package...");
+
+    try {
+      // Simulate a small delay for UX
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setDummyPaymentProgress(50);
+      setDummyPaymentStep("Creating subscription...");
+
+      // Call the free package activation endpoint
+      const response = await apiRequest("POST", "/api/payments/free", {
+        packageId: selectedPackage.id,
+        userId: user.id,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setDummyPaymentProgress(100);
+        setDummyPaymentStep("Package activated successfully!");
+
+        // Invalidate all relevant queries to refresh data
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/seller/subscription"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/can-create-listing"] }),
+        ]);
+
+        // Refresh auth store
+        const { useAuthStore } = await import("@/stores/authStore");
+        await useAuthStore.getState().initializeAuth();
+
+        toast({
+          title: "Package Activated!",
+          description: `Your ${selectedPackage.name} package has been activated successfully.`,
+        });
+
+        setTimeout(() => setLocation("/seller/dashboard"), 1500);
+      } else {
+        setIsProcessing(false);
+        setDummyPaymentProgress(0);
+        toast({
+          title: "Activation Failed",
+          description: result.message || "Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      setIsProcessing(false);
+      setDummyPaymentProgress(0);
+      toast({
+        title: "Activation Failed",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -253,6 +335,7 @@ export default function PaymentPage() {
           queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }),
           queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] }),
           queryClient.invalidateQueries({ queryKey: ["/api/seller/subscription"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/can-create-listing"] }),
         ]);
 
         // Refresh auth store
@@ -371,6 +454,7 @@ export default function PaymentPage() {
           queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }),
           queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] }),
           queryClient.invalidateQueries({ queryKey: ["/api/seller/subscription"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/can-create-listing"] }),
         ]);
 
         // Refresh auth store
@@ -405,6 +489,12 @@ export default function PaymentPage() {
 
   const handlePayment = async () => {
     if (!selectedPackage || !user) return;
+
+    // Check if package is free (price = 0) - activate directly without payment
+    if (selectedPackage.price === 0) {
+      await handleFreePackageActivation();
+      return;
+    }
 
     // Check if bypass mode is enabled - redirect to bypass payment
     if (razorpayStatus?.bypassMode) {
@@ -442,6 +532,7 @@ export default function PaymentPage() {
           queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }),
           queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] }),
           queryClient.invalidateQueries({ queryKey: ["/api/seller/subscription"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/can-create-listing"] }),
         ]);
 
         // Refresh auth store
@@ -485,6 +576,7 @@ export default function PaymentPage() {
                 queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }),
                 queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] }),
                 queryClient.invalidateQueries({ queryKey: ["/api/seller/subscription"] }),
+                queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/can-create-listing"] }),
               ]);
 
               // Refresh auth store
@@ -616,7 +708,8 @@ export default function PaymentPage() {
     );
   }
 
-  const gstAmount = Math.round(selectedPackage.price * 0.18);
+  const isFreePackage = selectedPackage.price === 0;
+  const gstAmount = isFreePackage ? 0 : Math.round(selectedPackage.price * 0.18);
   const totalAmount = selectedPackage.price + gstAmount;
 
   return (
@@ -630,10 +723,12 @@ export default function PaymentPage() {
             </span>
           </Link>
           <h1 className="font-serif font-bold text-3xl mb-2">
-            Complete Your Payment
+            {isFreePackage ? "Activate Free Package" : "Complete Your Payment"}
           </h1>
           <p className="text-muted-foreground">
-            {useBypassPayment 
+            {isFreePackage
+              ? "This package is free - activate it now without payment"
+              : useBypassPayment 
               ? "Bypass Mode - Payment will auto-complete for testing" 
               : useDummyPayment 
               ? "Test mode - Use test card for demo" 
@@ -680,21 +775,37 @@ export default function PaymentPage() {
 
             <Separator className="my-6" />
 
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Package Price</span>
-                <span>₹{selectedPackage.price.toLocaleString("en-IN")}</span>
+            {isFreePackage ? (
+              <div className="mb-6">
+                <div className="p-4 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-green-900 dark:text-green-200">Free Package</p>
+                      <p className="text-xs text-green-700 dark:text-green-300">
+                        This package is completely free. Click the button below to activate it immediately.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">GST (18%)</span>
-                <span>₹{gstAmount.toLocaleString("en-IN")}</span>
+            ) : (
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Package Price</span>
+                  <span>₹{selectedPackage.price.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">GST (18%)</span>
+                  <span>₹{gstAmount.toLocaleString("en-IN")}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-semibold text-lg">
+                  <span>Total Amount</span>
+                  <span>₹{totalAmount.toLocaleString("en-IN")}</span>
+                </div>
               </div>
-              <Separator />
-              <div className="flex justify-between font-semibold text-lg">
-                <span>Total Amount</span>
-                <span>₹{totalAmount.toLocaleString("en-IN")}</span>
-              </div>
-            </div>
+            )}
 
             {useBypassPayment ? (
               <div className="mb-6">
@@ -850,7 +961,7 @@ export default function PaymentPage() {
                 className="flex-1"
                 size="lg"
                 onClick={() => setShowConfirmDialog(true)}
-                disabled={isProcessing || (!useBypassPayment && !useDummyPayment && !razorpayLoaded)}
+                disabled={isProcessing || (!isFreePackage && !useBypassPayment && !useDummyPayment && !razorpayLoaded)}
                 data-testid="button-pay"
               >
                 {isProcessing ? (
@@ -858,6 +969,8 @@ export default function PaymentPage() {
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Processing...
                   </>
+                ) : isFreePackage ? (
+                  "Activate Free Package"
                 ) : (
                   `Pay ₹${totalAmount.toLocaleString("en-IN")}`
                 )}
@@ -899,7 +1012,9 @@ export default function PaymentPage() {
                 <Separator />
                 <div className="flex justify-between font-semibold">
                   <span>Total</span>
-                  <span className="text-primary">₹{totalAmount.toLocaleString("en-IN")}</span>
+                  <span className="text-primary">
+                    {isFreePackage ? "Free" : `₹${totalAmount.toLocaleString("en-IN")}`}
+                  </span>
                 </div>
               </div>
             </Card>
@@ -928,9 +1043,11 @@ export default function PaymentPage() {
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirm Payment</DialogTitle>
+            <DialogTitle>{isFreePackage ? "Confirm Activation" : "Confirm Payment"}</DialogTitle>
             <DialogDescription>
-              Please review your order details before proceeding with payment.
+              {isFreePackage 
+                ? "Please review your package details before activating."
+                : "Please review your order details before proceeding with payment."}
             </DialogDescription>
           </DialogHeader>
           {selectedPackage && (
@@ -949,18 +1066,24 @@ export default function PaymentPage() {
                   <span className="font-medium">{selectedPackage.listingLimit} listings</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal:</span>
-                  <span className="font-medium">₹{selectedPackage.price.toLocaleString("en-IN")}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">GST (18%):</span>
-                  <span className="font-medium">₹{gstAmount.toLocaleString("en-IN")}</span>
-                </div>
-                <Separator />
+                {!isFreePackage && (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Subtotal:</span>
+                      <span className="font-medium">₹{selectedPackage.price.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">GST (18%):</span>
+                      <span className="font-medium">₹{gstAmount.toLocaleString("en-IN")}</span>
+                    </div>
+                    <Separator />
+                  </>
+                )}
                 <div className="flex justify-between font-semibold text-base">
                   <span>Total Amount:</span>
-                  <span className="text-primary">₹{totalAmount.toLocaleString("en-IN")}</span>
+                  <span className="text-primary">
+                    {isFreePackage ? "Free" : `₹${totalAmount.toLocaleString("en-IN")}`}
+                  </span>
                 </div>
               </div>
             </div>
@@ -972,7 +1095,9 @@ export default function PaymentPage() {
             <Button
               onClick={() => {
                 setShowConfirmDialog(false);
-                if (useBypassPayment) {
+                if (isFreePackage) {
+                  handleFreePackageActivation();
+                } else if (useBypassPayment) {
                   handleBypassPayment();
                 } else if (useDummyPayment) {
                   handleDummyPayment();
@@ -982,7 +1107,7 @@ export default function PaymentPage() {
               }}
               disabled={isProcessing}
             >
-              Confirm & Pay
+              {isFreePackage ? "Confirm & Activate" : "Confirm & Pay"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -183,13 +183,19 @@ export default function AdminDashboardPage() {
   return (
       <main className="flex-1 bg-muted/30">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
-          <div className="mb-6 sm:mb-8">
-            <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-1 sm:mb-2">
-              Admin Dashboard
-            </h1>
-            <p className="text-muted-foreground text-sm sm:text-base">
-              Platform overview and management
-            </p>
+          <div className="mb-6 sm:mb-8 flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-1 sm:mb-2">
+                Admin Dashboard
+              </h1>
+              <p className="text-muted-foreground text-sm sm:text-base">
+                Platform overview and management
+              </p>
+            </div>
+            <Button variant="outline" onClick={handleRetry} disabled={isLoading} data-testid="button-refresh">
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
