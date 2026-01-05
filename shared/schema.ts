@@ -90,6 +90,8 @@ export const packages = pgTable("packages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   description: text("description"),
+  sellerType: sellerTypeEnum("seller_type").notNull(),
+  planTier: text("plan_tier").notNull(),
   price: integer("price").notNull(),
   duration: integer("duration").notNull(),
   listingLimit: integer("listing_limit").notNull(),

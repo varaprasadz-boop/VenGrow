@@ -50,7 +50,7 @@ const defaultFaqs: FaqItem[] = [
     id: "default-4",
     category: "For Sellers",
     question: "What are the different seller packages?",
-    answer: "We offer multiple packages: Free (1 listing), Basic (3 listings at ₹999), Premium (10 listings at ₹2,499), and Enterprise (50 listings at ₹9,999). Each package offers different visibility and features.",
+    answer: "We offer packages tailored to different seller types (Individual, Channel Partner/Broker, Builder/Corporate) with Basic, Pro, and Premium tiers. Each package offers different listing limits, validity periods, and features based on your seller type.",
     sortOrder: 1,
     isActive: true,
   },

@@ -25,55 +25,9 @@ export async function seedDatabase() {
 
     console.log("Cleared existing data...");
 
-    // Seed packages first
-    const [freePkg, basicPkg, premiumPkg, enterprisePkg] = await db.insert(packages).values([
-      {
-        name: "Free",
-        description: "Get started with basic features",
-        price: 0,
-        duration: 365,
-        listingLimit: 1,
-        featuredListings: 0,
-        features: ["1 Property Listing", "365 Days Validity", "Basic Support"],
-        isPopular: false,
-        isActive: true,
-      },
-      {
-        name: "Basic",
-        description: "Perfect for individual property owners",
-        price: 999,
-        duration: 30,
-        listingLimit: 3,
-        featuredListings: 0,
-        features: ["3 Property Listings", "30 Days Validity", "Basic Analytics", "Email Support"],
-        isPopular: false,
-        isActive: true,
-      },
-      {
-        name: "Premium",
-        description: "Ideal for serious sellers and brokers",
-        price: 2499,
-        duration: 60,
-        listingLimit: 10,
-        featuredListings: 2,
-        features: ["10 Property Listings", "60 Days Validity", "2 Featured Listings", "Advanced Analytics", "Priority Support", "Verified Badge"],
-        isPopular: true,
-        isActive: true,
-      },
-      {
-        name: "Enterprise",
-        description: "For builders and large agencies",
-        price: 9999,
-        duration: 90,
-        listingLimit: 50,
-        featuredListings: 10,
-        features: ["50 Property Listings", "90 Days Validity", "10 Featured Listings", "Full Analytics Suite", "Dedicated Account Manager", "Premium Badge", "Bulk Upload"],
-        isPopular: false,
-        isActive: true,
-      },
-    ]).returning();
-
-    console.log("Created packages...");
+    // Note: Packages are now seeded via seedCMSContent() which uses the new structure
+    // with sellerType and planTier fields. This seed file no longer creates packages.
+    console.log("Packages will be seeded via CMS content seed...");
 
     // Seed users
     const [adminUser, buyerUser1, buyerUser2, sellerUser1, sellerUser2, sellerUser3] = await db.insert(users).values([

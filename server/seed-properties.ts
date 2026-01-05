@@ -418,24 +418,28 @@ export async function seedPropertiesComprehensive() {
       return;
     }
 
-    // Get or create package
+    // Get or create a package - use Builder Premium if available, otherwise first available package
     let existingPackages = await db.select().from(packages);
     if (existingPackages.length === 0) {
+      // If no packages exist, create a basic one for seeding
       existingPackages = await db.insert(packages).values([
         {
-          name: "Enterprise",
+          name: "Builder Premium",
           description: "For builders and large agencies",
-          price: 9999,
+          sellerType: "builder",
+          planTier: "Premium",
+          price: 19999,
           duration: 365,
-          listingLimit: 1000,
-          featuredListings: 100,
-          features: ["Unlimited Listings", "Premium Support"],
+          listingLimit: 150,
+          featuredListings: 20,
+          features: ["150 property listings", "Premium Support"],
           isPopular: false,
           isActive: true,
         }
       ]).returning();
     }
-    const seedPackage = existingPackages[0];
+    // Prefer Builder Premium package, otherwise use first available
+    const seedPackage = existingPackages.find(pkg => pkg.name === "Builder Premium" && pkg.sellerType === "builder") || existingPackages[0];
 
     console.log(`Found ${categories.length} categories and ${subcategories.length} subcategories`);
 

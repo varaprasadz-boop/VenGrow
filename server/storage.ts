@@ -33,7 +33,7 @@ import {
   propertyApprovalRequests, faqItems, staticPages, banners, platformSettings,
   popularCities, navigationLinks, propertyTypesManaged, siteSettings, emailTemplates,
   propertyCategories, propertySubcategories, verifiedBuilders, projects,
-  testimonials, teamMembers, companyValues, heroSlides
+  testimonials, teamMembers, companyValues, heroSlides, invoices
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, desc, and, like, or, sql, gte, lte, inArray } from "drizzle-orm";
@@ -65,10 +65,11 @@ export interface IStorage {
   updateSellerProfile(id: string, data: Partial<InsertSellerProfile>): Promise<SellerProfile | undefined>;
   getAllSellerProfiles(filters?: { verificationStatus?: string; sellerType?: string }): Promise<SellerProfile[]>;
   
-  getPackages(): Promise<Package[]>;
+  getPackages(sellerType?: string): Promise<Package[]>;
   getPackage(id: string): Promise<Package | undefined>;
   createPackage(pkg: InsertPackage): Promise<Package>;
   updatePackage(id: string, data: Partial<InsertPackage>): Promise<Package | undefined>;
+  deletePackage(id: string): Promise<boolean>;
   
   getProperty(id: string): Promise<Property | undefined>;
   getPropertiesBySeller(sellerId: string): Promise<Property[]>;
@@ -421,8 +422,16 @@ export class DatabaseStorage implements IStorage {
     return query.orderBy(desc(sellerProfiles.createdAt));
   }
 
-  async getPackages(): Promise<Package[]> {
-    return db.select().from(packages).where(eq(packages.isActive, true)).orderBy(packages.price);
+  async getPackages(sellerType?: string): Promise<Package[]> {
+    let query = db.select().from(packages);
+    
+    // If sellerType is provided, filter by it and only show active packages
+    // If sellerType is not provided (admin view), return all packages (including inactive)
+    if (sellerType) {
+      query = query.where(and(eq(packages.sellerType, sellerType as any), eq(packages.isActive, true))) as any;
+    }
+    
+    return query.orderBy(packages.price) as any;
   }
 
   async getPackage(id: string): Promise<Package | undefined> {
@@ -438,6 +447,49 @@ export class DatabaseStorage implements IStorage {
   async updatePackage(id: string, data: Partial<InsertPackage>): Promise<Package | undefined> {
     const [updated] = await db.update(packages).set(data as any).where(eq(packages.id, id)).returning();
     return updated;
+  }
+
+  async deletePackage(id: string): Promise<boolean> {
+    // First, find all subscriptions that reference this package
+    const subscriptions = await db
+      .select({ id: sellerSubscriptions.id })
+      .from(sellerSubscriptions)
+      .where(eq(sellerSubscriptions.packageId, id));
+
+    const subscriptionIds = subscriptions.map((s) => s.id);
+
+    if (subscriptionIds.length > 0) {
+      // Clear subscription references in payments table (set to NULL)
+      await db
+        .update(payments)
+        .set({ subscriptionId: null as any })
+        .where(inArray(payments.subscriptionId, subscriptionIds));
+
+      // Clear subscription references in invoices table (set to NULL)
+      await db
+        .update(invoices)
+        .set({ subscriptionId: null as any })
+        .where(inArray(invoices.subscriptionId, subscriptionIds));
+
+      // Now delete the subscriptions
+      await db.delete(sellerSubscriptions).where(eq(sellerSubscriptions.packageId, id));
+    }
+
+    // Clear packageId references in payments table (set to NULL)
+    await db
+      .update(payments)
+      .set({ packageId: null as any })
+      .where(eq(payments.packageId, id));
+
+    // Clear packageId references in invoices table (set to NULL)
+    await db
+      .update(invoices)
+      .set({ packageId: null as any })
+      .where(eq(invoices.packageId, id));
+
+    // Finally delete the package
+    const [deleted] = await db.delete(packages).where(eq(packages.id, id)).returning();
+    return !!deleted;
   }
 
   async getProperty(idOrSlug: string): Promise<Property | undefined> {

@@ -32,19 +32,6 @@ export default function UpgradeAccountPage() {
       ],
       popular: true,
     },
-    {
-      name: "Enterprise",
-      price: "₹2,999",
-      period: "per month",
-      features: [
-        "Everything in Professional",
-        "Dedicated account manager",
-        "Custom branding",
-        "API access",
-        "White-label solution",
-        "Team collaboration tools",
-      ],
-    },
   ];
 
   return (

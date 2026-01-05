@@ -22,10 +22,21 @@ interface SubscriptionWithPackage extends SellerSubscription {
   package?: PackageType;
 }
 
+interface SubscriptionResponse {
+  success: boolean;
+  subscription: SubscriptionWithPackage | null;
+  package: PackageType | null;
+  sellerType?: string;
+}
+
 export default function SubscriptionPage() {
-  const { data: subscription, isLoading: subscriptionLoading } = useQuery<SubscriptionWithPackage>({
+  const { data: response, isLoading: subscriptionLoading } = useQuery<SubscriptionResponse>({
     queryKey: ["/api/subscriptions/current"],
   });
+
+  // Extract subscription and package from API response
+  const subscription = response?.subscription || null;
+  const packageData = response?.package || subscription?.package || null;
 
   const handleDownloadInvoice = (payment: Payment) => {
     const subtotal = payment.amount || 0;
@@ -85,7 +96,7 @@ export default function SubscriptionPage() {
       <p>Subscription Payment</p>
     </div>
     <div class="grid-item" style="text-align: right;">
-      <p>Invoice Date: ${format(new Date(payment.createdAt), "MMM dd, yyyy")}</p>
+      <p>Invoice Date: ${payment.createdAt ? format(new Date(payment.createdAt), "MMM dd, yyyy") : "N/A"}</p>
     </div>
   </div>
   <table>
@@ -142,9 +153,26 @@ export default function SubscriptionPage() {
   const isLoading = subscriptionLoading || propertiesLoading || paymentsLoading;
 
   const activeListings = properties.filter((p) => p.status === "active").length;
-  const listingLimit = subscription?.package?.listingLimit || 5;
-  const daysLeft = subscription?.endDate
-    ? Math.max(0, differenceInDays(new Date(subscription.endDate), new Date()))
+  const listingLimit = packageData?.listingLimit || 5;
+  
+  // Safely parse dates - handle both string and Date formats
+  const parseDate = (dateValue: string | Date | null | undefined): Date | null => {
+    if (!dateValue) return null;
+    if (dateValue instanceof Date) return dateValue;
+    if (typeof dateValue === 'string') {
+      const parsed = new Date(dateValue);
+      return !isNaN(parsed.getTime()) ? parsed : null;
+    }
+    return null;
+  };
+
+  const startDate = parseDate(subscription?.startDate);
+  const endDate = parseDate(subscription?.endDate);
+  const isValidStartDate = startDate !== null;
+  const isValidEndDate = endDate !== null;
+  
+  const daysLeft = isValidEndDate
+    ? Math.max(0, differenceInDays(endDate!, new Date()))
     : 0;
   const isActive = subscription?.isActive && daysLeft > 0;
 
@@ -201,7 +229,7 @@ export default function SubscriptionPage() {
                   <div>
                     <div className="flex items-center gap-3 mb-3">
                       <h2 className="font-serif font-bold text-2xl">
-                        {subscription.package?.name || "Basic"} Plan
+                        {packageData?.name || "Basic"} Plan
                       </h2>
                       {isActive ? (
                         <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-500">
@@ -216,19 +244,23 @@ export default function SubscriptionPage() {
                       )}
                     </div>
                     <p className="text-3xl font-bold text-primary mb-4">
-                      ₹{formatPrice(subscription.package?.price || 0)}/{subscription.package?.duration || 30} days
+                      ₹{formatPrice(packageData?.price || 0)}/{packageData?.duration || 30} days
                     </p>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
-                        <span>Started: {format(new Date(subscription.startDate), "MMM d, yyyy")}</span>
+                        <span>
+                          Started: {isValidStartDate && startDate ? format(startDate, "MMM d, yyyy") : "N/A"}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <RefreshCw className="h-4 w-4" />
                         <span>
-                          {isActive
-                            ? `Expires: ${format(new Date(subscription.endDate), "MMM d, yyyy")} (${daysLeft} days left)`
-                            : `Expired on ${format(new Date(subscription.endDate), "MMM d, yyyy")}`}
+                          {isValidEndDate && endDate
+                            ? isActive
+                              ? `Expires: ${format(endDate, "MMM d, yyyy")} (${daysLeft} days left)`
+                              : `Expired on ${format(endDate, "MMM d, yyyy")}`
+                            : "N/A"}
                         </span>
                       </div>
                     </div>
@@ -269,12 +301,12 @@ export default function SubscriptionPage() {
                         </p>
                       )}
                     </div>
-                    {subscription.package?.featuredListings && subscription.package.featuredListings > 0 && (
+                    {packageData?.featuredListings && packageData.featuredListings > 0 && (
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm">Featured Listing Slots</span>
                           <span className="text-sm font-medium">
-                            {subscription.package?.featuredListings || 0} available
+                            {packageData?.featuredListings || 0} available
                           </span>
                         </div>
                       </div>
@@ -336,7 +368,7 @@ export default function SubscriptionPage() {
                             </Badge>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span>{format(new Date(payment.createdAt), "MMM d, yyyy")}</span>
+                            <span>{payment.createdAt ? format(new Date(payment.createdAt), "MMM d, yyyy") : "N/A"}</span>
                             <span>•</span>
                             <span>{payment.currency || "INR"}</span>
                           </div>

@@ -1,18 +1,17 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import PropertyMap from "@/components/PropertyMap";
+import PropertyMapView from "@/components/PropertyMapView";
+import PropertyCard from "@/components/PropertyCard";
 import type { Property, User } from "@shared/schema";
-import { MapPin, List, Filter, Lock } from "lucide-react";
+import { List, Filter, Lock, MapPin } from "lucide-react";
 
 export default function PropertyMapPage() {
   const [, setLocation] = useLocation();
-
+  
   const { data: currentUser } = useQuery<User>({
     queryKey: ["/api/auth/me"],
   });
@@ -22,18 +21,67 @@ export default function PropertyMapPage() {
     enabled: !!currentUser,
   });
 
-  const handlePropertyClick = (property: Property) => {
-    setLocation(`/property/${property.id}`);
-  };
+  // Transform properties for PropertyMapView
+  const mapProperties = useMemo(() => {
+    return properties.map((property) => {
+      // Extract first image URL from images array
+      const imageUrl = (property as any).images?.length > 0
+        ? (typeof (property as any).images[0] === 'string' 
+            ? (property as any).images[0] 
+            : (property as any).images[0]?.url)
+        : '';
+      
+      return {
+        id: property.id,
+        title: property.title,
+        price: property.price,
+        location: `${property.locality || ""}, ${property.city || ""}`.replace(/^, |, $/g, '') || 'Location not specified',
+        imageUrl: imageUrl || undefined,
+        bedrooms: property.bedrooms || undefined,
+        bathrooms: property.bathrooms || undefined,
+        area: property.area || undefined,
+        propertyType: property.propertyType || undefined,
+        isFeatured: property.isFeatured || false,
+        isVerified: property.isVerified || false,
+        lat: property.latitude ? Number(property.latitude) : 0,
+        lng: property.longitude ? Number(property.longitude) : 0,
+        transactionType: (property.transactionType || "Sale") as "Sale" | "Lease" | "Rent",
+      };
+    });
+  }, [properties]);
 
-  const formatPrice = (price: number) => {
-    if (price >= 10000000) {
-      return `₹${(price / 10000000).toFixed(2)} Cr`;
-    } else if (price >= 100000) {
-      return `₹${(price / 100000).toFixed(2)} L`;
-    }
-    return `₹${price.toLocaleString("en-IN")}`;
-  };
+  // Transform properties for PropertyCard
+  const cardProperties = useMemo(() => {
+    return properties.map((property) => {
+      // Extract first image URL from images array
+      const imageUrl = (property as any).images?.length > 0
+        ? (typeof (property as any).images[0] === 'string' 
+            ? (property as any).images[0] 
+            : (property as any).images[0]?.url)
+        : '';
+      
+      return {
+        id: property.id,
+        title: property.title,
+        price: property.price,
+        location: `${property.locality || ""}, ${property.city || ""}`.replace(/^, |, $/g, '') || 'Location not specified',
+        imageUrl: imageUrl || '',
+        bedrooms: property.bedrooms || undefined,
+        bathrooms: property.bathrooms || undefined,
+        area: property.area || 0,
+        propertyType: property.propertyType || "Property",
+        isFeatured: property.isFeatured || false,
+        isVerified: property.isVerified || false,
+        sellerType: ((property as any).sellerType || "Builder") as "Individual" | "Broker" | "Builder",
+        transactionType: (property.transactionType || "Sale") as "Sale" | "Lease" | "Rent",
+        projectStage: property.projectStage || undefined,
+        subcategory: property.subcategoryId || undefined,
+        ageOfProperty: property.ageOfProperty ? String(property.ageOfProperty) : undefined,
+        city: property.city,
+        slug: (property as any).slug || undefined,
+      };
+    });
+  }, [properties]);
 
   if (!currentUser) {
     return (
@@ -83,16 +131,14 @@ export default function PropertyMapPage() {
             {isLoading ? (
               <Skeleton className="absolute inset-0" />
             ) : (
-              <PropertyMap
-                properties={properties}
-                height="100%"
-                zoom={12}
-                onPropertyClick={handlePropertyClick}
+              <PropertyMapView
+                properties={mapProperties}
+                className="h-full"
               />
             )}
           </div>
 
-          <div className="lg:w-96 border-t lg:border-t-0 lg:border-l overflow-y-auto max-h-[40vh] lg:max-h-none">
+          <div className="lg:w-96 border-t lg:border-t-0 lg:border-l overflow-y-auto max-h-[40vh] lg:max-h-none bg-background">
             <div className="p-4">
               <h3 className="font-semibold mb-4">
                 {isLoading ? (
@@ -114,35 +160,11 @@ export default function PropertyMapPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {properties.map((property) => (
-                    <Card
+                  {cardProperties.map((property) => (
+                    <PropertyCard
                       key={property.id}
-                      className="p-4 hover-elevate cursor-pointer"
-                      onClick={() => handlePropertyClick(property)}
-                      data-testid={`property-card-${property.id}`}
-                    >
-                      <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-                        <span className="text-xs text-muted-foreground">
-                          {property.propertyType}
-                        </span>
-                      </div>
-                      <h4 className="font-semibold mb-2 truncate">{property.title}</h4>
-                      <p className="text-2xl font-bold font-serif text-primary mb-2">
-                        {formatPrice(property.price)}
-                      </p>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
-                        <MapPin className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">
-                          {property.locality}, {property.city}
-                        </span>
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        {property.bedrooms && (
-                          <Badge variant="outline">{property.bedrooms} BHK</Badge>
-                        )}
-                        <Badge variant="outline">{property.area} sqft</Badge>
-                      </div>
-                    </Card>
+                      {...property}
+                    />
                   ))}
                 </div>
               )}

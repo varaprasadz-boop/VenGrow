@@ -14,6 +14,7 @@ interface CurrentSubscriptionResponse {
   success: boolean;
   subscription: SellerSubscription | null;
   package: Package | null;
+  sellerType?: string;
   usage?: {
     listingsUsed: number;
     listingLimit: number;
@@ -24,12 +25,15 @@ interface CurrentSubscriptionResponse {
 }
 
 export default function PackageSelectionPage() {
-  const { data: packages = [], isLoading } = useQuery<Package[]>({
-    queryKey: ["/api/packages"],
-  });
-
   const { data: currentSubData, isLoading: isLoadingSubscription } = useQuery<CurrentSubscriptionResponse>({
     queryKey: ["/api/subscriptions/current"],
+  });
+
+  const sellerType = currentSubData?.sellerType;
+
+  const { data: packages = [], isLoading } = useQuery<Package[]>({
+    queryKey: ["/api/packages", { sellerType: sellerType || undefined }],
+    enabled: !!sellerType,
   });
 
   const activePackages = packages.filter(p => p.isActive);

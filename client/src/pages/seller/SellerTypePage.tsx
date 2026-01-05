@@ -19,7 +19,7 @@ export default function SellerTypePage() {
     },
     {
       type: "broker",
-      title: "Broker/Agent",
+      title: "Channel Partner / Broker Plans",
       description: "I'm a real estate broker representing multiple clients",
       icon: Briefcase,
       features: [
@@ -31,7 +31,7 @@ export default function SellerTypePage() {
     },
     {
       type: "corporate",
-      title: "Corporate/Builder",
+      title: "Builder / Corporate",
       description: "I'm a construction company or developer with projects to showcase",
       icon: Building,
       features: [

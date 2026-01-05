@@ -46,28 +46,6 @@ export default function PricingPage() {
       ],
       notIncluded: ["API Access", "Custom Branding"],
     },
-    {
-      id: "enterprise",
-      name: "Enterprise",
-      price: "₹9,999",
-      duration: "/month",
-      description: "For large builders & developers",
-      popular: false,
-      features: [
-        "Unlimited Listings",
-        "90 Days Validity",
-        "Unlimited Featured Listings",
-        "24/7 Priority Support",
-        "Advanced Analytics Dashboard",
-        "Unlimited Inquiries",
-        "Maximum Visibility",
-        "Dedicated Account Manager",
-        "API Access",
-        "Custom Branding",
-        "White-label Option",
-      ],
-      notIncluded: [],
-    },
   ];
 
   return (
@@ -178,10 +156,6 @@ export default function PricingPage() {
                 {
                   q: "Is there a refund policy?",
                   a: "Yes, we offer a 7-day money-back guarantee if you're not satisfied with our service.",
-                },
-                {
-                  q: "Do you offer custom plans for large organizations?",
-                  a: "Yes, we can create custom enterprise plans tailored to your specific needs. Contact our sales team for more information.",
                 },
               ].map((faq, index) => (
                 <Card key={index} className="p-6">

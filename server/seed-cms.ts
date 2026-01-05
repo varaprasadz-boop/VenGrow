@@ -4,11 +4,15 @@ import {
   staticPages, banners, navigationLinks, siteSettings, propertyTypesManaged
 } from "@shared/schema";
 import { sql } from "drizzle-orm";
+import { seedPackages } from "./seed-content";
 
 export async function seedCMSContent() {
   console.log("Starting CMS content seed...");
 
   try {
+    // Seed packages first (this also deletes old packages)
+    await seedPackages();
+    
     // Clear existing CMS data
     await db.delete(propertySubcategories);
     await db.delete(propertyCategories);

@@ -1218,7 +1218,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all packages
   app.get("/api/packages", async (req: Request, res: Response) => {
     try {
-      const packages = await storage.getPackages();
+      const sellerType = req.query.sellerType as string | undefined;
+      const packages = await storage.getPackages(sellerType);
       res.json(packages);
     } catch (error) {
       res.status(500).json({ error: "Failed to get packages" });
@@ -1235,6 +1236,154 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(pkg);
     } catch (error) {
       res.status(500).json({ error: "Failed to get package" });
+    }
+  });
+
+  // Admin package routes
+  // Get all packages (including inactive) for admin
+  app.get("/api/admin/packages", async (req: Request, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const packages = await storage.getPackages(); // No filter = all packages
+      res.json(packages);
+    } catch (error) {
+      console.error("Error getting packages:", error);
+      res.status(500).json({ error: "Failed to get packages", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Create package
+  app.post("/api/admin/packages", async (req: Request, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const {
+        name,
+        description,
+        sellerType,
+        planTier,
+        price,
+        duration,
+        listingLimit,
+        featuredListings,
+        features,
+        isPopular,
+        isActive,
+      } = req.body;
+
+      // Validation
+      if (!name || !sellerType || !planTier || price === undefined || !duration || !listingLimit || featuredListings === undefined) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      if (!["individual", "broker", "builder"].includes(sellerType)) {
+        return res.status(400).json({ error: "Invalid sellerType" });
+      }
+
+      if (!["Basic", "Pro", "Premium"].includes(planTier)) {
+        return res.status(400).json({ error: "Invalid planTier" });
+      }
+
+      const pkg = await storage.createPackage({
+        name,
+        description: description || null,
+        sellerType: sellerType as "individual" | "broker" | "builder",
+        planTier,
+        price: parseInt(price),
+        duration: parseInt(duration),
+        listingLimit: parseInt(listingLimit),
+        featuredListings: parseInt(featuredListings),
+        features: features || [],
+        isPopular: isPopular || false,
+        isActive: isActive !== undefined ? isActive : true,
+      });
+
+      res.status(201).json(pkg);
+    } catch (error) {
+      console.error("Error creating package:", error);
+      res.status(500).json({ error: "Failed to create package" });
+    }
+  });
+
+  // Update package
+  app.put("/api/admin/packages/:id", async (req: Request, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const {
+        name,
+        description,
+        sellerType,
+        planTier,
+        price,
+        duration,
+        listingLimit,
+        featuredListings,
+        features,
+        isPopular,
+        isActive,
+      } = req.body;
+
+      if (sellerType && !["individual", "broker", "builder"].includes(sellerType)) {
+        return res.status(400).json({ error: "Invalid sellerType" });
+      }
+
+      if (planTier && !["Basic", "Pro", "Premium"].includes(planTier)) {
+        return res.status(400).json({ error: "Invalid planTier" });
+      }
+
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (description !== undefined) updateData.description = description;
+      if (sellerType !== undefined) updateData.sellerType = sellerType;
+      if (planTier !== undefined) updateData.planTier = planTier;
+      if (price !== undefined) updateData.price = parseInt(price);
+      if (duration !== undefined) updateData.duration = parseInt(duration);
+      if (listingLimit !== undefined) updateData.listingLimit = parseInt(listingLimit);
+      if (featuredListings !== undefined) updateData.featuredListings = parseInt(featuredListings);
+      if (features !== undefined) updateData.features = features;
+      if (isPopular !== undefined) updateData.isPopular = isPopular;
+      if (isActive !== undefined) updateData.isActive = isActive;
+
+      const pkg = await storage.updatePackage(req.params.id, updateData);
+      if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+
+      res.json(pkg);
+    } catch (error) {
+      console.error("Error updating package:", error);
+      res.status(500).json({ error: "Failed to update package" });
+    }
+  });
+
+  // Delete package
+  app.delete("/api/admin/packages/:id", async (req: Request, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const success = await storage.deletePackage(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting package:", error);
+      res.status(500).json({ error: "Failed to delete package" });
     }
   });
 
@@ -3191,13 +3340,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const sellerProfile = await storage.getSellerProfileByUserId(userId);
       if (!sellerProfile) {
-        return res.json({ success: true, subscription: null, package: null });
+        return res.json({ success: true, subscription: null, package: null, sellerType: null });
       }
       
       const result = await storage.getActiveSubscriptionWithPackage(sellerProfile.id);
       
       if (!result) {
-        return res.json({ success: true, subscription: null, package: null });
+        return res.json({ success: true, subscription: null, package: null, sellerType: sellerProfile.sellerType });
       }
       
       // Calculate actual listingsUsed from active properties
@@ -3213,6 +3362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true, 
         subscription: { ...result.subscription, listingsUsed },
         package: result.package,
+        sellerType: sellerProfile.sellerType,
         usage: {
           listingsUsed,
           listingLimit,
