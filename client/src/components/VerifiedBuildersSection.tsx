@@ -37,13 +37,25 @@ export default function VerifiedBuildersSection() {
   });
 
   const builders = apiBuilders && apiBuilders.length > 0 
-    ? apiBuilders.map(b => ({
-        id: b.id,
-        companyName: b.companyName,
-        logoUrl: b.logoUrl || fallbackBuilders[0].logoUrl,
-        propertyCount: b.propertyCount || 0,
-        slug: b.slug,
-      }))
+    ? apiBuilders.map(b => {
+        // Normalize logoUrl: handle null, undefined, empty string, and ensure relative paths start with /
+        let logoUrl = b.logoUrl;
+        if (!logoUrl || logoUrl.trim() === '') {
+          logoUrl = fallbackBuilders[0].logoUrl;
+        } else {
+          // If it's a relative path (doesn't start with http:// or https://), ensure it starts with /
+          if (!logoUrl.startsWith('http://') && !logoUrl.startsWith('https://')) {
+            logoUrl = logoUrl.startsWith('/') ? logoUrl : `/${logoUrl}`;
+          }
+        }
+        return {
+          id: b.id,
+          companyName: b.companyName,
+          logoUrl,
+          propertyCount: b.propertyCount || 0,
+          slug: b.slug,
+        };
+      })
     : fallbackBuilders;
 
   const checkScrollButtons = () => {

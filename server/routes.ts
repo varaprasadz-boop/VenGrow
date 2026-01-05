@@ -1055,6 +1055,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const liveProperties = allProperties.filter(p => p.workflowStatus === "live");
           const inquiries = await storage.getInquiriesBySeller(seller.id);
           
+          // Check if seller has a verified builder entry
+          const verifiedBuilder = await storage.getVerifiedBuilderBySellerId(seller.id);
+          const isVerifiedBuilder = !!verifiedBuilder;
+          const logoUrl = verifiedBuilder?.logoUrl || seller.logo || null;
+          
           return {
             ...seller,
             user: user ? {
@@ -1065,6 +1070,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             } : null,
             livePropertiesCount: liveProperties.length,
             totalInquiries: inquiries.length,
+            isVerifiedBuilder,
+            logoUrl,
           };
         })
       );
@@ -1073,6 +1080,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting seller stats:", error);
       res.status(500).json({ error: "Failed to get seller stats" });
+    }
+  });
+
+  // Admin: Toggle verified builder status for a seller
+  app.post("/api/admin/sellers/:id/toggle-verified-builder", async (req: any, res: Response) => {
+    try {
+      const adminUser = (req.session as any)?.adminUser;
+      if (!adminUser?.isSuperAdmin) {
+        return res.status(401).json({ message: "Unauthorized - Admin access required" });
+      }
+
+      const sellerId = req.params.id;
+      const seller = await storage.getSellerProfile(sellerId);
+      
+      if (!seller) {
+        return res.status(404).json({ message: "Seller not found" });
+      }
+
+      // Only allow for builder sellers (corporate sellers are stored as "builder" type)
+      if (seller.sellerType !== "builder") {
+        return res.status(400).json({ message: "Only corporate/builder sellers can be marked as verified builders" });
+      }
+
+      // Check if verified builder already exists
+      const existingBuilder = await storage.getVerifiedBuilderBySellerId(sellerId);
+      
+      if (existingBuilder) {
+        // Remove from verified builders
+        await storage.deleteVerifiedBuilder(existingBuilder.id);
+        res.json({ success: true, isVerifiedBuilder: false, message: "Removed from verified builders" });
+      } else {
+        // Create verified builder entry from seller profile
+        const user = await storage.getUser(seller.userId);
+        
+        // Generate slug from company name
+        const slugBase = (seller.companyName || `builder-${sellerId}`)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+        
+        // Ensure slug is unique
+        let slug = slugBase;
+        let counter = 1;
+        while (await storage.getVerifiedBuilderBySlug(slug)) {
+          slug = `${slugBase}-${counter}`;
+          counter++;
+        }
+
+        const verifiedBuilderData = {
+          sellerId: seller.id,
+          companyName: seller.companyName || user?.firstName || "Unknown Builder",
+          slug: slug,
+          logoUrl: seller.logo || null,
+          description: seller.description || null,
+          website: seller.website || null,
+          address: seller.address || null,
+          city: seller.city || null,
+          state: seller.state || null,
+          contactEmail: user?.email || null,
+          contactPhone: user?.phone || null,
+          isVerified: true,
+          isActive: true,
+          showOnHomepage: true,
+          hasLandingPage: true,
+          sortOrder: 0,
+          propertyCount: seller.totalListings || 0,
+        };
+
+        await storage.createVerifiedBuilder(verifiedBuilderData);
+        res.json({ success: true, isVerifiedBuilder: true, message: "Added to verified builders" });
+      }
+    } catch (error: any) {
+      console.error("Error toggling verified builder:", error);
+      res.status(500).json({ message: error.message || "Failed to toggle verified builder status" });
     }
   });
 
@@ -1507,7 +1588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         city, state, propertyType, transactionType, 
         minPrice, maxPrice, minArea, maxArea, 
         bedrooms, status, isVerified, isFeatured,
-        search, limit, offset 
+        search, limit, offset, sellerId
       } = req.query;
       
       const properties = await storage.getProperties({
@@ -1523,6 +1604,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: status as string,
         isVerified: isVerified === "true" ? true : isVerified === "false" ? false : undefined,
         isFeatured: isFeatured === "true" ? true : isFeatured === "false" ? false : undefined,
+        sellerId: sellerId as string,
         search: search as string,
         limit: limit ? parseInt(limit as string) : undefined,
         offset: offset ? parseInt(offset as string) : undefined,
@@ -5545,6 +5627,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve storage files (for local storage)
   app.get("/storage/:type(public|private)/:path(*)", async (req: any, res: Response) => {
     try {
+      // Set CORS headers for cross-origin requests
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      
       const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
       const objectStorageService = new ObjectStorageService();
       const objectPath = `/storage/${req.params.type}/${req.params.path}`;
@@ -5567,6 +5654,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve public objects
   app.get("/public-objects/:filePath(*)", async (req: any, res: Response) => {
     try {
+      // Set CORS headers for cross-origin requests
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      
       const { ObjectStorageService } = await import("./objectStorage");
       const filePath = req.params.filePath;
       const objectStorageService = new ObjectStorageService();

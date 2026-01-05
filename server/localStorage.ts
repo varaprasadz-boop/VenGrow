@@ -369,6 +369,9 @@ export class LocalStorageService {
   async downloadObject(file: LocalFile, res: Response, cacheTtlSec: number = 3600) {
     try {
       res.set({
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
         "Content-Type": file.contentType || "application/octet-stream",
         "Content-Length": file.size.toString(),
         "Cache-Control": `public, max-age=${cacheTtlSec}`,

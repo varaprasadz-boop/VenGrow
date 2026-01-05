@@ -30,7 +30,8 @@ export default function BuilderLandingPage() {
     queryKey: ["/api/properties", { sellerId: builder?.sellerId }],
     queryFn: async () => {
       if (!builder?.sellerId) return [];
-      const response = await fetch(`/api/properties?sellerId=${builder.sellerId}&limit=8`);
+      // Only fetch active properties for this builder
+      const response = await fetch(`/api/properties?sellerId=${builder.sellerId}&status=active&limit=8`);
       if (!response.ok) return [];
       return response.json();
     },

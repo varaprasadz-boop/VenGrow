@@ -88,6 +88,7 @@ export default function ListingsPage() {
       featured: params.get('featured') === 'true',
       sort: params.get('sort') || null,
       page: parseInt(params.get('page') || '1'),
+      sellerId: params.get('sellerId') || null,
       filters: parsedFilters,
     };
   }, [location]);
@@ -229,9 +230,12 @@ export default function ListingsPage() {
     if (transactionTypeFromPath) {
       params.transactionType = transactionTypeFromPath.toLowerCase();
     }
+    if (urlParams.sellerId) {
+      params.sellerId = urlParams.sellerId;
+    }
     
     return params;
-  }, [filters, currentPage, urlParams.featured, transactionTypeFromPath]);
+  }, [filters, currentPage, urlParams.featured, urlParams.sellerId, transactionTypeFromPath]);
 
   // Fetch real properties from the API with filters
   const { data: propertiesData, isLoading, error } = useQuery<Property[]>({

@@ -51,6 +51,11 @@ export async function serveStatic(app: Express, _server: Server) {
       etag: true,
       lastModified: true,
       setHeaders: (res, filePath) => {
+        // Set CORS headers to allow cross-origin requests
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        
         // Set proper content type based on file extension
         const ext = path.extname(filePath).toLowerCase();
         if (ext === '.png') res.setHeader('Content-Type', 'image/png');

@@ -152,7 +152,12 @@ export default function VerifiedBuildersPage() {
     if (editingBuilder) {
       updateMutation.mutate({ id: editingBuilder.id, data: formData });
     } else {
-      createMutation.mutate(formData);
+      // Create is disabled - builders should be added from Sellers page
+      toast({
+        title: "Cannot Create Builder",
+        description: "Please mark sellers as verified builders from the Sellers page.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -243,9 +248,7 @@ export default function VerifiedBuildersPage() {
             isLoading={isLoading}
             isError={isError}
             onRefresh={refetch}
-            onAddNew={openCreateDialog}
-            addNewLabel="Add Builder"
-            emptyMessage="No builders found. Add your first verified builder to get started."
+            emptyMessage="No verified builders found. Mark sellers as verified builders from the Sellers page."
             getRowKey={(b) => b.id}
             filterFn={filterFn}
             actions={(builder) => (
@@ -271,7 +274,7 @@ export default function VerifiedBuildersPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingBuilder ? "Edit Builder" : "Add New Builder"}</DialogTitle>
+            <DialogTitle>Edit Builder</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2">

@@ -1,5 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -69,9 +71,33 @@ export default function SellerListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: sellers = [], isLoading, isError, refetch } = useQuery<SellerWithStats[]>({
     queryKey: ["/api/admin/sellers/stats"],
+  });
+
+  const toggleVerifiedBuilderMutation = useMutation({
+    mutationFn: async (sellerId: string) => {
+      const response = await apiRequest("POST", `/api/admin/sellers/${sellerId}/toggle-verified-builder`);
+      return response.json();
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sellers/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/verified-builders"] });
+      toast({
+        title: result.isVerifiedBuilder ? "Added to Verified Builders" : "Removed from Verified Builders",
+        description: result.message,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to toggle verified builder status",
+        variant: "destructive",
+      });
+    },
   });
 
   const filteredSellers = sellers.filter(seller => {
@@ -412,8 +438,9 @@ export default function SellerListPage() {
                                 <Switch
                                   checked={seller.isVerifiedBuilder || false}
                                   onCheckedChange={() => {
-                                    console.log("Toggle verified builder for:", seller.id);
+                                    toggleVerifiedBuilderMutation.mutate(seller.id);
                                   }}
+                                  disabled={toggleVerifiedBuilderMutation.isPending}
                                   data-testid={`switch-verified-${seller.id}`}
                                 />
                                 {seller.isVerifiedBuilder && (
