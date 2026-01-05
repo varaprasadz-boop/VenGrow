@@ -42,6 +42,54 @@ function broadcastToUser(userId: string, message: any) {
   }
 }
 
+// Helper function to normalize URLs - converts localhost URLs to relative paths
+function normalizeImageUrl(url: string | null | undefined): string | null {
+  if (!url || typeof url !== 'string') return null;
+  
+  // Remove localhost URLs (development URLs that shouldn't be in production)
+  const localhostPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i;
+  if (localhostPattern.test(url)) {
+    // Extract the path from the URL
+    try {
+      const urlObj = new URL(url);
+      return urlObj.pathname;
+    } catch (e) {
+      // If URL parsing fails, try to extract path manually
+      const match = url.match(/\/storage\/.*$/);
+      if (match) return match[0];
+      return null;
+    }
+  }
+  
+  // If it's already a relative path, ensure it starts with /
+  if (url.startsWith('/')) {
+    return url;
+  }
+  
+  // If it's a full URL (not localhost), return as-is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  // If it's a relative path without leading slash, add it
+  return `/${url}`;
+}
+
+// Helper function to calculate property count for a verified builder
+async function calculateBuilderPropertyCount(sellerId: string | null | undefined): Promise<number> {
+  if (!sellerId) return 0;
+  try {
+    const activeProperties = await storage.getProperties({ 
+      sellerId, 
+      status: 'active' 
+    });
+    return activeProperties.length;
+  } catch (error) {
+    console.error(`Error calculating property count for seller ${sellerId}:`, error);
+    return 0;
+  }
+}
+
 // Simple in-memory rate limiter for forms
 const formRateLimit = new Map<string, { count: number; resetTime: number }>();
 
@@ -1058,7 +1106,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Check if seller has a verified builder entry
           const verifiedBuilder = await storage.getVerifiedBuilderBySellerId(seller.id);
           const isVerifiedBuilder = !!verifiedBuilder;
-          const logoUrl = verifiedBuilder?.logoUrl || seller.logo || null;
+          const rawLogoUrl = verifiedBuilder?.logoUrl || seller.logo || null;
+          const logoUrl = normalizeImageUrl(rawLogoUrl);
           
           return {
             ...seller,
@@ -6844,7 +6893,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: true, 
         showOnHomepage: showOnHomepage || undefined 
       });
-      res.json(builders);
+      // Calculate propertyCount dynamically and normalize logoUrl
+      const normalizedBuilders = await Promise.all(
+        builders.map(async (builder) => {
+          const propertyCount = await calculateBuilderPropertyCount(builder.sellerId);
+          return {
+            ...builder,
+            propertyCount,
+            logoUrl: normalizeImageUrl(builder.logoUrl)
+          };
+        })
+      );
+      res.json(normalizedBuilders);
     } catch (error) {
       console.error("Error fetching verified builders:", error);
       res.status(500).json({ message: "Failed to fetch verified builders" });
@@ -6858,7 +6918,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!builder) {
         return res.status(404).json({ message: "Builder not found" });
       }
-      res.json(builder);
+      // Calculate propertyCount dynamically and normalize logoUrl
+      const propertyCount = await calculateBuilderPropertyCount(builder.sellerId);
+      const normalizedBuilder = {
+        ...builder,
+        propertyCount,
+        logoUrl: normalizeImageUrl(builder.logoUrl)
+      };
+      res.json(normalizedBuilder);
     } catch (error) {
       console.error("Error fetching builder:", error);
       res.status(500).json({ message: "Failed to fetch builder" });
@@ -6872,7 +6939,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!builder) {
         return res.status(404).json({ message: "Builder not found" });
       }
-      res.json(builder);
+      // Calculate propertyCount dynamically and normalize logoUrl
+      const propertyCount = await calculateBuilderPropertyCount(builder.sellerId);
+      const normalizedBuilder = {
+        ...builder,
+        propertyCount,
+        logoUrl: normalizeImageUrl(builder.logoUrl)
+      };
+      res.json(normalizedBuilder);
     } catch (error) {
       console.error("Error fetching builder:", error);
       res.status(500).json({ message: "Failed to fetch builder" });
@@ -6887,7 +6961,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Unauthorized - Admin access required" });
       }
       const builders = await storage.getVerifiedBuilders();
-      res.json(builders);
+      // Calculate propertyCount dynamically and normalize logoUrl
+      const normalizedBuilders = await Promise.all(
+        builders.map(async (builder) => {
+          const propertyCount = await calculateBuilderPropertyCount(builder.sellerId);
+          return {
+            ...builder,
+            propertyCount,
+            logoUrl: normalizeImageUrl(builder.logoUrl)
+          };
+        })
+      );
+      res.json(normalizedBuilders);
     } catch (error) {
       console.error("Error fetching verified builders:", error);
       res.status(500).json({ message: "Failed to fetch verified builders" });

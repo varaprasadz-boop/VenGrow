@@ -43,6 +43,19 @@ export default function VerifiedBuildersSection() {
         if (!logoUrl || logoUrl.trim() === '') {
           logoUrl = fallbackBuilders[0].logoUrl;
         } else {
+          // Remove localhost URLs (should be normalized on server, but handle here as fallback)
+          const localhostPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i;
+          if (localhostPattern.test(logoUrl)) {
+            try {
+              const urlObj = new URL(logoUrl);
+              logoUrl = urlObj.pathname;
+            } catch (e) {
+              const match = logoUrl.match(/\/storage\/.*$/);
+              if (match) logoUrl = match[0];
+              else logoUrl = fallbackBuilders[0].logoUrl;
+            }
+          }
+          
           // If it's a relative path (doesn't start with http:// or https://), ensure it starts with /
           if (!logoUrl.startsWith('http://') && !logoUrl.startsWith('https://')) {
             logoUrl = logoUrl.startsWith('/') ? logoUrl : `/${logoUrl}`;
