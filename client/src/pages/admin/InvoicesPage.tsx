@@ -694,6 +694,10 @@ export default function InvoicesPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
             <Link href="/admin/invoice-settings">
               <Button variant="outline" data-testid="button-settings">
                 <Settings className="h-4 w-4 mr-2" />

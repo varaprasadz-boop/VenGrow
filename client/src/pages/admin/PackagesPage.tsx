@@ -250,10 +250,16 @@ export default function PackagesPage() {
               <p className="text-muted-foreground">Manage seller subscription tiers</p>
             </div>
           </div>
-          <Button data-testid="button-add-package" onClick={handleAddPackage}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Package
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button data-testid="button-add-package" onClick={handleAddPackage}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Package
+            </Button>
+          </div>
         </div>
 
         {/* Group packages by seller type */}

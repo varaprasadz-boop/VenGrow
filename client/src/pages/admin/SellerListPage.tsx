@@ -242,10 +242,16 @@ export default function SellerListPage() {
                 View and manage all registered sellers with their statistics
               </p>
             </div>
-            <Button variant="outline" onClick={handleExport} data-testid="button-export">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+              <Button variant="outline" onClick={handleExport} data-testid="button-export">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
