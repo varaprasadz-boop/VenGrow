@@ -60,11 +60,28 @@ export default function AdminDashboardPage() {
   const isLoading = loadingUsers || loadingProperties || loadingPayments || loadingProfiles;
   const isError = errorUsers || errorProperties || errorPayments || errorProfiles;
 
-  const handleRetry = () => {
-    refetchUsers();
-    refetchProperties();
-    refetchPayments();
-    refetchProfiles();
+  const handleRetry = async () => {
+    const results = await Promise.all([
+      refetchUsers(),
+      refetchProperties(),
+      refetchPayments(),
+      refetchProfiles(),
+    ]);
+    
+    const hasErrors = results.some(result => result.isError || result.error);
+    
+    if (hasErrors) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh some data. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Dashboard Refreshed",
+        description: "All data has been updated successfully.",
+      });
+    }
   };
 
   const updateVerificationMutation = useMutation({
