@@ -41,6 +41,12 @@ const mainNavItems = [
   { title: "My Properties", href: "/seller/properties", icon: Building2 },
 ];
 
+// Projects navigation - only visible for brokers and builders
+const projectItems = [
+  { title: "My Projects", href: "/seller/projects", icon: Building2 },
+  { title: "Add Project", href: "/seller/project/add", icon: Plus },
+];
+
 const listingItems = [
   { title: "Active Listings", href: "/seller/listings/active", icon: Eye },
   { title: "Pending Review", href: "/seller/listings/pending", icon: Clock },
@@ -173,6 +179,9 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
   // Get package info
   const packageName = subscription?.package?.name || "No Package";
+  
+  // Check if seller can manage projects (only brokers and builders)
+  const canManageProjects = user?.sellerType && ['broker', 'builder'].includes(user.sellerType);
   const maxListings = subscription?.package?.listingLimit || subscription?.package?.maxListings || 0;
   const usedListings = subscription?.totalListings || subscriptionResponse?.usage?.listingsUsed || 0;
   const remainingListings = Math.max(0, maxListings - usedListings);
@@ -215,6 +224,11 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
+
+              {/* Projects Section - Only for Brokers and Builders */}
+              {canManageProjects && (
+                <NavSection title="Projects" items={projectItems} />
+              )}
 
               <NavSection title="Listings" items={listingItems} />
               <NavSection title="Analytics" items={analyticsItems} />
