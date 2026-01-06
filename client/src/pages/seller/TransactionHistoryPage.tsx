@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/select";
 import { Download, Search, CreditCard, Calendar, RefreshCw, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
-import type { Payment } from "@shared/schema";
+import type { Payment, Package } from "@shared/schema";
+import { downloadInvoiceAsPDF } from "@/components/InvoicePreview";
 
 function formatCurrency(amount: number): string {
   return `₹${amount.toLocaleString("en-IN")}`;
@@ -27,6 +28,44 @@ export default function TransactionHistoryPage() {
   const { data: payments = [], isLoading, isError, refetch } = useQuery<Payment[]>({
     queryKey: ["/api/me/payments"],
   });
+
+  // Fetch invoice settings for PDF generation
+  const { data: invoiceSettings = null } = useQuery<any>({
+    queryKey: ["/api/admin/invoice-settings"],
+  });
+
+  // Fetch packages to get package names
+  const { data: packages = [] } = useQuery<Package[]>({
+    queryKey: ["/api/packages"],
+  });
+
+  // Create a map of packageId to package name
+  const packageMap = new Map<string, string>();
+  packages.forEach(pkg => {
+    packageMap.set(pkg.id, pkg.name);
+  });
+
+  // Handler for downloading invoice
+  const handleDownloadInvoice = (payment: Payment) => {
+    // Calculate GST-inclusive amount (downloadInvoiceAsPDF expects the total with GST included)
+    // The payment.amount is the base amount, and the invoice generator back-calculates GST from this
+    const gstInclusiveAmount = Math.round(payment.amount * 1.18);
+    
+    // Create an invoice-like object from the payment
+    const invoiceData = {
+      id: payment.id,
+      invoiceNumber: payment.razorpayPaymentId || `INV-${payment.id.slice(0, 8).toUpperCase()}`,
+      amount: gstInclusiveAmount,
+      status: payment.status,
+      paymentMethod: payment.paymentMethod || "online",
+      transactionId: payment.razorpayPaymentId || null,
+      createdAt: payment.createdAt instanceof Date ? payment.createdAt.toISOString() : String(payment.createdAt),
+      packageId: payment.packageId || undefined,
+      package: payment.packageId ? { name: packageMap.get(payment.packageId) || "Package" } : undefined,
+    };
+    
+    downloadInvoiceAsPDF(invoiceData, invoiceSettings);
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -211,6 +250,7 @@ export default function TransactionHistoryPage() {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => handleDownloadInvoice(transaction)}
                         data-testid={`button-download-${transaction.id}`}
                       >
                         <Download className="h-4 w-4 mr-2" />
