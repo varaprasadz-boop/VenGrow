@@ -55,6 +55,22 @@ export default function PropertiesPage() {
     queryKey: ["/api/properties"],
   });
 
+  const handleRefresh = async () => {
+    const result = await refetch();
+    if (result.isError || result.error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh property data. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Properties Refreshed",
+        description: "Property data has been updated successfully.",
+      });
+    }
+  };
+
   const toggleFeaturedMutation = useMutation({
     mutationFn: async ({ propertyId, isFeatured }: { propertyId: string; isFeatured: boolean }) => {
       const response = await apiRequest("PATCH", `/api/admin/properties/${propertyId}/featured`, { isFeatured });
@@ -160,7 +176,7 @@ export default function PropertiesPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => refetch()} disabled={isLoading} data-testid="button-refresh">
+              <Button variant="outline" onClick={handleRefresh} disabled={isLoading} data-testid="button-refresh">
                 <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
                 Refresh
               </Button>

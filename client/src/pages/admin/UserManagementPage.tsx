@@ -63,6 +63,22 @@ export default function UserManagementPage() {
     queryKey: ["/api/admin/users"],
   });
 
+  const handleRefresh = async () => {
+    const result = await refetch();
+    if (result.isError || result.error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh user data. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Users Refreshed",
+        description: "User data has been updated successfully.",
+      });
+    }
+  };
+
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
       const res = await apiRequest("PATCH", `/api/admin/users/${id}`, { isActive });
@@ -176,8 +192,8 @@ export default function UserManagementPage() {
                 Manage all platform users
               </p>
             </div>
-            <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button variant="outline" onClick={handleRefresh} disabled={isLoading} data-testid="button-refresh">
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
           </div>

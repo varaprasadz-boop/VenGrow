@@ -46,6 +46,22 @@ export default function SellerApprovalsPage() {
     queryKey: ["/api/sellers"],
   });
 
+  const handleRefresh = async () => {
+    const result = await refetch();
+    if (result.isError || result.error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh seller data. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Sellers Refreshed",
+        description: "Seller data has been updated successfully.",
+      });
+    }
+  };
+
   const updateVerificationMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       return apiRequest("PATCH", `/api/sellers/${id}`, { verificationStatus: status });
@@ -129,13 +145,19 @@ export default function SellerApprovalsPage() {
           className="mb-4"
         />
 
-        <div className="mb-6">
-          <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-1">
-            Seller Approvals
-          </h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Review and approve seller registrations
-          </p>
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+          <div>
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-1">
+              Seller Approvals
+            </h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Review and approve seller registrations
+            </p>
+          </div>
+          <Button variant="outline" onClick={handleRefresh} disabled={isLoading} data-testid="button-refresh">
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>

@@ -62,6 +62,22 @@ export default function PendingPropertiesPage() {
       (p.status === "pending" && p.workflowStatus !== "live" && p.workflowStatus !== "rejected")
   );
 
+  const handleRefresh = async () => {
+    const result = await refetch();
+    if (result.isError || result.error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh property data. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Properties Refreshed",
+        description: "Property data has been updated successfully.",
+      });
+    }
+  };
+
   const approveMutation = useMutation({
     mutationFn: async (propertyId: string) => {
       return apiRequest("PATCH", `/api/properties/${propertyId}`, {
@@ -161,7 +177,7 @@ export default function PendingPropertiesPage() {
               <p className="text-muted-foreground">Properties awaiting approval ({properties.length})</p>
             </div>
           </div>
-          <Button variant="outline" onClick={() => refetch()} disabled={isLoading} data-testid="button-refresh">
+          <Button variant="outline" onClick={handleRefresh} disabled={isLoading} data-testid="button-refresh">
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
           </Button>

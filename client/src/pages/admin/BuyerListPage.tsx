@@ -43,6 +43,22 @@ export default function BuyerListPage() {
     queryKey: ["/api/admin/buyers"],
   });
 
+  const handleRefresh = async () => {
+    const result = await refetch();
+    if (result.isError || result.error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh buyer data. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Buyers Refreshed",
+        description: "Buyer data has been updated successfully.",
+      });
+    }
+  };
+
   const filteredBuyers = buyers.filter(buyer =>
     buyer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     buyer.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -118,8 +134,8 @@ export default function BuyerListPage() {
               <p className="text-muted-foreground">View all registered buyers</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
-                <RefreshCw className="h-4 w-4 mr-2" />
+              <Button variant="outline" onClick={handleRefresh} disabled={isLoading} data-testid="button-refresh">
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
                 Refresh
               </Button>
               <Button onClick={handleExport} data-testid="button-export-buyers">

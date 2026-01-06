@@ -78,6 +78,22 @@ export default function SellerListPage() {
     queryKey: ["/api/admin/sellers/stats"],
   });
 
+  const handleRefresh = async () => {
+    const result = await refetch();
+    if (result.isError || result.error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh seller data. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Sellers Refreshed",
+        description: "Seller data has been updated successfully.",
+      });
+    }
+  };
+
   const toggleVerifiedBuilderMutation = useMutation({
     mutationFn: async (sellerId: string) => {
       const response = await apiRequest("POST", `/api/admin/sellers/${sellerId}/toggle-verified-builder`);
@@ -243,8 +259,8 @@ export default function SellerListPage() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
-                <RefreshCw className="h-4 w-4 mr-2" />
+              <Button variant="outline" onClick={handleRefresh} disabled={isLoading} data-testid="button-refresh">
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
                 Refresh
               </Button>
               <Button variant="outline" onClick={handleExport} data-testid="button-export">

@@ -88,6 +88,22 @@ export default function ListingModerationPage() {
 
   const approvals = approvalData?.approvals || [];
 
+  const handleRefresh = async () => {
+    const result = await refetch();
+    if (result.isError || result.error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh approval data. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Approvals Refreshed",
+        description: "Approval data has been updated successfully.",
+      });
+    }
+  };
+
   const approveMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
       return apiRequest("POST", `/api/admin/property-approvals/${id}/approve`, { notes });
@@ -191,8 +207,8 @@ export default function ListingModerationPage() {
                 Review and approve property listings before they go live
               </p>
             </div>
-            <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button variant="outline" onClick={handleRefresh} disabled={isLoading} data-testid="button-refresh">
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
           </div>
