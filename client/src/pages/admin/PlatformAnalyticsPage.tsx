@@ -1,8 +1,15 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Users,
   Building,
@@ -15,9 +22,19 @@ import {
   RefreshCw,
   FolderKanban,
   ShieldCheck,
+  ChevronDown,
 } from "lucide-react";
 import { exportToCSV } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+
+type DateRangeOption = "all" | "7days" | "30days" | "90days";
+
+const dateRangeLabels: Record<DateRangeOption, string> = {
+  all: "All Time",
+  "7days": "Last 7 Days",
+  "30days": "Last 30 Days",
+  "90days": "Last 90 Days",
+};
 
 interface AnalyticsData {
   users: {
@@ -53,9 +70,19 @@ interface AnalyticsData {
 
 export default function PlatformAnalyticsPage() {
   const { toast } = useToast();
+  const [dateRange, setDateRange] = useState<DateRangeOption>("all");
+  
   const { data: analytics, isLoading, isError, refetch } = useQuery<AnalyticsData>({
-    queryKey: ["/api/admin/analytics"],
+    queryKey: ["/api/admin/analytics", dateRange],
   });
+
+  const handleDateRangeChange = (range: DateRangeOption) => {
+    setDateRange(range);
+    toast({
+      title: "Date Range Updated",
+      description: `Showing data for ${dateRangeLabels[range]}`,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -173,19 +200,41 @@ export default function PlatformAnalyticsPage() {
                 <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
                 Refresh
               </Button>
-              <Button 
-                variant="outline" 
-                data-testid="button-date-range"
-                onClick={() => {
-                  toast({
-                    title: "Date Range",
-                    description: "Date range picker feature is coming soon.",
-                  });
-                }}
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                All Time
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" data-testid="button-date-range">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    {dateRangeLabels[dateRange]}
+                    <ChevronDown className="h-4 w-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem 
+                    onClick={() => handleDateRangeChange("all")}
+                    data-testid="date-range-all"
+                  >
+                    All Time
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleDateRangeChange("7days")}
+                    data-testid="date-range-7days"
+                  >
+                    Last 7 Days
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleDateRangeChange("30days")}
+                    data-testid="date-range-30days"
+                  >
+                    Last 30 Days
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleDateRangeChange("90days")}
+                    data-testid="date-range-90days"
+                  >
+                    Last 90 Days
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button onClick={handleExportAnalytics} data-testid="button-export-analytics">
                 <Download className="h-4 w-4 mr-2" />
                 Export Report

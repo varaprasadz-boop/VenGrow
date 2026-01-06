@@ -34,6 +34,7 @@ import {
   Users,
   AlertCircle,
   RefreshCw,
+  User as UserIcon,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -418,7 +419,7 @@ export default function UserManagementPage() {
             <div className="space-y-4">
               <div>
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <User className="h-4 w-4" />
+                  <UserIcon className="h-4 w-4" />
                   User Information
                 </h3>
                 <div className="bg-muted/50 p-4 rounded-lg space-y-3">

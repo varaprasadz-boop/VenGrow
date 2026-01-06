@@ -24,38 +24,55 @@ interface SubscriptionInvoiceData {
 
 // Load logo as base64 with proper aspect ratio handling
 async function loadLogoAsBase64(): Promise<{ data: string; width: number; height: number } | null> {
-  try {
-    const response = await fetch('/VenGrow.png');
-    if (!response.ok) {
-      console.warn('Logo not found, using text fallback');
-      return null;
-    }
-    const blob = await response.blob();
-    
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        
-        // Create an image to get natural dimensions
-        const img = new Image();
-        img.onload = () => {
-          resolve({
-            data: base64,
-            width: img.naturalWidth,
-            height: img.naturalHeight
-          });
+  // Try multiple potential logo paths
+  const logoPaths = ['/VenGrow.png', '/logo.png', '/assets/VenGrow.png'];
+  
+  for (const logoPath of logoPaths) {
+    try {
+      const response = await fetch(logoPath, { 
+        method: 'GET',
+        cache: 'force-cache'
+      });
+      
+      if (!response.ok) {
+        continue; // Try next path
+      }
+      
+      const blob = await response.blob();
+      
+      // Verify it's actually an image
+      if (!blob.type.startsWith('image/')) {
+        continue;
+      }
+      
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          
+          // Create an image to get natural dimensions
+          const img = new Image();
+          img.onload = () => {
+            resolve({
+              data: base64,
+              width: img.naturalWidth,
+              height: img.naturalHeight
+            });
+          };
+          img.onerror = () => resolve({ data: base64, width: 200, height: 60 });
+          img.src = base64;
         };
-        img.onerror = () => resolve({ data: base64, width: 200, height: 60 });
-        img.src = base64;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  } catch (error) {
-    console.warn('Error loading logo:', error);
-    return null;
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.warn(`Error loading logo from ${logoPath}:`, error);
+      continue;
+    }
   }
+  
+  console.warn('Logo not found at any path, using text fallback');
+  return null;
 }
 
 export async function generateSubscriptionInvoicePDF(data: SubscriptionInvoiceData, printMode: boolean = false): Promise<void> {
@@ -236,7 +253,7 @@ export async function generateSubscriptionInvoicePDF(data: SubscriptionInvoiceDa
   // Amount (right aligned in column)
   const subtotal = data.payment.amount || 0;
   doc.setFont('helvetica', 'bold');
-  doc.text(`₹${subtotal.toLocaleString('en-IN')}`, tableRight - padding, yPos + 12, { align: 'right' });
+  doc.text(`Rs. ${subtotal.toLocaleString('en-IN')}`, tableRight - padding, yPos + 12, { align: 'right' });
 
   yPos += rowHeight + 16;
 
@@ -258,21 +275,21 @@ export async function generateSubscriptionInvoicePDF(data: SubscriptionInvoiceDa
   // Subtotal
   doc.text('Subtotal:', labelX, yPos, { align: 'right' });
   doc.setTextColor(...darkText);
-  doc.text(`₹${subtotal.toLocaleString('en-IN')}`, valueX, yPos, { align: 'right' });
+  doc.text(`Rs. ${subtotal.toLocaleString('en-IN')}`, valueX, yPos, { align: 'right' });
   yPos += lineSpacing;
 
   // CGST
   doc.setTextColor(...grayText);
   doc.text('CGST @ 9%:', labelX, yPos, { align: 'right' });
   doc.setTextColor(...darkText);
-  doc.text(`₹${cgst.toLocaleString('en-IN')}`, valueX, yPos, { align: 'right' });
+  doc.text(`Rs. ${cgst.toLocaleString('en-IN')}`, valueX, yPos, { align: 'right' });
   yPos += lineSpacing;
 
   // SGST
   doc.setTextColor(...grayText);
   doc.text('SGST @ 9%:', labelX, yPos, { align: 'right' });
   doc.setTextColor(...darkText);
-  doc.text(`₹${sgst.toLocaleString('en-IN')}`, valueX, yPos, { align: 'right' });
+  doc.text(`Rs. ${sgst.toLocaleString('en-IN')}`, valueX, yPos, { align: 'right' });
   yPos += 4;
 
   // Total divider
@@ -286,7 +303,7 @@ export async function generateSubscriptionInvoicePDF(data: SubscriptionInvoiceDa
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...darkText);
   doc.text('Total:', labelX, yPos, { align: 'right' });
-  doc.text(`₹${total.toLocaleString('en-IN')}`, valueX, yPos, { align: 'right' });
+  doc.text(`Rs. ${total.toLocaleString('en-IN')}`, valueX, yPos, { align: 'right' });
 
   yPos += 16;
 
