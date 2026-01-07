@@ -1,9 +1,6 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
-
-neonConfig.webSocketConstructor = ws;
 
 // Lazy initialization - don't check DATABASE_URL at module load time
 // This allows dotenv to load first in production builds
@@ -17,7 +14,13 @@ function getPool(): Pool {
         "DATABASE_URL must be set. Did you forget to provision a database?",
       );
     }
-    _pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    _pool = new Pool({ 
+      connectionString: process.env.DATABASE_URL,
+      // SSL configuration for VPS PostgreSQL
+      ssl: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging' 
+        ? { rejectUnauthorized: false } // Set to true if you have proper SSL certificates
+        : false
+    });
   }
   return _pool;
 }
