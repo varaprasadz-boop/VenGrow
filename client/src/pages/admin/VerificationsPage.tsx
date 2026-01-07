@@ -53,12 +53,23 @@ export default function VerificationsPage() {
 
   const { data: requests = [], isLoading, isError, refetch } = useQuery<VerificationRequest[]>({
     queryKey: ["/api/admin/verifications"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/verifications", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch verification requests");
+      return response.json();
+    },
   });
 
   // Fetch seller details for the selected request
   const { data: sellerDetails } = useQuery<any>({
     queryKey: ["/api/sellers", selectedRequest?.sellerId],
     enabled: !!selectedRequest?.sellerId,
+    queryFn: async () => {
+      if (!selectedRequest?.sellerId) return null;
+      const response = await fetch(`/api/sellers/${selectedRequest.sellerId}`, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch seller details");
+      return response.json();
+    },
   });
 
   const updateVerificationMutation = useMutation({

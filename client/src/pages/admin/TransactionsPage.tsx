@@ -49,10 +49,20 @@ export default function TransactionsPage() {
 
   const { data: payments = [], isLoading, isError, refetch } = useQuery<Payment[]>({
     queryKey: ["/api/payments"],
+    queryFn: async () => {
+      const response = await fetch("/api/payments", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch payments");
+      return response.json();
+    },
   });
 
   const { data: packages = [] } = useQuery<Package[]>({
     queryKey: ["/api/packages"],
+    queryFn: async () => {
+      const response = await fetch("/api/packages", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch packages");
+      return response.json();
+    },
   });
 
   const filterTransactions = () => {

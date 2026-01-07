@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { AuthUser } from '@/hooks/useAuth';
 import { queryClient } from '@/lib/queryClient';
+import { toast } from '@/hooks/use-toast';
 
 interface AuthState {
   user: AuthUser | null;
@@ -112,6 +113,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       // Small delay to ensure session is destroyed
       await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Show success toast before redirect
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out.",
+      });
+      
+      // Small delay to show toast before redirect
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Force redirect to home page (not login, to prevent showing login when logged out)
       window.location.href = "/";

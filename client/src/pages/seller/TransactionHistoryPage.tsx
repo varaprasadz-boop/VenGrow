@@ -27,16 +27,31 @@ export default function TransactionHistoryPage() {
 
   const { data: payments = [], isLoading, isError, refetch } = useQuery<Payment[]>({
     queryKey: ["/api/me/payments"],
+    queryFn: async () => {
+      const response = await fetch("/api/me/payments", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch payments");
+      return response.json();
+    },
   });
 
   // Fetch invoice settings for PDF generation
   const { data: invoiceSettings = null } = useQuery<any>({
     queryKey: ["/api/admin/invoice-settings"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/invoice-settings", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch invoice settings");
+      return response.json();
+    },
   });
 
   // Fetch packages to get package names
   const { data: packages = [] } = useQuery<Package[]>({
     queryKey: ["/api/packages"],
+    queryFn: async () => {
+      const response = await fetch("/api/packages", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch packages");
+      return response.json();
+    },
   });
 
   // Create a map of packageId to package name

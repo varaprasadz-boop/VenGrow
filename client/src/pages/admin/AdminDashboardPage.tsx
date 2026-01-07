@@ -43,18 +43,38 @@ export default function AdminDashboardPage() {
 
   const { data: users = [], isLoading: loadingUsers, isError: errorUsers, refetch: refetchUsers } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/users", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch users");
+      return response.json();
+    },
   });
 
   const { data: properties = [], isLoading: loadingProperties, isError: errorProperties, refetch: refetchProperties } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
+    queryFn: async () => {
+      const response = await fetch("/api/properties", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch properties");
+      return response.json();
+    },
   });
 
   const { data: payments = [], isLoading: loadingPayments, isError: errorPayments, refetch: refetchPayments } = useQuery<Payment[]>({
     queryKey: ["/api/payments"],
+    queryFn: async () => {
+      const response = await fetch("/api/payments", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch payments");
+      return response.json();
+    },
   });
 
   const { data: sellerProfiles = [], isLoading: loadingProfiles, isError: errorProfiles, refetch: refetchProfiles } = useQuery<SellerProfile[]>({
     queryKey: ["/api/sellers"],
+    queryFn: async () => {
+      const response = await fetch("/api/sellers", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch sellers");
+      return response.json();
+    },
   });
 
   const isLoading = loadingUsers || loadingProperties || loadingPayments || loadingProfiles;

@@ -41,6 +41,11 @@ export default function BuyerListPage() {
 
   const { data: buyers = [], isLoading, isError, refetch } = useQuery<BuyerWithStats[]>({
     queryKey: ["/api/admin/buyers"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/buyers", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch buyers");
+      return response.json();
+    },
   });
 
   const handleRefresh = async () => {

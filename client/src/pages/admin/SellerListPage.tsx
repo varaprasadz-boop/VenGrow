@@ -76,6 +76,11 @@ export default function SellerListPage() {
 
   const { data: sellers = [], isLoading, isError, refetch } = useQuery<SellerWithStats[]>({
     queryKey: ["/api/admin/sellers/stats"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/sellers/stats", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch sellers");
+      return response.json();
+    },
   });
 
   const handleRefresh = async () => {

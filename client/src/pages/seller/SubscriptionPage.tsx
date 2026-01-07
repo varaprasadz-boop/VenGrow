@@ -33,6 +33,11 @@ interface SubscriptionResponse {
 export default function SubscriptionPage() {
   const { data: response, isLoading: subscriptionLoading } = useQuery<SubscriptionResponse>({
     queryKey: ["/api/subscriptions/current"],
+    queryFn: async () => {
+      const response = await fetch("/api/subscriptions/current", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch subscription");
+      return response.json();
+    },
   });
 
   // Extract subscription and package from API response
@@ -75,10 +80,20 @@ export default function SubscriptionPage() {
 
   const { data: properties = [], isLoading: propertiesLoading } = useQuery<Property[]>({
     queryKey: ["/api/me/properties"],
+    queryFn: async () => {
+      const response = await fetch("/api/me/properties", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch properties");
+      return response.json();
+    },
   });
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery<Payment[]>({
     queryKey: ["/api/me/payments"],
+    queryFn: async () => {
+      const response = await fetch("/api/me/payments", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch payments");
+      return response.json();
+    },
   });
 
   const isLoading = subscriptionLoading || propertiesLoading || paymentsLoading;

@@ -54,6 +54,11 @@ export default function ManageListingsPage() {
   const { data: listings = [], isLoading, refetch } = useQuery<Property[]>({
     queryKey: ["/api/me/properties"],
     enabled: !!user,
+    queryFn: async () => {
+      const response = await fetch("/api/me/properties", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch properties");
+      return response.json();
+    },
   });
 
   const submitForReviewMutation = useMutation({

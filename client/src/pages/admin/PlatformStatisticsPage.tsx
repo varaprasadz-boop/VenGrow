@@ -51,26 +51,56 @@ const COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3
 export default function PlatformStatisticsPage() {
   const { data: users = [], isLoading: loadingUsers, isError: errorUsers, refetch: refetchUsers } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/users", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch users");
+      return response.json();
+    },
   });
 
   const { data: properties = [], isLoading: loadingProperties, isError: errorProperties, refetch: refetchProperties } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
+    queryFn: async () => {
+      const response = await fetch("/api/properties", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch properties");
+      return response.json();
+    },
   });
 
   const { data: payments = [], isLoading: loadingPayments, isError: errorPayments, refetch: refetchPayments } = useQuery<Payment[]>({
     queryKey: ["/api/payments"],
+    queryFn: async () => {
+      const response = await fetch("/api/payments", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch payments");
+      return response.json();
+    },
   });
 
   const { data: sellerProfiles = [], isLoading: loadingSellers, isError: errorSellers, refetch: refetchSellers } = useQuery<SellerProfile[]>({
     queryKey: ["/api/sellers"],
+    queryFn: async () => {
+      const response = await fetch("/api/sellers", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch sellers");
+      return response.json();
+    },
   });
 
   const { data: subscriptions = [], isLoading: loadingSubs, isError: errorSubs, refetch: refetchSubs } = useQuery<SellerSubscription[]>({
     queryKey: ["/api/subscriptions"],
+    queryFn: async () => {
+      const response = await fetch("/api/subscriptions", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch subscriptions");
+      return response.json();
+    },
   });
 
   const { data: inquiries = [], isLoading: loadingInquiries, isError: errorInquiries, refetch: refetchInquiries } = useQuery<Inquiry[]>({
     queryKey: ["/api/inquiries"],
+    queryFn: async () => {
+      const response = await fetch("/api/inquiries", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch inquiries");
+      return response.json();
+    },
   });
 
   const isLoading = loadingUsers || loadingProperties || loadingPayments || loadingSellers || loadingSubs || loadingInquiries;

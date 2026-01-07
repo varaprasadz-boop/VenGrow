@@ -44,6 +44,11 @@ export default function SellerApprovalsPage() {
 
   const { data: sellerProfiles = [], isLoading, isError, refetch } = useQuery<SellerProfile[]>({
     queryKey: ["/api/sellers"],
+    queryFn: async () => {
+      const response = await fetch("/api/sellers", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch sellers");
+      return response.json();
+    },
   });
 
   const handleRefresh = async () => {

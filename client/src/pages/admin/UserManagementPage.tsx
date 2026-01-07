@@ -62,6 +62,11 @@ export default function UserManagementPage() {
 
   const { data: users = [], isLoading, isError, refetch } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/users", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch users");
+      return response.json();
+    },
   });
 
   const handleRefresh = async () => {

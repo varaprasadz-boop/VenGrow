@@ -74,6 +74,18 @@ export default function PlatformAnalyticsPage() {
   
   const { data: analytics, isLoading, isError, refetch } = useQuery<AnalyticsData>({
     queryKey: ["/api/admin/analytics", dateRange],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (dateRange !== "all") {
+        params.set("range", dateRange);
+      }
+      const url = `/api/admin/analytics${params.toString() ? `?${params.toString()}` : ""}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch analytics");
+      }
+      return response.json();
+    },
   });
 
   const handleDateRangeChange = (range: DateRangeOption) => {

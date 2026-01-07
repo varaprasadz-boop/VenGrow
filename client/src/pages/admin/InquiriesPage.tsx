@@ -54,6 +54,11 @@ export default function InquiriesPage() {
 
   const { data: inquiries = [], isLoading, isError, refetch } = useQuery<InquiryWithDetails[]>({
     queryKey: ["/api/admin/inquiries"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/inquiries", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch inquiries");
+      return response.json();
+    },
   });
 
   const filteredInquiries = inquiries.filter(inquiry => {

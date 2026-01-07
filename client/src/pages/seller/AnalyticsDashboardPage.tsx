@@ -46,10 +46,24 @@ export default function AnalyticsDashboardPage() {
 
   const { data: dashboardStats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/me/dashboard"],
+    queryFn: async () => {
+      const response = await fetch("/api/me/dashboard");
+      if (!response.ok) {
+        throw new Error("Failed to fetch dashboard stats");
+      }
+      return response.json();
+    },
   });
 
   const { data: properties = [], isLoading: propertiesLoading } = useQuery<Property[]>({
     queryKey: ["/api/me/properties"],
+    queryFn: async () => {
+      const response = await fetch("/api/me/properties");
+      if (!response.ok) {
+        throw new Error("Failed to fetch properties");
+      }
+      return response.json();
+    },
   });
 
   const isLoading = statsLoading || propertiesLoading;

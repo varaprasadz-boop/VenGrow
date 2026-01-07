@@ -53,6 +53,11 @@ export default function PendingPropertiesPage() {
 
   const { data: allProperties = [], isLoading, isError, refetch } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
+    queryFn: async () => {
+      const response = await fetch("/api/properties", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch properties");
+      return response.json();
+    },
   });
 
   // Filter properties that are pending approval (submitted or under review)
