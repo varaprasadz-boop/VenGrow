@@ -1856,6 +1856,283 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download CSV template for bulk upload
+  app.get("/api/properties/bulk-upload/template", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+
+      // CSV template headers
+      const headers = [
+        "title",
+        "description",
+        "propertyType",
+        "transactionType",
+        "price",
+        "area",
+        "bedrooms",
+        "bathrooms",
+        "balconies",
+        "floor",
+        "totalFloors",
+        "facing",
+        "furnishing",
+        "ageOfProperty",
+        "possessionStatus",
+        "address",
+        "locality",
+        "city",
+        "state",
+        "pincode",
+        "latitude",
+        "longitude",
+        "amenities",
+        "highlights",
+        "pricePerSqft",
+        "categoryId",
+        "subcategoryId",
+        "projectStage",
+        "youtubeVideoUrl"
+      ];
+
+      // Create CSV content with headers and one example row
+      const csvContent = [
+        headers.join(","),
+        "2 BHK Apartment in Bandra West,Beautiful 2 BHK apartment with modern amenities,apartment,sale,8500000,1200,2,2,2,5,10,North,Semi-Furnished,5,Ready to Move,123 Main Street,Bandra West,Mumbai,Maharashtra,400050,19.0596,72.8295,\"Swimming Pool, Gym, Parking\",\"Near Metro Station, Good Connectivity\",7083,,,ready_to_move,",
+      ].join("\n");
+
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", "attachment; filename=property-bulk-upload-template.csv");
+      res.send(csvContent);
+    } catch (error) {
+      console.error("Error generating template:", error);
+      res.status(500).json({ success: false, message: "Failed to generate template" });
+    }
+  });
+
+  // Bulk upload properties from CSV
+  app.post("/api/properties/bulk-upload", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+
+      // Get seller profile
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile) {
+        return res.status(400).json({ success: false, message: "Seller profile required. Please complete seller registration." });
+      }
+
+      // Check if CSV file is provided
+      if (!req.body.csvData && !req.body.file) {
+        return res.status(400).json({ success: false, message: "CSV file or data is required" });
+      }
+
+      // Import papaparse
+      const Papa = (await import("papaparse")).default;
+
+      // Parse CSV data
+      let csvData = req.body.csvData;
+      if (req.body.file) {
+        // If file is base64 encoded
+        if (req.body.file.startsWith("data:")) {
+          const base64Data = req.body.file.split(",")[1];
+          csvData = Buffer.from(base64Data, "base64").toString("utf-8");
+        } else {
+          csvData = req.body.file;
+        }
+      }
+
+      // Parse CSV
+      const parseResult = Papa.parse(csvData, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.trim(),
+        transform: (value) => value.trim(),
+      });
+
+      if (parseResult.errors.length > 0) {
+        console.error("CSV parsing errors:", parseResult.errors);
+        return res.status(400).json({
+          success: false,
+          message: "CSV parsing failed",
+          errors: parseResult.errors,
+        });
+      }
+
+      const rows = parseResult.data as any[];
+      
+      if (rows.length === 0) {
+        return res.status(400).json({ success: false, message: "CSV file is empty" });
+      }
+
+      if (rows.length > 100) {
+        return res.status(400).json({ success: false, message: "Maximum 100 properties per upload" });
+      }
+
+      // Check subscription limits
+      const canCreate = await storage.canSellerCreateListing(sellerProfile.id);
+      if (!canCreate) {
+        return res.status(403).json({
+          success: false,
+          message: "Listing limit reached. Please upgrade your package to create more listings.",
+          code: "LISTING_LIMIT_REACHED",
+        });
+      }
+
+      const results = {
+        total: rows.length,
+        successful: 0,
+        failed: 0,
+        errors: [] as Array<{ row: number; error: string }>,
+      };
+
+      // Process each row
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rowNumber = i + 2; // +2 because row 1 is header, and arrays are 0-indexed
+
+        try {
+          // Validate required fields
+          if (!row.title || !row.city || !row.state || !row.address) {
+            throw new Error("Missing required fields: title, city, state, and address are required");
+          }
+
+          if (!row.propertyType || !row.transactionType) {
+            throw new Error("Missing required fields: propertyType and transactionType are required");
+          }
+
+          if (!row.price || isNaN(parseInt(row.price))) {
+            throw new Error("Invalid or missing price");
+          }
+
+          if (!row.area || isNaN(parseInt(row.area))) {
+            throw new Error("Invalid or missing area");
+          }
+
+          // Parse amenities and highlights (comma-separated strings)
+          const amenities = row.amenities
+            ? row.amenities.split(",").map((a: string) => a.trim()).filter((a: string) => a.length > 0)
+            : [];
+          const highlights = row.highlights
+            ? row.highlights.split(",").map((h: string) => h.trim()).filter((h: string) => h.length > 0)
+            : [];
+
+          // Prepare property data
+          const propertyData: any = {
+            sellerId: sellerProfile.id,
+            title: row.title,
+            description: row.description || "",
+            propertyType: row.propertyType.toLowerCase(),
+            transactionType: row.transactionType.toLowerCase(),
+            price: parseInt(row.price),
+            area: parseInt(row.area),
+            address: row.address,
+            locality: row.locality || null,
+            city: row.city,
+            state: row.state,
+            pincode: row.pincode || null,
+            status: "draft" as const,
+            workflowStatus: "draft" as const,
+            amenities: amenities.length > 0 ? amenities : null,
+            highlights: highlights.length > 0 ? highlights : null,
+          };
+
+          // Optional fields
+          if (row.bedrooms && !isNaN(parseInt(row.bedrooms))) {
+            propertyData.bedrooms = parseInt(row.bedrooms);
+          }
+          if (row.bathrooms && !isNaN(parseInt(row.bathrooms))) {
+            propertyData.bathrooms = parseInt(row.bathrooms);
+          }
+          if (row.balconies && !isNaN(parseInt(row.balconies))) {
+            propertyData.balconies = parseInt(row.balconies);
+          }
+          if (row.floor && !isNaN(parseInt(row.floor))) {
+            propertyData.floor = parseInt(row.floor);
+          }
+          if (row.totalFloors && !isNaN(parseInt(row.totalFloors))) {
+            propertyData.totalFloors = parseInt(row.totalFloors);
+          }
+          if (row.facing) {
+            propertyData.facing = row.facing;
+          }
+          if (row.furnishing) {
+            propertyData.furnishing = row.furnishing;
+          }
+          if (row.ageOfProperty && !isNaN(parseInt(row.ageOfProperty))) {
+            propertyData.ageOfProperty = parseInt(row.ageOfProperty);
+          }
+          if (row.possessionStatus) {
+            propertyData.possessionStatus = row.possessionStatus;
+          }
+          if (row.latitude && !isNaN(parseFloat(row.latitude))) {
+            propertyData.latitude = parseFloat(row.latitude);
+          }
+          if (row.longitude && !isNaN(parseFloat(row.longitude))) {
+            propertyData.longitude = parseFloat(row.longitude);
+          }
+          if (row.pricePerSqft && !isNaN(parseInt(row.pricePerSqft))) {
+            propertyData.pricePerSqft = parseInt(row.pricePerSqft);
+          }
+          if (row.categoryId) {
+            propertyData.categoryId = row.categoryId;
+          }
+          if (row.subcategoryId) {
+            propertyData.subcategoryId = row.subcategoryId;
+          }
+          if (row.projectStage) {
+            propertyData.projectStage = row.projectStage.toLowerCase().replace(/\s+/g, "_");
+          }
+          if (row.youtubeVideoUrl) {
+            propertyData.youtubeVideoUrl = row.youtubeVideoUrl;
+          }
+
+          // Create property
+          const property = await storage.createProperty(propertyData);
+
+          // Generate slug
+          if (property.title) {
+            try {
+              const { generatePropertySlug } = await import("@shared/utils");
+              const generatedSlug = generatePropertySlug(property.title, property.city, property.id);
+              await storage.updateProperty(property.id, { slug: generatedSlug });
+            } catch (error) {
+              console.warn("Slug generation skipped:", error);
+            }
+          }
+
+          // Increment listings used count
+          await storage.incrementSubscriptionListingUsage(sellerProfile.id);
+
+          results.successful++;
+        } catch (error: any) {
+          results.failed++;
+          results.errors.push({
+            row: rowNumber,
+            error: error.message || "Unknown error",
+          });
+          console.error(`Error processing row ${rowNumber}:`, error);
+        }
+      }
+
+      res.json({
+        success: true,
+        results,
+        message: `Processed ${results.total} properties: ${results.successful} successful, ${results.failed} failed`,
+      });
+    } catch (error: any) {
+      console.error("Error in bulk upload:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to process bulk upload",
+      });
+    }
+  });
+
   // Update property
   app.patch("/api/properties/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
@@ -4625,8 +4902,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!profile) {
         return res.json(null);
       }
-      const subscription = await storage.getActiveSubscription(profile.id);
-      res.json(subscription);
+      const result = await storage.getActiveSubscriptionWithPackage(profile.id);
+      if (!result) {
+        return res.json(null);
+      }
+      
+      // Calculate actual listingsUsed from active properties (matching /api/subscriptions/current)
+      const properties = await storage.getPropertiesBySeller(profile.id);
+      const activeListings = properties.filter(p => 
+        p.status === "active" && (p.workflowStatus === "live" || p.workflowStatus === "approved")
+      ).length;
+      
+      // Return subscription with package included and calculated listingsUsed
+      res.json({
+        ...result.subscription,
+        listingsUsed: activeListings,
+        package: result.package,
+      });
     } catch (error) {
       res.status(500).json({ error: "Failed to get subscription" });
     }

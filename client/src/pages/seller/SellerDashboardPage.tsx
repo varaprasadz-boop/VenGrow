@@ -56,7 +56,12 @@ export default function SellerDashboardPage() {
 
   const totalViews = properties.reduce((sum, p) => sum + (p.viewCount || 0), 0);
   const totalFavorites = properties.reduce((sum, p) => sum + (p.favoriteCount || 0), 0);
-  const activeListings = properties.filter(p => p.status === "active").length;
+  // Count active listings that are live or approved (matching subscription calculation)
+  const activeListings = properties.filter(p => 
+    p.status === "active" && (p.workflowStatus === "live" || p.workflowStatus === "approved")
+  ).length;
+  // Use listingsUsed from subscription if available, otherwise use activeListings count
+  const listingsUsed = subscription?.listingsUsed ?? activeListings;
   const pendingInquiries = inquiries.filter(i => i.status === "pending").length;
 
   const stats = [
@@ -64,7 +69,7 @@ export default function SellerDashboardPage() {
       label: "Active Listings",
       value: activeListings.toString(),
       icon: Building,
-      change: subscription ? `${activeListings} of ${subscription.package?.listingLimit || 5} used` : "No subscription",
+      change: subscription ? `${listingsUsed} of ${subscription.package?.listingLimit || 5} used` : "No subscription",
       packageInfo: subscription?.package?.name || "Basic",
       link: "/seller/listings",
     },
@@ -195,8 +200,8 @@ export default function SellerDashboardPage() {
                     {subscription.package?.features?.includes("featured_badge") && " • Featured Badge"}
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    {activeListings} of {subscription.package?.listingLimit || 5} listings used
-                    {subscription.package?.listingLimit && activeListings < subscription.package.listingLimit && " • Upgrade for unlimited listings"}
+                    {listingsUsed} of {subscription.package?.listingLimit || 5} listings used
+                    {subscription.package?.listingLimit && listingsUsed < subscription.package.listingLimit && " • Upgrade for unlimited listings"}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-3">
