@@ -145,11 +145,14 @@ const INDIAN_STATES = [
 ];
 
 export default function CreatePropertyPage() {
+  const [location] = useLocation();
   const [, navigate] = useLocation();
   const params = useParams<{ id?: string }>();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const isEditMode = !!params.id;
+  // Check if we're on an admin route
+  const isAdminRoute = location?.startsWith('/admin/property/edit');
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<PropertyFormData>({
     propertyType: "",
@@ -226,6 +229,7 @@ export default function CreatePropertyPage() {
   });
 
   // Load property data if in edit mode
+  // Use admin endpoint if user is admin, otherwise use regular endpoint
   const { data: propertyData, isLoading: loadingProperty } = useQuery<{
     id: string;
     propertyType: string;
@@ -254,15 +258,100 @@ export default function CreatePropertyPage() {
     highlights?: string[];
     projectId?: string;
     images?: Array<{ url: string; caption?: string; isPrimary?: boolean }>;
+    sellerId?: string;
+    seller?: {
+      id: string;
+      businessName?: string;
+      firstName?: string;
+      lastName?: string;
+      sellerType?: string;
+      isVerified?: boolean;
+    };
+    sellerUser?: {
+      id: string;
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phone?: string;
+    };
   }>({
     queryKey: ["/api/properties", params.id],
     enabled: isEditMode && !!params.id,
+    queryFn: async () => {
+      const response = await fetch(`/api/properties/${params.id}`, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch property");
+      return response.json();
+    },
+  });
+
+  // Fetch seller user information if in edit mode and sellerId exists
+  // Only fetch if not already included in propertyData (for admins, it might be included)
+  const { data: sellerUserData } = useQuery<{
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string | null;
+  }>({
+    queryKey: ["/api/seller-user", propertyData?.sellerId],
+    enabled: isEditMode && !!propertyData?.sellerId && !propertyData?.sellerUser,
+    queryFn: async () => {
+      if (!propertyData?.sellerId) return null;
+      // If propertyData already has sellerUser, use that
+      if (propertyData.sellerUser) {
+        return propertyData.sellerUser;
+      }
+      
+      try {
+        // First get the seller profile to get userId
+        const sellerProfileRes = await fetch(`/api/sellers/${propertyData.sellerId}`, { credentials: "include" });
+        if (!sellerProfileRes.ok) {
+          // If 401, it might be an auth issue - skip for now
+          if (sellerProfileRes.status === 401) {
+            console.warn("Unauthorized to fetch seller profile - skipping seller user data fetch");
+            return null;
+          }
+          console.warn("Failed to fetch seller profile:", sellerProfileRes.status);
+          return null;
+        }
+        const sellerProfile = await sellerProfileRes.json();
+        
+        // Then get the user information using userId from seller profile
+        if (sellerProfile?.userId) {
+          const userRes = await fetch(`/api/users/${sellerProfile.userId}`, { credentials: "include" });
+          if (!userRes.ok) {
+            // If 401, it might be an auth issue - skip for now
+            if (userRes.status === 401) {
+              console.warn("Unauthorized to fetch user - skipping seller user data fetch");
+              return null;
+            }
+            console.warn("Failed to fetch user:", userRes.status);
+            return null;
+          }
+          const userData = await userRes.json();
+          console.log("Fetched seller user data:", { 
+            id: userData.id, 
+            email: userData.email, 
+            phone: userData.phone,
+            firstName: userData.firstName,
+            lastName: userData.lastName
+          });
+          return userData;
+        }
+        return null;
+      } catch (error) {
+        console.error("Error fetching seller user data:", error);
+        return null;
+      }
+    },
+    retry: false, // Don't retry on 401 errors
   });
 
   // Populate form when property data loads
   useEffect(() => {
     if (propertyData) {
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         propertyType: propertyData.propertyType || "",
         transactionType: propertyData.transactionType || "",
         title: propertyData.title || "",
@@ -300,15 +389,40 @@ export default function CreatePropertyPage() {
             if (b.isPrimary) return 1;
             return 0;
           }),
-        contactName: "",
-        contactPhone: "",
-        contactEmail: "",
         agreedToTerms: true,
         verifiedInfo: true,
         projectId: propertyData.projectId || "",
-      });
+      }));
     }
   }, [propertyData]);
+
+  // Update contact fields when seller user data loads (for admin editing)
+  // Also check propertyData.sellerUser if available
+  useEffect(() => {
+    if (isEditMode) {
+      const userData = sellerUserData || propertyData?.sellerUser;
+      if (userData) {
+        const contactName = `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || "";
+        // Handle phone - it might be null, undefined, or empty string
+        const contactPhone = (userData.phone && userData.phone.trim()) ? userData.phone.trim() : "";
+        const contactEmail = userData.email || "";
+
+        console.log("Updating contact fields from seller user data:", { 
+          contactName, 
+          contactPhone, 
+          contactEmail,
+          rawPhone: userData.phone 
+        });
+
+        setFormData(prev => ({
+          ...prev,
+          contactName: contactName,
+          contactPhone: contactPhone,
+          contactEmail: contactEmail,
+        }));
+      }
+    }
+  }, [sellerUserData, propertyData?.sellerUser, isEditMode]);
 
   useEffect(() => {
     const user = authData?.user;
@@ -372,7 +486,7 @@ export default function CreatePropertyPage() {
           title: "Property Created",
           description: "Your property listing has been saved as draft. Submit it for review when ready.",
         });
-        navigate(`/seller/properties`);
+        navigate((isAdmin || isAdminRoute) ? `/admin/properties` : `/seller/properties`);
       } else {
         throw new Error(result.message || "Failed to create property");
       }
@@ -425,7 +539,7 @@ export default function CreatePropertyPage() {
         title: "Property Updated",
         description: message,
       });
-      navigate(`/seller/properties`);
+      navigate((isAdmin || isAdminRoute) ? `/admin/properties` : `/seller/properties`);
     },
     onError: (error: Error) => {
       toast({
@@ -662,10 +776,10 @@ export default function CreatePropertyPage() {
               To create more property listings, please upgrade to a higher package.
             </p>
             <div className="flex gap-4 justify-center">
-              <Button variant="outline" onClick={() => navigate("/seller/dashboard")}>
+              <Button variant="outline" onClick={() => navigate((isAdmin || isAdminRoute) ? "/admin/dashboard" : "/seller/dashboard")}>
                 Back to Dashboard
               </Button>
-              <Button onClick={() => navigate("/seller/packages")}>
+              <Button onClick={() => navigate((isAdmin || isAdminRoute) ? "/admin/packages" : "/seller/packages")}>
                 View Packages
               </Button>
             </div>
@@ -1800,7 +1914,7 @@ export default function CreatePropertyPage() {
             {currentStep === 1 ? (
               <Button
                 variant="outline"
-                onClick={() => navigate("/seller/dashboard")}
+                onClick={() => navigate((isAdmin || isAdminRoute) ? "/admin/dashboard" : "/seller/dashboard")}
                 data-testid="button-cancel"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />

@@ -224,6 +224,12 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     return next();
   }
 
+  // Check for admin session (admins can access authenticated endpoints)
+  const adminUser = (req.session as any)?.adminUser;
+  if (adminUser?.isSuperAdmin || adminUser?.role === "admin") {
+    return next();
+  }
+
   // If not on Replit, and no local session, reject
   if (!isRunningOnReplit()) {
     return res.status(401).json({ message: "Unauthorized" });

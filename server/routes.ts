@@ -1710,8 +1710,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get seller profile if sellerId exists
       let sellerProfile = null;
+      let sellerUser = null;
       if (property.sellerId) {
         sellerProfile = await storage.getSellerProfile(property.sellerId);
+        
+        // If admin is requesting, also include seller user info for editing
+        const adminUser = (req.session as any)?.adminUser;
+        const localUser = (req.session as any)?.localUser;
+        const isAdmin = adminUser?.isSuperAdmin || adminUser?.role === "admin" || localUser?.role === "admin";
+        
+        if (isAdmin && sellerProfile?.userId) {
+          try {
+            sellerUser = await storage.getUser(sellerProfile.userId);
+          } catch (error) {
+            console.error("Error fetching seller user for admin:", error);
+            // Continue without seller user info
+          }
+        }
       }
       
       res.json({ 
@@ -1724,6 +1739,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: sellerProfile.lastName,
           sellerType: sellerProfile.sellerType,
           isVerified: sellerProfile.isVerified || false,
+        } : null,
+        sellerUser: sellerUser ? {
+          id: sellerUser.id,
+          firstName: sellerUser.firstName,
+          lastName: sellerUser.lastName,
+          email: sellerUser.email,
+          phone: sellerUser.phone,
         } : null,
       });
     } catch (error) {
@@ -1839,9 +1861,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const propertyId = req.params.id;
       
-      // Get current user ID
-      const userId = getAuthenticatedUserId(req);
-      if (!userId) {
+      // Get current user ID (check both regular auth and admin auth)
+      let userId = getAuthenticatedUserId(req);
+      const adminUser = (req.session as any)?.adminUser;
+      const isAdmin = adminUser?.isSuperAdmin || adminUser?.role === "admin";
+      
+      // If admin, use admin user ID or create a placeholder
+      if (isAdmin && !userId) {
+        userId = adminUser?.id || "admin";
+      }
+      
+      if (!userId && !isAdmin) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
@@ -1851,16 +1881,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Property not found" });
       }
       
-      // Check if user owns this property (through seller profile)
-      const sellerProfile = await storage.getSellerProfileByUserId(userId);
-      if (!sellerProfile || sellerProfile.id !== currentProperty.sellerId) {
-        return res.status(403).json({ error: "You can only edit your own properties" });
+      // Check if user is admin (bypass ownership check for admins)
+      const user = userId && userId !== "admin" ? await storage.getUser(userId) : null;
+      const isAdminUser = isAdmin || user?.role === "admin";
+      
+      // Check if user owns this property (through seller profile) - unless admin
+      if (!isAdminUser) {
+        const sellerProfile = await storage.getSellerProfileByUserId(userId);
+        if (!sellerProfile || sellerProfile.id !== currentProperty.sellerId) {
+          return res.status(403).json({ error: "You can only edit your own properties" });
+        }
       }
       
       // If property is approved, live, needs_reapproval, or submitted, editing should go to pendingChanges
       // Edits are stored in pendingChanges but NOT applied until admin re-approves
+      // Admins can bypass this and edit directly
       const protectedStatuses = ["approved", "live", "needs_reapproval", "submitted"];
-      const requiresPendingChanges = protectedStatuses.includes(currentProperty.workflowStatus || "");
+      const requiresPendingChanges = !isAdminUser && protectedStatuses.includes(currentProperty.workflowStatus || "");
       
       let property;
       
@@ -1904,13 +1941,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Changes saved as pending. Please resubmit for admin approval. Your live listing remains unchanged until approved."
         });
       } else {
-        // For draft or other statuses, apply changes directly
-        // Sanitize input to prevent editing protected fields
+        // For draft or other statuses, or for admins, apply changes directly
+        // Sanitize input to prevent editing protected fields (admins can edit more fields)
         const protectedFields = [
-          'id', 'sellerId', 'status', 'workflowStatus', 'isVerified', 'isFeatured',
-          'viewCount', 'inquiryCount', 'favoriteCount', 'publishedAt', 'expiresAt',
-          'approvedAt', 'approvedBy', 'rejectionReason', 'createdAt', 'updatedAt'
+          'id', 'createdAt', 'updatedAt'
         ];
+        // Non-admin users cannot edit these system fields
+        if (!isAdminUser) {
+          protectedFields.push('sellerId', 'status', 'workflowStatus', 'isVerified', 'isFeatured',
+            'viewCount', 'inquiryCount', 'favoriteCount', 'publishedAt', 'expiresAt',
+            'approvedAt', 'approvedBy', 'rejectionReason');
+        }
         const sanitizedBody = { ...req.body };
         protectedFields.forEach(field => delete sanitizedBody[field]);
         

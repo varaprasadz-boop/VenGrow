@@ -33,6 +33,7 @@ import {
   AlertCircle,
   Star,
   Download,
+  Edit,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -168,6 +169,7 @@ export default function PropertiesPage() {
   }
 
   return (
+    <>
       <main className="flex-1 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between mb-8">
@@ -278,11 +280,22 @@ export default function PropertiesPage() {
                           {format(new Date(property.createdAt), "MMM d, yyyy")}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Link href={`/property/${property.id}`}>
-                            <Button variant="ghost" size="sm" data-testid={`button-view-${property.id}`}>
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
+                          <div className="flex justify-end gap-2">
+                            <Link href={`/property/${property.id}`}>
+                              <Button variant="ghost" size="sm" data-testid={`button-view-${property.id}`}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            <Link href={`/admin/property/edit/${property.id}`}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                data-testid={`button-edit-${property.id}`}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -293,5 +306,7 @@ export default function PropertiesPage() {
           </Card>
         </div>
       </main>
-    );
+
+    </>
+  );
 }

@@ -26,14 +26,16 @@ import {
   CheckCircle,
   Flag,
   Loader2,
+  Edit,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { Property } from "@shared/schema";
+import { Link } from "wouter";
 
 export default function PropertyDetailPage() {
   const params = useParams();
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const propertyId = params.id;
 
@@ -202,6 +204,18 @@ export default function PropertyDetailPage() {
             </div>
           )}
           <div className="absolute top-4 right-4 flex gap-2">
+            {isAdmin && (
+              <Link href={`/admin/property/edit/${propertyId}`}>
+                <Button
+                  size="sm"
+                  variant="default"
+                  data-testid="button-admin-edit"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Property
+                </Button>
+              </Link>
+            )}
             <Button
               size="sm"
               variant="secondary"
@@ -495,6 +509,7 @@ export default function PropertyDetailPage() {
       </main>
 
       <BuyerBottomNav />
+
     </div>
   );
 }
