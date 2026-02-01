@@ -4,6 +4,7 @@ import {
   Building2, LogOut, Scale, Eye, Calendar, MapPin, Home,
   Filter, History, Star, HelpCircle, User
 } from "lucide-react";
+import { RefreshButton } from "@/components/RefreshButton";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -220,6 +221,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
               <SidebarTrigger data-testid="button-sidebar-toggle" />
             </div>
             <div className="flex items-center gap-2">
+              <RefreshButton variant="ghost" size="icon" aria-label="Refresh page data" />
               <Button variant="ghost" size="icon" asChild>
                 <Link href="/buyer/favorites" data-testid="button-favorites">
                   <Heart className="h-4 w-4" />

@@ -119,7 +119,9 @@ export interface IStorage {
   getAppointment(id: string): Promise<Appointment | undefined>;
   getAppointmentsByBuyer(buyerId: string): Promise<Appointment[]>;
   getAppointmentsBySeller(sellerId: string): Promise<Appointment[]>;
+  getAppointmentsBySellerUserId(userId: string): Promise<Appointment[]>;
   getAppointmentsByProperty(propertyId: string): Promise<Appointment[]>;
+  getAppointmentsByPropertyIds(propertyIds: string[]): Promise<Appointment[]>;
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: string, data: Partial<InsertAppointment>): Promise<Appointment | undefined>;
   cancelAppointment(id: string, reason?: string): Promise<Appointment | undefined>;
@@ -994,8 +996,20 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(appointments).where(eq(appointments.sellerId, sellerId)).orderBy(desc(appointments.scheduledDate));
   }
 
+  async getAppointmentsBySellerUserId(userId: string): Promise<Appointment[]> {
+    const profiles = await db.select({ id: sellerProfiles.id }).from(sellerProfiles).where(eq(sellerProfiles.userId, userId));
+    const profileIds = profiles.map((p) => p.id);
+    if (profileIds.length === 0) return [];
+    return db.select().from(appointments).where(inArray(appointments.sellerId, profileIds)).orderBy(desc(appointments.scheduledDate));
+  }
+
   async getAppointmentsByProperty(propertyId: string): Promise<Appointment[]> {
     return db.select().from(appointments).where(eq(appointments.propertyId, propertyId)).orderBy(desc(appointments.scheduledDate));
+  }
+
+  async getAppointmentsByPropertyIds(propertyIds: string[]): Promise<Appointment[]> {
+    if (propertyIds.length === 0) return [];
+    return db.select().from(appointments).where(inArray(appointments.propertyId, propertyIds)).orderBy(desc(appointments.scheduledDate));
   }
 
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {

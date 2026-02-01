@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation as useWouterLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, Heart, User, Home, ChevronDown, Plus, LogOut, LayoutDashboard, MessageSquare, Settings, Building2, MapPin } from "lucide-react";
+import { RefreshButton } from "@/components/RefreshButton";
 import {
   Sheet,
   SheetContent,
@@ -171,6 +172,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
           </nav>
 
           <nav className="hidden md:flex items-center gap-2">
+            <RefreshButton variant="ghost" size="icon" aria-label="Refresh page data" />
             {userType === "seller" || !isLoggedIn ? (
               <Link href={isLoggedIn ? "/seller/property/add" : "/login"}>
                 <Button variant="outline" size="sm" data-testid="button-post-property">
@@ -288,6 +290,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
           </nav>
 
           <div className="flex md:hidden items-center gap-2">
+            <RefreshButton variant="ghost" size="icon" aria-label="Refresh page data" />
             {isLoggedIn && userId && <NotificationBell userId={userId} />}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>

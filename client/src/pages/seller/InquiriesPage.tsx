@@ -6,9 +6,25 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Search,
   Phone,
@@ -18,6 +34,7 @@ import {
   MoreVertical,
   CheckCircle,
   X,
+  Edit2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -39,6 +56,15 @@ export default function InquiriesPage() {
   const [, setLocation] = useLocation();
   const [selectedTab, setSelectedTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingInquiry, setEditingInquiry] = useState<InquiryWithDetails | null>(null);
+  const [scheduleInquiry, setScheduleInquiry] = useState<InquiryWithDetails | null>(null);
+  const [scheduleForm, setScheduleForm] = useState({ date: "", time: "", notes: "" });
+  const [editForm, setEditForm] = useState({
+    sellerNotes: "",
+    followUpDate: "",
+    leadTemperature: "",
+    conversionStatus: "",
+  });
   const { toast } = useToast();
 
   const { data: inquiries = [], isLoading } = useQuery<InquiryWithDetails[]>({
@@ -62,6 +88,62 @@ export default function InquiriesPage() {
       toast({ title: "Failed to update inquiry", variant: "destructive" });
     },
   });
+
+  const updateLeadMutation = useMutation({
+    mutationFn: async (data: { id: string; updates: Record<string, unknown> }) => {
+      const response = await apiRequest("PATCH", `/api/inquiries/${data.id}/crm`, data.updates);
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/me/seller-inquiries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/me/seller-appointments"] });
+      toast({ title: "Lead updated", description: "If you set Viewing Scheduled, it will appear in Property Visits." });
+      setEditingInquiry(null);
+    },
+    onError: () => {
+      toast({ title: "Failed to update lead", variant: "destructive" });
+    },
+  });
+
+  const scheduleVisitMutation = useMutation({
+    mutationFn: async (data: { inquiryId: string; scheduledDate: string; scheduledTime: string; notes?: string }) => {
+      return apiRequest("POST", "/api/seller/appointments-from-lead", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/me/seller-inquiries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/me/seller-appointments"] });
+      toast({ title: "Visit scheduled", description: "It will appear in Scheduled Visits." });
+      setScheduleInquiry(null);
+      setScheduleForm({ date: "", time: "", notes: "" });
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { error?: string } }; message?: string })?.response?.data?.error ?? (err as Error)?.message ?? "Failed to schedule visit";
+      toast({ title: "Error", description: msg, variant: "destructive" });
+    },
+  });
+
+  const openManageLead = (inquiry: InquiryWithDetails) => {
+    setEditingInquiry(inquiry);
+    setEditForm({
+      sellerNotes: inquiry.sellerNotes || "",
+      followUpDate: inquiry.followUpDate ? format(new Date(inquiry.followUpDate), "yyyy-MM-dd") : "",
+      leadTemperature: (inquiry.leadTemperature as string) || "warm",
+      conversionStatus: inquiry.conversionStatus || "new",
+    });
+  };
+
+  const handleSaveLead = () => {
+    if (!editingInquiry) return;
+    updateLeadMutation.mutate({
+      id: editingInquiry.id,
+      updates: {
+        sellerNotes: editForm.sellerNotes || null,
+        followUpDate: editForm.followUpDate || null,
+        leadTemperature: editForm.leadTemperature || null,
+        conversionStatus: editForm.conversionStatus || null,
+      },
+    });
+  };
 
   const filterInquiries = () => {
     let filtered = inquiries;
@@ -190,6 +272,11 @@ export default function InquiriesPage() {
                                   <Badge className={statusInfo.className}>
                                     {statusInfo.label}
                                   </Badge>
+                                  {inquiry.conversionStatus === "viewing_scheduled" && (
+                                    <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-500">
+                                      Viewing Scheduled
+                                    </Badge>
+                                  )}
                                 </div>
                                 <p className="text-sm text-muted-foreground mb-2">
                                   {inquiry.property?.title || "Property"}
@@ -252,6 +339,26 @@ export default function InquiriesPage() {
                               <MessageSquare className="h-4 w-4 lg:mr-2" />
                               <span className="hidden lg:inline">Chat</span>
                             </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 lg:flex-none"
+                              onClick={() => { setScheduleInquiry(inquiry); setScheduleForm({ date: "", time: "", notes: "" }); }}
+                              data-testid={`button-schedule-${inquiry.id}`}
+                            >
+                              <Calendar className="h-4 w-4 lg:mr-2" />
+                              <span className="hidden lg:inline">Schedule visit</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 lg:flex-none"
+                              onClick={() => openManageLead(inquiry)}
+                              data-testid={`button-manage-lead-${inquiry.id}`}
+                            >
+                              <Edit2 className="h-4 w-4 lg:mr-2" />
+                              <span className="hidden lg:inline">Manage Lead</span>
+                            </Button>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
@@ -264,6 +371,14 @@ export default function InquiriesPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openManageLead(inquiry)}>
+                                  <Edit2 className="h-4 w-4 mr-2" />
+                                  Manage Lead
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setScheduleInquiry(inquiry); setScheduleForm({ date: "", time: "", notes: "" }); }}>
+                                  <Calendar className="h-4 w-4 mr-2" />
+                                  Schedule visit
+                                </DropdownMenuItem>
                                 {inquiry.status === "pending" && (
                                   <DropdownMenuItem onClick={() => handleMarkReplied(inquiry.id)}>
                                     <CheckCircle className="h-4 w-4 mr-2" />
@@ -304,6 +419,138 @@ export default function InquiriesPage() {
             </TabsContent>
           </Tabs>
         </div>
+
+        {/* Manage Lead dialog */}
+        <Dialog open={!!editingInquiry} onOpenChange={() => setEditingInquiry(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Manage Lead</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Conversion Status</Label>
+                <Select
+                  value={editForm.conversionStatus}
+                  onValueChange={(value) => setEditForm({ ...editForm, conversionStatus: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New Lead</SelectItem>
+                    <SelectItem value="contacted">Contacted</SelectItem>
+                    <SelectItem value="viewing_scheduled">Viewing Scheduled</SelectItem>
+                    <SelectItem value="converted">Converted</SelectItem>
+                    <SelectItem value="lost">Lost</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Setting to &quot;Viewing Scheduled&quot; will add this lead to Property Visits.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Lead Temperature</Label>
+                <Select
+                  value={editForm.leadTemperature}
+                  onValueChange={(value) => setEditForm({ ...editForm, leadTemperature: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select temperature" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hot">Hot</SelectItem>
+                    <SelectItem value="warm">Warm</SelectItem>
+                    <SelectItem value="cold">Cold</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Follow-up Date</Label>
+                <Input
+                  type="date"
+                  value={editForm.followUpDate}
+                  onChange={(e) => setEditForm({ ...editForm, followUpDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Notes</Label>
+                <Textarea
+                  placeholder="Notes about this lead..."
+                  value={editForm.sellerNotes}
+                  onChange={(e) => setEditForm({ ...editForm, sellerNotes: e.target.value })}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingInquiry(null)}>Cancel</Button>
+              <Button onClick={handleSaveLead} disabled={updateLeadMutation.isPending}>
+                {updateLeadMutation.isPending ? "Saving..." : "Save"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Schedule visit dialog */}
+        <Dialog open={!!scheduleInquiry} onOpenChange={() => setScheduleInquiry(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Schedule visit</DialogTitle>
+            </DialogHeader>
+            {scheduleInquiry && (
+              <form
+                className="space-y-4 py-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!scheduleForm.date || !scheduleForm.time) {
+                    toast({ title: "Date and time required", variant: "destructive" });
+                    return;
+                  }
+                  scheduleVisitMutation.mutate({
+                    inquiryId: scheduleInquiry.id,
+                    scheduledDate: scheduleForm.date,
+                    scheduledTime: scheduleForm.time,
+                    notes: scheduleForm.notes || undefined,
+                  });
+                }}
+              >
+                <div className="space-y-2">
+                  <Label>Date</Label>
+                  <Input
+                    type="date"
+                    value={scheduleForm.date}
+                    onChange={(e) => setScheduleForm({ ...scheduleForm, date: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Time</Label>
+                  <Input
+                    type="time"
+                    value={scheduleForm.time}
+                    onChange={(e) => setScheduleForm({ ...scheduleForm, time: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Notes (optional)</Label>
+                  <Textarea
+                    placeholder="Notes for this visit..."
+                    value={scheduleForm.notes}
+                    onChange={(e) => setScheduleForm({ ...scheduleForm, notes: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setScheduleInquiry(null)}>Cancel</Button>
+                  <Button type="submit" disabled={scheduleVisitMutation.isPending}>
+                    {scheduleVisitMutation.isPending ? "Scheduling..." : "Schedule visit"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
   );
 }

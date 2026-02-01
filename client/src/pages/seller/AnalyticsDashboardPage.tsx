@@ -9,15 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
   Eye,
@@ -444,40 +436,6 @@ export default function AnalyticsDashboardPage() {
             </TabsContent>
           </Tabs>
         </div>
-
-        {/* Date Range Dialog */}
-        <Dialog open={dateRangeDialogOpen} onOpenChange={setDateRangeDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Select Date Range</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Select value={selectedRange} onValueChange={setSelectedRange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Time</SelectItem>
-                  <SelectItem value="week">Last Week</SelectItem>
-                  <SelectItem value="month">Last Month</SelectItem>
-                  <SelectItem value="quarter">Last Quarter</SelectItem>
-                  <SelectItem value="year">Last Year</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDateRangeDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={() => {
-                setDateRangeDialogOpen(false);
-                toast({ title: "Date range updated" });
-              }}>
-                Apply
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
     </main>
   );
 }

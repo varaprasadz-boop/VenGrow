@@ -259,7 +259,7 @@ export default function PropertyDetailPage() {
       if (!property) throw new Error("Property not found");
       
       return await apiRequest("POST", "/api/appointments", {
-        propertyId: id,
+        propertyId: property.id,
         scheduledDate: visitDate,
         scheduledTime: visitTime,
         visitType: "physical", // Default to physical for modal (can add selector later)

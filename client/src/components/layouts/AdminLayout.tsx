@@ -5,6 +5,7 @@ import {
   ChevronDown, UserCog, ListChecks, Globe, Mail, Clock, Star,
   Database, Activity, Megaphone, Image, Quote, BadgeCheck, Heart, UserCircle
 } from "lucide-react";
+import { RefreshButton } from "@/components/RefreshButton";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -211,6 +212,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <SidebarTrigger data-testid="button-sidebar-toggle" />
             </div>
             <div className="flex items-center gap-2">
+              <RefreshButton variant="ghost" size="icon" aria-label="Refresh page data" />
               <Button variant="ghost" size="icon" asChild>
                 <Link href="/admin/notifications" data-testid="button-notifications">
                   <Bell className="h-4 w-4" />

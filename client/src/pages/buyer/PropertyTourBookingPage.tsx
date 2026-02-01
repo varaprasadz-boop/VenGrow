@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useParams } from "wouter";
 import Header from "@/components/Header";
 import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { validateEmail, validatePhone } from "@/utils/validation";
 
 export default function PropertyTourBookingPage() {
+  const { id: propertyId } = useParams<{ id: string }>();
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -29,8 +31,9 @@ export default function PropertyTourBookingPage() {
       phone: string;
       email: string;
     }) => {
+      if (!propertyId) throw new Error("Property ID is required");
       return apiRequest("POST", "/api/appointments", {
-        propertyId: "temp-property-id", // TODO: Get from URL params or props
+        propertyId,
         scheduledDate: data.date,
         scheduledTime: data.time,
         buyerName: data.name,

@@ -4,8 +4,9 @@ import {
   LayoutDashboard, Building2, Plus, Package, CreditCard, MessageSquare, 
   Bell, Settings, BarChart3, HelpCircle, LogOut, ListPlus,
   ChevronDown, Heart, Calendar, Star, FileText, Upload, Eye,
-  TrendingUp, Users, Clock
+  TrendingUp, Users, Clock, ListChecks
 } from "lucide-react";
+import { RefreshButton } from "@/components/RefreshButton";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import type { SellerSubscription, Package as PackageType } from "@shared/schema";
@@ -48,23 +49,17 @@ const projectItems = [
 ];
 
 const listingItems = [
-  { title: "Active Listings", href: "/seller/listings/active", icon: Eye },
-  { title: "Pending Review", href: "/seller/listings/pending", icon: Clock },
-  { title: "Drafts", href: "/seller/listings/drafts", icon: FileText },
-  { title: "Expired", href: "/seller/listings/expired", icon: Calendar },
+  { title: "Manage Listing", href: "/seller/listings", icon: ListChecks },
   { title: "Bulk Upload", href: "/seller/bulk-upload", icon: Upload },
 ];
 
 const analyticsItems = [
   { title: "Analytics Overview", href: "/seller/analytics", icon: BarChart3 },
-  { title: "Property Views", href: "/seller/analytics/views", icon: Eye },
   { title: "Lead Performance", href: "/seller/analytics/leads", icon: TrendingUp },
-  { title: "Conversion Insights", href: "/seller/analytics/conversion", icon: TrendingUp },
 ];
 
 const inquiryItems = [
-  { title: "All Inquiries", href: "/seller/inquiries", icon: MessageSquare },
-  { title: "New Leads", href: "/seller/inquiries/new", icon: Users },
+  { title: "Inquiries & Leads", href: "/seller/inquiries", icon: MessageSquare },
   { title: "Scheduled Visits", href: "/seller/visits", icon: Calendar },
   { title: "Favorites", href: "/seller/favorites", icon: Heart },
 ];
@@ -296,6 +291,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
               <SidebarTrigger data-testid="button-sidebar-toggle" />
             </div>
             <div className="flex items-center gap-2">
+              <RefreshButton variant="ghost" size="icon" aria-label="Refresh page data" />
               <Button variant="outline" size="sm" asChild>
                 <Link href="/seller/property/add" data-testid="button-add-property-header">
                   <Plus className="h-4 w-4 mr-2" />

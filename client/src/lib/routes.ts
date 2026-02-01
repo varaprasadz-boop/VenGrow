@@ -284,7 +284,7 @@ export const sellerRoutes: RouteConfig[] = [
   
   // Inquiries & Leads - Sidebar Links
   { path: "/seller/inquiries", component: lazy(() => import("@/pages/seller/InquiriesPage")), requireAuth: true, roles: ["seller"], title: "Inquiries" },
-  { path: "/seller/inquiries/new", component: lazy(() => import("@/pages/seller/LeadManagementPage")), requireAuth: true, roles: ["seller"], title: "New Leads" },
+  { path: "/seller/inquiries/new", component: lazy(() => import("@/pages/seller/InquiriesPage")), requireAuth: true, roles: ["seller"], title: "Inquiries" },
   { path: "/seller/inquiries/form", component: lazy(() => import("@/pages/seller/FormInquiriesPage")), requireAuth: true, roles: ["seller"], title: "Form Submissions" },
   { path: "/seller/inquiries/chat", component: lazy(() => import("@/pages/seller/ChatInquiriesPage")), requireAuth: true, roles: ["seller"], title: "Chat Inquiries" },
   { path: "/seller/inquiries/call", component: lazy(() => import("@/pages/seller/CallInquiriesPage")), requireAuth: true, roles: ["seller"], title: "Call Requests" },

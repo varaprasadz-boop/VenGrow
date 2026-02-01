@@ -140,11 +140,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getAuthenticatedUserId(req);
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       
-      const { firstName, lastName, phone, bio } = req.body;
-      const updateData: any = {};
-      
-      if (firstName !== undefined) updateData.firstName = firstName.trim();
-      if (lastName !== undefined) updateData.lastName = lastName.trim();
+      const { firstName, lastName, phone } = req.body;
+      const updateData: Record<string, unknown> = {};
+      if (firstName !== undefined) updateData.firstName = String(firstName).trim();
+      if (lastName !== undefined) updateData.lastName = String(lastName).trim();
       if (phone !== undefined) {
         const cleanedPhone = String(phone).replace(/\D/g, "");
         if (cleanedPhone && !validatePhone(cleanedPhone)) {
@@ -152,9 +151,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         updateData.phone = cleanedPhone || null;
       }
-      if (bio !== undefined) updateData.bio = bio.trim();
-      
-      const updatedUser = await storage.updateUser(userId, updateData);
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "No valid fields to update" });
+      }
+      const updatedUser = await storage.updateUser(userId, updateData as any);
       res.json(updatedUser);
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -177,20 +177,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         inquiryReplies 
       } = req.body;
       
-      const preferences: any = {};
+      const preferences: Record<string, boolean> = {};
       if (emailNotifications !== undefined) preferences.emailNotifications = emailNotifications;
       if (smsNotifications !== undefined) preferences.smsNotifications = smsNotifications;
       if (pushNotifications !== undefined) preferences.pushNotifications = pushNotifications;
       if (newListings !== undefined) preferences.newListings = newListings;
       if (priceDrops !== undefined) preferences.priceDrops = priceDrops;
       if (inquiryReplies !== undefined) preferences.inquiryReplies = inquiryReplies;
-      
-      // Store preferences in user metadata or create a separate preferences table
-      // For now, storing in user's metadata field if it exists, or we can extend the user table
-      const updatedUser = await storage.updateUser(userId, { 
-        metadata: preferences 
-      } as any);
-      
+      await storage.setSystemSetting(`user_preferences_${userId}`, preferences);
       res.json({ success: true, preferences });
     } catch (error) {
       console.error("Error updating preferences:", error);
@@ -236,8 +230,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (localUser?.id) {
         const user = await storage.getUser(localUser.id);
         if (user) {
-          console.log("Returning local user:", { id: user.id, email: user.email, role: user.role });
-          return res.json(user);
+          const prefsSetting = await storage.getSystemSetting(`user_preferences_${user.id}`);
+          const metadata = (prefsSetting?.value as Record<string, boolean>) || {};
+          return res.json({ ...user, metadata });
         }
       }
       
@@ -4799,6 +4794,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update current seller's profile (business info, branding)
+  app.patch("/api/me/seller-profile", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.status(404).json({ error: "Seller profile not found" });
+      }
+      const allowed = [
+        "companyName", "description", "website", "address", "city", "state", "pincode",
+        "reraNumber", "gstNumber", "panNumber", "logo"
+      ];
+      const updateData: Record<string, unknown> = {};
+      for (const key of allowed) {
+        if (req.body[key] !== undefined) updateData[key] = req.body[key];
+      }
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "No valid fields to update" });
+      }
+      const updated = await storage.updateSellerProfile(profile.id, updateData as any);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating seller profile:", error);
+      res.status(500).json({ error: "Failed to update seller profile" });
+    }
+  });
+
+  const DEFAULT_SELLER_LISTING_SETTINGS = {
+    autoApproveInquiries: false,
+    emailNotifications: true,
+    smsNotifications: true,
+    showPhoneNumber: true,
+    showEmail: false,
+    allowScheduleVisit: true,
+    autoResponseEnabled: false,
+    weekendAvailability: true,
+    autoResponseMessage: "Thank you for your inquiry. I will get back to you within 24 hours.",
+    availableFrom: "09:00",
+    availableUntil: "18:00",
+  };
+
+  app.get("/api/me/seller-settings", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const setting = await storage.getSystemSetting(`seller_listing_settings_${userId}`);
+      const value = (setting?.value as Record<string, unknown>) || DEFAULT_SELLER_LISTING_SETTINGS;
+      res.json({ ...DEFAULT_SELLER_LISTING_SETTINGS, ...value });
+    } catch (error) {
+      console.error("Error getting seller settings:", error);
+      res.status(500).json({ error: "Failed to get seller settings" });
+    }
+  });
+
+  app.patch("/api/me/seller-settings", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const allowed = [
+        "autoApproveInquiries", "emailNotifications", "smsNotifications",
+        "showPhoneNumber", "showEmail", "allowScheduleVisit", "autoResponseEnabled",
+        "weekendAvailability", "autoResponseMessage", "availableFrom", "availableUntil",
+      ];
+      const update: Record<string, unknown> = {};
+      for (const key of allowed) {
+        if (req.body[key] !== undefined) update[key] = req.body[key];
+      }
+      const existing = await storage.getSystemSetting(`seller_listing_settings_${userId}`);
+      const merged = existing?.value
+        ? { ...(existing.value as Record<string, unknown>), ...update }
+        : { ...DEFAULT_SELLER_LISTING_SETTINGS, ...update };
+      await storage.setSystemSetting(`seller_listing_settings_${userId}`, merged);
+      res.json(merged);
+    } catch (error) {
+      console.error("Error updating seller settings:", error);
+      res.status(500).json({ error: "Failed to update seller settings" });
+    }
+  });
+
+  const DEFAULT_SELLER_NOTIFICATION_PREFS = {
+    newInquiry: true,
+    messages: true,
+    listingApproved: true,
+    payment: true,
+    weeklyReport: false,
+    marketing: false,
+    urgentInquirySms: true,
+    bookingSms: true,
+    paymentSms: false,
+    pushEnabled: true,
+  };
+
+  app.get("/api/me/seller-notification-preferences", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const setting = await storage.getSystemSetting(`seller_notification_prefs_${userId}`);
+      const value = (setting?.value as Record<string, unknown>) || DEFAULT_SELLER_NOTIFICATION_PREFS;
+      res.json({ ...DEFAULT_SELLER_NOTIFICATION_PREFS, ...value });
+    } catch (error) {
+      console.error("Error getting seller notification preferences:", error);
+      res.status(500).json({ error: "Failed to get notification preferences" });
+    }
+  });
+
+  app.patch("/api/me/seller-notification-preferences", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const allowed = [
+        "newInquiry", "messages", "listingApproved", "payment", "weeklyReport", "marketing",
+        "urgentInquirySms", "bookingSms", "paymentSms", "pushEnabled",
+      ];
+      const update: Record<string, unknown> = {};
+      for (const key of allowed) {
+        if (req.body[key] !== undefined) update[key] = req.body[key];
+      }
+      const existing = await storage.getSystemSetting(`seller_notification_prefs_${userId}`);
+      const merged = existing?.value
+        ? { ...(existing.value as Record<string, unknown>), ...update }
+        : { ...DEFAULT_SELLER_NOTIFICATION_PREFS, ...update };
+      await storage.setSystemSetting(`seller_notification_prefs_${userId}`, merged);
+      res.json(merged);
+    } catch (error) {
+      console.error("Error updating seller notification preferences:", error);
+      res.status(500).json({ error: "Failed to update notification preferences" });
+    }
+  });
+
   // Get current seller's properties
   app.get("/api/me/properties", isAuthenticated, async (req: any, res: Response) => {
     try {
@@ -4886,6 +5011,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (conversionStatus !== undefined) updateData.conversionStatus = conversionStatus;
 
       const updated = await storage.updateInquiry(req.params.id, updateData as Partial<import("@shared/schema").InsertInquiry>);
+
+      // When conversion status is set to viewing_scheduled, create an appointment so it shows in Property Visits
+      if (conversionStatus === "viewing_scheduled") {
+        const sellerAppointments = await storage.getAppointmentsBySeller(profile.id);
+        const existingForInquiry = sellerAppointments.some(
+          (a) => a.propertyId === inquiry.propertyId && a.buyerId === inquiry.buyerId
+        );
+        if (!existingForInquiry) {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(10, 0, 0, 0);
+          await storage.createAppointment({
+            propertyId: inquiry.propertyId,
+            buyerId: inquiry.buyerId,
+            sellerId: profile.id,
+            scheduledDate: tomorrow,
+            scheduledTime: "10:00 AM",
+            visitType: "physical",
+            notes: "Scheduled from lead – confirm time with buyer.",
+            status: "pending",
+          });
+        }
+      }
+
       res.json({ success: true, inquiry: updated });
     } catch (error) {
       console.error("Error updating inquiry CRM:", error);
@@ -5353,6 +5502,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get seller lead performance metrics (for Lead Performance page)
+  app.get("/api/seller/lead-performance", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json({
+          averageResponseTimeHours: 0,
+          averageResponseTimeLabel: "—",
+          responseTimeChange: 0,
+          inquiryConversionRate: 0,
+          conversionRateChange: 0,
+          avgViewsPerProperty: 0,
+          viewsPerPropertyChange: 0,
+          favoriteRate: 0,
+          favoriteRateChange: 0,
+        });
+      }
+
+      const properties = await storage.getPropertiesBySeller(profile.id);
+      const inquiries = await storage.getInquiriesBySeller(profile.id);
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+      const totalViews = properties.reduce((sum, p) => sum + (p.viewCount || 0), 0);
+      const totalFavorites = properties.reduce((sum, p) => sum + (p.favoriteCount || 0), 0);
+      const totalInquiries = inquiries.length;
+      const repliedInquiries = inquiries.filter((i) => i.status === "replied" && i.respondedAt);
+      const totalProperties = properties.length;
+
+      // Average response time (hours) - from inquiries that have respondedAt
+      let averageResponseTimeHours = 0;
+      if (repliedInquiries.length > 0) {
+        const totalMs = repliedInquiries.reduce((sum, i) => {
+          const created = new Date(i.createdAt).getTime();
+          const responded = new Date(i.respondedAt!).getTime();
+          return sum + (responded - created);
+        }, 0);
+        averageResponseTimeHours = totalMs / repliedInquiries.length / (1000 * 60 * 60);
+      }
+      const formatResponseTime = (hours: number) => {
+        if (hours < 1) return `${Math.round(hours * 60)} min`;
+        if (hours < 24) return `${hours.toFixed(1)} hrs`;
+        return `${(hours / 24).toFixed(1)} days`;
+      };
+
+      // Response time change: compare this month vs last month (replied inquiries only)
+      const repliedThisMonth = repliedInquiries.filter((i) => new Date(i.respondedAt!) >= thirtyDaysAgo);
+      const repliedLastMonth = repliedInquiries.filter((i) => {
+        const d = new Date(i.respondedAt!).getTime();
+        return d >= sixtyDaysAgo.getTime() && d < thirtyDaysAgo.getTime();
+      });
+      let avgThisMonth = 0, avgLastMonth = 0;
+      if (repliedThisMonth.length > 0) {
+        avgThisMonth = repliedThisMonth.reduce((s, i) => s + (new Date(i.respondedAt!).getTime() - new Date(i.createdAt).getTime()), 0) / repliedThisMonth.length / (1000 * 60 * 60);
+      }
+      if (repliedLastMonth.length > 0) {
+        avgLastMonth = repliedLastMonth.reduce((s, i) => s + (new Date(i.respondedAt!).getTime() - new Date(i.createdAt).getTime()), 0) / repliedLastMonth.length / (1000 * 60 * 60);
+      }
+      const responseTimeChange = avgLastMonth > 0 ? ((avgLastMonth - avgThisMonth) / avgLastMonth) * 100 : 0;
+
+      // Inquiry conversion rate = (replied / total inquiries) * 100
+      const inquiryConversionRate = totalInquiries > 0 ? (repliedInquiries.length / totalInquiries) * 100 : 0;
+      const totalThisMonth = inquiries.filter((i) => new Date(i.createdAt) >= thirtyDaysAgo).length;
+      const repliedThisMonthCount = inquiries.filter((i) => i.status === "replied" && new Date(i.createdAt) >= thirtyDaysAgo).length;
+      const totalLastMonth = inquiries.filter((i) => {
+        const d = new Date(i.createdAt).getTime();
+        return d >= sixtyDaysAgo.getTime() && d < thirtyDaysAgo.getTime();
+      }).length;
+      const repliedLastMonthCount = inquiries.filter((i) => {
+        if (i.status !== "replied") return false;
+        const d = new Date(i.createdAt).getTime();
+        return d >= sixtyDaysAgo.getTime() && d < thirtyDaysAgo.getTime();
+      }).length;
+      const rateThis = totalThisMonth > 0 ? (repliedThisMonthCount / totalThisMonth) * 100 : 0;
+      const rateLast = totalLastMonth > 0 ? (repliedLastMonthCount / totalLastMonth) * 100 : 0;
+      const conversionRateChange = rateLast > 0 ? ((rateThis - rateLast) / rateLast) * 100 : 0;
+
+      // Avg views per property
+      const avgViewsPerProperty = totalProperties > 0 ? Math.round(totalViews / totalProperties) : 0;
+      // Views change: we don't have historical views per period, so use 0
+      const viewsPerPropertyChange = 0;
+
+      // Favorite rate = (totalFavorites / totalViews) * 100
+      const favoriteRate = totalViews > 0 ? (totalFavorites / totalViews) * 100 : 0;
+      const favoriteRateChange = 0;
+
+      res.json({
+        averageResponseTimeHours,
+        averageResponseTimeLabel: formatResponseTime(averageResponseTimeHours),
+        responseTimeChange,
+        inquiryConversionRate: Math.round(inquiryConversionRate * 10) / 10,
+        conversionRateChange,
+        avgViewsPerProperty,
+        viewsPerPropertyChange,
+        favoriteRate: Math.round(favoriteRate * 10) / 10,
+        favoriteRateChange,
+      });
+    } catch (error) {
+      console.error("Error getting lead performance:", error);
+      res.status(500).json({ error: "Failed to get lead performance" });
+    }
+  });
+
   // Get current user's payments
   app.get("/api/me/payments", isAuthenticated, async (req: any, res: Response) => {
     try {
@@ -5397,16 +5652,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get seller's appointments
+  // Get seller's appointments: show all visit requests for properties owned by this user
   app.get("/api/me/seller-appointments", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = getAuthenticatedUserId(req);
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      // Prefer: appointments for properties owned by this seller (so visits always show for property owner)
       const profile = await storage.getSellerProfileByUserId(userId);
       if (!profile) {
-        return res.json([]);
+        const bySellerId = await storage.getAppointmentsBySellerUserId(userId);
+        return res.json(bySellerId);
       }
-      const appointments = await storage.getAppointmentsBySeller(profile.id);
+      const properties = await storage.getPropertiesBySeller(profile.id);
+      const propertyIds = properties.map((p) => p.id);
+      if (propertyIds.length === 0) {
+        const bySellerId = await storage.getAppointmentsBySellerUserId(userId);
+        return res.json(bySellerId);
+      }
+      const appointments = await storage.getAppointmentsByPropertyIds(propertyIds);
       res.json(appointments);
     } catch (error) {
       res.status(500).json({ error: "Failed to get appointments" });
@@ -5493,6 +5756,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error creating appointment:", error);
       const errorMessage = error?.message || "Failed to create appointment";
       res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // Seller: create appointment from a lead (inquiry) – so it shows in Scheduled Visitors
+  app.post("/api/seller/appointments-from-lead", isAuthenticated, getRateLimitMiddleware(10, 15 * 60 * 1000), async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) return res.status(403).json({ error: "Seller profile not found" });
+      const { inquiryId, scheduledDate, scheduledTime, visitType, notes } = req.body;
+      if (!inquiryId || !scheduledDate || !scheduledTime) {
+        return res.status(400).json({ error: "Inquiry ID, date and time are required" });
+      }
+      const inquiry = await storage.getInquiry(inquiryId);
+      if (!inquiry) return res.status(404).json({ error: "Inquiry not found" });
+      if (inquiry.sellerId !== profile.id) {
+        return res.status(403).json({ error: "Not authorized for this inquiry" });
+      }
+      const property = await storage.getProperty(inquiry.propertyId);
+      if (!property) return res.status(404).json({ error: "Property not found" });
+      const validVisitType = visitType === "virtual" ? "virtual" : "physical";
+      const appointment = await storage.createAppointment({
+        propertyId: inquiry.propertyId,
+        buyerId: inquiry.buyerId,
+        sellerId: profile.id,
+        scheduledDate: new Date(scheduledDate),
+        scheduledTime,
+        visitType: validVisitType,
+        notes: notes || null,
+        buyerName: null,
+        buyerPhone: null,
+        buyerEmail: null,
+        status: "pending",
+      });
+      await storage.updateInquiry(inquiryId, { conversionStatus: "viewing_scheduled" });
+      res.status(201).json(appointment);
+    } catch (error: any) {
+      console.error("Error creating appointment from lead:", error);
+      res.status(500).json({ error: error?.message || "Failed to create appointment" });
     }
   });
 

@@ -62,6 +62,8 @@ export default function LeadManagementPage() {
   const { toast } = useToast();
   const [selectedTab, setSelectedTab] = useState("all");
   const [editingLead, setEditingLead] = useState<LeadWithDetails | null>(null);
+  const [scheduleLead, setScheduleLead] = useState<LeadWithDetails | null>(null);
+  const [scheduleForm, setScheduleForm] = useState({ date: "", time: "", notes: "" });
   const [editForm, setEditForm] = useState({
     sellerNotes: "",
     followUpDate: "",
@@ -86,6 +88,23 @@ export default function LeadManagementPage() {
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update lead.", variant: "destructive" });
+    },
+  });
+
+  const scheduleVisitMutation = useMutation({
+    mutationFn: async (data: { inquiryId: string; scheduledDate: string; scheduledTime: string; notes?: string }) => {
+      return apiRequest("POST", "/api/seller/appointments-from-lead", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/me/seller-inquiries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/me/seller-appointments"] });
+      toast({ title: "Visit scheduled", description: "The visit will appear in Scheduled Visitors." });
+      setScheduleLead(null);
+      setScheduleForm({ date: "", time: "", notes: "" });
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.error || err?.message || "Failed to schedule visit";
+      toast({ title: "Error", description: msg, variant: "destructive" });
     },
   });
 
@@ -374,6 +393,15 @@ export default function LeadManagementPage() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => { setScheduleLead(lead); setScheduleForm({ date: "", time: "", notes: "" }); }}
+                          data-testid={`button-schedule-${lead.id}`}
+                        >
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Schedule visit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           data-testid={`button-call-${lead.id}`}
                         >
                           <Phone className="h-4 w-4 mr-2" />
@@ -482,6 +510,70 @@ export default function LeadManagementPage() {
               {updateLeadMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!scheduleLead} onOpenChange={() => setScheduleLead(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Schedule visit</DialogTitle>
+          </DialogHeader>
+          {scheduleLead && (
+            <form
+              className="space-y-4 py-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!scheduleForm.date || !scheduleForm.time) {
+                  toast({ title: "Date and time required", variant: "destructive" });
+                  return;
+                }
+                scheduleVisitMutation.mutate({
+                  inquiryId: scheduleLead.id,
+                  scheduledDate: scheduleForm.date,
+                  scheduledTime: scheduleForm.time,
+                  notes: scheduleForm.notes || undefined,
+                });
+              }}
+            >
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={scheduleForm.date}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, date: e.target.value })}
+                  data-testid="input-schedule-date"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Time</Label>
+                <Input
+                  type="time"
+                  value={scheduleForm.time}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, time: e.target.value })}
+                  data-testid="input-schedule-time"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Notes (optional)</Label>
+                <Textarea
+                  placeholder="Notes for this visit..."
+                  value={scheduleForm.notes}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, notes: e.target.value })}
+                  rows={2}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setScheduleLead(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={scheduleVisitMutation.isPending} data-testid="button-confirm-schedule">
+                  {scheduleVisitMutation.isPending ? "Scheduling..." : "Schedule visit"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </>

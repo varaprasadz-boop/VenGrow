@@ -267,14 +267,15 @@ export default function AppointmentsPage() {
   const pendingCount = appointments.filter((a) => a.status === "pending").length;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold" data-testid="text-page-title">Property Visits</h1>
-        <p className="text-muted-foreground">Manage scheduled property visits from buyers</p>
-      </div>
+    <main className="flex-1">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div>
+          <h1 className="text-2xl font-bold" data-testid="text-page-title">Property Visits</h1>
+          <p className="text-muted-foreground mt-1">Manage scheduled property visits from buyers</p>
+        </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         <Card className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
@@ -308,17 +309,17 @@ export default function AppointmentsPage() {
             </div>
           </div>
         </Card>
-      </div>
+        </div>
 
-      {/* Appointments Tabs */}
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList>
+        {/* Appointments Tabs */}
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="w-full sm:w-auto flex flex-wrap gap-2 p-1 h-auto min-h-10">
           <TabsTrigger value="all" data-testid="tab-all">All ({appointments.length})</TabsTrigger>
           <TabsTrigger value="today" data-testid="tab-today">Today ({todayCount})</TabsTrigger>
           <TabsTrigger value="upcoming" data-testid="tab-upcoming">Upcoming ({upcomingCount})</TabsTrigger>
           <TabsTrigger value="past" data-testid="tab-past">Past</TabsTrigger>
-        </TabsList>
-        <TabsContent value="all" className="space-y-3 mt-4">
+          </TabsList>
+          <TabsContent value="all" className="space-y-4 mt-6">
           {appointments.length === 0 ? (
             <Card className="p-8 text-center">
               <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -326,48 +327,57 @@ export default function AppointmentsPage() {
               <p className="text-muted-foreground">When buyers schedule visits, they'll appear here.</p>
             </Card>
           ) : (
-            appointments.map((appointment) => (
-              <AppointmentCard key={appointment.id} appointment={appointment} />
-            ))
+            <div className="space-y-4">
+              {appointments.map((appointment) => (
+                <AppointmentCard key={appointment.id} appointment={appointment} />
+              ))}
+            </div>
           )}
-        </TabsContent>
-        <TabsContent value="today" className="space-y-3 mt-4">
+          </TabsContent>
+          <TabsContent value="today" className="space-y-4 mt-6">
           {filterAppointments("today").length === 0 ? (
             <Card className="p-8 text-center">
               <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="font-semibold text-lg">No visits scheduled for today</h3>
             </Card>
           ) : (
-            filterAppointments("today").map((appointment) => (
-              <AppointmentCard key={appointment.id} appointment={appointment} />
-            ))
+            <div className="space-y-4">
+              {filterAppointments("today").map((appointment) => (
+                <AppointmentCard key={appointment.id} appointment={appointment} />
+              ))}
+            </div>
           )}
-        </TabsContent>
-        <TabsContent value="upcoming" className="space-y-3 mt-4">
+          </TabsContent>
+          <TabsContent value="upcoming" className="space-y-4 mt-6">
           {filterAppointments("upcoming").length === 0 ? (
             <Card className="p-8 text-center">
               <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="font-semibold text-lg">No upcoming visits</h3>
             </Card>
           ) : (
-            filterAppointments("upcoming").map((appointment) => (
-              <AppointmentCard key={appointment.id} appointment={appointment} />
-            ))
+            <div className="space-y-4">
+              {filterAppointments("upcoming").map((appointment) => (
+                <AppointmentCard key={appointment.id} appointment={appointment} />
+              ))}
+            </div>
           )}
-        </TabsContent>
-        <TabsContent value="past" className="space-y-3 mt-4">
+          </TabsContent>
+          <TabsContent value="past" className="space-y-4 mt-6">
           {filterAppointments("past").length === 0 ? (
             <Card className="p-8 text-center">
               <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="font-semibold text-lg">No past visits</h3>
             </Card>
           ) : (
-            filterAppointments("past").map((appointment) => (
-              <AppointmentCard key={appointment.id} appointment={appointment} />
-            ))
+            <div className="space-y-4">
+              {filterAppointments("past").map((appointment) => (
+                <AppointmentCard key={appointment.id} appointment={appointment} />
+              ))}
+            </div>
           )}
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+        </Tabs>
+      </div>
 
       {/* Appointment Details Modal */}
       <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
@@ -544,6 +554,6 @@ export default function AppointmentsPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </main>
   );
 }

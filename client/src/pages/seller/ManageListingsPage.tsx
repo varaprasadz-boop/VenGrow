@@ -31,6 +31,7 @@ import {
   AlertCircle,
   RefreshCw,
   Send,
+  CalendarX2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -158,8 +159,16 @@ export default function ManageListingsPage() {
         label: "Leased",
         icon: CheckCircle,
       },
+      expired: {
+        className: "bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-500",
+        label: "Expired",
+        icon: Clock,
+      },
     };
 
+    if (status === "expired") {
+      return variants.expired;
+    }
     if (status === "sold" || status === "rented" || (status as string) === "leased") {
       return variants[status as keyof typeof variants] || variants.draft;
     }
@@ -180,6 +189,8 @@ export default function ManageListingsPage() {
         filtered = filtered.filter((l) => l.workflowStatus === "draft" || !l.workflowStatus);
       } else if (selectedTab === "rejected") {
         filtered = filtered.filter((l) => l.workflowStatus === "rejected");
+      } else if (selectedTab === "expired") {
+        filtered = filtered.filter((l) => l.status === "expired" || (l.expiresAt && new Date(l.expiresAt) < new Date()));
       } else if (selectedTab === "sold") {
         filtered = filtered.filter((l) => l.status === "sold" || l.status === "rented" || (l.status as string) === "leased");
       }
@@ -231,6 +242,7 @@ export default function ManageListingsPage() {
   const liveCount = listings.filter((l) => l.workflowStatus === "live" || l.workflowStatus === "approved").length;
   const draftCount = listings.filter((l) => l.workflowStatus === "draft" || !l.workflowStatus).length;
   const rejectedCount = listings.filter((l) => l.workflowStatus === "rejected").length;
+  const expiredCount = listings.filter((l) => l.status === "expired" || (l.expiresAt && new Date(l.expiresAt) < new Date())).length;
   const soldCount = listings.filter((l) => l.status === "sold" || l.status === "rented").length;
 
   const breadcrumbItems = [
@@ -297,6 +309,10 @@ export default function ManageListingsPage() {
               <TabsTrigger value="draft" data-testid="tab-draft">
                 <Edit className="h-3 w-3 mr-1" />
                 Draft ({draftCount})
+              </TabsTrigger>
+              <TabsTrigger value="expired" data-testid="tab-expired">
+                <CalendarX2 className="h-3 w-3 mr-1" />
+                Expired ({expiredCount})
               </TabsTrigger>
               <TabsTrigger value="rejected" data-testid="tab-rejected">
                 <XCircle className="h-3 w-3 mr-1" />
