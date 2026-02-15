@@ -140,7 +140,7 @@ export default function PackageSelectionPage() {
               </Card>
             </div>
           </section>
-        ) : currentSubscription && currentPackage ? (
+        ) : currentSubscription && currentPackage && !isBuyPage ? (
           <section className="py-8">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
               <Card className={`p-6 ${isExpired ? "border-destructive" : isExpiringSoon ? "border-orange-500 dark:border-orange-400" : "border-primary"}`}>
