@@ -96,10 +96,7 @@ export default function PackageSelectionPage() {
   const currentPackage = currentSubData?.package;
   const usage = currentSubData?.usage;
 
-  // On buy page, don't show the user's current package (they already have it)
-  const packagesToShow = isBuyPage && currentPackage
-    ? activePackages.filter(pkg => pkg.id !== currentPackage.id)
-    : activePackages;
+  const packagesToShow = activePackages;
 
   const getDaysRemaining = () => {
     if (!currentSubscription?.endDate) return 0;
