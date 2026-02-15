@@ -26,7 +26,7 @@ type NotificationPrefs = typeof DEFAULT_PREFS;
 
 const emailPreferences = [
   { id: "newInquiry" as const, label: "New Inquiries", description: "Get notified when someone inquires about your property" },
-  { id: "messages" as const, label: "New Messages", description: "Notifications for new chat messages" },
+  { id: "messages" as const, label: "New Chat", description: "Notifications for new chat messages" },
   { id: "listingApproved" as const, label: "Listing Approvals", description: "When your property listing is approved or rejected" },
   { id: "payment" as const, label: "Payment Confirmations", description: "Receipts and payment status updates" },
   { id: "weeklyReport" as const, label: "Weekly Performance Report", description: "Summary of your listings' performance" },

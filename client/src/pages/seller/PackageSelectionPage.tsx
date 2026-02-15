@@ -7,12 +7,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { CheckCircle, Crown, Zap, Star, Calendar, Package as PackageIcon, AlertTriangle, Loader2 } from "lucide-react";
 import type { Package, SellerSubscription } from "@shared/schema";
 
@@ -30,15 +24,6 @@ interface CurrentSubscriptionResponse {
   };
 }
 
-interface FaqItem {
-  id: string;
-  category: string;
-  question: string;
-  answer: string;
-  sortOrder: number;
-  isActive?: boolean;
-}
-
 export default function PackageSelectionPage() {
   const [location] = useLocation();
   const isBuyPage = location === "/seller/packages/buy";
@@ -53,22 +38,6 @@ export default function PackageSelectionPage() {
     queryKey: ["/api/packages", { sellerType: sellerType || undefined }],
     enabled: !!sellerType,
   });
-
-  const { data: faqItems = [], isLoading: isLoadingFaq } = useQuery<FaqItem[]>({
-    queryKey: ["/api/faq"],
-  });
-
-  const defaultPackageFaqs: FaqItem[] = [
-    { id: "pkg-1", category: "Packages", question: "Can I upgrade my plan later?", answer: "Yes, you can upgrade to a higher plan at any time. The remaining balance from your current plan will be adjusted.", sortOrder: 1 },
-    { id: "pkg-2", category: "Packages", question: "What happens when my plan expires?", answer: "Your listings will be automatically deactivated. You can renew your plan to reactivate them.", sortOrder: 2 },
-    { id: "pkg-3", category: "Packages", question: "Can I cancel my subscription?", answer: "Yes, you can cancel anytime. Your plan will remain active until the end of the billing period.", sortOrder: 3 },
-  ];
-  const displayFaqs = (faqItems && faqItems.length > 0) ? faqItems : defaultPackageFaqs;
-  const faqByCategory = displayFaqs.reduce((acc, item) => {
-    if (!acc[item.category]) acc[item.category] = [];
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<string, FaqItem[]>);
 
   const activePackages = packages.filter(p => p.isActive);
 
@@ -255,46 +224,6 @@ export default function PackageSelectionPage() {
             </div>
           </section>
         ) : null}
-
-        {/* FAQ section on My Package page */}
-        {!isBuyPage && (
-          <section className="py-8 bg-muted/30">
-            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-              <h2 className="font-serif font-bold text-3xl mb-8 text-center">
-                Frequently Asked Questions
-              </h2>
-              {isLoadingFaq ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : (
-                <div className="space-y-8">
-                  {Object.entries(faqByCategory).map(([category, items]) => (
-                    <div key={category}>
-                      <h3 className="font-semibold text-xl mb-4">{category}</h3>
-                      <Accordion type="single" collapsible className="space-y-4">
-                        {items.map((faq, idx) => (
-                          <AccordionItem
-                            key={faq.id}
-                            value={`${category}-${idx}`}
-                            className="border rounded-lg px-6 bg-background"
-                          >
-                            <AccordionTrigger className="text-left hover:no-underline">
-                              <span className="font-medium">{faq.question}</span>
-                            </AccordionTrigger>
-                            <AccordionContent className="text-muted-foreground">
-                              {faq.answer}
-                            </AccordionContent>
-                          </AccordionItem>
-                        ))}
-                      </Accordion>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-        )}
 
         {isBuyPage && (
         <section className="py-8">

@@ -31,7 +31,6 @@ interface HeaderProps {
 const navigationLinks = [
   { label: "Buy", url: "/buy" },
   { label: "Rent", url: "/rent" },
-  { label: "Sell", url: "/sell" },
   { label: "Projects", url: "/projects" },
 ];
 
@@ -308,6 +307,12 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                     </Link>
                     {isBuyer && (
                       <>
+                        <Link href="/buyer/chat">
+                          <DropdownMenuItem data-testid="menu-item-chat">
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Chat
+                          </DropdownMenuItem>
+                        </Link>
                         <Link href="/buyer/inquiries">
                           <DropdownMenuItem data-testid="menu-item-inquiries">
                             <MessageSquare className="mr-2 h-4 w-4" />
@@ -324,6 +329,12 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                     )}
                     {isSeller && (
                       <>
+                        <Link href="/seller/chat">
+                          <DropdownMenuItem data-testid="menu-item-chat">
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Chat
+                          </DropdownMenuItem>
+                        </Link>
                         <Link href="/seller/listings">
                           <DropdownMenuItem data-testid="menu-item-listings">
                             <Building2 className="mr-2 h-4 w-4" />
@@ -479,6 +490,12 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                           
                           {isBuyer && (
                             <>
+                              <Link href="/buyer/chat" onClick={() => setMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start" data-testid="button-nav-chat">
+                                  <MessageSquare className="mr-2 h-4 w-4" />
+                                  Chat
+                                </Button>
+                              </Link>
                               <Link href="/favorites" onClick={() => setMobileMenuOpen(false)}>
                                 <Button variant="ghost" className="w-full justify-start" data-testid="button-nav-favorites">
                                   <Heart className="mr-2 h-4 w-4" />
@@ -501,6 +518,12 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                           
                           {isSeller && (
                             <>
+                              <Link href="/seller/chat" onClick={() => setMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">
+                                  <MessageSquare className="mr-2 h-4 w-4" />
+                                  Chat
+                                </Button>
+                              </Link>
                               <Link href="/seller/listings" onClick={() => setMobileMenuOpen(false)}>
                                 <Button variant="ghost" className="w-full justify-start">
                                   <Building2 className="mr-2 h-4 w-4" />

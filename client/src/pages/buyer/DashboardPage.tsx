@@ -148,10 +148,10 @@ export default function BuyerDashboardPage() {
             href="/buyer/visits"
           />
           <StatCard 
-            title="Unread Messages" 
+            title="Unread Chat" 
             value={stats?.unreadMessages ?? 5}
             icon={MessageSquare}
-            href="/buyer/messages"
+            href="/buyer/chat"
           />
         </div>
 

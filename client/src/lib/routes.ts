@@ -103,9 +103,9 @@ export const buyerRoutes: RouteConfig[] = [
   { path: "/inquiries", component: lazy(() => import("@/pages/buyer/InquiriesPage")), requireAuth: true, roles: ["buyer", "admin"], title: "My Inquiries" },
   { path: "/buyer/inquiries", component: lazy(() => import("@/pages/buyer/MyInquiriesPage")), requireAuth: true, roles: ["buyer", "admin"], title: "My Inquiries" },
   { path: "/buyer/notifications", component: lazy(() => import("@/pages/buyer/NotificationsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Notifications" },
-  { path: "/buyer/messages", component: lazy(() => import("@/pages/buyer/InquiriesPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Messages" },
+  { path: "/buyer/chat", component: lazy(() => import("@/pages/buyer/BuyerMessagesPage")), requireAuth: true, roles: ["buyer", "seller", "admin"], title: "Chat" },
   { path: "/buyer/visits", component: lazy(() => import("@/pages/buyer/ScheduleVisitPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Scheduled Visits" },
-  { path: "/buyer/reviews", component: lazy(() => import("@/pages/buyer/ProfilePage")), requireAuth: true, roles: ["buyer", "admin"], title: "My Reviews" },
+  { path: "/buyer/reviews", component: lazy(() => import("@/pages/buyer/BuyerReviewsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "My Reviews" },
   { path: "/buyer/search-history", component: lazy(() => import("@/pages/buyer/ViewingHistoryPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Search History" },
   
   // Quick Links - Sidebar
@@ -295,7 +295,7 @@ export const sellerRoutes: RouteConfig[] = [
   { path: "/seller/lead-pipeline", component: lazy(() => import("@/pages/seller/LeadPipelinePage")), requireAuth: true, roles: ["seller"], title: "Lead Pipeline" },
   { path: "/seller/lead-score", component: lazy(() => import("@/pages/seller/LeadScorePage")), requireAuth: true, roles: ["seller"], title: "Lead Scoring" },
   { path: "/seller/lead-sources", component: lazy(() => import("@/pages/seller/LeadSourcesPage")), requireAuth: true, roles: ["seller"], title: "Lead Sources" },
-  { path: "/seller/messages", component: lazy(() => import("@/pages/seller/MessagesPage")), requireAuth: true, roles: ["seller"], title: "Messages" },
+  { path: "/seller/chat", component: lazy(() => import("@/pages/seller/MessagesPage")), requireAuth: true, roles: ["seller"], title: "Chat" },
   { path: "/seller/quick-replies", component: lazy(() => import("@/pages/seller/QuickRepliesPage")), requireAuth: true, roles: ["seller"], title: "Quick Replies" },
   { path: "/seller/auto-responses", component: lazy(() => import("@/pages/seller/AutoResponsesPage")), requireAuth: true, roles: ["seller"], title: "Auto Responses" },
   

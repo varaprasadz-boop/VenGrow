@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { validateEmail, validatePhone } from "@/utils/validation";
+import { validateEmail, validatePhone, cleanPhone } from "@/utils/validation";
+import { PhoneInput } from "@/components/ui/location-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,6 +31,7 @@ import {
   Share2,
   Phone,
   Mail,
+  MessageSquare,
   Building2,
   Home,
   Calendar,
@@ -146,6 +148,7 @@ export default function PropertyDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/favorites/check?userId=${user?.id}&propertyId=${id}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/me/favorites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/me/dashboard"] });
       toast({
         title: isFavorited ? "Removed from favorites" : "Added to favorites",
       });
@@ -182,8 +185,8 @@ export default function PropertyDetailPage() {
       setInquiryEmail("");
       setInquiryPhone("");
       setInquiryMessage("");
-      // Invalidate inquiries cache
       queryClient.invalidateQueries({ queryKey: ["/api/me/inquiries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/me/dashboard"] });
     },
     onError: (error: any) => {
       const errorMessage = error?.response?.data?.error || error?.message || "Failed to send inquiry";
@@ -606,31 +609,38 @@ export default function PropertyDetailPage() {
               {/* Title & Price */}
               <div className="space-y-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge data-testid="badge-transaction-type">For {getTransactionLabel(property.transactionType)}</Badge>
-                      <Badge variant="outline" data-testid="badge-property-type">{property.propertyType}</Badge>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      <Badge className="h-6 min-h-6 items-center" data-testid="badge-transaction-type">
+                        For {getTransactionLabel(property.transactionType)}
+                      </Badge>
+                      <Badge variant="outline" className="h-6 min-h-6 items-center" data-testid="badge-property-type">
+                        {property.propertyType}
+                      </Badge>
                       {property.isVerified && (
-                        <Badge variant="secondary" className="bg-green-100 text-green-800">
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                        <Badge variant="secondary" className="h-6 min-h-6 items-center bg-green-100 text-green-800">
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1 shrink-0" />
                           Verified
                         </Badge>
                       )}
                     </div>
                     <h1 className="font-serif font-bold text-3xl mb-2" data-testid="text-property-title">{property.title}</h1>
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <MapPin className="h-4 w-4" />
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <MapPin className="h-4 w-4 shrink-0" />
                       <span data-testid="text-property-location">
                         {[property.locality, property.city, property.state].filter(Boolean).join(', ')}
                       </span>
                     </div>
+                    <p className="text-sm text-muted-foreground mt-1" data-testid="text-added-date">
+                      Added {new Date((property as any).approvedAt || property.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-3xl font-bold text-primary font-serif" data-testid="text-property-price">
+                  <div className="text-right shrink-0">
+                    <p className="text-3xl font-bold text-primary font-serif leading-tight" data-testid="text-property-price">
                       {formatPrice(property.price, property.transactionType)}
                     </p>
                     {property.pricePerSqft && (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground mt-0.5">
                         ₹{property.pricePerSqft.toLocaleString('en-IN')}/sq.ft
                       </p>
                     )}
@@ -758,45 +768,53 @@ export default function PropertyDetailPage() {
                   </div>
 
                   <div className="space-y-2">
-                    {property.contactPhone && (
-                      <Button 
-                        className="w-full" 
-                        data-testid="button-call-seller"
-                        onClick={() => window.open(`tel:${property.contactPhone}`, '_self')}
-                      >
-                        <Phone className="h-4 w-4 mr-2" />
-                        Call Seller
-                      </Button>
-                    )}
-                    <Button 
-                      variant="outline" 
-                      className="w-full" 
-                      data-testid="button-chat-seller"
-                      onClick={() => {
-                        if (!user) {
-                          toast({
-                            title: "Please log in",
-                            description: "You need to be logged in to start a chat.",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        // Navigate to messages page - seller info should be available from property
-                        const sellerId = (property as any).seller?.id;
-                        if (sellerId) {
-                          setLocation(`/buyer/messages?sellerId=${sellerId}&propertyId=${property.id}`);
-                        } else {
-                          toast({
-                            title: "Cannot start chat",
-                            description: "Seller information not available",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                    >
-                      <Mail className="h-4 w-4 mr-2" />
-                      Chat with Seller
-                    </Button>
+                    {(() => {
+                      const sellerPhone = property.contactPhone || (property as any).seller?.phone || (property as any).sellerUser?.phone || "";
+                      const validPhone = sellerPhone && validatePhone(cleanPhone(sellerPhone));
+                      const whatsappNumber = validPhone ? "91" + cleanPhone(sellerPhone) : "";
+                      return (
+                        <>
+                          {validPhone && (
+                            <Button
+                              className="w-full bg-[#25D366] hover:bg-[#20BD5A] text-white"
+                              onClick={() => window.open(`https://wa.me/${whatsappNumber}`, "_blank")}
+                              data-testid="button-whatsapp"
+                            >
+                              <MessageSquare className="h-4 w-4 mr-2" />
+                              Chat on WhatsApp
+                            </Button>
+                          )}
+                          <Button 
+                            variant="outline" 
+                            className="w-full" 
+                            data-testid="button-chat-seller"
+                            onClick={() => {
+                              if (!user) {
+                                toast({
+                                  title: "Please log in",
+                                  description: "You need to be logged in to start a chat.",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+                              const sellerId = (property as any).seller?.id ?? (property as any).sellerId;
+                              if (sellerId) {
+                                setLocation(`/buyer/chat?sellerId=${encodeURIComponent(sellerId)}&propertyId=${encodeURIComponent(property.id)}`);
+                              } else {
+                                toast({
+                                  title: "Cannot start chat",
+                                  description: "Seller information not available",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                          >
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Chat with Seller
+                          </Button>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </Card>
@@ -832,14 +850,10 @@ export default function PropertyDetailPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone</Label>
-                    <Input 
-                      id="phone" 
-                      type="tel" 
-                      placeholder="+91 98765 43210" 
-                      value={inquiryPhone}
-                      onChange={(e) => setInquiryPhone(e.target.value)}
+                    <PhoneInput
+                      value={cleanPhone(inquiryPhone)}
+                      onValueChange={(v) => setInquiryPhone(v)}
                       data-testid="input-inquiry-phone"
-                      aria-label="Phone number (optional)"
                     />
                   </div>
                   <div className="space-y-2">
@@ -955,12 +969,9 @@ export default function PropertyDetailPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="visit-phone">Phone *</Label>
-                <Input
-                  id="visit-phone"
-                  type="tel"
-                  placeholder="+91 98765 43210"
-                  value={visitPhone}
-                  onChange={(e) => setVisitPhone(e.target.value)}
+                <PhoneInput
+                  value={cleanPhone(visitPhone)}
+                  onValueChange={(v) => setVisitPhone(v)}
                   data-testid="input-visit-phone"
                 />
               </div>

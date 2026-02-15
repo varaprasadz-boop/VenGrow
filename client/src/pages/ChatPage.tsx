@@ -148,7 +148,7 @@ export default function ChatPage() {
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-            <h1 className="font-serif font-bold text-3xl">Messages</h1>
+            <h1 className="font-serif font-bold text-3xl">Chat</h1>
             <div className="flex items-center gap-2 text-sm">
               {isConnected ? (
                 <>

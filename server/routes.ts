@@ -147,7 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getAuthenticatedUserId(req);
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       
-      const { firstName, lastName, phone } = req.body;
+      const { firstName, lastName, phone, profileImageUrl } = req.body;
       const updateData: Record<string, unknown> = {};
       if (firstName !== undefined) updateData.firstName = String(firstName).trim();
       if (lastName !== undefined) updateData.lastName = String(lastName).trim();
@@ -158,6 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         updateData.phone = cleanedPhone || null;
       }
+      if (profileImageUrl !== undefined) updateData.profileImageUrl = profileImageUrl === "" ? null : String(profileImageUrl).trim();
       if (Object.keys(updateData).length === 0) {
         return res.status(400).json({ error: "No valid fields to update" });
       }
@@ -1753,7 +1754,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         city, state, propertyType, transactionType, 
         minPrice, maxPrice, minArea, maxArea, 
         bedrooms, status, isVerified, isFeatured,
-        search, limit, offset, sellerId
+        search, limit, offset, sellerId,
+        categoryId, subcategoryId, projectStage,
+        sellerType, verifiedSeller
       } = req.query;
       
       const properties = await storage.getProperties({
@@ -1761,6 +1764,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         state: state as string,
         propertyType: propertyType as string,
         transactionType: transactionType as string,
+        categoryId: categoryId as string,
+        subcategoryId: subcategoryId as string,
+        projectStage: projectStage as string,
         minPrice: minPrice ? parseInt(minPrice as string) : undefined,
         maxPrice: maxPrice ? parseInt(maxPrice as string) : undefined,
         minArea: minArea ? parseInt(minArea as string) : undefined,
@@ -1770,6 +1776,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isVerified: isVerified === "true" ? true : isVerified === "false" ? false : undefined,
         isFeatured: isFeatured === "true" ? true : isFeatured === "false" ? false : undefined,
         sellerId: sellerId as string,
+        sellerType: sellerType as string,
+        verifiedSeller: verifiedSeller === "true",
         search: search as string,
         limit: limit ? parseInt(limit as string) : undefined,
         offset: offset ? parseInt(offset as string) : undefined,
@@ -1824,29 +1832,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get images
       const images = await storage.getPropertyImages(property.id);
       
-      // Get seller profile if sellerId exists
+      // Get seller profile and user (phone for contact/WhatsApp)
       let sellerProfile = null;
       let sellerUser = null;
       if (property.sellerId) {
         sellerProfile = await storage.getSellerProfile(property.sellerId);
-        
-        // If admin is requesting, also include seller user info for editing
-        const adminUser = (req.session as any)?.adminUser;
-        const localUser = (req.session as any)?.localUser;
-        const isAdmin = adminUser?.isSuperAdmin || adminUser?.role === "admin" || localUser?.role === "admin";
-        
-        if (isAdmin && sellerProfile?.userId) {
+        if (sellerProfile?.userId) {
           try {
             sellerUser = await storage.getUser(sellerProfile.userId);
           } catch (error) {
-            console.error("Error fetching seller user for admin:", error);
-            // Continue without seller user info
+            console.error("Error fetching seller user:", error);
           }
         }
       }
-      
-      res.json({ 
-        ...property, 
+
+      const adminUser = (req.session as any)?.adminUser;
+      const localUser = (req.session as any)?.localUser;
+      const isAdmin = adminUser?.isSuperAdmin || adminUser?.role === "admin" || localUser?.role === "admin";
+
+      res.json({
+        ...property,
         images,
         seller: sellerProfile ? {
           id: sellerProfile.id,
@@ -1855,8 +1860,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: sellerProfile.lastName,
           sellerType: sellerProfile.sellerType,
           isVerified: sellerProfile.isVerified || false,
+          phone: sellerUser?.phone ?? null,
         } : null,
-        sellerUser: sellerUser ? {
+        sellerUser: isAdmin && sellerUser ? {
           id: sellerUser.id,
           firstName: sellerUser.firstName,
           lastName: sellerUser.lastName,
@@ -2885,9 +2891,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Create the inquiry with seller lookup
+      // Create the inquiry with seller lookup (use property.id UUID, not slug from URL)
       const inquiryData = {
-        propertyId,
+        propertyId: property.id,
         buyerId,
         sellerId: property.sellerId,
         message: message || `Inquiry from ${name}`,
@@ -2987,8 +2993,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================
   // CHAT ROUTES
   // ============================================
-  
-  // Get user's chat threads
+
+  // Get current user's chat threads with enriched data (other participant name, property title)
+  app.get("/api/me/chats", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const threads = await storage.getChatThreads(userId);
+      const enriched = await Promise.all(
+        threads.map(async (thread) => {
+          let otherName = "Unknown";
+          const isBuyer = thread.buyerId === userId;
+          if (isBuyer) {
+            const profile = await storage.getSellerProfileByUserId(thread.sellerId);
+            if (profile?.companyName) otherName = profile.companyName;
+            else if (profile?.userId) {
+              const u = await storage.getUser(profile.userId);
+              if (u) otherName = [u.firstName, u.lastName].filter(Boolean).join(" ") || "Seller";
+            }
+          } else {
+            const u = await storage.getUser(thread.buyerId);
+            if (u) otherName = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email || "Buyer";
+          }
+          let propertyTitle: string | null = null;
+          if (thread.propertyId) {
+            const p = await storage.getProperty(thread.propertyId);
+            if (p) propertyTitle = p.title;
+          }
+          return {
+            ...thread,
+            otherParticipantName: otherName,
+            propertyTitle,
+          };
+        })
+      );
+      res.json(enriched);
+    } catch (error) {
+      console.error("Failed to get chats:", error);
+      res.status(500).json({ error: "Failed to get chat threads" });
+    }
+  });
+
+  // Get user's chat threads (legacy, for backward compatibility)
   app.get("/api/users/:userId/chats", async (req: Request, res: Response) => {
     try {
       const threads = await storage.getChatThreads(req.params.userId);
@@ -3012,23 +3058,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create or get chat thread
-  app.post("/api/chats", async (req: Request, res: Response) => {
+  // Create or get chat thread (authenticated). Frontend sends sellerId as seller *profile* id; DB stores seller *user* id.
+  app.post("/api/chats", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const { buyerId, sellerId, propertyId } = req.body;
-      const thread = await storage.getOrCreateChatThread(buyerId, sellerId, propertyId);
+      if (!buyerId || !sellerId) {
+        return res.status(400).json({ error: "buyerId and sellerId are required" });
+      }
+      const sellerProfile = await storage.getSellerProfile(sellerId);
+      if (!sellerProfile || !sellerProfile.userId) {
+        return res.status(400).json({ error: "Invalid seller" });
+      }
+      const myProfile = await storage.getSellerProfileByUserId(userId);
+      const isSeller = myProfile && myProfile.id === sellerId;
+      const isBuyer = userId === buyerId;
+      if (!isSeller && !isBuyer) {
+        return res.status(403).json({ error: "You must be the buyer or the seller for this chat" });
+      }
+      const sellerUserId = sellerProfile.userId;
+      const thread = await storage.getOrCreateChatThread(buyerId, sellerUserId, propertyId || null);
       res.json(thread);
     } catch (error) {
-      res.status(500).json({ error: "Failed to create chat" });
+      console.error("Failed to create chat:", error);
+      res.status(500).json({ error: "Failed to create chat", message: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
-  // Send message
-  app.post("/api/chats/:threadId/messages", async (req: Request, res: Response) => {
+  // Send message (authenticated; senderId set from current user)
+  app.post("/api/chats/:threadId/messages", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const thread = await storage.getChatThread(req.params.threadId);
+      if (!thread) return res.status(404).json({ error: "Chat thread not found" });
+      const isParticipant = thread.buyerId === userId || thread.sellerId === userId;
+      if (!isParticipant) {
+        return res.status(403).json({ error: "Not a participant in this chat" });
+      }
       const message = await storage.sendChatMessage({
         threadId: req.params.threadId,
-        senderId: req.body.senderId,
+        senderId: userId,
         content: req.body.content,
         attachments: req.body.attachments,
       });
@@ -3039,9 +3110,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Mark messages as read
-  app.post("/api/chats/:threadId/read", async (req: Request, res: Response) => {
+  app.post("/api/chats/:threadId/read", isAuthenticated, async (req: any, res: Response) => {
     try {
-      await storage.markMessagesAsRead(req.params.threadId, req.body.userId);
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      await storage.markMessagesAsRead(req.params.threadId, userId);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to mark messages as read" });
@@ -4807,6 +4880,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const appointments = await storage.getAppointmentsByBuyer(userId);
         const inquiries = await storage.getInquiriesByBuyer(userId);
         
+        // Total property views count for this buyer (for dashboard stat)
+        const [viewCountRow] = await db.select({ count: sql<number>`count(*)` }).from(propertyViews).where(eq(propertyViews.userId, userId));
+        const viewedCount = Number(viewCountRow?.count ?? 0);
+        const pendingInquiriesCount = inquiries.filter((i: any) => i.status === 'pending').length;
+        
         // Get recently viewed properties (from propertyViews)
         const recentViews = await db.select({
           property: properties,
@@ -4847,6 +4925,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         res.json({
           ...stats,
+          // Shape expected by buyer dashboard frontend
+          favoritesCount: favorites.length,
+          inquiriesCount: inquiries.length,
+          viewedCount,
+          savedSearchesCount: savedSearches.length,
+          pendingInquiries: pendingInquiriesCount,
           savedProperties: stats.totalFavorites || 0,
           activeSearches: savedSearches.filter(s => s.alertEnabled).length,
           scheduledVisits: appointments.filter(a => 
@@ -5947,7 +6031,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get current seller's reviews
+  // Get current seller's reviews (reviews received by this seller)
   app.get("/api/me/reviews", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = getAuthenticatedUserId(req);
@@ -5963,17 +6047,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get reviews written by the current user (buyer's review history)
+  app.get("/api/me/my-reviews", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const reviews = await storage.getReviewsByUserId(userId);
+      const enriched = await Promise.all(
+        reviews.map(async (r) => {
+          const property = r.propertyId ? await storage.getProperty(r.propertyId) : null;
+          return {
+            ...r,
+            property: property ? { title: property.title } : undefined,
+          };
+        })
+      );
+      res.json(enriched);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get your reviews" });
+    }
+  });
+
   // ============================================
   // APPOINTMENTS ROUTES
   // ============================================
 
-  // Get buyer's appointments
+  // Get buyer's appointments (optional ?withProperty=1 to include property summary for each)
   app.get("/api/me/appointments", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = getAuthenticatedUserId(req);
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const appointments = await storage.getAppointmentsByBuyer(userId);
-      res.json(appointments);
+      const withProperty = req.query.withProperty === "1" || req.query.withProperty === "true";
+      if (!withProperty || appointments.length === 0) {
+        return res.json(appointments);
+      }
+      const enriched = await Promise.all(
+        appointments.map(async (a) => {
+          const property = await storage.getProperty(a.propertyId);
+          if (!property) return { ...a, property: null };
+          const images = await storage.getPropertyImages(property.id);
+          const imageUrl = images?.[0] && typeof images[0] === "object" && "url" in images[0]
+            ? (images[0] as { url: string }).url
+            : Array.isArray(images) && typeof images[0] === "string"
+              ? images[0]
+              : null;
+          return {
+            ...a,
+            property: {
+              id: property.id,
+              title: property.title,
+              locality: property.locality,
+              city: property.city,
+              price: property.price,
+              transactionType: property.transactionType,
+              slug: (property as any).slug ?? null,
+              imageUrl,
+            },
+          };
+        })
+      );
+      res.json(enriched);
     } catch (error) {
       res.status(500).json({ error: "Failed to get appointments" });
     }

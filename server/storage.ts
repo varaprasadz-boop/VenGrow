@@ -142,6 +142,7 @@ export interface IStorage {
   updatePayment(id: string, data: Partial<InsertPayment>): Promise<Payment | undefined>;
   
   getReviewsBySeller(sellerId: string): Promise<Review[]>;
+  getReviewsByUserId(userId: string): Promise<Review[]>;
   createReview(review: InsertReview): Promise<Review>;
   
   getPendingApprovals(type?: string): Promise<AdminApproval[]>;
@@ -304,6 +305,8 @@ export interface PropertyFilters {
   isVerified?: boolean;
   isFeatured?: boolean;
   sellerId?: string;
+  sellerType?: string;
+  verifiedSeller?: boolean;
   search?: string;
   limit?: number;
   offset?: number;
@@ -633,6 +636,9 @@ export class DatabaseStorage implements IStorage {
         if (filters?.state) conditions.push(eq(properties.state, filters.state));
         if (filters?.propertyType) conditions.push(eq(properties.propertyType, filters.propertyType as any));
         if (filters?.transactionType) conditions.push(eq(properties.transactionType, filters.transactionType as any));
+        if (filters?.categoryId) conditions.push(eq(properties.categoryId, filters.categoryId));
+        if (filters?.subcategoryId) conditions.push(eq(properties.subcategoryId, filters.subcategoryId));
+        if (filters?.projectStage) conditions.push(eq(properties.projectStage, filters.projectStage as any));
         if (filters?.minPrice) conditions.push(gte(properties.price, filters.minPrice));
         if (filters?.maxPrice) conditions.push(lte(properties.price, filters.maxPrice));
         if (filters?.minArea) conditions.push(gte(properties.area, filters.minArea));
@@ -642,6 +648,16 @@ export class DatabaseStorage implements IStorage {
         if (filters?.isVerified !== undefined) conditions.push(eq(properties.isVerified, filters.isVerified));
         if (filters?.isFeatured !== undefined) conditions.push(eq(properties.isFeatured, filters.isFeatured));
         if (filters?.sellerId) conditions.push(eq(properties.sellerId, filters.sellerId));
+        if (filters?.sellerType) {
+          const sellerConditions: any[] = [eq(sellerProfiles.sellerType, filters.sellerType as any)];
+          if (filters.verifiedSeller) {
+            sellerConditions.push(eq(sellerProfiles.verificationStatus, "verified"));
+          }
+          const sellerSubquery = db.select({ id: sellerProfiles.id })
+            .from(sellerProfiles)
+            .where(and(...sellerConditions));
+          conditions.push(inArray(properties.sellerId, sellerSubquery));
+        }
         if (filters?.search) {
           conditions.push(or(
             like(properties.title, `%${filters.search}%`),
@@ -686,6 +702,25 @@ export class DatabaseStorage implements IStorage {
         if (filters?.transactionType) {
           whereConditions.push(`transaction_type = $${paramIndex++}`);
           params.push(filters.transactionType);
+        }
+        if (filters?.categoryId) {
+          whereConditions.push(`category_id = $${paramIndex++}`);
+          params.push(filters.categoryId);
+        }
+        if (filters?.subcategoryId) {
+          whereConditions.push(`subcategory_id = $${paramIndex++}`);
+          params.push(filters.subcategoryId);
+        }
+        if (filters?.projectStage) {
+          whereConditions.push(`project_stage = $${paramIndex++}`);
+          params.push(filters.projectStage);
+        }
+        if (filters?.sellerType) {
+          const verifiedClause = filters.verifiedSeller
+            ? ` AND verification_status = 'verified'`
+            : "";
+          whereConditions.push(`seller_id IN (SELECT id FROM seller_profiles WHERE seller_type = $${paramIndex++}${verifiedClause})`);
+          params.push(filters.sellerType);
         }
         if (filters?.minPrice) {
           whereConditions.push(`price >= $${paramIndex++}`);
@@ -1091,6 +1126,10 @@ export class DatabaseStorage implements IStorage {
 
   async getReviewsBySeller(sellerId: string): Promise<Review[]> {
     return db.select().from(reviews).where(eq(reviews.sellerId, sellerId)).orderBy(desc(reviews.createdAt));
+  }
+
+  async getReviewsByUserId(userId: string): Promise<Review[]> {
+    return db.select().from(reviews).where(eq(reviews.userId, userId)).orderBy(desc(reviews.createdAt));
   }
 
   async createReview(review: InsertReview): Promise<Review> {

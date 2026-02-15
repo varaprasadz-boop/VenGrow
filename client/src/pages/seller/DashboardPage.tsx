@@ -185,7 +185,7 @@ export default function SellerDashboardPage() {
             <CardHeader className="flex flex-row items-center justify-between gap-2">
               <div>
                 <CardTitle>Recent Inquiries</CardTitle>
-                <CardDescription>Latest messages from buyers</CardDescription>
+                <CardDescription>Latest chat from buyers</CardDescription>
               </div>
               <Button variant="outline" size="sm" asChild>
                 <Link href="/seller/inquiries" data-testid="button-view-all-inquiries">
@@ -215,7 +215,7 @@ export default function SellerDashboardPage() {
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          onClick={() => setLocation(`/seller/messages?buyerId=${inquiry.buyerId}`)}
+                          onClick={() => setLocation(`/seller/chat?buyerId=${inquiry.buyerId}`)}
                           data-testid={`button-reply-inquiry-${inquiry.id}`}
                         >
                           Reply

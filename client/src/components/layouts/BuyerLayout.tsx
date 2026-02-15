@@ -44,7 +44,7 @@ const savedItems = [
 ];
 
 const communicationItems = [
-  { title: "Messages", href: "/buyer/messages", icon: MessageSquare },
+  { title: "Chat", href: "/buyer/chat", icon: MessageSquare },
   { title: "Scheduled Visits", href: "/buyer/visits", icon: Calendar },
   { title: "Inquiries", href: "/buyer/inquiries", icon: MessageSquare },
   { title: "Notifications", href: "/buyer/notifications", icon: Bell },

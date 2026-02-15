@@ -325,7 +325,7 @@ export default function InquiriesPage() {
                               className="flex-1 lg:flex-none"
                               onClick={() => {
                                 if (inquiry.buyerId) {
-                                  setLocation(`/seller/messages?buyerId=${inquiry.buyerId}`);
+                                  setLocation(`/seller/chat?buyerId=${inquiry.buyerId}`);
                                 } else {
                                   toast({
                                     title: "Cannot start chat",

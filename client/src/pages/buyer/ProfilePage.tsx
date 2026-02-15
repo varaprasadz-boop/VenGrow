@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import Header from "@/components/Header";
 import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Camera, Save, X, Loader2, AlertCircle } from "lucide-react";
 import type { User } from "@shared/schema";
 import { validatePhone, cleanPhone } from "@/utils/validation";
+import { PhoneInput } from "@/components/ui/location-select";
 
 export default function ProfilePage() {
   const [, setLocation] = useLocation();
@@ -57,7 +57,7 @@ export default function ProfilePage() {
   }, [user]);
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: { firstName?: string; lastName?: string; phone?: string; bio?: string }) => {
+    mutationFn: async (data: { firstName?: string; lastName?: string; phone?: string; bio?: string; profileImageUrl?: string | null }) => {
       return apiRequest("PATCH", "/api/auth/me", data);
     },
     onSuccess: () => {
@@ -182,24 +182,71 @@ export default function ProfilePage() {
     }
   };
 
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
+  const uploadPhotoMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!currentUser?.id) throw new Error("Not logged in");
+      const urlRes = await apiRequest("POST", `/api/objects/upload?bucket=profile-pictures&prefix=${encodeURIComponent(currentUser.id + "/")}`);
+      const data = await urlRes.json();
+      const { uploadURL } = data;
+      if (!uploadURL) throw new Error("No upload URL received");
+      const uploadUrl = uploadURL.startsWith("/") ? `${window.location.origin}${uploadURL}` : uploadURL;
+      const putRes = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        credentials: "include",
+      });
+      if (!putRes.ok) {
+        const err = await putRes.json().catch(() => ({}));
+        throw new Error(err.error || "Upload failed");
+      }
+      const putData = await putRes.json();
+      let fileUrl = putData.url || putData.uploadURL || "";
+      if (fileUrl && fileUrl.startsWith("/") && !fileUrl.startsWith("//")) {
+        fileUrl = `${window.location.origin}${fileUrl}`;
+      }
+      if (!fileUrl) throw new Error("No URL returned from upload");
+      return fileUrl;
+    },
+    onSuccess: (url) => {
+      updateProfileMutation.mutate({ profileImageUrl: url });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({ title: "Profile photo updated" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to upload photo", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleChangePhoto = () => {
-    toast({
-      title: "Photo upload",
-      description: "Photo upload functionality will be implemented",
-    });
+    profilePhotoInputRef.current?.click();
+  };
+
+  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please select an image file", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image must be under 5MB", variant: "destructive" });
+      return;
+    }
+    uploadPhotoMutation.mutate(file);
+    e.target.value = "";
   };
 
   const handleRemovePhoto = () => {
-    toast({
-      title: "Photo removal",
-      description: "Photo removal functionality will be implemented",
-    });
+    updateProfileMutation.mutate({ profileImageUrl: "" });
+    queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    toast({ title: "Profile photo removed" });
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header isLoggedIn={!!currentUser} userType="buyer" />
         <main className="flex-1 pb-16 lg:pb-8">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Skeleton className="h-10 w-64 mb-8" />
@@ -214,7 +261,6 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header isLoggedIn={false} userType="buyer" />
         <main className="flex-1 pb-16 lg:pb-8 flex items-center justify-center">
           <Card className="p-8 text-center max-w-md">
             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
@@ -235,7 +281,6 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={!!currentUser} userType="buyer" />
 
       <main className="flex-1 pb-16 lg:pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -252,8 +297,16 @@ export default function ProfilePage() {
             <Card className="p-6 h-fit">
               <div className="text-center space-y-4">
                 <div className="relative inline-block">
+                  <input
+                  ref={profilePhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoFileChange}
+                  aria-hidden
+                />
                   <Avatar className="h-32 w-32">
-                    <AvatarImage src={(user as any).avatarUrl || ""} alt="Profile" />
+                    <AvatarImage src={(user as any).profileImageUrl || ""} alt="Profile" />
                     <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
                   </Avatar>
                   {isEditing && (
@@ -261,9 +314,10 @@ export default function ProfilePage() {
                       size="icon"
                       className="absolute bottom-0 right-0 h-10 w-10 rounded-full"
                       onClick={handleChangePhoto}
+                      disabled={uploadPhotoMutation.isPending}
                       data-testid="button-change-photo"
                     >
-                      <Camera className="h-5 w-5" />
+                      {uploadPhotoMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
                     </Button>
                   )}
                 </div>
@@ -271,7 +325,7 @@ export default function ProfilePage() {
                   <h3 className="font-semibold text-lg">{displayName}</h3>
                   <p className="text-sm text-muted-foreground">Buyer</p>
                 </div>
-                {isEditing && (user as any).avatarUrl && (
+                {isEditing && (user as any).profileImageUrl && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -343,15 +397,12 @@ export default function ProfilePage() {
                 {/* Phone */}
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
+                  <PhoneInput
+                    value={cleanPhone(formData.phone)}
+                    onValueChange={(v) =>
+                      setFormData({ ...formData, phone: v })
                     }
                     disabled={!isEditing}
-                    placeholder="+91 98765 43210"
                     data-testid="input-phone"
                   />
                   <p className="text-xs text-muted-foreground">

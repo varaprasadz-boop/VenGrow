@@ -284,10 +284,30 @@ export function validatePhoneNumber(phone: string): string | null {
   return null;
 }
 
-// Phone number input with formatting
+// Country codes for phone input dropdown (+91 default for India)
+const COUNTRY_CODES = [
+  { code: "+91", label: "+91 India", dial: "91" },
+  { code: "+1", label: "+1 USA/Canada", dial: "1" },
+  { code: "+44", label: "+44 UK", dial: "44" },
+  { code: "+971", label: "+971 UAE", dial: "971" },
+  { code: "+61", label: "+61 Australia", dial: "61" },
+  { code: "+81", label: "+81 Japan", dial: "81" },
+  { code: "+86", label: "+86 China", dial: "86" },
+  { code: "+33", label: "+33 France", dial: "33" },
+  { code: "+49", label: "+49 Germany", dial: "49" },
+  { code: "+65", label: "+65 Singapore", dial: "65" },
+];
+
+const DEFAULT_COUNTRY_CODE = "+91";
+
+// Phone number input with country code dropdown and number field
 interface PhoneInputProps {
   value: string;
   onValueChange: (value: string) => void;
+  /** Selected country code e.g. "+91". If not provided, defaults to +91. */
+  countryCode?: string;
+  /** Called when country code selection changes */
+  onCountryCodeChange?: (code: string) => void;
   placeholder?: string;
   disabled?: boolean;
   required?: boolean;
@@ -298,20 +318,24 @@ interface PhoneInputProps {
 export function PhoneInput({
   value,
   onValueChange,
+  countryCode: controlledCountryCode,
+  onCountryCodeChange,
   placeholder = "9876543210",
   disabled = false,
   required = false,
   error,
   "data-testid": testId = "input-phone",
 }: PhoneInputProps) {
+  const [internalCountryCode, setInternalCountryCode] = useState(DEFAULT_COUNTRY_CODE);
+  const countryCode = controlledCountryCode ?? internalCountryCode;
+  const setCountryCode = onCountryCodeChange ?? setInternalCountryCode;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
-    // Only allow digits and max 10 characters
     const cleanedValue = inputValue.replace(/\D/g, "").slice(0, 10);
     onValueChange(cleanedValue);
   };
 
-  // Format for display: 98765-43210
   const formatPhone = (phone: string): string => {
     if (phone.length <= 5) return phone;
     return `${phone.slice(0, 5)}-${phone.slice(5)}`;
@@ -321,10 +345,26 @@ export function PhoneInput({
 
   return (
     <div className="space-y-1">
-      <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-          +91
-        </span>
+      <div className="flex gap-2">
+        <Select
+          value={countryCode}
+          onValueChange={setCountryCode}
+          disabled={disabled}
+        >
+          <SelectTrigger
+            className="w-[7.5rem] shrink-0"
+            data-testid={testId ? `${testId}-country` : undefined}
+          >
+            <SelectValue placeholder="Code" />
+          </SelectTrigger>
+          <SelectContent>
+            {COUNTRY_CODES.map(({ code, label }) => (
+              <SelectItem key={code} value={code}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Input
           type="tel"
           inputMode="numeric"
@@ -333,8 +373,8 @@ export function PhoneInput({
           placeholder={placeholder}
           disabled={disabled}
           data-testid={testId}
-          className={`pl-12 ${error || (validationError && value.length === 10) ? "border-destructive" : ""}`}
-          maxLength={11} // 10 digits + 1 hyphen
+          className={`flex-1 ${error || (validationError && value.length === 10) ? "border-destructive" : ""}`}
+          maxLength={11}
         />
       </div>
       {value.length > 0 && value.length < 10 && (

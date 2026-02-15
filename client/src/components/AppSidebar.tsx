@@ -113,7 +113,7 @@ const buyerNavigation: NavGroup[] = [
     label: "Activity",
     items: [
       { title: "My Inquiries", url: "/buyer/inquiries", icon: MessageSquare },
-      { title: "Messages", url: "/buyer/messages", icon: MessagesSquare },
+      { title: "Chat", url: "/buyer/chat", icon: MessagesSquare },
       { title: "Property Alerts", url: "/buyer/property-alerts", icon: Bell },
       { title: "Scheduled Visits", url: "/buyer/schedule-visit", icon: CalendarDays },
     ],
@@ -162,7 +162,7 @@ const sellerNavigation: NavGroup[] = [
       { title: "Form Submissions", url: "/seller/inquiries/form", icon: FileText },
       { title: "Chat Inquiries", url: "/seller/inquiries/chat", icon: MessagesSquare },
       { title: "Call Requests", url: "/seller/inquiries/call", icon: Phone },
-      { title: "Messages", url: "/seller/messages", icon: Mail },
+      { title: "Chat", url: "/seller/chat", icon: Mail },
     ],
   },
   {

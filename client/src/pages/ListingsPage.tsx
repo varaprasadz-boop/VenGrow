@@ -5,7 +5,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import FilterSidebar from "@/components/FilterSidebar";
-import { useLocation as useLocationContext } from "@/contexts/LocationContext";
 import ListingsFilterHeader from "@/components/ListingsFilterHeader";
 import PropertyCard from "@/components/PropertyCard";
 import PropertyMapView from "@/components/PropertyMapView";
@@ -31,9 +30,6 @@ interface FilterState {
   projectStages?: string[];
   bhk?: string[];
   sellerTypes?: string[];
-  state?: string;
-  city?: string;
-  locality?: string;
   propertyAge?: string[];
   corporateSearch?: string;
 }
@@ -48,10 +44,6 @@ export default function ListingsPage() {
   const [isApplyingFilters, setIsApplyingFilters] = useState(false);
   const itemsPerPage = 20;
   
-  // Get selected city from LocationContext (header city selector)
-  const locationContext = useLocationContext();
-  const headerSelectedCity = locationContext?.selectedCity?.name || null;
-  
   // Parse URL parameters
   const urlParams = useMemo(() => {
     const params = new URLSearchParams(location.split('?')[1] || '');
@@ -61,9 +53,6 @@ export default function ListingsPage() {
     if (params.get('category')) parsedFilters.category = params.get('category')!;
     // Also handle 'type' parameter (used by CategorySection from home page)
     if (params.get('type') && !parsedFilters.category) parsedFilters.category = params.get('type')!;
-    if (params.get('city')) parsedFilters.city = params.get('city')!;
-    if (params.get('state')) parsedFilters.state = params.get('state')!;
-    if (params.get('locality')) parsedFilters.locality = params.get('locality')!;
     if (params.get('minPrice') && params.get('maxPrice')) {
       parsedFilters.priceRange = [
         parseInt(params.get('minPrice')!),
@@ -130,15 +119,6 @@ export default function ListingsPage() {
     if (newFilters.category && newFilters.category !== "all") {
       params.set('category', newFilters.category);
     }
-    if (newFilters.city && newFilters.city !== "all") {
-      params.set('city', newFilters.city);
-    }
-    if (newFilters.state && newFilters.state !== "all") {
-      params.set('state', newFilters.state);
-    }
-    if (newFilters.locality) {
-      params.set('locality', newFilters.locality);
-    }
     if (newFilters.priceRange) {
       params.set('minPrice', newFilters.priceRange[0].toString());
       params.set('maxPrice', newFilters.priceRange[1].toString());
@@ -187,12 +167,6 @@ export default function ListingsPage() {
       offset: ((currentPage - 1) * itemsPerPage).toString(),
     };
     
-    if (filters.city && filters.city !== "all") {
-      params.city = filters.city;
-    }
-    if (filters.state && filters.state !== "all") {
-      params.state = filters.state;
-    }
     if (filters.priceRange) {
       params.minPrice = filters.priceRange[0].toString();
       params.maxPrice = filters.priceRange[1].toString();
@@ -284,6 +258,7 @@ export default function ListingsPage() {
         state: property.state,
         categoryId: property.categoryId,
         slug: (property as any).slug || undefined,
+        addedDate: (property as any).approvedAt || property.createdAt,
       };
     });
   }, [propertiesData]);
@@ -322,21 +297,6 @@ export default function ListingsPage() {
     if (filters.priceRange) {
       const [minPrice, maxPrice] = filters.priceRange;
       result = result.filter(p => p.price >= minPrice && p.price <= maxPrice);
-    }
-    
-    // City filter - prioritize header city selection, fallback to sidebar filter
-    const cityFilter = headerSelectedCity || filters.city;
-    if (cityFilter && cityFilter !== "all") {
-      result = result.filter(p => 
-        p.city?.toLowerCase() === cityFilter.toLowerCase()
-      );
-    }
-    
-    // State filter
-    if (filters.state && filters.state !== "all") {
-      result = result.filter(p => 
-        p.state?.toLowerCase() === filters.state?.toLowerCase()
-      );
     }
     
     // BHK filter - handle both "1 BHK" and "1" formats
@@ -410,7 +370,7 @@ export default function ListingsPage() {
     }
     
     return result;
-  }, [transactionTypeFromPath, allProperties, filters, sortBy, urlParams, headerSelectedCity]);
+  }, [transactionTypeFromPath, allProperties, filters, sortBy, urlParams]);
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredProperties.length / itemsPerPage);
@@ -450,22 +410,19 @@ export default function ListingsPage() {
         onOpenFilters={() => setMobileFilterOpen(true)}
       />
       
-      <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Desktop Sidebar */}
-            <aside className="hidden lg:block w-64 flex-shrink-0">
-              <div className="sticky top-24">
-                <FilterSidebar 
-                  onApplyFilters={handleApplyFilters}
-                  initialCategory={filters.category}
-                  initialFilters={filters}
-                />
-              </div>
-            </aside>
+      <main className="flex-1 flex flex-col">
+        <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+          {/* Desktop Sidebar - sticky, scrolls in its own section */}
+          <aside className="hidden lg:block w-64 flex-shrink-0 sticky top-16 self-start max-h-[calc(100vh-4rem)] overflow-y-auto pr-2">
+            <FilterSidebar 
+              onApplyFilters={handleApplyFilters}
+              initialCategory={filters.category}
+              initialFilters={filters}
+            />
+          </aside>
 
-            {/* Main Content */}
-            <div className="flex-1 space-y-6">
+          {/* Main Content - scrolls with page */}
+          <div className="flex-1 min-w-0 space-y-6">
               {/* Header - Stacked on mobile, side-by-side on desktop */}
               <div className="space-y-4 sm:space-y-0">
                 {/* Title Row - Always on its own line on mobile */}
@@ -666,7 +623,6 @@ export default function ListingsPage() {
                   )}
                 </>
               )}
-            </div>
           </div>
         </div>
       </main>

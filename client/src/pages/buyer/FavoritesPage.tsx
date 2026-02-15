@@ -34,6 +34,7 @@ export default function FavoritesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/me/favorites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/me/dashboard"] });
       toast({ title: "All favorites cleared" });
     },
     onError: () => {
@@ -66,6 +67,7 @@ export default function FavoritesPage() {
     isVerified: property.isVerified || false,
     sellerType: "Individual" as const,
     transactionType: (property.transactionType === "sale" ? "Sale" : "Rent") as "Sale" | "Rent",
+    addedDate: (property as any).approvedAt || property.createdAt,
   });
 
   const breadcrumbItems = [

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import Header from "@/components/Header";
 import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,6 @@ import {
   Heart,
   Share2,
   MessageSquare,
-  Phone,
   MapPin,
   Bed,
   Bath,
@@ -31,6 +29,7 @@ import {
 import { format } from "date-fns";
 import type { Property } from "@shared/schema";
 import { Link } from "wouter";
+import { validatePhone, cleanPhone } from "@/utils/validation";
 
 export default function PropertyDetailPage() {
   const params = useParams();
@@ -66,6 +65,7 @@ export default function PropertyDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/me/favorites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/me/dashboard"] });
       toast({
         title: isFavorited ? "Removed from favorites" : "Added to favorites",
       });
@@ -121,7 +121,6 @@ export default function PropertyDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header isLoggedIn={!!user} userType="buyer" />
         <main className="flex-1 pb-16 lg:pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Skeleton className="h-10 w-3/4 mb-4" />
@@ -145,7 +144,6 @@ export default function PropertyDetailPage() {
   if (!property) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header isLoggedIn={!!user} userType="buyer" />
         <main className="flex-1 pb-16 lg:pb-8 flex items-center justify-center">
           <Card className="p-8 text-center max-w-md">
             <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
@@ -187,7 +185,6 @@ export default function PropertyDetailPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={!!user} userType="buyer" />
 
       <main className="flex-1 pb-16 lg:pb-8">
         {/* Image Gallery */}
@@ -262,21 +259,21 @@ export default function PropertyDetailPage() {
                   <MapPin className="h-5 w-5 text-muted-foreground" />
                   <p className="text-muted-foreground">{location}</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 mb-4">
-                  <Badge variant="outline">{property.propertyType}</Badge>
-                  <Badge variant="default" data-testid="badge-status">{transactionTypeLabel}</Badge>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-4">
+                  <Badge variant="outline" className="h-6 min-h-6 items-center">{property.propertyType}</Badge>
+                  <Badge variant="default" className="h-6 min-h-6 items-center" data-testid="badge-status">{transactionTypeLabel}</Badge>
                   {property.possessionStatus && (
-                    <Badge variant="outline" data-testid="badge-possession">
+                    <Badge variant="outline" className="h-6 min-h-6 items-center" data-testid="badge-possession">
                       {property.possessionStatus}
                     </Badge>
                   )}
                   {property.ageOfProperty && (
-                    <Badge variant="outline" data-testid="badge-property-age">
+                    <Badge variant="outline" className="h-6 min-h-6 items-center" data-testid="badge-property-age">
                       {property.ageOfProperty} old
                     </Badge>
                   )}
-                  <span className="text-sm text-muted-foreground">
-                    Posted {format(new Date(property.createdAt), "MMM d, yyyy")}
+                  <span className="text-sm text-muted-foreground whitespace-nowrap" data-testid="text-added-date">
+                    Added {format(new Date((property as any).approvedAt || property.createdAt), "MMM d, yyyy")}
                   </span>
                 </div>
                 {/* Locality Display */}
@@ -447,34 +444,45 @@ export default function PropertyDetailPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Button 
-                      className="w-full" 
-                      onClick={() => window.open(`tel:${property.contactPhone || ''}`, '_self')}
-                      disabled={!property.contactPhone}
-                      data-testid="button-contact"
-                    >
-                      <Phone className="h-4 w-4 mr-2" />
-                      Contact Seller
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full" 
-                      onClick={() => {
-                        if ((property as any).seller?.id) {
-                          setLocation(`/buyer/messages?sellerId=${(property as any).seller.id}&propertyId=${property.id}`);
-                        } else {
-                          toast({
-                            title: "Cannot start chat",
-                            description: "Seller information not available",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                      data-testid="button-chat"
-                    >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Start Chat
-                    </Button>
+                    {(() => {
+                      const sellerPhone = property.contactPhone || (property as any).seller?.phone || (property as any).sellerUser?.phone || "";
+                      const validPhone = sellerPhone && validatePhone(cleanPhone(sellerPhone));
+                      const whatsappNumber = validPhone ? "91" + cleanPhone(sellerPhone) : "";
+                      return (
+                        <>
+                          {validPhone && (
+                            <Button
+                              className="w-full bg-[#25D366] hover:bg-[#20BD5A] text-white"
+                              onClick={() => window.open(`https://wa.me/${whatsappNumber}`, "_blank")}
+                              data-testid="button-whatsapp"
+                            >
+                              <MessageSquare className="h-4 w-4 mr-2" />
+                              Chat on WhatsApp
+                            </Button>
+                          )}
+                          <Button 
+                            variant="outline" 
+                            className="w-full" 
+                            onClick={() => {
+                              const sellerId = (property as any).seller?.id ?? (property as any).sellerId;
+                              if (sellerId) {
+                                setLocation(`/buyer/chat?sellerId=${encodeURIComponent(sellerId)}&propertyId=${encodeURIComponent(property.id)}`);
+                              } else {
+                                toast({
+                                  title: "Cannot start chat",
+                                  description: "Seller information not available",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                            data-testid="button-chat"
+                          >
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Chat with Seller
+                          </Button>
+                        </>
+                      );
+                    })()}
                   </div>
                 </Card>
               )}

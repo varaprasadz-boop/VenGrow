@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from "react
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { validateEmail, validatePhone, cleanPhone, normalizeEmail } from "@/utils/validation";
+import { PhoneInput } from "@/components/ui/location-select";
 
 import { Card } from "@/components/ui/card";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -1756,16 +1757,11 @@ export default function CreatePropertyPage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="contactPhone">Contact Phone *</Label>
-                      <div className="flex gap-2">
-                        <Input className="w-20" value="+91" disabled />
-                        <Input
-                          id="contactPhone"
-                          placeholder="98765 43210"
-                          value={formData.contactPhone}
-                          onChange={(e) => updateField("contactPhone", e.target.value)}
-                          data-testid="input-contact-phone"
-                        />
-                      </div>
+                      <PhoneInput
+                        value={cleanPhone(formData.contactPhone)}
+                        onValueChange={(v) => updateField("contactPhone", v)}
+                        data-testid="input-contact-phone"
+                      />
                     </div>
 
                     <div className="space-y-2">

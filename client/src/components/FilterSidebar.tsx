@@ -1,12 +1,10 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation as useWouterLocation } from "wouter";
-import { Filter, X, Search, MapPin, Calendar, Building2, Layers, Milestone, Bookmark, Loader2 } from "lucide-react";
-import { useLocation as useLocationContext } from "@/contexts/LocationContext";
+import { Filter, X, Search, Calendar, Building2, Layers, Milestone, Bookmark, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import {
   Accordion,
@@ -34,7 +32,6 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { StateSelect, CitySelect } from "@/components/ui/location-select";
 import type { PropertyCategory, PropertySubcategory } from "@shared/schema";
 
 interface FilterSidebarProps {
@@ -48,9 +45,6 @@ interface FilterSidebarProps {
     projectStages?: string[];
     bhk?: string[];
     sellerTypes?: string[];
-    state?: string;
-    city?: string;
-    locality?: string;
     propertyAge?: string[];
     corporateSearch?: string;
   };
@@ -63,14 +57,14 @@ const projectStages = [
   { value: "ready_to_move", label: "Ready to Move" },
 ];
 
+const PRICE_MAX_LACS = 200; // 2 Cr
+const lacsToRupees = (lacs: number) => Math.round(lacs * 100000);
+const rupeesToLacs = (rupees: number) => rupees / 100000;
+
 export default function FilterSidebar({ onApplyFilters, initialCategory, initialFilters }: FilterSidebarProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [wouterLocation] = useWouterLocation();
-  
-  // Get selected city from LocationContext (header city selector)
-  const locationContext = useLocationContext();
-  const headerSelectedCity = locationContext?.selectedCity?.name || "";
   
   // Read category directly from URL as fallback - use window.location to get query string
   const categoryFromURL = useMemo(() => {
@@ -81,7 +75,7 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
   }, [wouterLocation]);
   
   const [priceRange, setPriceRange] = useState<[number, number]>(
-    initialFilters?.priceRange || [0, 20000000]
+    initialFilters?.priceRange || [0, lacsToRupees(PRICE_MAX_LACS)]
   );
   const [selectedTransactionTypes, setSelectedTransactionTypes] = useState<string[]>(
     initialFilters?.transactionTypes || []
@@ -105,22 +99,13 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
   const [selectedSeller, setSelectedSeller] = useState<string[]>(
     initialFilters?.sellerTypes || []
   );
-  const [selectedState, setSelectedState] = useState<string>(
-    initialFilters?.state || ""
-  );
-  const [selectedCity, setSelectedCity] = useState<string>(
-    initialFilters?.city || headerSelectedCity || ""
-  );
-  const [selectedLocality, setSelectedLocality] = useState<string>(
-    initialFilters?.locality || ""
-  );
   const [selectedPropertyAge, setSelectedPropertyAge] = useState<string[]>(
     initialFilters?.propertyAge || []
   );
   const [corporateSearch, setCorporateSearch] = useState<string>("");
   const [saveSearchOpen, setSaveSearchOpen] = useState(false);
   const [searchName, setSearchName] = useState("");
-  const [accordionValue, setAccordionValue] = useState<string[]>(["category", "subcategory", "projectStage", "transaction", "location", "price", "seller"]);
+  const [accordionValue, setAccordionValue] = useState<string[]>(["category", "subcategory", "projectStage", "transaction", "price", "seller"]);
   
   // Fetch categories - must be declared before useEffects that use it
   const { data: categories = [] } = useQuery<PropertyCategory[]>({
@@ -132,13 +117,6 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
     return categoryFromURL || initialFilters?.category || initialCategory || "all";
   }, [categoryFromURL, initialCategory, initialFilters?.category]);
   
-  // Sync FilterSidebar city display with header city selection (only if no city filter is set)
-  useEffect(() => {
-    if (headerSelectedCity && !selectedCity && !initialFilters?.city) {
-      setSelectedCity(headerSelectedCity);
-    }
-  }, [headerSelectedCity]); // Only sync when header city changes
-
   // Sync selectedCategory when categoryFromProps changes or URL changes
   useEffect(() => {
     const newCategory = categoryFromProps;
@@ -232,9 +210,6 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
         projectStages: selectedProjectStages,
         bedrooms: selectedBHK,
         sellerTypes: selectedSeller,
-        state: selectedState || undefined,
-        city: selectedCity || undefined,
-        locality: selectedLocality || undefined,
         propertyAge: selectedPropertyAge,
         builder: corporateSearch || undefined,
       };
@@ -267,7 +242,6 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
   const generateSearchName = () => {
     const parts: string[] = [];
     if (selectedCategory !== "all") parts.push(selectedCategory);
-    if (selectedCity !== "all") parts.push(selectedCity);
     if (selectedBHK.length > 0) parts.push(`${selectedBHK.join('/')} BHK`);
     if (selectedTransactionTypes.length > 0) parts.push(selectedTransactionTypes.join('/'));
     return parts.length > 0 ? parts.join(' - ') : "My Search"
@@ -357,31 +331,26 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
 
   const handleClearFilters = () => {
     if (window.confirm("Are you sure you want to clear all filters?")) {
-      setPriceRange([0, 20000000]);
+      const defaultMaxRupees = lacsToRupees(PRICE_MAX_LACS);
+      setPriceRange([0, defaultMaxRupees]);
       setSelectedTransactionTypes([]);
       setSelectedCategory("all");
       setSelectedSubcategories([]);
       setSelectedProjectStages([]);
       setSelectedBHK([]);
       setSelectedSeller([]);
-      setSelectedState("");
-      setSelectedCity("");
-      setSelectedLocality("");
       setSelectedPropertyAge([]);
       setCorporateSearch("");
       
       // Apply cleared filters
       const clearedFilters = {
-        priceRange: [0, 20000000],
+        priceRange: [0, defaultMaxRupees],
         transactionTypes: [],
         category: "all",
         subcategories: [],
         projectStages: [],
         bhk: [],
         sellerTypes: [],
-        state: "",
-        city: "",
-        locality: "",
         propertyAge: [],
         corporateSearch: "",
       };
@@ -398,9 +367,6 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
       projectStages: selectedProjectStages,
       bhk: selectedBHK,
       sellerTypes: selectedSeller,
-      state: selectedState,
-      city: selectedCity,
-      locality: selectedLocality,
       propertyAge: selectedPropertyAge,
       corporateSearch,
     };
@@ -425,6 +391,7 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
 
   // Calculate active filters count in real-time
   const activeFiltersCount = useMemo(() => {
+    const defaultMaxRupees = lacsToRupees(PRICE_MAX_LACS);
     return selectedTransactionTypes.length + 
       (selectedCategory !== "all" ? 1 : 0) + 
       selectedSubcategories.length +
@@ -432,10 +399,8 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
       selectedBHK.length + 
       selectedSeller.length + 
       selectedPropertyAge.length + 
-      (selectedState ? 1 : 0) +
-      (selectedCity && selectedCity !== "all" ? 1 : 0) + 
       (corporateSearch ? 1 : 0) +
-      (priceRange[0] !== 0 || priceRange[1] !== 20000000 ? 1 : 0);
+      (priceRange[0] !== 0 || priceRange[1] !== defaultMaxRupees ? 1 : 0);
   }, [
     selectedTransactionTypes,
     selectedCategory,
@@ -444,8 +409,6 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
     selectedBHK,
     selectedSeller,
     selectedPropertyAge,
-    selectedState,
-    selectedCity,
     corporateSearch,
     priceRange,
   ]);
@@ -574,109 +537,50 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="location">
-          <AccordionTrigger>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Location
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">State</Label>
-              <StateSelect
-                value={selectedState}
-                onValueChange={(value) => {
-                  setSelectedState(value);
-                  setSelectedCity("");
-                  setSelectedLocality("");
-                }}
-                placeholder="All States"
-                data-testid="select-state"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">City</Label>
-              <CitySelect
-                value={selectedCity}
-                onValueChange={(value) => {
-                  setSelectedCity(value);
-                  setSelectedLocality("");
-                }}
-                stateValue={selectedState}
-                placeholder="All Cities"
-                data-testid="select-city"
-              />
-            </div>
-            {selectedCity && (
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Locality (Optional)</Label>
-                <Input
-                  placeholder={`Enter locality in ${selectedCity}`}
-                  value={selectedLocality}
-                  onChange={(e) => setSelectedLocality(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      // Auto-apply locality filter on Enter
-                      handleApply();
-                    }
-                  }}
-                  data-testid="input-locality"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Type locality name and press Enter to filter, or leave empty for all localities
-                </p>
-              </div>
-            )}
-          </AccordionContent>
-        </AccordionItem>
-
         <AccordionItem value="price">
-          <AccordionTrigger>Price Range</AccordionTrigger>
+          <AccordionTrigger>Price Range (Lacs)</AccordionTrigger>
           <AccordionContent className="space-y-4">
-            <div className="px-2">
-              <Slider
-                value={priceRange}
-                onValueChange={setPriceRange}
-                min={0}
-                max={20000000}
-                step={100000}
-                className="mb-4"
-                data-testid="slider-price-range"
-              />
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{formatPrice(priceRange[0])}</span>
-                <span className="text-muted-foreground">{formatPrice(priceRange[1])}</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="price-from" className="text-muted-foreground">From</Label>
+                <Input
+                  id="price-from"
+                  type="number"
+                  min={0}
+                  max={PRICE_MAX_LACS}
+                  step={0.5}
+                  placeholder="0"
+                  value={priceRange[0] === 0 ? "" : rupeesToLacs(priceRange[0])}
+                  onChange={(e) => {
+                    const v = e.target.value === "" ? 0 : parseFloat(e.target.value) || 0;
+                    const lacs = Math.max(0, Math.min(PRICE_MAX_LACS, v));
+                    const rupees = lacsToRupees(lacs);
+                    setPriceRange(([, max]) => [rupees, rupees > max ? rupees : max]);
+                  }}
+                  data-testid="input-price-from-lacs"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="price-to" className="text-muted-foreground">To</Label>
+                <Input
+                  id="price-to"
+                  type="number"
+                  min={0}
+                  max={PRICE_MAX_LACS}
+                  step={0.5}
+                  placeholder={String(PRICE_MAX_LACS)}
+                  value={priceRange[1] === lacsToRupees(PRICE_MAX_LACS) ? "" : rupeesToLacs(priceRange[1])}
+                  onChange={(e) => {
+                    const v = e.target.value === "" ? PRICE_MAX_LACS : parseFloat(e.target.value) || PRICE_MAX_LACS;
+                    const lacs = Math.max(0, Math.min(PRICE_MAX_LACS, v));
+                    const rupees = lacsToRupees(lacs);
+                    setPriceRange(([min]) => [min, rupees < min ? min : rupees]);
+                  }}
+                  data-testid="input-price-to-lacs"
+                />
               </div>
             </div>
-            <Select 
-              value="all"
-              onValueChange={(value) => {
-                const presetMap: Record<string, [number, number]> = {
-                  "under50": [0, 5000000],
-                  "50to1cr": [5000000, 10000000],
-                  "1to2cr": [10000000, 20000000],
-                  "above2cr": [20000000, 20000000],
-                };
-                if (value !== "all" && presetMap[value]) {
-                  setPriceRange(presetMap[value]);
-                } else if (value === "all") {
-                  setPriceRange([0, 20000000]);
-                }
-              }}
-            >
-              <SelectTrigger data-testid="select-price-preset">
-                <SelectValue placeholder="Quick select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Prices</SelectItem>
-                <SelectItem value="under50">Under 50 Lakhs</SelectItem>
-                <SelectItem value="50to1cr">50L - 1 Cr</SelectItem>
-                <SelectItem value="1to2cr">1 Cr - 2 Cr</SelectItem>
-                <SelectItem value="above2cr">Above 2 Cr</SelectItem>
-              </SelectContent>
-            </Select>
+            <p className="text-xs text-muted-foreground">Enter price in lacs (e.g. 50 = ₹50 L)</p>
           </AccordionContent>
         </AccordionItem>
 

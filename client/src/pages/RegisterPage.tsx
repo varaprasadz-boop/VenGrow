@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Shield, Check, Users, TrendingUp, Home, Store, Mail, Lock, Phone, User, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
+import { Shield, Check, Users, TrendingUp, Home, Store, Mail, Lock, User, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import vengrowLogo from "@assets/VenGrow_Logo_Design_Trasparent_1765381672347.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { SiGoogle } from "react-icons/si";
+import { PhoneInput } from "@/components/ui/location-select";
 
 type Intent = "buyer" | "seller" | null;
 type Step = "intent" | "buyer-form" | "seller-form" | "seller-package";
@@ -677,31 +678,20 @@ export default function RegisterPage() {
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2" onBlur={() => handleBlur("phone")}>
                   <Label htmlFor="phone">Mobile Number (10 digits) *</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="Enter 10-digit mobile number"
-                      value={phone}
-                      onChange={(e) => {
-                        const cleaned = e.target.value.replace(/\D/g, "").slice(0, 10);
-                        setPhone(cleaned);
-                        if (touchedFields.has("phone")) {
-                          const error = validateField("phone", cleaned);
-                          setErrors((prev) => ({ ...prev, phone: error }));
-                        }
-                      }}
-                      onBlur={() => handleBlur("phone")}
-                      className={`pl-10 ${errors.phone ? "border-destructive" : ""}`}
-                      required
-                      data-testid="input-phone"
-                      aria-invalid={!!errors.phone}
-                      aria-describedby={errors.phone ? "phone-error" : undefined}
-                    />
-                  </div>
+                  <PhoneInput
+                    value={phone}
+                    onValueChange={(v) => {
+                      setPhone(v);
+                      if (touchedFields.has("phone")) {
+                        const error = validateField("phone", v);
+                        setErrors((prev) => ({ ...prev, phone: error }));
+                      }
+                    }}
+                    error={touchedFields.has("phone") ? errors.phone : undefined}
+                    data-testid="input-phone"
+                  />
                   {errors.phone && touchedFields.has("phone") && (
                     <p id="phone-error" className="text-sm text-destructive">{errors.phone}</p>
                   )}
@@ -981,31 +971,20 @@ export default function RegisterPage() {
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2" onBlur={() => handleBlur("phone")}>
                   <Label htmlFor="seller-phone">Mobile Number (10 digits) *</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    <Input
-                      id="seller-phone"
-                      type="tel"
-                      placeholder="Enter 10-digit mobile number"
-                      value={phone}
-                      onChange={(e) => {
-                        const cleaned = e.target.value.replace(/\D/g, "").slice(0, 10);
-                        setPhone(cleaned);
-                        if (touchedFields.has("phone")) {
-                          const error = validateField("phone", cleaned);
-                          setErrors((prev) => ({ ...prev, phone: error }));
-                        }
-                      }}
-                      onBlur={() => handleBlur("phone")}
-                      className={`pl-10 ${errors.phone ? "border-destructive" : ""}`}
-                      required
-                      data-testid="input-seller-phone"
-                      aria-invalid={!!errors.phone}
-                      aria-describedby={errors.phone ? "seller-phone-error" : undefined}
-                    />
-                  </div>
+                  <PhoneInput
+                    value={phone}
+                    onValueChange={(v) => {
+                      setPhone(v);
+                      if (touchedFields.has("phone")) {
+                        const error = validateField("phone", v);
+                        setErrors((prev) => ({ ...prev, phone: error }));
+                      }
+                    }}
+                    error={touchedFields.has("phone") ? errors.phone : undefined}
+                    data-testid="input-seller-phone"
+                  />
                   {errors.phone && touchedFields.has("phone") && (
                     <p id="seller-phone-error" className="text-sm text-destructive">{errors.phone}</p>
                   )}

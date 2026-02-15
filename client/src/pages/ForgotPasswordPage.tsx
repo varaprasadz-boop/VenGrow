@@ -1,19 +1,48 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Building2, Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { Building2, Mail, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Password reset requested for:", email);
-    setSubmitted(true);
+    if (!email.trim()) return;
+    setIsLoading(true);
+    try {
+      const res = await apiRequest("POST", "/api/auth/forgot-password", { email: email.trim() });
+      const data = await res.json();
+      if (data.success) {
+        setSubmitted(true);
+        toast({
+          title: "Check your email",
+          description: "If an account exists for this email, we've sent a password reset link.",
+        });
+      } else {
+        toast({
+          title: "Something went wrong",
+          description: data.message || "Please try again later.",
+          variant: "destructive",
+        });
+      }
+    } catch (err: unknown) {
+      toast({
+        title: "Request failed",
+        description: err instanceof Error ? err.message : "Could not send reset link. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -57,8 +86,15 @@ export default function ForgotPasswordPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" data-testid="button-send-reset-link">
-                Send Reset Link
+              <Button type="submit" className="w-full" disabled={isLoading} data-testid="button-send-reset-link">
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sending...
+                  </span>
+                ) : (
+                  "Send Reset Link"
+                )}
               </Button>
 
               <div className="text-center">

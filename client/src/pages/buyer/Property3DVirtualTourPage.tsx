@@ -1,4 +1,3 @@
-import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Maximize, Minimize, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";

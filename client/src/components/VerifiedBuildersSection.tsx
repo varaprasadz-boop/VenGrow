@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { BadgeCheck, ArrowRight, ChevronLeft, ChevronRight, Building2, Loader2 } from "lucide-react";
+import { BadgeCheck, ArrowRight, Building2, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { VerifiedBuilder } from "@shared/schema";
@@ -23,10 +22,6 @@ const fallbackBuilders = [
 ];
 
 export default function VerifiedBuildersSection() {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-
   const { data: apiBuilders, isLoading } = useQuery<VerifiedBuilder[]>({
     queryKey: ["/api/verified-builders", { homepage: true }],
     queryFn: async () => {
@@ -71,49 +66,8 @@ export default function VerifiedBuildersSection() {
       })
     : fallbackBuilders;
 
-  const checkScrollButtons = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
-    }
-  };
-
-  useEffect(() => {
-    checkScrollButtons();
-    const container = scrollContainerRef.current;
-    if (container) {
-      container.addEventListener("scroll", checkScrollButtons);
-      return () => container.removeEventListener("scroll", checkScrollButtons);
-    }
-  }, [builders]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (scrollContainerRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-        if (scrollLeft >= scrollWidth - clientWidth - 10) {
-          scrollContainerRef.current.scrollTo({ left: 0, behavior: "smooth" });
-        } else {
-          scrollContainerRef.current.scrollBy({ left: 200, behavior: "smooth" });
-        }
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const scrollLeft = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -200, behavior: "smooth" });
-    }
-  };
-
-  const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 200, behavior: "smooth" });
-    }
-  };
+  // Duplicate list for seamless infinite scroll (left → right = content moves left, so we animate translateX negative)
+  const buildersDoubled = [...builders, ...builders];
 
   if (isLoading) {
     return (
@@ -141,45 +95,27 @@ export default function VerifiedBuildersSection() {
           </p>
         </div>
 
-        <div className="relative group/carousel">
-          <button
-            className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm transition-all duration-200 ${
-              canScrollLeft 
-                ? "opacity-0 group-hover/carousel:opacity-100 hover:bg-background hover:shadow-md cursor-pointer" 
-                : "opacity-0 cursor-not-allowed"
-            }`}
-            onClick={scrollLeft}
-            disabled={!canScrollLeft}
-            data-testid="button-scroll-left"
-          >
-            <ChevronLeft className="h-5 w-5 text-muted-foreground" />
-          </button>
-
-          <div
-            ref={scrollContainerRef}
-            className="flex gap-6 overflow-x-auto scrollbar-hide px-8 py-2"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-            data-testid="carousel-verified-builders"
-          >
-            {builders.map((builder) => (
-              <Link 
-                key={builder.id} 
+        <div className="relative overflow-hidden py-2" data-testid="carousel-verified-builders">
+          <div className="flex gap-6 w-max animate-marquee-left">
+            {buildersDoubled.map((builder, index) => (
+              <Link
+                key={`${builder.id}-${index}`}
                 href={`/builder/${builder.slug}`}
                 data-testid={`link-builder-${builder.id}`}
                 className="flex-shrink-0"
               >
-                <Card 
+                <Card
                   className="p-6 w-52 hover-elevate active-elevate-2 cursor-pointer transition-all group text-center"
                   data-testid={`card-builder-${builder.id}`}
                 >
                   <div className="flex flex-col items-center justify-center gap-3">
-                    <div 
+                    <div
                       className="h-20 w-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center"
                       data-testid={`img-builder-logo-${builder.id}`}
                     >
                       {builder.logoUrl ? (
-                        <img 
-                          src={builder.logoUrl} 
+                        <img
+                          src={builder.logoUrl}
                           alt={builder.companyName}
                           className="w-full h-full object-cover"
                         />
@@ -187,15 +123,15 @@ export default function VerifiedBuildersSection() {
                         <Building2 className="h-8 w-8 text-muted-foreground" />
                       )}
                     </div>
-                    
+
                     <div>
-                      <p 
+                      <p
                         className="font-semibold text-sm line-clamp-2"
                         data-testid={`text-builder-name-${builder.id}`}
                       >
                         {builder.companyName}
                       </p>
-                      <p 
+                      <p
                         className="text-xs text-muted-foreground mt-1"
                         data-testid={`text-builder-count-${builder.id}`}
                       >
@@ -212,19 +148,6 @@ export default function VerifiedBuildersSection() {
               </Link>
             ))}
           </div>
-
-          <button
-            className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm transition-all duration-200 ${
-              canScrollRight 
-                ? "opacity-0 group-hover/carousel:opacity-100 hover:bg-background hover:shadow-md cursor-pointer" 
-                : "opacity-0 cursor-not-allowed"
-            }`}
-            onClick={scrollRight}
-            disabled={!canScrollRight}
-            data-testid="button-scroll-right"
-          >
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </button>
         </div>
 
         <div className="text-center mt-10">

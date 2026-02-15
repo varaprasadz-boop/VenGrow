@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import Header from "@/components/Header";
 import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -109,7 +108,6 @@ export default function NotificationsPage() {
   if (!currentUser) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header isLoggedIn={false} />
         <main className="flex-1 flex items-center justify-center">
           <Card className="p-8 text-center max-w-md">
             <Bell className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
@@ -129,8 +127,6 @@ export default function NotificationsPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="buyer" />
-
       <main className="flex-1 pb-16 lg:pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
@@ -178,8 +174,8 @@ export default function NotificationsPage() {
                   <Badge className="ml-2">{unreadCount}</Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="message" data-testid="tab-messages">
-                Messages
+              <TabsTrigger value="message" data-testid="tab-chat">
+                Chat
               </TabsTrigger>
               <TabsTrigger value="inquiry" data-testid="tab-inquiries">
                 Inquiries

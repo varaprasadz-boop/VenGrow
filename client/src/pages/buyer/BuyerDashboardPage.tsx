@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import Header from "@/components/Header";
 import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,26 +47,36 @@ export default function BuyerDashboardPage() {
   const { data: dashboardStats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/me/dashboard"],
     enabled: !!user,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const { data: favorites = [], isLoading: favoritesLoading } = useQuery<Property[]>({
     queryKey: ["/api/me/favorites"],
     enabled: !!user,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const { data: inquiries = [], isLoading: inquiriesLoading } = useQuery<InquiryWithProperty[]>({
     queryKey: ["/api/me/inquiries"],
     enabled: !!user,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const { data: savedSearches = [], isLoading: searchesLoading } = useQuery<SavedSearch[]>({
     queryKey: ["/api/me/saved-searches"],
     enabled: !!user,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const { data: appointments = [], isLoading: appointmentsLoading } = useQuery<Appointment[]>({
     queryKey: ["/api/me/appointments"],
     enabled: !!user,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const upcomingAppointments = appointments.filter(
@@ -167,20 +176,23 @@ export default function BuyerDashboardPage() {
     isVerified: property.isVerified || false,
     sellerType: "Individual" as const,
     transactionType: (property.transactionType === "sale" ? "Sale" : "Rent") as "Sale" | "Rent",
+    addedDate: (property as any).approvedAt || property.createdAt,
   });
 
   const recentInquiries = inquiries.slice(0, 3);
   const recentFavorites = favorites.slice(0, 2);
 
+  const fullName = user
+    ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email || ""
+    : "";
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={!!user} userType="buyer" />
-
       <main className="flex-1 bg-muted/30 pb-16 lg:pb-8">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
           <div className="mb-6 sm:mb-8">
             <h1 className="font-serif font-bold text-2xl sm:text-3xl mb-2">
-              Welcome back{user?.firstName ? `, ${user.firstName}` : ''}!
+              Welcome back{fullName ? `, ${fullName}` : ""}!
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground">
               Here's what's happening with your property search

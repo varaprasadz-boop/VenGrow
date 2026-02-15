@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { StateSelect, CitySelect, PinCodeInput } from "@/components/ui/location-select";
+import { StateSelect, CitySelect, PinCodeInput, PhoneInput } from "@/components/ui/location-select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { queryClient } from "@/lib/queryClient";
 
@@ -75,9 +76,7 @@ export default function CorporateRegisterPage() {
       newErrors.phone = "Invalid phone number";
     }
 
-    if (!formData.cinNumber.trim()) {
-      newErrors.cinNumber = "CIN number is required";
-    }
+    // CIN number is optional
 
     if (!formData.gstNumber.trim()) {
       newErrors.gstNumber = "GST number is required";
@@ -130,21 +129,61 @@ export default function CorporateRegisterPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const LOGO_MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+  const BROCHURE_MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+  const LOGO_DIMENSIONS = { width: 512, height: 512 };
+
   const handleLogoUpload = async (results: any) => {
-    // Handle both array format (legacy) and object format (Uppy UploadResult)
     const successful = Array.isArray(results) ? results : (results?.successful || []);
     if (successful.length === 0) return;
     const file = successful[0];
-    setLogoUrl(file.url);
-    setLogoPreview(file.url);
-    toast({ title: "Logo uploaded successfully" });
+    const logoUrlFromUpload = file.url || file.source || file.uploadURL;
+    if (!logoUrlFromUpload) {
+      toast({ title: "Upload failed", description: "No image URL received.", variant: "destructive" });
+      return;
+    }
+    if (file.size && file.size > LOGO_MAX_SIZE_BYTES) {
+      toast({ title: "Logo too large", description: "Logo must be 5MB or less.", variant: "destructive" });
+      return;
+    }
+    // Show preview immediately so user sees the uploaded logo
+    setLogoPreview(logoUrlFromUpload);
+    setLogoUrl(logoUrlFromUpload);
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      if (img.naturalWidth !== LOGO_DIMENSIONS.width || img.naturalHeight !== LOGO_DIMENSIONS.height) {
+        setLogoUrl(null);
+        setLogoPreview(null);
+        toast({
+          title: "Invalid logo dimensions",
+          description: `Logo must be exactly ${LOGO_DIMENSIONS.width}×${LOGO_DIMENSIONS.height} pixels.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "Logo uploaded successfully" });
+    };
+    img.onerror = () => {
+      // Keep preview visible; dimension check failed (e.g. CORS). User can still see and submit; server may validate.
+      toast({
+        title: "Could not verify dimensions",
+        description: "Logo preview is shown. Use 512×512 px to avoid rejection.",
+        variant: "default",
+      });
+    };
+    img.src = logoUrlFromUpload;
   };
 
   const handleBrochureUpload = async (results: any) => {
-    // Handle both array format (legacy) and object format (Uppy UploadResult)
     const successful = Array.isArray(results) ? results : (results?.successful || []);
     if (successful.length === 0) return;
     const file = successful[0];
+    if (file.size && file.size > BROCHURE_MAX_SIZE_BYTES) {
+      toast({ title: "Brochure too large", description: "Brochure must be 5MB or less.", variant: "destructive" });
+      return;
+    }
     setBrochureUrl(file.url);
     setBrochureName(file.name);
     toast({ title: "Brochure uploaded successfully" });
@@ -291,51 +330,66 @@ export default function CorporateRegisterPage() {
                 {/* Company Logo Upload */}
                 <div className="space-y-2">
                   <Label>Company Logo *</Label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-start gap-4">
                     <ObjectUploader
                       bucket="seller-documents"
                       prefix="corporate/logo/"
                       onComplete={handleLogoUpload}
                       maxFiles={1}
                       accept="image/*"
+                      maxFileSize={5 * 1024 * 1024}
+                      autoCloseOnSuccess={false}
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Logo
                     </ObjectUploader>
                     {logoPreview && (
-                      <>
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-sm text-muted-foreground">Logo uploaded</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={removeLogo}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="relative shrink-0">
+                          <Avatar className="h-20 w-20 rounded-full border-2 border-muted flex">
+                            <AvatarImage src={logoPreview} alt="Logo preview" className="object-cover" />
+                            <AvatarFallback className="bg-muted">
+                              <Image className="h-8 w-8 text-muted-foreground" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute h-6 w-6 min-w-6 rounded-full border-2 border-background bg-muted-foreground text-background hover:bg-foreground shadow z-10"
+                            style={{ position: "absolute", top: 0, right: 0, left: "auto", bottom: "auto" }}
+                            onClick={removeLogo}
+                            aria-label="Remove logo"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                          <span>Logo uploaded</span>
+                        </div>
+                      </div>
                     )}
                   </div>
                   {errors.logo && (
                     <p className="text-sm text-destructive">{errors.logo}</p>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    This logo will be displayed on the Verified Builders section
+                    Max 5MB, 512×512 px. Displayed on the Verified Builders section.
                   </p>
                 </div>
 
-                {/* Company Brochure Upload */}
+                {/* Company Brochure Upload - PDF only */}
                 <div className="space-y-2">
-                  <Label>Company Brochure (PDF)</Label>
+                  <Label>Company Brochure (PDF only)</Label>
                   <div className="flex items-center gap-2">
                     <ObjectUploader
                       bucket="seller-documents"
                       prefix="corporate/brochure/"
                       onComplete={handleBrochureUpload}
                       maxFiles={1}
-                      accept=".pdf"
+                      accept=".pdf,application/pdf"
+                      maxFileSize={5 * 1024 * 1024}
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Brochure
@@ -357,7 +411,7 @@ export default function CorporateRegisterPage() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Buyers can download this brochure from your profile
+                    PDF only, max 5MB. Buyers can download this brochure from your profile.
                   </p>
                 </div>
               </div>
@@ -406,17 +460,13 @@ export default function CorporateRegisterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Official Phone *</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+91 22 1234 5678"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
+                  <PhoneInput
+                    value={formData.phone.replace(/\D/g, "")}
+                    onValueChange={(v) =>
+                      setFormData({ ...formData, phone: v })
                     }
+                    error={errors.phone}
                     data-testid="input-phone"
-                    required
-                    className={errors.phone ? "border-destructive" : ""}
                   />
                   {errors.phone && (
                     <p className="text-sm text-destructive">{errors.phone}</p>
@@ -491,7 +541,6 @@ export default function CorporateRegisterPage() {
                       setFormData({ ...formData, cinNumber: e.target.value.toUpperCase() })
                     }
                     data-testid="input-cin"
-                    required
                     className={errors.cinNumber ? "border-destructive" : ""}
                   />
                   {errors.cinNumber && (

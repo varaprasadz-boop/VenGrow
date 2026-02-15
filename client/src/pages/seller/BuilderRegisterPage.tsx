@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { StateSelect, CitySelect, PinCodeInput } from "@/components/ui/location-select";
+import { StateSelect, CitySelect, PinCodeInput, PhoneInput } from "@/components/ui/location-select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -77,9 +77,7 @@ export default function BuilderRegisterPage() {
       newErrors.phone = "Invalid phone number";
     }
 
-    if (!formData.cinNumber.trim()) {
-      newErrors.cinNumber = "CIN number is required";
-    }
+    // CIN number is optional
 
     if (!formData.gstNumber.trim()) {
       newErrors.gstNumber = "GST number is required";
@@ -338,17 +336,13 @@ export default function BuilderRegisterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Official Phone *</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+91 22 1234 5678"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
+                  <PhoneInput
+                    value={formData.phone.replace(/\D/g, "")}
+                    onValueChange={(v) =>
+                      setFormData({ ...formData, phone: v })
                     }
+                    error={errors.phone}
                     data-testid="input-phone"
-                    required
-                    className={errors.phone ? "border-destructive" : ""}
                   />
                   {errors.phone && (
                     <p className="text-sm text-destructive">{errors.phone}</p>
@@ -423,7 +417,6 @@ export default function BuilderRegisterPage() {
                       setFormData({ ...formData, cinNumber: e.target.value.toUpperCase() })
                     }
                     data-testid="input-cin"
-                    required
                     className={errors.cinNumber ? "border-destructive" : ""}
                   />
                   {errors.cinNumber && (

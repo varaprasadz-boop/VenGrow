@@ -1,13 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { queryClient } from "@/lib/queryClient";
 
 export function DashboardSwitcher() {
-  const [, setWouterLocation] = useLocation();
+  const [location, setWouterLocation] = useLocation();
   const { isBuyer, isSeller, isAdmin, activeDashboard, setActiveDashboard, refetch } = useAuth();
   const [addingRole, setAddingRole] = useState(false);
+
+  // Sync toggle with current route so it always shows the correct dashboard (e.g. seller sees "Seller" when on seller routes)
+  useEffect(() => {
+    if (!isBuyer && !isSeller) return;
+    if (location.startsWith("/seller/")) setActiveDashboard("seller");
+    else if (location.startsWith("/buyer/") || location === "/dashboard" || location === "/favorites" || location === "/inquiries") setActiveDashboard("buyer");
+  }, [location, isBuyer, isSeller, setActiveDashboard]);
 
   const hasBothRoles = isBuyer && isSeller;
   const effectiveView = hasBothRoles ? activeDashboard : isSeller ? "seller" : "buyer";

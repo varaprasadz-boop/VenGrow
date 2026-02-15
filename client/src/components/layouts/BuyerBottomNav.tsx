@@ -12,7 +12,7 @@ const navItems = [
   { title: "Dashboard", href: "/buyer/dashboard", icon: LayoutDashboard },
   { title: "Browse", href: "/properties", icon: Search },
   { title: "Favorites", href: "/buyer/favorites", icon: Heart },
-  { title: "Messages", href: "/buyer/inquiries", icon: MessageSquare },
+  { title: "Chat", href: "/buyer/chat", icon: MessageSquare },
   { title: "Profile", href: "/buyer/profile", icon: User },
 ];
 

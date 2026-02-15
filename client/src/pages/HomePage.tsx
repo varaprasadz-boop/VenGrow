@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import PropertyCard from "@/components/PropertyCard";
+import PropertyCarouselSection from "@/components/PropertyCarouselSection";
 import StatsSection from "@/components/StatsSection";
 import VerifiedBuildersSection from "@/components/VerifiedBuildersSection";
 import TestimonialsSection from "@/components/TestimonialsSection";
@@ -183,68 +184,126 @@ export default function HomePage() {
     },
   });
 
+  // Fetch section-specific properties
+  const { data: newProjectsData = [], isLoading: newProjectsLoading } = useQuery<Property[]>({
+    queryKey: ["/api/properties", "new-projects"],
+    queryFn: async () => {
+      const response = await fetch("/api/properties?limit=8&status=active&sellerType=builder");
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
+  const { data: luxuryData = [], isLoading: luxuryLoading } = useQuery<Property[]>({
+    queryKey: ["/api/properties", "luxury"],
+    queryFn: async () => {
+      const response = await fetch("/api/properties?limit=8&status=active&minPrice=10000000");
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
+  const { data: commercialSaleData = [], isLoading: commercialLoading } = useQuery<Property[]>({
+    queryKey: ["/api/properties", "commercial-sale"],
+    queryFn: async () => {
+      const response = await fetch("/api/properties?limit=8&status=active&propertyType=commercial&transactionType=sale&isFeatured=true");
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
+  const { data: plotsData = [], isLoading: plotsLoading } = useQuery<Property[]>({
+    queryKey: ["/api/properties", "plots"],
+    queryFn: async () => {
+      const response = await fetch("/api/properties?limit=8&status=active&propertyType=plot");
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
+  const { data: ownerPostedData = [], isLoading: ownerPostedLoading } = useQuery<Property[]>({
+    queryKey: ["/api/properties", "owner-posted"],
+    queryFn: async () => {
+      const response = await fetch("/api/properties?limit=8&status=active&sellerType=individual");
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
+  const { data: channelPartnerData = [], isLoading: channelPartnerLoading } = useQuery<Property[]>({
+    queryKey: ["/api/properties", "channel-partner"],
+    queryFn: async () => {
+      const response = await fetch("/api/properties?limit=8&status=active&sellerType=builder&verifiedSeller=true");
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
+  // Helper to transform API property to PropertyCard format
+  const transformProperty = (property: any, defaultSellerType: "Individual" | "Broker" | "Builder" = "Builder") => {
+    const imageUrl = (property as any).images?.length > 0
+      ? (typeof (property as any).images[0] === "string"
+        ? (property as any).images[0]
+        : (property as any).images[0]?.url)
+      : "";
+    return {
+      id: property.id,
+      title: property.title,
+      price: property.price,
+      location: `${property.locality || ""}, ${property.city || ""}`.replace(/^, |, $/g, "") || "Location not specified",
+      imageUrl,
+      bedrooms: property.bedrooms || undefined,
+      bathrooms: property.bathrooms || undefined,
+      area: property.area || 0,
+      propertyType: property.propertyType || "Property",
+      isFeatured: property.isFeatured || false,
+      isVerified: property.isVerified || false,
+      sellerType: ((property as any).sellerType || defaultSellerType) as "Individual" | "Broker" | "Builder",
+      transactionType: (property.transactionType === "sale" ? "Sale" : property.transactionType === "rent" ? "Rent" : "Lease") as "Sale" | "Rent" | "Lease",
+      addedDate: (property as any).approvedAt || property.createdAt,
+    };
+  };
+
   // Transform API data for PropertyCard component
   const displayFeatured = useMemo(() => {
-    if (featuredPropertiesData.length === 0) {
-      // Don't show sample data - show empty state instead
-      return [];
-    }
-    return featuredPropertiesData.map(property => {
-      // Extract first image URL from images array
-      const imageUrl = (property as any).images?.length > 0
-        ? (typeof (property as any).images[0] === 'string' 
-            ? (property as any).images[0] 
-            : (property as any).images[0]?.url)
-        : '';
-      
-      return {
-        id: property.id,
-        title: property.title,
-        price: property.price,
-        location: `${property.locality || ''}, ${property.city || ''}`.replace(/^, |, $/g, '') || 'Location not specified',
-        imageUrl: imageUrl,
-        bedrooms: property.bedrooms || undefined,
-        bathrooms: property.bathrooms || undefined,
-        area: property.area || 0,
-        propertyType: property.propertyType || "Property",
-        isFeatured: property.isFeatured || false,
-        isVerified: property.isVerified || false,
-        sellerType: ((property as any).sellerType || "Builder") as "Individual" | "Broker" | "Builder",
-        transactionType: (property.transactionType === "sale" ? "Sale" : property.transactionType === "rent" ? "Rent" : "Lease") as "Sale" | "Rent" | "Lease",
-      };
-    });
+    if (featuredPropertiesData.length === 0) return [];
+    return featuredPropertiesData.map((p) => transformProperty(p, "Builder"));
   }, [featuredPropertiesData]);
 
   const displayNew = useMemo(() => {
-    if (newPropertiesData.length === 0) {
-      // Don't show sample data - show empty state instead
-      return [];
-    }
-    return newPropertiesData.map(property => {
-      // Extract first image URL from images array
-      const imageUrl = (property as any).images?.length > 0
-        ? (typeof (property as any).images[0] === 'string' 
-            ? (property as any).images[0] 
-            : (property as any).images[0]?.url)
-        : '';
-      
-      return {
-        id: property.id,
-        title: property.title,
-        price: property.price,
-        location: `${property.locality || ''}, ${property.city || ''}`.replace(/^, |, $/g, '') || 'Location not specified',
-        imageUrl: imageUrl,
-        bedrooms: property.bedrooms || undefined,
-        bathrooms: property.bathrooms || undefined,
-        area: property.area || 0,
-        propertyType: property.propertyType || "Property",
-        isFeatured: property.isFeatured || false,
-        isVerified: property.isVerified || false,
-        sellerType: ((property as any).sellerType || "Individual") as "Individual" | "Broker" | "Builder",
-        transactionType: (property.transactionType === "sale" ? "Sale" : property.transactionType === "rent" ? "Rent" : "Lease") as "Sale" | "Rent" | "Lease",
-      };
-    });
+    if (newPropertiesData.length === 0) return [];
+    return newPropertiesData.map((p) => transformProperty(p, "Individual"));
   }, [newPropertiesData]);
+
+  const displayNewProjects = useMemo(() => {
+    if (newProjectsData.length === 0) return [];
+    return newProjectsData.map((p) => transformProperty(p, "Builder"));
+  }, [newProjectsData]);
+
+  const displayLuxury = useMemo(() => {
+    if (luxuryData.length === 0) return [];
+    return luxuryData.map((p) => transformProperty(p, "Builder"));
+  }, [luxuryData]);
+
+  const displayCommercialSale = useMemo(() => {
+    if (commercialSaleData.length === 0) return [];
+    return commercialSaleData.map((p) => transformProperty(p, "Builder"));
+  }, [commercialSaleData]);
+
+  const displayPlots = useMemo(() => {
+    if (plotsData.length === 0) return [];
+    return plotsData.map((p) => transformProperty(p, "Individual"));
+  }, [plotsData]);
+
+  const displayOwnerPosted = useMemo(() => {
+    if (ownerPostedData.length === 0) return [];
+    return ownerPostedData.map((p) => transformProperty(p, "Individual"));
+  }, [ownerPostedData]);
+
+  const displayChannelPartner = useMemo(() => {
+    if (channelPartnerData.length === 0) return [];
+    return channelPartnerData.map((p) => transformProperty(p, "Builder"));
+  }, [channelPartnerData]);
   
   // Featured Properties scroll state
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -385,9 +444,9 @@ export default function HomePage() {
               </button>
 
               {featuredLoading ? (
-                <div className="flex gap-4 overflow-x-auto scrollbar-hide px-6 py-2">
+                <div className="flex gap-4 overflow-x-auto scrollbar-hide px-4 py-2 pr-6">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex-shrink-0 w-[calc(50%-8px)] aspect-[4/3] bg-muted animate-pulse rounded-lg" />
+                    <div key={i} className="flex-shrink-0 w-[min(85vw,320px)] min-w-[260px] aspect-[4/3] bg-muted animate-pulse rounded-lg" />
                   ))}
                 </div>
               ) : displayFeatured.length === 0 ? (
@@ -402,12 +461,12 @@ export default function HomePage() {
               ) : (
                 <div
                   ref={scrollContainerRef}
-                  className="flex gap-4 overflow-x-auto scrollbar-hide px-6 py-2"
+                  className="flex gap-4 overflow-x-auto scrollbar-hide px-4 py-2 pr-6"
                   style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                   data-testid="carousel-featured-properties"
                 >
                   {displayFeatured.map((property) => (
-                    <div key={property.id} className="flex-shrink-0 w-[calc(50%-8px)]">
+                    <div key={property.id} className="flex-shrink-0 w-[min(85vw,320px)] min-w-[260px]">
                       <PropertyCard {...property} />
                     </div>
                   ))}
@@ -430,9 +489,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <StatsSection />
-
-        <section className="py-16 bg-background" data-testid="section-new-listings">
+        <section className="py-16 bg-muted/30" data-testid="section-new-listings">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
               <div>
@@ -484,9 +541,9 @@ export default function HomePage() {
               </button>
 
               {newLoading ? (
-                <div className="flex gap-4 overflow-x-auto scrollbar-hide px-6 py-2">
+                <div className="flex gap-4 overflow-x-auto scrollbar-hide px-4 py-2 pr-6">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex-shrink-0 w-[calc(50%-8px)] aspect-[4/3] bg-muted animate-pulse rounded-lg" />
+                    <div key={i} className="flex-shrink-0 w-[min(85vw,320px)] min-w-[260px] aspect-[4/3] bg-muted animate-pulse rounded-lg" />
                   ))}
                 </div>
               ) : displayNew.length === 0 ? (
@@ -501,12 +558,12 @@ export default function HomePage() {
               ) : (
                 <div
                   ref={newListingsScrollRef}
-                  className="flex gap-4 overflow-x-auto scrollbar-hide px-6 py-2"
+                  className="flex gap-4 overflow-x-auto scrollbar-hide px-4 py-2 pr-6"
                   style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                   data-testid="carousel-new-listings"
                 >
                   {displayNew.map((property) => (
-                    <div key={property.id} className="flex-shrink-0 w-[calc(50%-8px)]">
+                    <div key={property.id} className="flex-shrink-0 w-[min(85vw,320px)] min-w-[260px]">
                       <PropertyCard {...property} />
                     </div>
                   ))}
@@ -529,9 +586,77 @@ export default function HomePage() {
           </div>
         </section>
 
+        <PropertyCarouselSection
+          title="New Projects"
+          description="Newly launched residential and commercial projects"
+          viewAllHref="/listings?category=new-projects"
+          emptyMessage="No new projects available"
+          properties={displayNewProjects}
+          isLoading={newProjectsLoading}
+          sectionId="section-new-projects"
+          bgClass="bg-background"
+        />
+
+        <PropertyCarouselSection
+          title="Luxury Property"
+          description="Premium and ultra-luxury properties"
+          viewAllHref="/listings?category=ultra-luxury"
+          emptyMessage="No luxury properties available"
+          properties={displayLuxury}
+          isLoading={luxuryLoading}
+          sectionId="section-luxury-property"
+          bgClass="bg-muted/30"
+        />
+
         <VerifiedBuildersSection />
 
+        <PropertyCarouselSection
+          title="Featured Commercial Sale"
+          description="Featured commercial spaces for sale"
+          viewAllHref="/listings?category=commercial&featured=true"
+          emptyMessage="No featured commercial properties available"
+          properties={displayCommercialSale}
+          isLoading={commercialLoading}
+          sectionId="section-featured-commercial-sale"
+          bgClass="bg-background"
+        />
+
+        <PropertyCarouselSection
+          title="Featured Plot / Land"
+          description="Residential and commercial plots"
+          viewAllHref="/listings?category=plots"
+          emptyMessage="No plots or land available"
+          properties={displayPlots}
+          isLoading={plotsLoading}
+          sectionId="section-featured-plot-land"
+          bgClass="bg-muted/30"
+        />
+
+        <PropertyCarouselSection
+          title="Owner Posted Property"
+          description="Properties listed directly by owners"
+          viewAllHref="/listings?sellerTypes=Individual"
+          emptyMessage="No owner posted properties available"
+          properties={displayOwnerPosted}
+          isLoading={ownerPostedLoading}
+          sectionId="section-owner-posted-property"
+          bgClass="bg-background"
+        />
+
+        <PropertyCarouselSection
+          title="Certified Channel Partner"
+          description="Verified builders and channel partners"
+          viewAllHref="/builders"
+          emptyMessage="No properties from certified partners available"
+          properties={displayChannelPartner}
+          isLoading={channelPartnerLoading}
+          sectionId="section-certified-channel-partner"
+          bgClass="bg-muted/30"
+        />
+
         <TestimonialsSection />
+
+        <StatsSection />
 
         <section className="py-16 bg-primary text-primary-foreground" data-testid="section-cta">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

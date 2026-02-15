@@ -34,6 +34,8 @@ interface ObjectUploaderProps {
   buttonVariant?: "default" | "outline" | "ghost" | "secondary";
   children: ReactNode;
   disabled?: boolean;
+  /** When false, modal stays open after successful upload so user can close manually. Default true. */
+  autoCloseOnSuccess?: boolean;
   // Legacy props for backward compatibility
   maxFiles?: number;
   accept?: string;
@@ -59,6 +61,7 @@ export function ObjectUploader({
   buttonVariant = "default",
   children,
   disabled = false,
+  autoCloseOnSuccess = true,
   // Legacy props
   maxFiles,
   accept,
@@ -502,15 +505,15 @@ export function ObjectUploader({
         } as UploadResult<Record<string, unknown>, Record<string, unknown>>);
       }
 
-      // Clear files after upload completes
-      setTimeout(() => {
-        setFiles([]);
-        setIsUploading(false);
-      }, 500);
+      setIsUploading(false);
+      // Only clear files after a delay when modal will auto-close; otherwise keep showing success state
+      if (autoCloseOnSuccess) {
+        setTimeout(() => setFiles([]), 500);
+      }
     } catch (error) {
       setIsUploading(false);
     }
-  }, [files, onGetUploadParameters, onComplete]);
+  }, [files, onGetUploadParameters, onComplete, autoCloseOnSuccess]);
 
   // Cleanup object URLs on unmount
   useEffect(() => {
@@ -535,26 +538,18 @@ export function ObjectUploader({
     }
   }, [files.length, isUploading, showModal, handleUpload]);
 
-  // Close modal automatically after all files are successfully uploaded
+  // Close modal automatically after all files are successfully uploaded (only when autoCloseOnSuccess is true)
   useEffect(() => {
-    if (files.length > 0 && !isUploading) {
-      const allSuccessful = files.every(f => f.uploadStatus === "success");
-      const hasErrors = files.some(f => f.uploadStatus === "error");
-      
-      // Only auto-close if all files are successful (not if there are errors)
-      if (allSuccessful && !hasErrors) {
-        // Close after a short delay to show success state
-        const timer = setTimeout(() => {
-          setShowModal(false);
-          // Clear files after modal closes
-          setTimeout(() => {
-            setFiles([]);
-          }, 300);
-        }, 1000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [files, isUploading]);
+    if (!autoCloseOnSuccess || files.length === 0 || isUploading) return;
+    const allSuccessful = files.every(f => f.uploadStatus === "success");
+    const hasErrors = files.some(f => f.uploadStatus === "error");
+    if (!allSuccessful || hasErrors) return;
+    const timer = setTimeout(() => {
+      setShowModal(false);
+      setTimeout(() => setFiles([]), 300);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [files, isUploading, autoCloseOnSuccess]);
 
   const formatFileSize = (bytes: number | undefined): string => {
     if (!bytes || isNaN(bytes) || bytes === 0) return "0 Bytes";
@@ -583,7 +578,15 @@ export function ObjectUploader({
         {children}
       </Button>
 
-      <Dialog open={showModal} onOpenChange={setShowModal}>
+      <Dialog
+        open={showModal}
+        onOpenChange={(open) => {
+          setShowModal(open);
+          if (!open) {
+            setTimeout(() => setFiles([]), 100);
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl">Upload Photos</DialogTitle>
@@ -759,28 +762,33 @@ export function ObjectUploader({
               >
                 Cancel
               </Button>
-              <Button
-                type="button"
-                onClick={handleUpload}
-                disabled={!canUpload || isUploading}
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : allUploaded ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Done
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload {files.length} File{files.length > 1 ? "s" : ""}
-                  </>
-                )}
-              </Button>
+              {allUploaded ? (
+                <Button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Done
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleUpload}
+                  disabled={!canUpload || isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload {files.length} File{files.length > 1 ? "s" : ""}
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>

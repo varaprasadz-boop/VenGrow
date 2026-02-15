@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { PropertyCategory, PropertySubcategory } from "@shared/schema";
 import { validateEmail, validatePhone, cleanPhone, normalizeEmail } from "@/utils/validation";
+import { PhoneInput } from "@/components/ui/location-select";
 
 interface Step1Data {
   categoryId: string;
@@ -398,20 +399,11 @@ export default function CreateListingStep4Page() {
 
                   <div className="space-y-2">
                     <Label htmlFor="contactPhone">Contact Phone *</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        className="w-24"
-                        defaultValue="+91"
-                        disabled
-                      />
-                      <Input
-                        id="contactPhone"
-                        placeholder="98765 43210"
-                        value={contactData.contactPhone}
-                        onChange={(e) => setContactData({ ...contactData, contactPhone: e.target.value })}
-                        data-testid="input-contact-phone"
-                      />
-                    </div>
+                    <PhoneInput
+                      value={cleanPhone(contactData.contactPhone)}
+                      onValueChange={(v) => setContactData({ ...contactData, contactPhone: v })}
+                      data-testid="input-contact-phone"
+                    />
                   </div>
 
                   <div className="space-y-2">

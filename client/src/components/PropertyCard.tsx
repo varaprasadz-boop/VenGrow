@@ -27,6 +27,8 @@ interface PropertyCardProps {
   transactionType: "Sale" | "Lease" | "Rent";
   slug?: string | null;
   city?: string;
+  /** Date when listing was added (approved by admin or created). ISO string. */
+  addedDate?: string | null;
   onFavoriteClick?: (id: string) => void;
   onClick?: (id: string) => void;
   variant?: "grid" | "list";
@@ -60,6 +62,7 @@ export default function PropertyCard({
   transactionType,
   slug,
   city,
+  addedDate,
   onFavoriteClick,
   onClick,
   variant = "grid",
@@ -141,13 +144,13 @@ export default function PropertyCard({
             </div>
           </div>
         )}
-        {/* Gradient Overlay - Only show in grid layout */}
+        {/* Gradient Overlay - Only show in grid layout; dark at bottom for contrast (price has its own bar) */}
         {!isListLayout && (
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-0" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-0 pointer-events-none" aria-hidden />
         )}
-        
+
         {/* Top Bar - Badges Left, Favorite Right */}
-        <div className="absolute top-3 left-3 right-3 z-10 flex items-start justify-between">
+        <div className="absolute top-3 left-3 right-3 z-10 flex items-start justify-between pointer-events-none [&_button]:pointer-events-auto">
           {/* Badges - Left */}
           <div className="flex flex-wrap gap-1.5 max-w-[70%]">
             {isFeatured && (
@@ -186,19 +189,19 @@ export default function PropertyCard({
           </Button>
         </div>
 
-        {/* Price - Bottom Overlay - Only in grid layout */}
+        {/* Price - Bottom Overlay - Only in grid layout; z-10 and bar background so price is never obscured */}
         {!isListLayout && (
-          <div className="absolute bottom-3 left-3 right-3">
-            <p className="text-white font-bold text-2xl font-serif drop-shadow-lg">
+          <div className="absolute bottom-0 left-0 right-0 z-10 px-3 py-2.5 bg-black/55 backdrop-blur-sm">
+            <p className="text-white font-bold text-xl font-serif leading-tight">
               {formatPrice(price)}
-              {(transactionType === "Rent" || transactionType === "Lease") && <span className="text-lg">/month</span>}
+              {(transactionType === "Rent" || transactionType === "Lease") && <span className="text-base font-medium">/month</span>}
             </p>
           </div>
         )}
       </div>
 
-      {/* Content Section */}
-      <div className={`${isListLayout ? "flex-1 p-4" : "p-4"} space-y-3`}>
+      {/* Content Section - min-w-0 so text can shrink and doesn't overflow on narrow cards */}
+      <div className={`${isListLayout ? "flex-1 p-4" : "p-4"} space-y-3 min-w-0`}>
         {/* Title & Location */}
         <div>
           <div className="flex items-start justify-between gap-2 mb-1">
@@ -223,56 +226,57 @@ export default function PropertyCard({
           )}
         </div>
 
-        {/* Specs */}
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        {/* Specs - flex-wrap so area (e.g. 175 sq.ft) doesn't get cut off on narrow cards */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
           {bedrooms !== undefined && (
-            <div className="flex items-center gap-1">
-              <Bed className="h-4 w-4" />
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Bed className="h-4 w-4 flex-shrink-0" />
               <span>{bedrooms} BHK</span>
             </div>
           )}
           {bathrooms !== undefined && (
-            <div className="flex items-center gap-1">
-              <Bath className="h-4 w-4" />
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Bath className="h-4 w-4 flex-shrink-0" />
               <span>{bathrooms}</span>
             </div>
           )}
-          <div className="flex items-center gap-1">
-            <Maximize className="h-4 w-4" />
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Maximize className="h-4 w-4 flex-shrink-0" />
             <span>{area} sq.ft</span>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Badge variant="outline" className="text-xs" data-testid={`badge-seller-${id}`}>
-              {sellerType}
+        {/* Footer - single row: added date and all badges */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 border-t">
+          {addedDate && (
+            <span className="text-xs text-muted-foreground whitespace-nowrap" data-testid={`text-added-date-${id}`}>
+              Added {new Date(addedDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+            </span>
+          )}
+          <Badge variant="outline" className="text-xs flex-shrink-0" data-testid={`badge-seller-${id}`}>
+            {sellerType}
+          </Badge>
+          {isVerified && (
+            <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+          )}
+          {furnishing && (
+            <Badge variant="secondary" className="text-xs flex-shrink-0" data-testid={`badge-furnishing-${id}`}>
+              {furnishing}
             </Badge>
-            {isVerified && (
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-            )}
-            {furnishing && (
-              <Badge variant="secondary" className="text-xs" data-testid={`badge-furnishing-${id}`}>
-                {furnishing}
-              </Badge>
-            )}
-            {ageOfProperty && (
-              <Badge variant="outline" className="text-xs text-muted-foreground" data-testid={`badge-age-${id}`}>
-                {ageOfProperty}
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Badge variant="secondary" className="text-xs">
-              {propertyType}
+          )}
+          {ageOfProperty && (
+            <Badge variant="outline" className="text-xs text-muted-foreground flex-shrink-0" data-testid={`badge-age-${id}`}>
+              {ageOfProperty}
             </Badge>
-            {subcategory && !isListLayout && (
-              <Badge variant="outline" className="text-xs text-muted-foreground" data-testid={`badge-subcategory-${id}`}>
-                {subcategory}
-              </Badge>
-            )}
-          </div>
+          )}
+          <Badge variant="secondary" className="text-xs flex-shrink-0">
+            {propertyType}
+          </Badge>
+          {subcategory && !isListLayout && (
+            <Badge variant="outline" className="text-xs text-muted-foreground flex-shrink-0" data-testid={`badge-subcategory-${id}`}>
+              {subcategory}
+            </Badge>
+          )}
         </div>
       </div>
     </Card>

@@ -125,7 +125,7 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
             className="font-serif font-bold text-3xl sm:text-4xl lg:text-5xl text-foreground mb-3"
             data-testid="text-hero-title"
           >
-            <span className="italic text-primary">Simplified Property Search</span>
+            <span className="text-primary">Simplified Property Search</span>
           </h1>
           <p 
             className="text-muted-foreground text-base sm:text-lg"

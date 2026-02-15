@@ -1,19 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "wouter";
-import Header from "@/components/Header";
 import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import PropertyMap from "@/components/PropertyMap";
-import type { Property, User } from "@shared/schema";
+import type { Property } from "@shared/schema";
 import { Train, ShoppingBag, GraduationCap, Hospital } from "lucide-react";
 
 export default function PropertyLocationAnalysisPage() {
   const { id } = useParams<{ id: string }>();
-
-  const { data: currentUser } = useQuery<User>({
-    queryKey: ["/api/auth/me"],
-  });
 
   const { data: property, isLoading } = useQuery<Property>({
     queryKey: ["/api/properties", id],
@@ -29,15 +24,8 @@ export default function PropertyLocationAnalysisPage() {
     { icon: Hospital, name: "Healthcare", distance: "1.5km", score: 7 },
   ];
 
-  const isLoggedIn = !!currentUser;
-
   return (
     <div className="min-h-screen flex flex-col">
-      <Header
-        isLoggedIn={isLoggedIn}
-        userType={currentUser?.role as "buyer" | "seller" | "admin" | undefined}
-      />
-
       <main className="flex-1 pb-16 lg:pb-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">

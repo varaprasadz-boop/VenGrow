@@ -167,6 +167,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           isSuperAdmin: state.isSuperAdmin,
           userRole: state.user?.role,
         });
+        // Sync active dashboard from current path so toggle matches route (e.g. seller on /seller/* sees "Seller")
+        if (typeof window !== "undefined" && (state.isBuyer || state.isSeller)) {
+          const path = window.location.pathname;
+          if (path.startsWith("/seller/")) get().setActiveDashboard("seller");
+          else if (path.startsWith("/buyer/") || path === "/dashboard" || path === "/favorites" || path === "/inquiries") get().setActiveDashboard("buyer");
+        }
       } else {
         console.log("Auth check failed with status:", response.status);
         get().clearUser();

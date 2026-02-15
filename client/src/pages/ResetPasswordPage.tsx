@@ -1,21 +1,72 @@
-import { useState } from "react";
-import { Link } from "wouter";
-import { Building2, Lock, Eye, EyeOff } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
+import { Building2, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function ResetPasswordPage() {
+  const [location, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [token, setToken] = useState("");
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    setToken(params.get("token") || "");
+    setEmail(params.get("email") || "");
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Password reset:", { password, confirmPassword });
+    if (password !== confirmPassword) {
+      toast({ title: "Passwords do not match", variant: "destructive" });
+      return;
+    }
+    if (password.length < 8) {
+      toast({ title: "Password must be at least 8 characters", variant: "destructive" });
+      return;
+    }
+    if (!token || !email) {
+      toast({ title: "Invalid reset link. Please request a new password reset.", variant: "destructive" });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await apiRequest("POST", "/api/auth/reset-password", {
+        email: decodeURIComponent(email),
+        token,
+        newPassword: password,
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: "Password reset successfully. You can now sign in." });
+        setLocation("/password-reset-success");
+      } else {
+        toast({
+          title: "Reset failed",
+          description: data.message || "Link may have expired. Please request a new reset link.",
+          variant: "destructive",
+        });
+      }
+    } catch (err: unknown) {
+      toast({
+        title: "Reset failed",
+        description: err instanceof Error ? err.message : "Please try again or request a new reset link.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const passwordStrength = password.length > 0 ? Math.min((password.length / 12) * 100, 100) : 0;
@@ -126,9 +177,24 @@ export default function ResetPasswordPage() {
               </ul>
             </div>
 
-            <Button type="submit" className="w-full" data-testid="button-reset-password">
-              Reset Password
+            <Button type="submit" className="w-full" disabled={isLoading || !token || !email} data-testid="button-reset-password">
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Resetting...
+                </span>
+              ) : (
+                "Reset Password"
+              )}
             </Button>
+            {(!token || !email) && (
+              <p className="text-sm text-muted-foreground text-center">
+                This page is only valid when opened from the reset link in your email.{" "}
+                <Link href="/forgot-password" className="text-primary hover:underline">
+                  Request a new link
+                </Link>
+              </p>
+            )}
           </form>
         </Card>
       </div>

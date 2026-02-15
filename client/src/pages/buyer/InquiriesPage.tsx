@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import Header from "@/components/Header";
 import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -101,7 +100,6 @@ export default function InquiriesPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={!!user} userType="buyer" />
 
       <main className="flex-1 pb-16 lg:pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -202,10 +200,10 @@ export default function InquiriesPage() {
                             </Button>
                           </Link>
                           {inquiry.status !== "closed" && (
-                            <Link href={`/buyer/chat?inquiry=${inquiry.id}`}>
+                            <Link href={`/buyer/chat${inquiry.sellerId && inquiry.propertyId ? `?sellerId=${inquiry.sellerId}&propertyId=${inquiry.propertyId}` : ""}`}>
                               <Button size="sm" className="flex-1 md:flex-none" data-testid={`button-reply-${inquiry.id}`}>
                                 <Send className="h-4 w-4 md:mr-2" />
-                                <span className="hidden md:inline">Reply</span>
+                                <span className="hidden md:inline">Chat</span>
                               </Button>
                             </Link>
                           )}

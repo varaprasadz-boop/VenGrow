@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useParams } from "wouter";
-import Header from "@/components/Header";
 import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,8 @@ import { Calendar, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { validateEmail, validatePhone } from "@/utils/validation";
+import { validateEmail, validatePhone, cleanPhone } from "@/utils/validation";
+import { PhoneInput } from "@/components/ui/location-select";
 
 export default function PropertyTourBookingPage() {
   const { id: propertyId } = useParams<{ id: string }>();
@@ -146,7 +146,6 @@ export default function PropertyTourBookingPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isLoggedIn={true} userType="buyer" />
 
       <main className="flex-1 pb-16 lg:pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -233,14 +232,10 @@ export default function PropertyTourBookingPage() {
                       <Label htmlFor="phone" className="text-sm font-medium mb-2 block">
                         Phone Number *
                       </Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="98765 43210"
-                        value={contactData.phone}
-                        onChange={(e) => setContactData({ ...contactData, phone: e.target.value })}
-                        required
-                        aria-required="true"
+                      <PhoneInput
+                        value={cleanPhone(contactData.phone)}
+                        onValueChange={(v) => setContactData({ ...contactData, phone: v })}
+                        data-testid="input-phone"
                       />
                     </div>
                     <div>

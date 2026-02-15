@@ -1,4 +1,3 @@
-import Header from "@/components/Header";
 import { Printer, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -22,7 +21,6 @@ export default function PropertyPrintPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header isLoggedIn={true} userType="buyer" />
 
       {/* Print Actions */}
       <div className="max-w-4xl mx-auto px-8 py-4 print:hidden">
