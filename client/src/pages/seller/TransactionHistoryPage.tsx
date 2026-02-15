@@ -16,12 +16,15 @@ import { Download, Search, CreditCard, Calendar, RefreshCw, AlertCircle } from "
 import { format } from "date-fns";
 import type { Payment, Package } from "@shared/schema";
 import { downloadInvoiceAsPDF } from "@/components/InvoicePreview";
+import { exportToCSV } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 function formatCurrency(amount: number): string {
   return `₹${amount.toLocaleString("en-IN")}`;
 }
 
 export default function TransactionHistoryPage() {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all");
 
@@ -80,6 +83,37 @@ export default function TransactionHistoryPage() {
     };
     
     downloadInvoiceAsPDF(invoiceData, invoiceSettings);
+  };
+
+  const handleExport = () => {
+    const exportData = filteredTransactions.map((txn) => ({
+      transactionId: txn.razorpayPaymentId || `TXN-${txn.id.slice(0, 8)}`,
+      orderId: txn.razorpayOrderId || "",
+      amount: txn.amount,
+      estimatedGst: Math.round(txn.amount * 0.18),
+      estimatedTotal: txn.amount + Math.round(txn.amount * 0.18),
+      status: txn.status,
+      paymentMethod: txn.paymentMethod || "Online",
+      packageName: txn.packageId ? packageMap.get(txn.packageId) || "" : "",
+      createdAt: format(new Date(txn.createdAt), "yyyy-MM-dd HH:mm:ss"),
+    }));
+
+    exportToCSV(
+      exportData,
+      `transactions_export_${format(new Date(), "yyyy-MM-dd")}`,
+      [
+        { key: "transactionId", header: "Transaction ID" },
+        { key: "orderId", header: "Order ID" },
+        { key: "amount", header: "Base Amount" },
+        { key: "estimatedGst", header: "Est. GST (18%)" },
+        { key: "estimatedTotal", header: "Est. Total" },
+        { key: "status", header: "Status" },
+        { key: "paymentMethod", header: "Payment Method" },
+        { key: "packageName", header: "Package" },
+        { key: "createdAt", header: "Date" },
+      ]
+    );
+    toast({ title: "Export completed" });
   };
 
   const getStatusBadge = (status: string) => {
@@ -172,7 +206,7 @@ export default function TransactionHistoryPage() {
                 View all your payment transactions
               </p>
             </div>
-            <Button data-testid="button-export">
+            <Button data-testid="button-export" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>

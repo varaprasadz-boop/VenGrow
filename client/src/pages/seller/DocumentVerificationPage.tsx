@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Upload, CheckCircle, XCircle, Clock, Loader2 } from "lucide-react";
+import { FileText, Upload, CheckCircle, XCircle, Clock, Loader2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { ObjectUploader } from "@/components/ObjectUploader";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
 interface Document {
@@ -25,6 +25,8 @@ export default function DocumentVerificationPage() {
   const { toast } = useToast();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedDocType, setSelectedDocType] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: documents = [], isLoading } = useQuery<Document[]>({
     queryKey: ["/api/me/documents"],
@@ -39,6 +41,7 @@ export default function DocumentVerificationPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/me/verifications"] });
       toast({ title: "Document uploaded successfully" });
       setUploadDialogOpen(false);
+      setSelectedFile(null);
     },
     onError: () => {
       toast({ title: "Failed to upload document", variant: "destructive" });
@@ -47,21 +50,93 @@ export default function DocumentVerificationPage() {
 
   const handleUpload = () => {
     setSelectedDocType("");
+    setSelectedFile(null);
     setUploadDialogOpen(true);
   };
 
-  const handleUploadComplete = (results: any[]) => {
-    if (results.length === 0) return;
-    
-    const file = results[0];
-    const docType = selectedDocType || "other";
-    const docName = file.name || `${docType} Document`;
+  const handleSelectFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setSelectedFile(file);
+    e.target.value = "";
+  }, []);
 
-    uploadDocumentMutation.mutate({
-      type: docType,
-      url: file.url,
-      name: docName,
-    });
+  const handleRemoveFile = useCallback(() => setSelectedFile(null), []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files?.[0];
+    if (file && (file.type.startsWith("image/") || file.type === "application/pdf")) {
+      setSelectedFile(file);
+    } else {
+      toast({ title: "Please select an image or PDF file", variant: "destructive" });
+    }
+  }, [toast]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleUploadDocument = async () => {
+    if (!selectedFile) {
+      toast({ title: "Please select a file first", variant: "destructive" });
+      return;
+    }
+
+    const docType = selectedDocType || "other";
+    const docName = selectedFile.name || `${docType} Document`;
+
+    try {
+      const urlRes = await apiRequest("POST", "/api/objects/upload?bucket=seller-documents&prefix=verification/");
+      const { uploadURL } = await urlRes.json();
+      if (!uploadURL) throw new Error("No upload URL received");
+
+      const uploadUrl = uploadURL.startsWith("/") ? `${window.location.origin}${uploadURL}` : uploadURL;
+
+      const putRes = await fetch(uploadUrl, {
+        method: "PUT",
+        body: selectedFile,
+        headers: {
+          "Content-Type": selectedFile.type || "application/octet-stream",
+          "Content-Disposition": `attachment; filename="${selectedFile.name}"`,
+        },
+        credentials: "include",
+      });
+
+      if (!putRes.ok) {
+        const err = await putRes.json().catch(() => ({}));
+        throw new Error(err.error || "Upload failed");
+      }
+
+      let fileUrl = "";
+      try {
+        const putData = await putRes.json();
+        fileUrl = putData.url || putData.uploadURL || "";
+      } catch {
+        fileUrl = "";
+      }
+
+      if (!fileUrl) {
+        const urlObj = new URL(uploadURL);
+        fileUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
+      }
+      if (fileUrl.startsWith("/") && !fileUrl.startsWith("//")) {
+        fileUrl = `${window.location.origin}${fileUrl}`;
+      }
+
+      uploadDocumentMutation.mutate({
+        type: docType,
+        url: fileUrl,
+        name: docName,
+      });
+    } catch (err: unknown) {
+      toast({
+        title: "Failed to upload document",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleReupload = (docId: string) => {
@@ -265,7 +340,13 @@ export default function DocumentVerificationPage() {
           </div>
 
           {/* Upload Dialog */}
-          <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+          <Dialog
+            open={uploadDialogOpen}
+            onOpenChange={(open) => {
+              setUploadDialogOpen(open);
+              if (!open) setSelectedFile(null);
+            }}
+          >
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Upload Document</DialogTitle>
@@ -274,7 +355,7 @@ export default function DocumentVerificationPage() {
                 <div>
                   <label className="text-sm font-medium mb-2 block">Document Type</label>
                   <select
-                    className="w-full p-2 border rounded-md"
+                    className="w-full p-2 border rounded-md bg-background"
                     value={selectedDocType}
                     onChange={(e) => setSelectedDocType(e.target.value)}
                   >
@@ -285,13 +366,73 @@ export default function DocumentVerificationPage() {
                     <option value="other">Other</option>
                   </select>
                 </div>
-                <ObjectUploader
-                  bucket="seller-documents"
-                  prefix="verification/"
-                  onComplete={handleUploadComplete}
-                  maxFiles={1}
-                  accept="image/*,.pdf"
-                />
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">File</label>
+                  <div
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={cn(
+                      "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
+                      selectedFile
+                        ? "border-green-200 bg-green-50/50 dark:bg-green-900/10 dark:border-green-800"
+                        : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50"
+                    )}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={handleSelectFile}
+                      className="hidden"
+                    />
+                    {selectedFile ? (
+                      <div className="flex items-center justify-center gap-3">
+                        <FileText className="h-10 w-10 text-primary" />
+                        <div className="text-left">
+                          <p className="font-medium">{selectedFile.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(selectedFile.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveFile();
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div>
+                        <Upload className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium">Drop file here or click to browse</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Images or PDF, max 10MB
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full"
+                  onClick={handleUploadDocument}
+                  disabled={!selectedFile || uploadDocumentMutation.isPending}
+                >
+                  {uploadDocumentMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  Upload Document
+                </Button>
               </div>
             </DialogContent>
           </Dialog>

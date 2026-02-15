@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { format, differenceInDays } from "date-fns";
 
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Crown, Zap, Star, Calendar, Package as PackageIcon, AlertTriangle } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { CheckCircle, Crown, Zap, Star, Calendar, Package as PackageIcon, AlertTriangle, Loader2 } from "lucide-react";
 import type { Package, SellerSubscription } from "@shared/schema";
 
 interface CurrentSubscriptionResponse {
@@ -24,7 +30,19 @@ interface CurrentSubscriptionResponse {
   };
 }
 
+interface FaqItem {
+  id: string;
+  category: string;
+  question: string;
+  answer: string;
+  sortOrder: number;
+  isActive?: boolean;
+}
+
 export default function PackageSelectionPage() {
+  const [location] = useLocation();
+  const isBuyPage = location === "/seller/packages/buy";
+
   const { data: currentSubData, isLoading: isLoadingSubscription } = useQuery<CurrentSubscriptionResponse>({
     queryKey: ["/api/subscriptions/current"],
   });
@@ -35,6 +53,22 @@ export default function PackageSelectionPage() {
     queryKey: ["/api/packages", { sellerType: sellerType || undefined }],
     enabled: !!sellerType,
   });
+
+  const { data: faqItems = [], isLoading: isLoadingFaq } = useQuery<FaqItem[]>({
+    queryKey: ["/api/faq"],
+  });
+
+  const defaultPackageFaqs: FaqItem[] = [
+    { id: "pkg-1", category: "Packages", question: "Can I upgrade my plan later?", answer: "Yes, you can upgrade to a higher plan at any time. The remaining balance from your current plan will be adjusted.", sortOrder: 1 },
+    { id: "pkg-2", category: "Packages", question: "What happens when my plan expires?", answer: "Your listings will be automatically deactivated. You can renew your plan to reactivate them.", sortOrder: 2 },
+    { id: "pkg-3", category: "Packages", question: "Can I cancel my subscription?", answer: "Yes, you can cancel anytime. Your plan will remain active until the end of the billing period.", sortOrder: 3 },
+  ];
+  const displayFaqs = (faqItems && faqItems.length > 0) ? faqItems : defaultPackageFaqs;
+  const faqByCategory = displayFaqs.reduce((acc, item) => {
+    if (!acc[item.category]) acc[item.category] = [];
+    acc[item.category].push(item);
+    return acc;
+  }, {} as Record<string, FaqItem[]>);
 
   const activePackages = packages.filter(p => p.isActive);
 
@@ -62,6 +96,11 @@ export default function PackageSelectionPage() {
   const currentPackage = currentSubData?.package;
   const usage = currentSubData?.usage;
 
+  // On buy page, don't show the user's current package (they already have it)
+  const packagesToShow = isBuyPage && currentPackage
+    ? activePackages.filter(pkg => pkg.id !== currentPackage.id)
+    : activePackages;
+
   const getDaysRemaining = () => {
     if (!currentSubscription?.endDate) return 0;
     return differenceInDays(new Date(currentSubscription.endDate), new Date());
@@ -77,12 +116,16 @@ export default function PackageSelectionPage() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <Badge className="mb-4">Seller Packages</Badge>
             <h1 className="font-serif font-bold text-4xl sm:text-5xl mb-6">
-              {currentSubscription ? "My Package" : "Choose Your Perfect Plan"}
+              {isBuyPage 
+                ? (currentSubscription ? "Upgrade Your Package" : "Choose Your Perfect Plan")
+                : "My Package"}
             </h1>
             <p className="text-lg text-muted-foreground">
-              {currentSubscription 
-                ? "Manage your current subscription and upgrade when needed"
-                : "Select a package that fits your property listing needs"}
+              {isBuyPage
+                ? "Select a package that fits your property listing needs"
+                : (currentSubscription 
+                  ? "Manage your current subscription and upgrade when needed"
+                  : "Choose a plan to get started with listing your properties")}
             </p>
           </div>
         </section>
@@ -100,7 +143,7 @@ export default function PackageSelectionPage() {
         ) : currentSubscription && currentPackage ? (
           <section className="py-8">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-              <Card className={`p-6 ${isExpired ? 'border-destructive' : isExpiringSoon ? 'border-orange-500 dark:border-orange-400' : 'border-primary'}`}>
+              <Card className={`p-6 ${isExpired ? "border-destructive" : isExpiringSoon ? "border-orange-500 dark:border-orange-400" : "border-primary"}`}>
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-4">
@@ -197,8 +240,66 @@ export default function PackageSelectionPage() {
               </Card>
             </div>
           </section>
+        ) : !isBuyPage ? (
+          <section className="py-8">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+              <Card className="p-6 text-center">
+                <PackageIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="font-semibold text-lg mb-2">No Active Package</h3>
+                <p className="text-muted-foreground mb-6">
+                  Choose a plan to start listing your properties on VenGrow
+                </p>
+                <Link href="/seller/packages/buy">
+                  <Button data-testid="button-choose-plan">
+                    Choose a Plan
+                  </Button>
+                </Link>
+              </Card>
+            </div>
+          </section>
         ) : null}
 
+        {/* FAQ section on My Package page */}
+        {!isBuyPage && (
+          <section className="py-8 bg-muted/30">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="font-serif font-bold text-3xl mb-8 text-center">
+                Frequently Asked Questions
+              </h2>
+              {isLoadingFaq ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {Object.entries(faqByCategory).map(([category, items]) => (
+                    <div key={category}>
+                      <h3 className="font-semibold text-xl mb-4">{category}</h3>
+                      <Accordion type="single" collapsible className="space-y-4">
+                        {items.map((faq, idx) => (
+                          <AccordionItem
+                            key={faq.id}
+                            value={`${category}-${idx}`}
+                            className="border rounded-lg px-6 bg-background"
+                          >
+                            <AccordionTrigger className="text-left hover:no-underline">
+                              <span className="font-medium">{faq.question}</span>
+                            </AccordionTrigger>
+                            <AccordionContent className="text-muted-foreground">
+                              {faq.answer}
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {isBuyPage && (
         <section className="py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {currentSubscription && (
@@ -221,13 +322,15 @@ export default function PackageSelectionPage() {
                   </Card>
                 ))}
               </div>
-            ) : activePackages.length === 0 ? (
+            ) : packagesToShow.length === 0 ? (
               <div className="text-center py-16">
-                <p className="text-muted-foreground">No packages available at the moment.</p>
+                <p className="text-muted-foreground">
+                  {currentPackage ? "You already have the only available package." : "No packages available at the moment."}
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-                {activePackages.map((pkg) => {
+                {packagesToShow.map((pkg) => {
                   const PackageIcon = getPackageIcon(pkg.name);
                   return (
                     <Card
@@ -293,7 +396,7 @@ export default function PackageSelectionPage() {
               </div>
             )}
 
-            {!isLoading && activePackages.length > 0 && (
+            {!isLoading && packagesToShow.length > 0 && (
               <div>
                 <h2 className="font-serif font-bold text-3xl mb-8 text-center">
                   Detailed Feature Comparison
@@ -304,7 +407,7 @@ export default function PackageSelectionPage() {
                       <thead>
                         <tr className="border-b">
                           <th className="text-left p-4 font-semibold">Feature</th>
-                          {activePackages.map((pkg) => (
+                          {packagesToShow.map((pkg) => (
                             <th
                               key={pkg.id}
                               className={`text-center p-4 font-semibold ${
@@ -326,7 +429,7 @@ export default function PackageSelectionPage() {
                       <tbody>
                         <tr className="border-b">
                           <td className="p-4 text-sm">Property Listings</td>
-                          {activePackages.map((pkg) => (
+                          {packagesToShow.map((pkg) => (
                             <td
                               key={pkg.id}
                               className={`p-4 text-center text-sm ${
@@ -339,7 +442,7 @@ export default function PackageSelectionPage() {
                         </tr>
                         <tr className="border-b">
                           <td className="p-4 text-sm">Listing Validity</td>
-                          {activePackages.map((pkg) => (
+                          {packagesToShow.map((pkg) => (
                             <td
                               key={pkg.id}
                               className={`p-4 text-center text-sm ${
@@ -352,7 +455,7 @@ export default function PackageSelectionPage() {
                         </tr>
                         <tr className="border-b">
                           <td className="p-4 text-sm">Featured Listings</td>
-                          {activePackages.map((pkg) => (
+                          {packagesToShow.map((pkg) => (
                             <td
                               key={pkg.id}
                               className={`p-4 text-center text-sm ${
@@ -365,7 +468,7 @@ export default function PackageSelectionPage() {
                         </tr>
                         <tr className="border-b">
                           <td className="p-4 text-sm">Priority Support</td>
-                          {activePackages.map((pkg) => (
+                          {packagesToShow.map((pkg) => (
                             <td
                               key={pkg.id}
                               className={`p-4 text-center text-sm ${
@@ -383,7 +486,7 @@ export default function PackageSelectionPage() {
                         </tr>
                         <tr className="border-b last:border-0">
                           <td className="p-4 text-sm">Price</td>
-                          {activePackages.map((pkg) => (
+                          {packagesToShow.map((pkg) => (
                             <td
                               key={pkg.id}
                               className={`p-4 text-center text-sm font-semibold ${
@@ -431,6 +534,7 @@ export default function PackageSelectionPage() {
             </div>
           </div>
         </section>
+        )}
       </main>
     );
 }

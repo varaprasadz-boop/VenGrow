@@ -11,8 +11,8 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { verifySuperadminCredentials, hashPassword, verifyPassword, validateEmail, validatePhone, validatePassword } from "./auth-utils";
 import * as emailService from "./email";
 import { db } from "./db";
-import { properties, propertyViews, users } from "@shared/schema";
-import { eq, and, or, desc, sql, notInArray } from "drizzle-orm";
+import { properties, propertyViews, users, favorites, inquiries } from "@shared/schema";
+import { eq, and, or, desc, sql, notInArray, gte, lte, inArray } from "drizzle-orm";
 
 const connectedClients = new Map<string, Set<WebSocket>>();
 
@@ -5161,6 +5161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: doc.id || doc.type,
             name: doc.name || `${doc.type} Document`,
             type: doc.type,
+            url: doc.url,
             status: profile.verificationStatus === "verified" ? "verified" : profile.verificationStatus === "pending" ? "pending" : "rejected",
             uploadDate: doc.uploadedAt || doc.createdAt,
             verifiedDate: profile.verificationStatus === "verified" ? profile.updatedAt : undefined,
@@ -5187,12 +5188,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Seller profile not found" });
       }
 
-      const { type, url, name } = req.body;
+      const { type, url, name, replaceId } = req.body;
       if (!type || !url) {
         return res.status(400).json({ error: "Type and URL are required" });
       }
 
-      const existingDocs = profile.verificationDocuments || [];
+      let existingDocs = (profile.verificationDocuments || []) as any[];
+      if (replaceId) {
+        existingDocs = existingDocs.filter(
+          (doc: any) => (doc.id || doc.type) !== replaceId
+        );
+      }
       const newDoc = {
         id: `${type}-${Date.now()}`,
         type,
@@ -5226,6 +5232,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error uploading document:", error);
       res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
+
+  // Delete seller document
+  app.delete("/api/me/documents/:id", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+      const documentId = req.params.id;
+      if (!documentId) return res.status(400).json({ error: "Document ID is required" });
+
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.status(404).json({ error: "Seller profile not found" });
+      }
+
+      const existingDocs = (profile.verificationDocuments || []) as any[];
+      const updatedDocs = existingDocs.filter(
+        (doc: any) => (doc.id || doc.type) !== documentId
+      );
+
+      if (updatedDocs.length === existingDocs.length) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      await storage.updateSellerProfile(profile.id, {
+        verificationDocuments: updatedDocs,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      res.status(500).json({ error: "Failed to delete document" });
     }
   });
 
@@ -5499,6 +5539,170 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting seller stats:", error);
       res.status(500).json({ error: "Failed to get seller stats" });
+    }
+  });
+
+  // Get seller analytics with date range
+  app.get("/api/seller/analytics", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+      const profile = await storage.getSellerProfileByUserId(userId);
+      if (!profile) {
+        return res.json({
+          totalViews: 0,
+          totalFavorites: 0,
+          totalInquiries: 0,
+          properties: [],
+          startDate: null,
+          endDate: null,
+        });
+      }
+
+      const sellerProperties = await storage.getPropertiesBySeller(profile.id);
+      const propertyIds = sellerProperties.map((p) => p.id);
+
+      const now = new Date();
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+
+      const range = req.query.range as string | undefined;
+      const startParam = req.query.startDate as string | undefined;
+      const endParam = req.query.endDate as string | undefined;
+
+      if (startParam && endParam) {
+        startDate = new Date(startParam);
+        endDate = new Date(endParam);
+      } else if (range === "7d") {
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        endDate = now;
+      } else if (range === "30d") {
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        endDate = now;
+      }
+      // range=all or no range: no date filter (all time)
+
+      let totalViews = 0;
+      let totalFavorites = 0;
+      let totalInquiries = 0;
+      const propertyStatsMap = new Map<string, { views: number; favorites: number; inquiries: number }>();
+
+      for (const p of sellerProperties) {
+        propertyStatsMap.set(p.id, { views: 0, favorites: 0, inquiries: 0 });
+      }
+
+      if (startDate && endDate && propertyIds.length > 0) {
+        // Count from property_views within date range
+        const viewsResult = await db
+          .select({
+            propertyId: propertyViews.propertyId,
+            count: sql<number>`count(*)::int`,
+          })
+          .from(propertyViews)
+          .where(
+            and(
+              inArray(propertyViews.propertyId, propertyIds),
+              gte(propertyViews.createdAt, startDate),
+              lte(propertyViews.createdAt, endDate)
+            )
+          )
+          .groupBy(propertyViews.propertyId);
+
+        for (const row of viewsResult) {
+          totalViews += row.count;
+          const stats = propertyStatsMap.get(row.propertyId);
+          if (stats) stats.views = row.count;
+        }
+
+        // Count from favorites within date range (join with properties to filter by seller)
+        const favsResult = await db
+          .select({
+            propertyId: favorites.propertyId,
+            count: sql<number>`count(*)::int`,
+          })
+          .from(favorites)
+          .innerJoin(properties, eq(favorites.propertyId, properties.id))
+          .where(
+            and(
+              eq(properties.sellerId, profile.id),
+              gte(favorites.createdAt, startDate),
+              lte(favorites.createdAt, endDate)
+            )
+          )
+          .groupBy(favorites.propertyId);
+
+        for (const row of favsResult) {
+          totalFavorites += row.count;
+          const stats = propertyStatsMap.get(row.propertyId);
+          if (stats) stats.favorites = row.count;
+        }
+
+        // Count inquiries within date range
+        const inquiriesResult = await db
+          .select({
+            propertyId: inquiries.propertyId,
+            count: sql<number>`count(*)::int`,
+          })
+          .from(inquiries)
+          .where(
+            and(
+              eq(inquiries.sellerId, profile.id),
+              gte(inquiries.createdAt, startDate),
+              lte(inquiries.createdAt, endDate)
+            )
+          )
+          .groupBy(inquiries.propertyId);
+
+        for (const row of inquiriesResult) {
+          totalInquiries += row.count;
+          const stats = propertyStatsMap.get(row.propertyId);
+          if (stats) stats.inquiries = row.count;
+        }
+      } else {
+        // All time: use denormalized counts from properties
+        const allInquiries = await storage.getInquiriesBySeller(profile.id);
+        for (const p of sellerProperties) {
+          const propInquiries = allInquiries.filter((i) => i.propertyId === p.id);
+          const views = p.viewCount || 0;
+          const favs = p.favoriteCount || 0;
+          const invs = propInquiries.length;
+          totalViews += views;
+          totalFavorites += favs;
+          totalInquiries += invs;
+          propertyStatsMap.set(p.id, { views, favorites: favs, inquiries: invs });
+        }
+      }
+
+      const propertiesWithStats = sellerProperties
+        .map((p) => {
+          const stats = propertyStatsMap.get(p.id) || { views: 0, favorites: 0, inquiries: 0 };
+          return {
+            id: p.id,
+            title: p.title,
+            viewCount: stats.views,
+            favoriteCount: stats.favorites,
+            inquiryCount: stats.inquiries,
+            engagementRate:
+              stats.views > 0
+                ? (((stats.favorites + stats.inquiries) / stats.views) * 100).toFixed(1) + "%"
+                : "0.0%",
+          };
+        })
+        .sort((a, b) => b.viewCount - a.viewCount)
+        .slice(0, 10);
+
+      res.json({
+        totalViews,
+        totalFavorites,
+        totalInquiries,
+        properties: propertiesWithStats,
+        startDate: startDate ? startDate.toISOString() : null,
+        endDate: endDate ? endDate.toISOString() : null,
+      });
+    } catch (error) {
+      console.error("Error getting seller analytics:", error);
+      res.status(500).json({ error: "Failed to get analytics" });
     }
   });
 

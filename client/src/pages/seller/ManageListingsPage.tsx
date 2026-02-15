@@ -294,31 +294,31 @@ export default function ManageListingsPage() {
           </div>
 
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-            <TabsList className="mb-6 flex flex-wrap gap-1">
-              <TabsTrigger value="all" data-testid="tab-all">
+            <TabsList className="mb-6 flex w-full sm:w-auto flex-wrap gap-2 p-2 h-auto min-h-10">
+              <TabsTrigger value="all" data-testid="tab-all" className="px-4 py-2.5 sm:px-3 sm:py-1.5">
                 All ({listings.length})
               </TabsTrigger>
-              <TabsTrigger value="live" data-testid="tab-live">
+              <TabsTrigger value="live" data-testid="tab-live" className="px-4 py-2.5 sm:px-3 sm:py-1.5">
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Live ({liveCount})
               </TabsTrigger>
-              <TabsTrigger value="pending" data-testid="tab-pending">
+              <TabsTrigger value="pending" data-testid="tab-pending" className="px-4 py-2.5 sm:px-3 sm:py-1.5">
                 <Clock className="h-3 w-3 mr-1" />
                 Pending ({pendingCount})
               </TabsTrigger>
-              <TabsTrigger value="draft" data-testid="tab-draft">
+              <TabsTrigger value="draft" data-testid="tab-draft" className="px-4 py-2.5 sm:px-3 sm:py-1.5">
                 <Edit className="h-3 w-3 mr-1" />
                 Draft ({draftCount})
               </TabsTrigger>
-              <TabsTrigger value="expired" data-testid="tab-expired">
+              <TabsTrigger value="expired" data-testid="tab-expired" className="px-4 py-2.5 sm:px-3 sm:py-1.5">
                 <CalendarX2 className="h-3 w-3 mr-1" />
                 Expired ({expiredCount})
               </TabsTrigger>
-              <TabsTrigger value="rejected" data-testid="tab-rejected">
+              <TabsTrigger value="rejected" data-testid="tab-rejected" className="px-4 py-2.5 sm:px-3 sm:py-1.5">
                 <XCircle className="h-3 w-3 mr-1" />
                 Rejected ({rejectedCount})
               </TabsTrigger>
-              <TabsTrigger value="sold" data-testid="tab-sold">
+              <TabsTrigger value="sold" data-testid="tab-sold" className="px-4 py-2.5 sm:px-3 sm:py-1.5">
                 Sold ({soldCount})
               </TabsTrigger>
             </TabsList>
