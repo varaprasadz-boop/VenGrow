@@ -6,7 +6,7 @@ import {
   type PropertyImage, type PropertyDocument,
   type Inquiry, type InsertInquiry,
   type Favorite, type InsertFavorite,
-  type SavedSearch, type PropertyView,
+  type SavedSearch, type PropertyView, type SearchHistory,
   type ChatThread, type ChatMessage, type InsertChatMessage,
   type Notification, type InsertNotification,
   type Payment, type InsertPayment,
@@ -26,7 +26,7 @@ import {
   type CompanyValue, type InsertCompanyValue,
   type HeroSlide, type InsertHeroSlide,
   users, sellerProfiles, packages, properties, propertyImages, propertyDocuments,
-  inquiries, favorites, savedSearches, propertyViews, appointments,
+  inquiries, favorites, savedSearches, propertyViews, searchHistory, appointments,
   chatThreads, chatMessages, notifications, payments, reviews,
   contactMessages,
   adminApprovals, auditLogs, systemSettings, sellerSubscriptions, propertyAlerts,
@@ -80,7 +80,9 @@ export interface IStorage {
   updateProperty(id: string, data: Partial<InsertProperty>): Promise<Property | undefined>;
   deleteProperty(id: string): Promise<boolean>;
   incrementPropertyView(id: string): Promise<void>;
-  
+  recordPropertyView(propertyId: string, userId: string): Promise<void>;
+  getRecentlyViewedProperties(userId: string, limit?: number): Promise<Array<{ id: string; title: string; location: string; price: number; viewedAt: Date }>>;
+
   getPropertyImages(propertyId: string): Promise<PropertyImage[]>;
   addPropertyImage(propertyId: string, url: string, isPrimary?: boolean): Promise<PropertyImage>;
   deletePropertyImage(id: string): Promise<boolean>;
@@ -99,9 +101,14 @@ export interface IStorage {
   isFavorite(userId: string, propertyId: string): Promise<boolean>;
   
   getSavedSearches(userId: string): Promise<SavedSearch[]>;
+  getSavedSearch(id: string): Promise<SavedSearch | undefined>;
   createSavedSearch(userId: string, name: string, filters: Record<string, unknown>): Promise<SavedSearch>;
   deleteSavedSearch(id: string): Promise<boolean>;
   updateSavedSearch(id: string, data: { alertEnabled?: boolean; name?: string }): Promise<SavedSearch | undefined>;
+
+  recordSearch(userId: string, filters: Record<string, unknown>): Promise<SearchHistory>;
+  getSearchHistory(userId: string, limit?: number): Promise<SearchHistory[]>;
+  clearSearchHistory(userId: string): Promise<void>;
   
   getChatThreads(userId: string): Promise<ChatThread[]>;
   getChatThread(id: string): Promise<ChatThread | undefined>;
@@ -878,6 +885,33 @@ export class DatabaseStorage implements IStorage {
     await db.update(properties).set({ viewCount: sql`${properties.viewCount} + 1` }).where(eq(properties.id, id));
   }
 
+  async recordPropertyView(propertyId: string, userId: string): Promise<void> {
+    await db.insert(propertyViews).values({ propertyId, userId });
+  }
+
+  async getRecentlyViewedProperties(userId: string, limit: number = 20): Promise<Array<{ id: string; title: string; location: string; price: number; viewedAt: Date }>> {
+    const rows = await db.select({
+      id: properties.id,
+      title: properties.title,
+      locality: properties.locality,
+      city: properties.city,
+      price: properties.price,
+      viewedAt: propertyViews.createdAt,
+    })
+      .from(propertyViews)
+      .innerJoin(properties, eq(propertyViews.propertyId, properties.id))
+      .where(eq(propertyViews.userId, userId))
+      .orderBy(desc(propertyViews.createdAt))
+      .limit(limit);
+    return rows.map(r => ({
+      id: r.id,
+      title: r.title,
+      location: `${r.locality || ""}, ${r.city}`.replace(/^, /, ""),
+      price: r.price,
+      viewedAt: r.viewedAt,
+    }));
+  }
+
   async getPropertyImages(propertyId: string): Promise<PropertyImage[]> {
     return db.select().from(propertyImages).where(eq(propertyImages.propertyId, propertyId)).orderBy(propertyImages.sortOrder);
   }
@@ -952,6 +986,11 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(savedSearches).where(eq(savedSearches.userId, userId)).orderBy(desc(savedSearches.createdAt));
   }
 
+  async getSavedSearch(id: string): Promise<SavedSearch | undefined> {
+    const [search] = await db.select().from(savedSearches).where(eq(savedSearches.id, id));
+    return search;
+  }
+
   async createSavedSearch(userId: string, name: string, filters: Record<string, unknown>): Promise<SavedSearch> {
     const [search] = await db.insert(savedSearches).values({ userId, name, filters }).returning();
     return search;
@@ -965,6 +1004,19 @@ export class DatabaseStorage implements IStorage {
   async updateSavedSearch(id: string, data: { alertEnabled?: boolean; name?: string }): Promise<SavedSearch | undefined> {
     const [updated] = await db.update(savedSearches).set(data).where(eq(savedSearches.id, id)).returning();
     return updated;
+  }
+
+  async recordSearch(userId: string, filters: Record<string, unknown>): Promise<SearchHistory> {
+    const [row] = await db.insert(searchHistory).values({ userId, filters }).returning();
+    return row;
+  }
+
+  async getSearchHistory(userId: string, limit: number = 50): Promise<SearchHistory[]> {
+    return db.select().from(searchHistory).where(eq(searchHistory.userId, userId)).orderBy(desc(searchHistory.createdAt)).limit(limit);
+  }
+
+  async clearSearchHistory(userId: string): Promise<void> {
+    await db.delete(searchHistory).where(eq(searchHistory.userId, userId));
   }
 
   async getChatThreads(userId: string): Promise<ChatThread[]> {

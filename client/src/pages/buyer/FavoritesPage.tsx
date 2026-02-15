@@ -26,8 +26,7 @@ export default function FavoritesPage() {
   const clearAllMutation = useMutation({
     mutationFn: async () => {
       for (const property of favorites) {
-        await apiRequest("DELETE", "/api/favorites", { 
-          userId: user?.id, 
+        await apiRequest("DELETE", "/api/me/favorites", { 
           propertyId: property.id 
         });
       }

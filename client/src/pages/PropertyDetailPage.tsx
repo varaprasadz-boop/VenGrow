@@ -122,31 +122,24 @@ export default function PropertyDetailPage() {
     }
   }, [property, id, setLocation]);
 
-  // Check if property is favorited
-  const { data: favoriteStatus } = useQuery<{ isFavorite: boolean }>({
-    queryKey: [`/api/favorites/check?userId=${user?.id}&propertyId=${id}`],
-    enabled: !!user?.id && !!id,
+  // Check if property is favorited (from current user's favorites list)
+  const { data: favorites = [] } = useQuery<Property[]>({
+    queryKey: ["/api/me/favorites"],
+    enabled: !!user && !!id,
   });
 
-  const isFavorited = favoriteStatus?.isFavorite || false;
+  const isFavorited = !!id && favorites.some((p: Property) => p.id === id);
 
   // Add/remove favorite mutation
   const favoriteMutation = useMutation({
     mutationFn: async () => {
       if (isFavorited) {
-        await apiRequest("DELETE", "/api/favorites", { 
-          userId: user?.id, 
-          propertyId: id 
-        });
+        await apiRequest("DELETE", "/api/me/favorites", { propertyId: id });
       } else {
-        await apiRequest("POST", "/api/favorites", { 
-          userId: user?.id, 
-          propertyId: id 
-        });
+        await apiRequest("POST", "/api/me/favorites", { propertyId: id });
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/favorites/check?userId=${user?.id}&propertyId=${id}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/me/favorites"] });
       queryClient.invalidateQueries({ queryKey: ["/api/me/dashboard"] });
       toast({

@@ -1758,6 +1758,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         categoryId, subcategoryId, projectStage,
         sellerType, verifiedSeller
       } = req.query;
+      // Default to active-only for public listing when status not explicitly provided
+      const statusFilter = status !== undefined ? (status as string) : "active";
       
       const properties = await storage.getProperties({
         city: city as string,
@@ -1772,7 +1774,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         minArea: minArea ? parseInt(minArea as string) : undefined,
         maxArea: maxArea ? parseInt(maxArea as string) : undefined,
         bedrooms: bedrooms ? parseInt(bedrooms as string) : undefined,
-        status: status as string,
+        status: statusFilter,
         isVerified: isVerified === "true" ? true : isVerified === "false" ? false : undefined,
         isFeatured: isFeatured === "true" ? true : isFeatured === "false" ? false : undefined,
         sellerId: sellerId as string,
@@ -1828,7 +1830,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Increment view count (use property.id, not the slug/idOrSlug)
       await storage.incrementPropertyView(property.id);
-      
+      // Record per-user view for recently viewed (authenticated users only)
+      const viewUserId = getAuthenticatedUserId(req as any);
+      if (viewUserId) {
+        try {
+          await storage.recordPropertyView(property.id, viewUserId);
+        } catch (e) {
+          // ignore duplicate or constraint errors
+        }
+      }
+
       // Get images
       const images = await storage.getPropertyImages(property.id);
       
@@ -2753,6 +2764,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add to favorites (authenticated; body: { propertyId })
+  app.post("/api/me/favorites", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const { propertyId } = req.body;
+      if (!propertyId) return res.status(400).json({ error: "propertyId is required" });
+      const favorite = await storage.addFavorite(userId, propertyId);
+      res.status(201).json(favorite);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to add favorite" });
+    }
+  });
+
+  // Remove from favorites (authenticated; body: { propertyId })
+  app.delete("/api/me/favorites", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const { propertyId } = req.body;
+      if (!propertyId) return res.status(400).json({ error: "propertyId is required" });
+      await storage.removeFavorite(userId, propertyId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to remove favorite" });
+    }
+  });
+
   // Get user's favorites
   app.get("/api/users/:userId/favorites", async (req: Request, res: Response) => {
     try {
@@ -2967,9 +3006,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete saved search
-  app.delete("/api/saved-searches/:id", async (req: Request, res: Response) => {
+  // Delete saved search (authenticated; must own the search)
+  app.delete("/api/saved-searches/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const existing = await storage.getSavedSearch(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Saved search not found" });
+      if (existing.userId !== userId) return res.status(403).json({ error: "Forbidden" });
       await storage.deleteSavedSearch(req.params.id);
       res.json({ success: true });
     } catch (error) {
@@ -2977,13 +3021,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update saved search (toggle alerts)
-  app.patch("/api/saved-searches/:id", async (req: Request, res: Response) => {
+  // Update saved search (toggle alerts) (authenticated; must own the search)
+  app.patch("/api/saved-searches/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const existing = await storage.getSavedSearch(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Saved search not found" });
+      if (existing.userId !== userId) return res.status(403).json({ error: "Forbidden" });
       const search = await storage.updateSavedSearch(req.params.id, req.body);
-      if (!search) {
-        return res.status(404).json({ error: "Saved search not found" });
-      }
+      if (!search) return res.status(404).json({ error: "Saved search not found" });
       res.json(search);
     } catch (error) {
       res.status(500).json({ error: "Failed to update saved search" });
@@ -4980,6 +5027,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(searches);
     } catch (error) {
       res.status(500).json({ error: "Failed to get saved searches" });
+    }
+  });
+
+  // Get current user's recently viewed properties (authenticated)
+  app.get("/api/me/recently-viewed", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const list = await storage.getRecentlyViewedProperties(userId, limit);
+      res.json(list);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get recently viewed" });
+    }
+  });
+
+  // Get current user's search history (authenticated)
+  app.get("/api/me/search-history", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const list = await storage.getSearchHistory(userId, limit);
+      res.json(list);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get search history" });
+    }
+  });
+
+  // Record a search (authenticated; body: { filters })
+  app.post("/api/me/search-history", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const { filters } = req.body;
+      if (!filters || typeof filters !== "object") return res.status(400).json({ error: "filters object is required" });
+      const row = await storage.recordSearch(userId, filters);
+      res.status(201).json(row);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to record search" });
+    }
+  });
+
+  // Clear search history (authenticated)
+  app.delete("/api/me/search-history", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      await storage.clearSearchHistory(userId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to clear search history" });
     }
   });
 

@@ -234,6 +234,13 @@ export const propertyViews = pgTable("property_views", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const searchHistory = pgTable("search_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  filters: jsonb("filters").$type<Record<string, unknown>>().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const chatThreads = pgTable("chat_threads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   propertyId: varchar("property_id").references(() => properties.id),
@@ -854,6 +861,7 @@ export type Favorite = typeof favorites.$inferSelect;
 
 export type SavedSearch = typeof savedSearches.$inferSelect;
 export type PropertyView = typeof propertyViews.$inferSelect;
+export type SearchHistory = typeof searchHistory.$inferSelect;
 
 export type ChatThread = typeof chatThreads.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;

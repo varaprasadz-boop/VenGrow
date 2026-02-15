@@ -106,7 +106,7 @@ export const buyerRoutes: RouteConfig[] = [
   { path: "/buyer/chat", component: lazy(() => import("@/pages/buyer/BuyerMessagesPage")), requireAuth: true, roles: ["buyer", "seller", "admin"], title: "Chat" },
   { path: "/buyer/visits", component: lazy(() => import("@/pages/buyer/ScheduleVisitPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Scheduled Visits" },
   { path: "/buyer/reviews", component: lazy(() => import("@/pages/buyer/BuyerReviewsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "My Reviews" },
-  { path: "/buyer/search-history", component: lazy(() => import("@/pages/buyer/ViewingHistoryPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Search History" },
+  { path: "/buyer/search-history", component: lazy(() => import("@/pages/buyer/SearchHistoryPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Search History" },
   
   // Quick Links - Sidebar
   { path: "/buy", component: lazy(() => import("@/pages/ListingsPage")), requireAuth: true, roles: ["buyer", "admin"], title: "Buy Property" },

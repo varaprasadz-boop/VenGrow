@@ -23,12 +23,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow, format, parseISO, isAfter, isToday } from "date-fns";
 import type { Property, Inquiry, SavedSearch, Appointment } from "@shared/schema";
 
+interface RecentlyViewedItem {
+  id: string;
+  title: string;
+  location: string;
+  price: number;
+  viewedAt: string;
+}
+
 interface DashboardStats {
   favoritesCount: number;
   inquiriesCount: number;
   viewedCount: number;
   savedSearchesCount: number;
   pendingInquiries: number;
+  recentlyViewed?: RecentlyViewedItem[];
 }
 
 interface InquiryWithProperty extends Inquiry {
@@ -44,7 +53,7 @@ interface InquiryWithProperty extends Inquiry {
 export default function BuyerDashboardPage() {
   const { user } = useAuth();
 
-  const { data: dashboardStats, isLoading: statsLoading } = useQuery<DashboardStats>({
+  const { data: dashboardStats, isLoading: statsLoading, isError: dashboardError } = useQuery<DashboardStats>({
     queryKey: ["/api/me/dashboard"],
     enabled: !!user,
     staleTime: 0,
@@ -186,6 +195,24 @@ export default function BuyerDashboardPage() {
     ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email || ""
     : "";
 
+  if (user && dashboardError) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <main className="flex-1 bg-muted/30 pb-16 lg:pb-8 flex items-center justify-center p-6">
+          <Card className="max-w-md w-full p-8 text-center">
+            <p className="text-muted-foreground mb-4">
+              We couldn’t load your dashboard. Please log in again.
+            </p>
+            <Link href="/login">
+              <Button data-testid="button-login-again">Log in again</Button>
+            </Link>
+          </Card>
+        </main>
+        <BuyerBottomNav />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <main className="flex-1 bg-muted/30 pb-16 lg:pb-8">
@@ -195,7 +222,7 @@ export default function BuyerDashboardPage() {
               Welcome back{fullName ? `, ${fullName}` : ""}!
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground">
-              Here's what's happening with your property search
+              Here&apos;s what&apos;s happening with your property search
             </p>
           </div>
 
@@ -325,6 +352,42 @@ export default function BuyerDashboardPage() {
             </div>
 
             <div className="space-y-4 sm:space-y-6">
+              <Card className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-3 sm:mb-4 gap-4">
+                  <h3 className="font-semibold text-sm sm:text-base flex items-center gap-2">
+                    <Eye className="h-4 w-4" />
+                    Recently Viewed
+                  </h3>
+                  <Link href="/buyer/recently-viewed">
+                    <Button variant="ghost" size="sm" data-testid="button-view-recently-viewed">
+                      View All
+                    </Button>
+                  </Link>
+                </div>
+                {(dashboardStats?.recentlyViewed?.length ?? 0) > 0 ? (
+                  <div className="space-y-3">
+                    {dashboardStats!.recentlyViewed!.slice(0, 3).map((item) => (
+                      <Link key={item.id} href={`/properties/${item.id}`}>
+                        <div className="p-3 rounded-lg border hover-elevate active-elevate-2 cursor-pointer">
+                          <h4 className="text-sm font-medium truncate">{item.title}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(item.viewedAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    <Eye className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No recently viewed</p>
+                    <Link href="/properties">
+                      <Button variant="ghost" size="sm" className="mt-2">Browse Properties</Button>
+                    </Link>
+                  </div>
+                )}
+              </Card>
+
               <Card className="p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-3 sm:mb-4 gap-4">
                   <h3 className="font-semibold text-sm sm:text-base">Saved Searches</h3>

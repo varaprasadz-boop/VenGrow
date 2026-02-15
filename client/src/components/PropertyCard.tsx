@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Heart, MapPin, Bed, Bath, Maximize, CheckCircle2, Home } from "lucide-react";
+import { Heart, MapPin, Bed, Bath, Maximize, CheckCircle2, Home, Scale } from "lucide-react";
+import { useCompareOptional } from "@/contexts/CompareContext";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,11 +70,17 @@ export default function PropertyCard({
 }: PropertyCardProps) {
   const [isFavorited, setIsFavorited] = useState(false);
   const [, setLocation] = useLocation();
+  const compareContext = useCompareOptional();
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsFavorited(!isFavorited);
     onFavoriteClick?.(id);
+  };
+
+  const handleCompareClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    compareContext?.addToCompare(id);
   };
 
   const handleCardClick = () => {
@@ -175,18 +182,32 @@ export default function PropertyCard({
             )}
           </div>
 
-          {/* Favorite Button - Right */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 bg-white/95 hover:bg-white shadow-md rounded-full border border-gray-200/50 flex-shrink-0 ml-2"
-            onClick={handleFavoriteClick}
-            data-testid={`button-favorite-${id}`}
-          >
-            <Heart
-              className={`h-5 w-5 transition-colors ${isFavorited ? 'fill-red-500 text-red-500' : 'text-gray-700 hover:text-red-500'}`}
-            />
-          </Button>
+          {/* Compare + Favorite - Right */}
+          <div className="flex items-center gap-1 flex-shrink-0 ml-2 [&_button]:pointer-events-auto">
+            {compareContext && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 bg-white/95 hover:bg-white shadow-md rounded-full border border-gray-200/50"
+                onClick={handleCompareClick}
+                data-testid={`button-compare-${id}`}
+                title="Add to compare"
+              >
+                <Scale className={`h-5 w-5 text-gray-700 hover:text-primary ${compareContext.isInCompare(id) ? "text-primary" : ""}`} />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 bg-white/95 hover:bg-white shadow-md rounded-full border border-gray-200/50"
+              onClick={handleFavoriteClick}
+              data-testid={`button-favorite-${id}`}
+            >
+              <Heart
+                className={`h-5 w-5 transition-colors ${isFavorited ? 'fill-red-500 text-red-500' : 'text-gray-700 hover:text-red-500'}`}
+              />
+            </Button>
+          </div>
         </div>
 
         {/* Price - Bottom Overlay - Only in grid layout; z-10 and bar background so price is never obscured */}

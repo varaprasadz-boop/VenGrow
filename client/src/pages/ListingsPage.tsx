@@ -21,6 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Property } from "@shared/schema";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
 
 interface FilterState {
   priceRange?: [number, number];
@@ -36,6 +38,7 @@ interface FilterState {
 
 export default function ListingsPage() {
   const [location, setLocation] = useLocation();
+  const { user } = useAuth();
   const [viewType, setViewType] = useState<"grid" | "list" | "map">("grid");
   const [sortBy, setSortBy] = useState("newest");
   const [filters, setFilters] = useState<FilterState>({});
@@ -158,7 +161,22 @@ export default function ListingsPage() {
     updateURL(newFilters, 1);
     setMobileFilterOpen(false);
     setTimeout(() => setIsApplyingFilters(false), 300);
-  }, [updateURL]);
+    // Record search history for logged-in users
+    if (user) {
+      const recordFilters: Record<string, unknown> = {};
+      if (newFilters.category && newFilters.category !== "all") recordFilters.category = newFilters.category;
+      if (newFilters.priceRange) {
+        recordFilters.minPrice = newFilters.priceRange[0];
+        recordFilters.maxPrice = newFilters.priceRange[1];
+      }
+      if (transactionTypeFromPath) recordFilters.transactionType = transactionTypeFromPath.toLowerCase();
+      else if (newFilters.transactionTypes?.length) recordFilters.transactionType = newFilters.transactionTypes[0] === "buy" ? "sale" : newFilters.transactionTypes[0];
+      if (newFilters.bhk?.length) recordFilters.bhk = newFilters.bhk[0];
+      if (Object.keys(recordFilters).length > 0) {
+        apiRequest("POST", "/api/me/search-history", { filters: recordFilters }).catch(() => {});
+      }
+    }
+  }, [updateURL, user, transactionTypeFromPath]);
 
   // Build API query parameters from filters
   const apiQueryParams = useMemo(() => {
@@ -248,7 +266,13 @@ export default function ListingsPage() {
         isFeatured: property.isFeatured || false,
         isVerified: property.isVerified || false,
         sellerType: ((property as any).sellerType || "Builder") as "Individual" | "Broker" | "Builder",
-        transactionType: (property.transactionType || "Sale") as "Sale" | "Lease" | "Rent",
+        transactionType: (() => {
+          const t = (property.transactionType || "sale").toString().toLowerCase();
+          if (t === "sale") return "Sale" as const;
+          if (t === "rent") return "Rent" as const;
+          if (t === "lease") return "Lease" as const;
+          return "Sale" as const;
+        })(),
         lat: property.latitude ? parseFloat(property.latitude) : 19.0596,
         lng: property.longitude ? parseFloat(property.longitude) : 72.8295,
         projectStage: property.projectStage || undefined,
@@ -283,14 +307,18 @@ export default function ListingsPage() {
       });
     }
     
-    // Transaction type from URL path
+    // Transaction type from URL path (comparison is case-insensitive for robustness)
     if (transactionTypeFromPath) {
-      result = result.filter(p => p.transactionType === transactionTypeFromPath);
+      const pathNorm = transactionTypeFromPath.toLowerCase();
+      result = result.filter(p => (p.transactionType || "").toLowerCase() === pathNorm);
     }
     
     // Transaction type from filters
     if (filters.transactionTypes && filters.transactionTypes.length > 0) {
-      result = result.filter(p => filters.transactionTypes!.includes(p.transactionType));
+      result = result.filter(p => {
+        const pNorm = (p.transactionType || "").toLowerCase();
+        return filters.transactionTypes!.some(f => f.toLowerCase() === pNorm);
+      });
     }
     
     // Price range filter

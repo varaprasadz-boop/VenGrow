@@ -25,7 +25,9 @@ import {
   Flag,
   Loader2,
   Edit,
+  Scale,
 } from "lucide-react";
+import { useCompareOptional } from "@/contexts/CompareContext";
 import { format } from "date-fns";
 import type { Property } from "@shared/schema";
 import { Link } from "wouter";
@@ -48,17 +50,17 @@ export default function PropertyDetailPage() {
     enabled: !!user,
   });
 
-  const isFavorited = property ? favorites.some((f: any) => f.propertyId === property.id) : false;
+  const isFavorited = property ? favorites.some((p: any) => p.id === property.id) : false;
 
   const favoriteMutation = useMutation({
     mutationFn: async (add: boolean) => {
       if (!property || !user) return;
       if (add) {
-        return apiRequest("POST", "/api/favorites", {
+        return apiRequest("POST", "/api/me/favorites", {
           propertyId: property.id,
         });
       } else {
-        return apiRequest("DELETE", "/api/favorites", {
+        return apiRequest("DELETE", "/api/me/favorites", {
           propertyId: property.id,
         });
       }
@@ -89,6 +91,8 @@ export default function PropertyDetailPage() {
     }
     favoriteMutation.mutate(!isFavorited);
   };
+
+  const compareContext = useCompareOptional();
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -240,6 +244,17 @@ export default function PropertyDetailPage() {
               <Share2 className="h-4 w-4 mr-2" />
               Share
             </Button>
+            {compareContext && property && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={(e) => { e.preventDefault(); compareContext.addToCompare(property.id); }}
+                data-testid="button-compare"
+              >
+                <Scale className="h-4 w-4 mr-2" />
+                {compareContext.isInCompare(property.id) ? "In Compare" : "Compare"}
+              </Button>
+            )}
           </div>
         </div>
 

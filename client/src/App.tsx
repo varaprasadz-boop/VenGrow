@@ -11,6 +11,7 @@ import SellerLayout from "@/components/layouts/SellerLayout";
 import BuyerLayout from "@/components/layouts/BuyerLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LocationProvider } from "@/contexts/LocationContext";
+import { CompareProvider } from "@/contexts/CompareContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import GuestRoute from "@/components/GuestRoute";
 import { useAuthStore } from "@/stores/authStore";
@@ -197,10 +198,12 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <LocationProvider>
-            <Toaster />
-            <Router />
-          </LocationProvider>
+          <CompareProvider>
+            <LocationProvider>
+              <Toaster />
+              <Router />
+            </LocationProvider>
+          </CompareProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>
