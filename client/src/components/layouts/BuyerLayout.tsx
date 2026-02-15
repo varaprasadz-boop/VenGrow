@@ -23,6 +23,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DashboardSwitcher } from "@/components/DashboardSwitcher";
 
 interface BuyerLayoutProps {
   children: React.ReactNode;
@@ -219,6 +220,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
           <header className="flex items-center justify-between h-14 px-4 border-b bg-background shrink-0">
             <div className="flex items-center gap-2">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <DashboardSwitcher />
             </div>
             <div className="flex items-center gap-2">
               <RefreshButton variant="ghost" size="icon" aria-label="Refresh page data" />

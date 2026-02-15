@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Bell, Check, CheckCheck, Trash2, X, MessageSquare, Home, AlertCircle, FileCheck, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Popover,
   PopoverContent,
@@ -92,12 +91,12 @@ export function NotificationBell({ userId }: NotificationBellProps) {
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <Badge
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-              variant="destructive"
+            <span
+              className="absolute top-0 right-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-medium text-destructive-foreground ring-2 ring-background"
+              aria-label={`${unreadCount} unread notifications`}
             >
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Badge>
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
           )}
         </Button>
       </PopoverTrigger>

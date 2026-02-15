@@ -20,7 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocation as useLocationContext, SUPPORTED_CITIES } from "@/contexts/LocationContext";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface HeaderProps {
   isLoggedIn?: boolean;
@@ -43,9 +43,18 @@ interface PopularCity {
 }
 
 export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserType, userId: propUserId }: HeaderProps) {
-  const { user, isAuthenticated, logout } = useAuth();
-  const [, setWouterLocation] = useWouterLocation();
+  const { user, isAuthenticated, logout, isBuyer, isSeller, isAdmin, activeDashboard, setActiveDashboard, refetch } = useAuth();
+  const [location, setWouterLocation] = useWouterLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [addingRole, setAddingRole] = useState(false);
+
+  // Sync active dashboard with current path when user has both roles
+  useEffect(() => {
+    if (isBuyer && isSeller && location) {
+      if (location.startsWith("/seller/")) setActiveDashboard("seller");
+      else if (location.startsWith("/buyer/") || location === "/dashboard" || location === "/favorites" || location === "/inquiries") setActiveDashboard("buyer");
+    }
+  }, [location, isBuyer, isSeller, setActiveDashboard]);
   
   // Fetch active cities from API
   const { data: apiCities = [] } = useQuery<PopularCity[]>({
@@ -84,8 +93,11 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
   
   // Use auth hook values, fall back to props for backward compatibility
   const isLoggedIn = propIsLoggedIn !== undefined ? propIsLoggedIn : isAuthenticated;
+  const hasBothRoles = isBuyer && isSeller;
+  const effectiveView = hasBothRoles ? activeDashboard : isSeller ? "seller" : "buyer";
   const userType = propUserType || (user?.role as "buyer" | "seller" | "admin") || "buyer";
   const userId = propUserId || user?.id;
+  const showDashboardSwitcher = isLoggedIn && !isAdmin && (isBuyer || isSeller);
 
   const handleCitySelect = (cityName: string) => {
     if (locationContext) {
@@ -110,14 +122,55 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
 
   const getDashboardUrl = () => {
     if (userType === "admin") return "/admin/dashboard";
-    if (userType === "seller") return "/seller/dashboard";
+    if (hasBothRoles) return activeDashboard === "seller" ? "/seller/dashboard" : "/buyer/dashboard";
+    if (isSeller) return "/seller/dashboard";
     return "/buyer/dashboard";
   };
 
   const getProfileUrl = () => {
     if (userType === "admin") return "/admin/settings";
-    if (userType === "seller") return "/seller/profile";
+    if (hasBothRoles) return activeDashboard === "seller" ? "/seller/profile" : "/profile";
+    if (isSeller) return "/seller/profile";
     return "/profile";
+  };
+
+  const handleSwitchToBuyer = async () => {
+    if (hasBothRoles) {
+      setActiveDashboard("buyer");
+      setWouterLocation("/buyer/dashboard");
+      setMobileMenuOpen(false);
+      return;
+    }
+    setAddingRole(true);
+    try {
+      const res = await fetch("/api/auth/me/roles", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addRole: "buyer" }),
+      });
+      if (!res.ok) throw new Error("Failed to add buyer role");
+      await refetch();
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      setActiveDashboard("buyer");
+      setWouterLocation("/buyer/dashboard");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setAddingRole(false);
+      setMobileMenuOpen(false);
+    }
+  };
+
+  const handleSwitchToSeller = () => {
+    if (hasBothRoles) {
+      setActiveDashboard("seller");
+      setWouterLocation("/seller/dashboard");
+      setMobileMenuOpen(false);
+      return;
+    }
+    setWouterLocation("/seller/type");
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -172,8 +225,31 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
           </nav>
 
           <nav className="hidden md:flex items-center gap-2">
+            {showDashboardSwitcher && (
+              <div className="flex rounded-md border bg-muted/50 p-0.5" role="group" aria-label="Dashboard view">
+                <Button
+                  variant={effectiveView === "buyer" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-8 rounded px-2.5 text-xs"
+                  onClick={handleSwitchToBuyer}
+                  disabled={addingRole}
+                  data-testid="header-switcher-buyer"
+                >
+                  {isBuyer && !isSeller ? "Buyer" : hasBothRoles ? "Buyer" : "Switch to Buyer"}
+                </Button>
+                <Button
+                  variant={effectiveView === "seller" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-8 rounded px-2.5 text-xs"
+                  onClick={handleSwitchToSeller}
+                  data-testid="header-switcher-seller"
+                >
+                  {isSeller && !isBuyer ? "Seller" : hasBothRoles ? "Seller" : "Become a seller"}
+                </Button>
+              </div>
+            )}
             <RefreshButton variant="ghost" size="icon" aria-label="Refresh page data" />
-            {userType === "seller" || !isLoggedIn ? (
+            {isSeller || !isLoggedIn ? (
               <Link href={isLoggedIn ? "/seller/property/add" : "/login"}>
                 <Button variant="outline" size="sm" data-testid="button-post-property">
                   Post Property <span className="text-primary font-bold italic ml-1">FREE</span>
@@ -191,14 +267,14 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
               </>
             ) : (
               <>
-                {userType === "buyer" && (
+                {isBuyer && (
                   <Link href="/favorites">
                     <Button variant="ghost" size="icon" data-testid="button-favorites">
                       <Heart className="h-5 w-5" />
                     </Button>
                   </Link>
                 )}
-                {userType === "seller" && (
+                {isSeller && (
                   <Link href="/seller/property/add">
                     <Button data-testid="button-create-listing-header">
                       <Plus className="h-4 w-4 mr-1" />
@@ -215,7 +291,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
                     <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground capitalize">
-                      {userType} Account
+                      {hasBothRoles ? "Buyer & Seller" : userType + " Account"}
                     </div>
                     <DropdownMenuSeparator />
                     <Link href={getDashboardUrl()}>
@@ -230,7 +306,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                         Profile
                       </DropdownMenuItem>
                     </Link>
-                    {userType === "buyer" && (
+                    {isBuyer && (
                       <>
                         <Link href="/buyer/inquiries">
                           <DropdownMenuItem data-testid="menu-item-inquiries">
@@ -246,7 +322,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                         </Link>
                       </>
                     )}
-                    {userType === "seller" && (
+                    {isSeller && (
                       <>
                         <Link href="/seller/listings">
                           <DropdownMenuItem data-testid="menu-item-listings">
@@ -305,9 +381,30 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                       {isLoggedIn && (
                         <div className="mb-4 pb-4 border-b">
                           <p className="text-sm text-muted-foreground mb-1">Logged in as</p>
-                          <p className="font-medium capitalize">{userType}</p>
+                          <p className="font-medium capitalize">{hasBothRoles ? "Buyer & Seller" : userType}</p>
                           {user?.email && (
                             <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                          )}
+                          {showDashboardSwitcher && (
+                            <div className="flex gap-1 mt-2">
+                              <Button
+                                variant={effectiveView === "buyer" ? "secondary" : "outline"}
+                                size="sm"
+                                className="flex-1 text-xs"
+                                onClick={handleSwitchToBuyer}
+                                disabled={addingRole}
+                              >
+                                {hasBothRoles ? "Buyer" : "Switch to Buyer"}
+                              </Button>
+                              <Button
+                                variant={effectiveView === "seller" ? "secondary" : "outline"}
+                                size="sm"
+                                className="flex-1 text-xs"
+                                onClick={handleSwitchToSeller}
+                              >
+                                {hasBothRoles ? "Seller" : "Become a seller"}
+                              </Button>
+                            </div>
                           )}
                         </div>
                       )}
@@ -380,7 +477,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                             </Button>
                           </Link>
                           
-                          {userType === "buyer" && (
+                          {isBuyer && (
                             <>
                               <Link href="/favorites" onClick={() => setMobileMenuOpen(false)}>
                                 <Button variant="ghost" className="w-full justify-start" data-testid="button-nav-favorites">
@@ -402,7 +499,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                             </>
                           )}
                           
-                          {userType === "seller" && (
+                          {isSeller && (
                             <>
                               <Link href="/seller/listings" onClick={() => setMobileMenuOpen(false)}>
                                 <Button variant="ghost" className="w-full justify-start">

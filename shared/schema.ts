@@ -52,6 +52,7 @@ export const users = pgTable("users", {
   authProvider: authProviderEnum("auth_provider").default("google"),
   intent: userIntentEnum("intent"),
   role: userRoleEnum("role").notNull().default("buyer"),
+  roles: text("roles").array(), // multiple roles e.g. ["buyer", "seller"] for Fiverr-style dual role
   isActive: boolean("is_active").notNull().default(true),
   isEmailVerified: boolean("is_email_verified").notNull().default(false),
   isPhoneVerified: boolean("is_phone_verified").notNull().default(false),

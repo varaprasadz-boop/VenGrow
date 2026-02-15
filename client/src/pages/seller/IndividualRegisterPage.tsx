@@ -11,10 +11,14 @@ import { StateSelect, CitySelect, PinCodeInput, PhoneInput } from "@/components/
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { useAuth } from "@/hooks/useAuth";
+import { queryClient } from "@/lib/queryClient";
 
 export default function IndividualRegisterPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
+  const isAttachFlow = isAuthenticated;
   const [isLoading, setIsLoading] = useState(false);
   const [propertyDocumentUrl, setPropertyDocumentUrl] = useState<string | null>(null);
   const [propertyDocumentName, setPropertyDocumentName] = useState<string | null>(null);
@@ -44,20 +48,20 @@ export default function IndividualRegisterPage() {
       newErrors.fullName = "Full name is required";
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Invalid email format";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+    if (!isAttachFlow) {
+      if (!formData.email.trim()) {
+        newErrors.email = "Email is required";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        newErrors.email = "Invalid email format";
+      }
+      if (!formData.password) {
+        newErrors.password = "Password is required";
+      } else if (formData.password.length < 8) {
+        newErrors.password = "Password must be at least 8 characters";
+      }
+      if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = "Passwords do not match";
+      }
     }
 
     if (!formData.phone) {
@@ -142,6 +146,31 @@ export default function IndividualRegisterPage() {
       const nameParts = formData.fullName.trim().split(" ");
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
+
+      if (isAttachFlow) {
+        const response = await apiRequest("POST", "/api/seller/attach", {
+          sellerType: "individual",
+          phone: formData.phone.replace(/\D/g, ""),
+          panNumber: formData.panNumber.toUpperCase(),
+          aadharNumber: formData.aadharNumber.replace(/\D/g, ""),
+          address: formData.address.trim(),
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+          propertyDocumentUrl,
+        });
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.message || "Failed to add seller profile");
+        }
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+        toast({
+          title: "Seller profile added",
+          description: "Your seller registration is pending approval. You can switch between Buyer and Seller from the header.",
+        });
+        setLocation("/seller/approval-pending");
+        return;
+      }
 
       const response = await apiRequest("POST", "/api/seller/register", {
         sellerType: "individual",
@@ -230,24 +259,26 @@ export default function IndividualRegisterPage() {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    data-testid="input-email"
-                    required
-                    className={errors.email ? "border-destructive" : ""}
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email}</p>
-                  )}
-                </div>
+                {!isAttachFlow && (
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                      data-testid="input-email"
+                      required
+                      className={errors.email ? "border-destructive" : ""}
+                    />
+                    {errors.email && (
+                      <p className="text-sm text-destructive">{errors.email}</p>
+                    )}
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number *</Label>
@@ -263,43 +294,46 @@ export default function IndividualRegisterPage() {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password *</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Create a password (min 8 characters)"
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
-                    data-testid="input-password"
-                    required
-                    className={errors.password ? "border-destructive" : ""}
-                  />
-                  {errors.password && (
-                    <p className="text-sm text-destructive">{errors.password}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Confirm your password"
-                    value={formData.confirmPassword}
-                    onChange={(e) =>
-                      setFormData({ ...formData, confirmPassword: e.target.value })
-                    }
-                    data-testid="input-confirm-password"
-                    required
-                    className={errors.confirmPassword ? "border-destructive" : ""}
-                  />
-                  {errors.confirmPassword && (
-                    <p className="text-sm text-destructive">{errors.confirmPassword}</p>
-                  )}
-                </div>
+                {!isAttachFlow && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password *</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="Create a password (min 8 characters)"
+                        value={formData.password}
+                        onChange={(e) =>
+                          setFormData({ ...formData, password: e.target.value })
+                        }
+                        data-testid="input-password"
+                        required
+                        className={errors.password ? "border-destructive" : ""}
+                      />
+                      {errors.password && (
+                        <p className="text-sm text-destructive">{errors.password}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        placeholder="Confirm your password"
+                        value={formData.confirmPassword}
+                        onChange={(e) =>
+                          setFormData({ ...formData, confirmPassword: e.target.value })
+                        }
+                        data-testid="input-confirm-password"
+                        required
+                        className={errors.confirmPassword ? "border-destructive" : ""}
+                      />
+                      {errors.confirmPassword && (
+                        <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="state">State *</Label>

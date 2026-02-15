@@ -11,10 +11,14 @@ import { StateSelect, CitySelect, PinCodeInput } from "@/components/ui/location-
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { useAuth } from "@/hooks/useAuth";
+import { queryClient } from "@/lib/queryClient";
 
 export default function CorporateRegisterPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
+  const isAttachFlow = isAuthenticated;
   const [isLoading, setIsLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -49,20 +53,20 @@ export default function CorporateRegisterPage() {
       newErrors.companyName = "Company name is required";
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Invalid email format";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+    if (!isAttachFlow) {
+      if (!formData.email.trim()) {
+        newErrors.email = "Email is required";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        newErrors.email = "Invalid email format";
+      }
+      if (!formData.password) {
+        newErrors.password = "Password is required";
+      } else if (formData.password.length < 8) {
+        newErrors.password = "Password must be at least 8 characters";
+      }
+      if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = "Passwords do not match";
+      }
     }
 
     if (!formData.phone) {
@@ -183,6 +187,35 @@ export default function CorporateRegisterPage() {
       const nameParts = formData.companyName.trim().split(" ");
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
+
+      if (isAttachFlow) {
+        const response = await apiRequest("POST", "/api/seller/attach", {
+          sellerType: "builder",
+          phone: formData.phone.replace(/\D/g, ""),
+          companyName: formData.companyName.trim(),
+          cinNumber: formData.cinNumber.trim(),
+          gstNumber: formData.gstNumber.toUpperCase(),
+          reraNumber: formData.reraNumber.trim(),
+          website: formData.website.trim() || undefined,
+          address: formData.address.trim(),
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+          logoUrl,
+          brochureUrl,
+        });
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.message || "Failed to add seller profile");
+        }
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+        toast({
+          title: "Seller profile added",
+          description: "Your corporate registration is pending approval. You can switch between Buyer and Seller from the header.",
+        });
+        setLocation("/seller/approval-pending");
+        return;
+      }
 
       const response = await apiRequest("POST", "/api/seller/register", {
         sellerType: "builder", // Corporate is treated as builder

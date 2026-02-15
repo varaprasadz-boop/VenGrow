@@ -73,29 +73,25 @@ export default function ProtectedRoute({
     }
 
     if (requiredRole) {
-      const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-      const hasRole = roles.includes(user?.role as any) || isAdmin;
-      
+      const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+      const userRoles = Array.isArray(user?.roles) && user.roles.length > 0 ? user.roles : (user?.role ? [user.role] : []);
+      const hasRole = allowedRoles.some((r) => userRoles.includes(r)) || isAdmin;
+
       if (!hasRole) {
-        console.log("Access denied: requiredRole", requiredRole, "but user role is", user?.role, "isAdmin:", isAdmin);
         toast({
           title: "Access Denied",
-          description: `You need appropriate privileges to access this page.`,
+          description: "You need appropriate privileges to access this page.",
           variant: "destructive",
         });
-        
-        if (user?.role === "buyer") {
-          setLocation("/buyer/dashboard");
-        } else if (user?.role === "seller") {
-          setLocation("/seller/dashboard");
-        } else if (isAdmin) {
-          setLocation("/admin/dashboard");
-        } else {
-          setLocation("/");
-        }
+        const wantsSeller = allowedRoles.includes("seller");
+        if (userRoles.includes("buyer") && wantsSeller) setLocation("/seller/type");
+        else if (userRoles.includes("buyer")) setLocation("/buyer/dashboard");
+        else if (userRoles.includes("seller")) setLocation("/seller/dashboard");
+        else if (isAdmin) setLocation("/admin/dashboard");
+        else setLocation("/");
       }
     }
-  }, [isLoading, isAuthenticated, requiredRole, user?.role, isAdmin, isSuperAdmin, requireAdmin, requireSuperAdmin, toast, setLocation, user]);
+  }, [isLoading, isAuthenticated, requiredRole, user?.role, user?.roles, isAdmin, isSuperAdmin, requireAdmin, requireSuperAdmin, toast, setLocation, user]);
 
   // Show loading spinner while auth is being checked
   if (isLoading) {
@@ -120,11 +116,10 @@ export default function ProtectedRoute({
   }
 
   if (requiredRole) {
-    const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-    const hasRole = roles.includes(user?.role as any) || isAdmin;
-    if (!hasRole) {
-      return null;
-    }
+    const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    const userRoles = Array.isArray(user?.roles) && user.roles.length > 0 ? user.roles : (user?.role ? [user.role] : []);
+    const hasRole = allowedRoles.some((r) => userRoles.includes(r)) || isAdmin;
+    if (!hasRole) return null;
   }
 
   return <>{children}</>;

@@ -9,6 +9,7 @@ export interface AuthUser extends Partial<User> {
   firstName?: string;
   lastName?: string;
   role?: "buyer" | "seller" | "admin";
+  roles?: ("buyer" | "seller" | "admin")[];
   isSuperAdmin?: boolean;
   sellerType?: "individual" | "broker" | "builder";
 }
@@ -16,7 +17,7 @@ export interface AuthUser extends Partial<User> {
 // Legacy hook - now uses Zustand store internally but maintains API compatibility
 export function useAuth() {
   const queryClient = useQueryClient();
-  const { user, isLoading, isAuthenticated, isBuyer, isSeller, isAdmin, isSuperAdmin, logout: storeLogout, setUser } = useAuthStore();
+  const { user, isLoading, isAuthenticated, isBuyer, isSeller, isAdmin, isSuperAdmin, activeDashboard, setActiveDashboard, logout: storeLogout, setUser } = useAuthStore();
   
   const { data: queryUser, isLoading: queryLoading, error, refetch } = useQuery<AuthUser>({
     queryKey: ["/api/auth/me"],
@@ -49,6 +50,8 @@ export function useAuth() {
     isSeller,
     isAdmin,
     isSuperAdmin,
+    activeDashboard,
+    setActiveDashboard,
     error,
     logout,
     refetch,

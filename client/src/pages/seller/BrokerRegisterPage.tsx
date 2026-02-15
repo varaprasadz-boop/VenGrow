@@ -11,10 +11,14 @@ import { StateSelect, CitySelect, PinCodeInput, PhoneInput } from "@/components/
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { useAuth } from "@/hooks/useAuth";
+import { queryClient } from "@/lib/queryClient";
 
 export default function BrokerRegisterPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
+  const isAttachFlow = isAuthenticated;
   const [isLoading, setIsLoading] = useState(false);
   const [reraCertificateUrl, setReraCertificateUrl] = useState<string | null>(null);
   const [reraCertificateName, setReraCertificateName] = useState<string | null>(null);
@@ -47,20 +51,20 @@ export default function BrokerRegisterPage() {
       newErrors.fullName = "Full name is required";
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Invalid email format";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+    if (!isAttachFlow) {
+      if (!formData.email.trim()) {
+        newErrors.email = "Email is required";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        newErrors.email = "Invalid email format";
+      }
+      if (!formData.password) {
+        newErrors.password = "Password is required";
+      } else if (formData.password.length < 8) {
+        newErrors.password = "Password must be at least 8 characters";
+      }
+      if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = "Passwords do not match";
+      }
     }
 
     if (!formData.phone) {
@@ -159,6 +163,34 @@ export default function BrokerRegisterPage() {
       const nameParts = formData.fullName.trim().split(" ");
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
+
+      if (isAttachFlow) {
+        const response = await apiRequest("POST", "/api/seller/attach", {
+          sellerType: "broker",
+          phone: formData.phone.replace(/\D/g, ""),
+          firmName: formData.firmName.trim(),
+          companyName: formData.firmName.trim(),
+          reraNumber: formData.reraNumber.trim(),
+          panNumber: formData.panNumber?.toUpperCase(),
+          address: formData.address.trim(),
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+          reraCertificateUrl,
+          businessCardUrl,
+        });
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.message || "Failed to add seller profile");
+        }
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+        toast({
+          title: "Seller profile added",
+          description: "Your seller registration is pending approval. You can switch between Buyer and Seller from the header.",
+        });
+        setLocation("/seller/approval-pending");
+        return;
+      }
 
       const response = await apiRequest("POST", "/api/seller/register", {
         sellerType: "broker",

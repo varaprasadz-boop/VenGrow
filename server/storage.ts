@@ -57,6 +57,7 @@ export interface IStorage {
   updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
   updateUserLastLogin(id: string): Promise<void>;
   upsertUser(user: UpsertUser): Promise<User>;
+  addRole(userId: string, role: "buyer" | "seller"): Promise<User | undefined>;
   getAllUsers(filters?: { role?: string; isActive?: boolean }): Promise<User[]>;
   
   getSellerProfile(id: string): Promise<SellerProfile | undefined>;
@@ -376,6 +377,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUserWithPassword(data: CreateUserWithPassword): Promise<User> {
+    const role = (data.role || "buyer") as "buyer" | "seller";
     const [user] = await db.insert(users).values({
       email: data.email,
       passwordHash: data.passwordHash,
@@ -383,10 +385,23 @@ export class DatabaseStorage implements IStorage {
       lastName: data.lastName,
       phone: data.phone,
       intent: data.intent as any,
-      role: (data.role || "buyer") as any,
+      role,
+      roles: [role],
       authProvider: (data.authProvider || "local") as any,
     }).returning();
     return user;
+  }
+
+  async addRole(userId: string, role: "buyer" | "seller"): Promise<User | undefined> {
+    const existing = await this.getUser(userId);
+    if (!existing) return undefined;
+    const currentRoles: string[] = Array.isArray(existing.roles) && existing.roles.length > 0
+      ? existing.roles
+      : [existing.role];
+    if (currentRoles.includes(role)) return existing;
+    const newRoles = [...currentRoles, role];
+    const [updated] = await db.update(users).set({ roles: newRoles, updatedAt: new Date() }).where(eq(users.id, userId)).returning();
+    return updated;
   }
 
   async updateUserLastLogin(id: string): Promise<void> {

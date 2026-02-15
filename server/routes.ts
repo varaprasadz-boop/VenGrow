@@ -30,6 +30,13 @@ function getAuthenticatedUserId(req: any): string | null {
   return null;
 }
 
+// Normalize user object to always include roles: string[] for dual buyer/seller support
+function normalizeUserRoles(user: Record<string, any> | null): Record<string, any> | null {
+  if (!user) return null;
+  const roles = Array.isArray(user.roles) && user.roles.length > 0 ? user.roles : [user.role];
+  return { ...user, roles };
+}
+
 function broadcastToUser(userId: string, message: any) {
   const userSockets = connectedClients.get(userId);
   if (userSockets) {
@@ -232,7 +239,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (user) {
           const prefsSetting = await storage.getSystemSetting(`user_preferences_${user.id}`);
           const metadata = (prefsSetting?.value as Record<string, boolean>) || {};
-          return res.json({ ...user, metadata });
+          const normalized = normalizeUserRoles(user as any)!;
+          return res.json({ ...normalized, metadata });
         }
       }
       
@@ -254,6 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName: "Super",
           lastName: "Admin",
           role: "admin" as const,
+          roles: ["admin"] as string[],
           isSuperAdmin: true,
         };
         console.log("Returning admin user:", userResponse);
@@ -265,7 +274,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const userId = req.user.claims.sub;
         const user = await storage.getUser(userId);
         if (user) {
-          return res.json(user);
+          const normalized = normalizeUserRoles(user as any);
+          return res.json(normalized || user);
         }
       }
       
@@ -283,10 +293,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getAuthenticatedUserId(req);
       if (!userId) return res.status(401).json({ message: "Not authenticated" });
       const user = await storage.getUser(userId);
-      res.json(user);
+      const normalized = normalizeUserRoles(user as any);
+      res.json(normalized || user);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Add role (buyer or seller) for dual-role support - e.g. seller adding buyer, or buyer adding seller after onboarding
+  app.patch("/api/auth/me/roles", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const { addRole } = req.body;
+      if (!addRole || !["buyer", "seller"].includes(addRole)) {
+        return res.status(400).json({ error: "Invalid addRole; use 'buyer' or 'seller'" });
+      }
+      const updated = await storage.addRole(userId, addRole as "buyer" | "seller");
+      if (!updated) return res.status(404).json({ error: "User not found" });
+      const normalized = normalizeUserRoles(updated as any)!;
+      return res.json(normalized);
+    } catch (error) {
+      console.error("Error adding role:", error);
+      res.status(500).json({ error: "Failed to add role" });
     }
   });
 
@@ -705,6 +735,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Seller registration error:", error);
       res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  // Attach seller profile to existing user (logged-in buyer becoming a seller)
+  app.post("/api/seller/attach", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const existingProfile = await storage.getSellerProfileByUserId(userId);
+      if (existingProfile) {
+        const user = await storage.getUser(userId);
+        const withRole = await storage.addRole(userId, "seller");
+        const normalized = normalizeUserRoles((withRole || user) as any)!;
+        return res.status(200).json({
+          success: true,
+          alreadySeller: true,
+          user: normalized,
+          sellerProfile: { id: existingProfile.id, sellerType: existingProfile.sellerType, verificationStatus: existingProfile.verificationStatus },
+        });
+      }
+
+      const {
+        sellerType,
+        companyName,
+        reraNumber,
+        gstNumber,
+        panNumber,
+        aadharNumber,
+        address,
+        city,
+        state,
+        pincode,
+        website,
+        firmName,
+        logoUrl,
+        brochureUrl,
+        reraCertificateUrl,
+        businessCardUrl,
+        incorporationCertificateUrl,
+        companyProfileUrl,
+        propertyDocumentUrl,
+      } = req.body;
+
+      if (!sellerType || !["individual", "broker", "builder"].includes(sellerType)) {
+        return res.status(400).json({ message: "Valid seller type is required" });
+      }
+      const normalizedSellerType = sellerType === "corporate" ? "builder" : sellerType;
+
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const sellerProfileData: any = {
+        userId,
+        sellerType: normalizedSellerType as "individual" | "broker" | "builder",
+        verificationStatus: "pending",
+      };
+      if (companyName) sellerProfileData.companyName = companyName;
+      if (firmName && sellerType === "broker") sellerProfileData.companyName = firmName;
+      if (reraNumber) sellerProfileData.reraNumber = reraNumber;
+      if (gstNumber) sellerProfileData.gstNumber = gstNumber;
+      if (panNumber) sellerProfileData.panNumber = panNumber;
+      if (address) sellerProfileData.address = address;
+      if (city) sellerProfileData.city = city;
+      if (state) sellerProfileData.state = state;
+      if (pincode) sellerProfileData.pincode = pincode;
+      if (website) sellerProfileData.website = website;
+      if (logoUrl) sellerProfileData.logo = logoUrl;
+
+      const verificationDocuments: any[] = [];
+      if (aadharNumber && propertyDocumentUrl) verificationDocuments.push({ type: "aadhaar", number: aadharNumber, url: propertyDocumentUrl, uploadedAt: new Date().toISOString() });
+      if (panNumber && propertyDocumentUrl) verificationDocuments.push({ type: "pan", number: panNumber, url: propertyDocumentUrl, uploadedAt: new Date().toISOString() });
+      if (reraNumber && reraCertificateUrl) verificationDocuments.push({ type: "rera", number: reraNumber, url: reraCertificateUrl, uploadedAt: new Date().toISOString() });
+      if (incorporationCertificateUrl) verificationDocuments.push({ type: "incorporation", url: incorporationCertificateUrl, uploadedAt: new Date().toISOString() });
+      if (businessCardUrl) verificationDocuments.push({ type: "business_card", url: businessCardUrl, uploadedAt: new Date().toISOString() });
+      if (companyProfileUrl) verificationDocuments.push({ type: "company_profile", url: companyProfileUrl, uploadedAt: new Date().toISOString() });
+      if (brochureUrl) verificationDocuments.push({ type: "brochure", url: brochureUrl, uploadedAt: new Date().toISOString() });
+      if (verificationDocuments.length > 0) sellerProfileData.verificationDocuments = verificationDocuments;
+
+      const sellerProfile = await storage.createSellerProfile(sellerProfileData);
+      const updatedUser = await storage.addRole(userId, "seller");
+      const normalized = normalizeUserRoles((updatedUser || user) as any)!;
+
+      res.status(201).json({
+        success: true,
+        user: normalized,
+        sellerProfile: { id: sellerProfile.id, sellerType: sellerProfile.sellerType, verificationStatus: sellerProfile.verificationStatus },
+      });
+    } catch (error) {
+      console.error("Seller attach error:", error);
+      res.status(500).json({ message: "Failed to attach seller profile" });
     }
   });
 

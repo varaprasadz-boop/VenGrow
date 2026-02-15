@@ -3,6 +3,10 @@ import type { AuthUser } from '@/hooks/useAuth';
 import { queryClient } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 
+const ACTIVE_DASHBOARD_KEY = "vengrow_active_dashboard";
+
+export type ActiveDashboard = "buyer" | "seller";
+
 interface AuthState {
   user: AuthUser | null;
   isLoading: boolean;
@@ -11,13 +15,21 @@ interface AuthState {
   isSeller: boolean;
   isAdmin: boolean;
   isSuperAdmin: boolean;
-  
+  activeDashboard: ActiveDashboard;
+
   // Actions
   setUser: (user: AuthUser | null) => void;
   setLoading: (loading: boolean) => void;
+  setActiveDashboard: (view: ActiveDashboard) => void;
   clearUser: () => void;
   logout: () => Promise<void>;
   initializeAuth: () => Promise<void>;
+}
+
+function getRoles(user: AuthUser | null): string[] {
+  if (!user) return [];
+  if (Array.isArray(user.roles) && user.roles.length > 0) return user.roles;
+  return user.role ? [user.role] : [];
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -28,27 +40,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isSeller: false,
   isAdmin: false,
   isSuperAdmin: false,
+  activeDashboard: (() => {
+    if (typeof window === "undefined") return "buyer";
+    const stored = localStorage.getItem(ACTIVE_DASHBOARD_KEY);
+    return stored === "seller" ? "seller" : "buyer";
+  })(),
 
   setUser: (user: AuthUser | null) => {
     const isAdminValue = !!(user && (user.role === "admin" || user.isSuperAdmin));
     const isSuperAdminValue = !!(user?.isSuperAdmin);
-    
-    console.log("setUser called with:", {
-      user,
-      role: user?.role,
-      isSuperAdmin: user?.isSuperAdmin,
-      computedIsAdmin: isAdminValue,
-      computedIsSuperAdmin: isSuperAdminValue,
-    });
-    
+    const roles = getRoles(user);
+    const isBuyerValue = roles.includes("buyer");
+    const isSellerValue = roles.includes("seller");
+
     set({
       user,
       isAuthenticated: !!user,
-      isBuyer: user?.role === "buyer",
-      isSeller: user?.role === "seller",
+      isBuyer: isBuyerValue,
+      isSeller: isSellerValue,
       isAdmin: isAdminValue,
       isSuperAdmin: isSuperAdminValue,
     });
+  },
+
+  setActiveDashboard: (view: ActiveDashboard) => {
+    if (typeof window !== "undefined") localStorage.setItem(ACTIVE_DASHBOARD_KEY, view);
+    set({ activeDashboard: view });
   },
 
   setLoading: (loading: boolean) => {
