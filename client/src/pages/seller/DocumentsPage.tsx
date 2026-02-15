@@ -178,9 +178,24 @@ export default function DocumentsPage() {
     }
   };
 
+  const getDownloadUrl = (url: string | undefined): string => {
+    if (!url) return "";
+    const localhostPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i;
+    if (localhostPattern.test(url)) {
+      try {
+        const u = new URL(url);
+        return `${window.location.origin}${u.pathname}${u.search}`;
+      } catch {
+        return url;
+      }
+    }
+    return url.startsWith("/") ? `${window.location.origin}${url}` : url;
+  };
+
   const handleDownload = (doc: Document) => {
-    if (doc.url) {
-      window.open(doc.url, "_blank");
+    const url = doc.url ? getDownloadUrl(doc.url) : "";
+    if (url) {
+      window.open(url, "_blank");
     } else {
       toast({ title: "Download URL not available", variant: "destructive" });
     }

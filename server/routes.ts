@@ -5278,11 +5278,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get documents from seller profile verificationDocuments
       if (profile.verificationDocuments && Array.isArray(profile.verificationDocuments)) {
         profile.verificationDocuments.forEach((doc: any) => {
+          const url = normalizeImageUrl(doc.url) || doc.url;
           documents.push({
             id: doc.id || doc.type,
             name: doc.name || `${doc.type} Document`,
             type: doc.type,
-            url: doc.url,
+            url,
             status: profile.verificationStatus === "verified" ? "verified" : profile.verificationStatus === "pending" ? "pending" : "rejected",
             uploadDate: doc.uploadedAt || doc.createdAt,
             verifiedDate: profile.verificationStatus === "verified" ? profile.updatedAt : undefined,
@@ -5313,6 +5314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!type || !url) {
         return res.status(400).json({ error: "Type and URL are required" });
       }
+      const normalizedUrl = normalizeImageUrl(url) || url;
 
       let existingDocs = (profile.verificationDocuments || []) as any[];
       if (replaceId) {
@@ -5324,7 +5326,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: `${type}-${Date.now()}`,
         type,
         name: name || `${type} Document`,
-        url,
+        url: normalizedUrl,
         uploadedAt: new Date().toISOString(),
       };
 
