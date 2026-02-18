@@ -1323,38 +1323,35 @@ export default function CreatePropertyPage() {
               )}
             </div>
 
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-start w-full mb-2">
               {STEPS.map((step, index) => (
-                <div key={step.id} className="flex items-center flex-1">
-                  <div
-                    className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-                      currentStep >= step.id
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {currentStep > step.id ? (
-                      <CheckCircle className="h-5 w-5" />
-                    ) : (
-                      step.id
-                    )}
+                <div key={step.id} className="contents">
+                  <div className="flex flex-1 flex-col items-center min-w-0">
+                    <div
+                      className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+                        currentStep >= step.id
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {currentStep > step.id ? (
+                        <CheckCircle className="h-5 w-5" />
+                      ) : (
+                        step.id
+                      )}
+                    </div>
+                    <p className={`mt-2 text-sm text-center ${currentStep >= step.id ? "font-medium" : "text-muted-foreground"}`}>
+                      {step.title}
+                    </p>
                   </div>
                   {index < STEPS.length - 1 && (
                     <div
-                      className={`h-1 flex-1 mx-2 transition-colors ${
+                      className={`h-1 w-8 shrink-0 self-center mt-5 transition-colors ${
                         currentStep > step.id ? "bg-primary" : "bg-muted"
                       }`}
+                      aria-hidden
                     />
                   )}
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-sm">
-              {STEPS.map(step => (
-                <div key={step.id} className="text-center flex-1">
-                  <p className={currentStep >= step.id ? "font-medium" : "text-muted-foreground"}>
-                    {step.title}
-                  </p>
                 </div>
               ))}
             </div>
