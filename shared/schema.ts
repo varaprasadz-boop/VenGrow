@@ -115,6 +115,76 @@ export const sellerSubscriptions = pgTable("seller_subscriptions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+/**
+ * Joint Venture / development opportunity payload (stored in properties.jv_details).
+ * Used when category is Joint Venture; propertyType is "plot", categoryId/subcategoryId identify as JV.
+ */
+export interface JvDetailsType {
+  common?: {
+    nearbyLandmark?: string;
+    areaInLocality?: string;
+    locality?: string;
+    city?: string;
+    landArea?: string;
+    plotDimensions?: string;
+    roadWidth?: string;
+    cornerPlot?: boolean;
+    facing?: string;
+    titleClear?: boolean;
+    landUseZoning?: string;
+    conversionStatus?: string;
+    encumbranceFree?: boolean;
+    govtApprovalsAvailable?: boolean;
+    documentsAvailable?: string[];
+    readyForDevelopment?: boolean;
+    existingStructure?: boolean;
+    vacantPossession?: boolean;
+    timelinePreference?: string;
+  };
+  jvType?: "revenue_share" | "built_up_share";
+  landownerExpectationPercent?: number;
+  developerExpectationPercent?: number;
+  openToNegotiation?: boolean;
+  preferredDeveloperProfile?: "local" | "national" | null;
+  developmentType?: "apartment_construction" | "plotted_development" | "villa_construction" | "commercial_construction";
+  apartmentConstruction?: {
+    maxFloorsAllowed?: string;
+    fsiFarAvailable?: string;
+    approxBuildUpPotential?: string;
+    setbackCompliancePossible?: boolean;
+    expectedSegment?: string;
+  };
+  plottedDevelopment?: {
+    expectedNoOfPlots?: string;
+    minMaxPlotSizes?: string;
+    internalRoadWidthPlanned?: string;
+    parksOpenSpacePercentPlanned?: string;
+    layoutApprovalAuthority?: string;
+    reraApplicability?: string;
+    developmentCostSharing?: boolean;
+    endUsersInvestors?: string;
+    gatedLayout?: boolean;
+  };
+  villaConstruction?: {
+    noOfVillasPlanned?: string;
+    villaSizeRange?: string;
+    duplexTriplex?: string;
+    privateGarden?: boolean;
+    segment?: string;
+    gatedCommunity?: boolean;
+    clubhouseScope?: boolean;
+    approachRoadWidth?: string;
+  };
+  commercialConstruction?: {
+    officeRetailMixedUse?: string;
+    mallItParkStandalone?: string;
+    totalBuiltUpPotential?: string;
+    parkingFeasibility?: string;
+    anchorTenantPossibility?: boolean;
+    rentalYieldExpectation?: string;
+  };
+}
+
 export const properties = pgTable("properties", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   sellerId: varchar("seller_id").notNull().references(() => sellerProfiles.id),
@@ -204,6 +274,7 @@ export const properties = pgTable("properties", {
   pgNonVegProvided: boolean("pg_non_veg_provided"),
   pgNoticePeriod: text("pg_notice_period"),
   availableFrom: text("available_from"),
+  jvDetails: jsonb("jv_details").$type<JvDetailsType>(),
   status: listingStatusEnum("status").notNull().default("draft"),
   workflowStatus: workflowStatusEnum("workflow_status").notNull().default("draft"),
   isVerified: boolean("is_verified").notNull().default(false),

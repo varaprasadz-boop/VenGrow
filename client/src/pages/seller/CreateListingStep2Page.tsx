@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,8 @@ import { ArrowRight, ArrowLeft, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import type { PropertyCategory } from "@shared/schema";
+import type { JvDetailsType } from "@shared/schema";
 
 const amenitiesList = [
   "Swimming Pool",
@@ -32,11 +35,25 @@ const amenitiesList = [
   "Water Storage",
 ];
 
+const defaultJvDetails = (): JvDetailsType => ({
+  common: {},
+  developmentType: undefined,
+});
+
 export default function CreateListingStep2Page() {
   const [, navigate] = useLocation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [step1Data, setStep1Data] = useState<any>(null);
+  const { data: categories = [] } = useQuery<PropertyCategory[]>({
+    queryKey: ["/api/property-categories"],
+  });
+  const selectedCategory = useMemo(
+    () => (step1Data?.categoryId ? categories.find((c) => c.id === step1Data.categoryId) : null),
+    [categories, step1Data?.categoryId]
+  );
+  const isJv = selectedCategory?.slug === "joint-venture";
+
   const [formData, setFormData] = useState({
     bedrooms: "",
     bathrooms: "",
@@ -55,6 +72,8 @@ export default function CreateListingStep2Page() {
     isNewConstruction: false,
     amenities: [] as string[],
   });
+
+  const [jvFormData, setJvFormData] = useState<JvDetailsType>(defaultJvDetails);
 
   // Check for Step 1 data and auth
   useEffect(() => {
@@ -86,6 +105,20 @@ export default function CreateListingStep2Page() {
     }
   }, [authLoading, isAuthenticated, navigate, toast]);
 
+  // Load saved JV step2 data when step1 is JV
+  useEffect(() => {
+    if (!step1Data || !isJv) return;
+    try {
+      const saved2 = localStorage.getItem("createListingStep2");
+      if (saved2) {
+        const parsed = JSON.parse(saved2);
+        if (parsed?.isJv && parsed?.jvDetails) {
+          setJvFormData({ ...defaultJvDetails(), ...parsed.jvDetails, common: { ...parsed.jvDetails?.common } });
+        }
+      }
+    } catch (_) {}
+  }, [step1Data, isJv]);
+
   const toggleAmenity = (amenity: string) => {
     setFormData({
       ...formData,
@@ -93,6 +126,53 @@ export default function CreateListingStep2Page() {
         ? formData.amenities.filter((a) => a !== amenity)
         : [...formData.amenities, amenity],
     });
+  };
+
+  const updateJvCommon = (key: keyof NonNullable<JvDetailsType["common"]>, value: unknown) => {
+    setJvFormData((prev) => ({
+      ...prev,
+      common: { ...prev.common, [key]: value },
+    }));
+  };
+  const updateJv = <K extends keyof JvDetailsType>(key: K, value: JvDetailsType[K]) => {
+    setJvFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const validateJvForm = (): string | null => {
+    const c = jvFormData.common;
+    if (!c?.locality?.trim()) return "Locality is required.";
+    if (!c?.city?.trim()) return "City is required.";
+    if (!c?.landArea?.trim()) return "Land area is required.";
+    if (!c?.plotDimensions?.trim()) return "Plot dimensions is required.";
+    if (!c?.roadWidth?.trim()) return "Road width is required.";
+    if (c?.cornerPlot === undefined) return "Please select Corner Plot (Yes/No).";
+    if (!c?.facing?.trim()) return "Facing is required.";
+    if (c?.titleClear === undefined) return "Title Clear is required.";
+    if (!c?.landUseZoning?.trim()) return "Land use zoning is required.";
+    if (!c?.conversionStatus?.trim()) return "Conversion status is required.";
+    if (c?.encumbranceFree === undefined) return "Encumbrance free is required.";
+    if (c?.govtApprovalsAvailable === undefined) return "Govt approvals available is required.";
+    if (c?.readyForDevelopment === undefined) return "Ready for development is required.";
+    if (c?.existingStructure === undefined) return "Existing structure is required.";
+    if (!jvFormData.jvType) return "JV type is required.";
+    if (jvFormData.landownerExpectationPercent == null || jvFormData.landownerExpectationPercent === undefined) return "Landowner expectation (%) is required.";
+    if (jvFormData.developerExpectationPercent == null || jvFormData.developerExpectationPercent === undefined) return "Developer expectation (%) is required.";
+    if (!jvFormData.developmentType) return "Development type is required.";
+    return null;
+  };
+
+  const handleNext = () => {
+    if (isJv) {
+      const err = validateJvForm();
+      if (err) {
+        toast({ title: "Validation", description: err, variant: "destructive" });
+        return;
+      }
+      localStorage.setItem("createListingStep2", JSON.stringify({ isJv: true, jvDetails: jvFormData }));
+    } else {
+      localStorage.setItem("createListingStep2", JSON.stringify({ ...formData, isJv: false }));
+    }
+    navigate("/seller/listings/create/step3");
   };
 
   // Show loading state while checking auth and step data
@@ -134,10 +214,263 @@ export default function CreateListingStep2Page() {
 
           <Card className="p-8">
             <h1 className="font-serif font-bold text-2xl mb-6">
-              Property Specifications
+              {isJv ? "Joint Venture / Development Details" : "Property Specifications"}
             </h1>
 
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleNext(); }}>
+              {isJv ? (
+                <>
+                  {/* JV Common section */}
+                  <div>
+                    <h3 className="font-semibold mb-4">Location & Land Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Near by Landmark (optional)</Label>
+                        <Input value={jvFormData.common?.nearbyLandmark ?? ""} onChange={(e) => updateJvCommon("nearbyLandmark", e.target.value)} placeholder="e.g. near highway" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Area in Locality (optional)</Label>
+                        <Input value={jvFormData.common?.areaInLocality ?? ""} onChange={(e) => updateJvCommon("areaInLocality", e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Locality *</Label>
+                        <Input value={jvFormData.common?.locality ?? ""} onChange={(e) => updateJvCommon("locality", e.target.value)} placeholder="e.g. Bandra West" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>City *</Label>
+                        <Input value={jvFormData.common?.city ?? ""} onChange={(e) => updateJvCommon("city", e.target.value)} placeholder="e.g. Mumbai" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Land Area (sq ft / acres) *</Label>
+                        <Input value={jvFormData.common?.landArea ?? ""} onChange={(e) => updateJvCommon("landArea", e.target.value)} placeholder="e.g. 5000" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Plot Dimensions *</Label>
+                        <Input value={jvFormData.common?.plotDimensions ?? ""} onChange={(e) => updateJvCommon("plotDimensions", e.target.value)} placeholder="e.g. 50 x 100 ft" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Road Width *</Label>
+                        <Input value={jvFormData.common?.roadWidth ?? ""} onChange={(e) => updateJvCommon("roadWidth", e.target.value)} placeholder="e.g. 30 ft" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Corner Plot *</Label>
+                        <Select value={jvFormData.common?.cornerPlot === true ? "yes" : jvFormData.common?.cornerPlot === false ? "no" : ""} onValueChange={(v) => updateJvCommon("cornerPlot", v === "yes")}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Facing *</Label>
+                        <Select value={jvFormData.common?.facing ?? ""} onValueChange={(v) => updateJvCommon("facing", v)}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="north">North</SelectItem><SelectItem value="south">South</SelectItem><SelectItem value="east">East</SelectItem><SelectItem value="west">West</SelectItem>
+                            <SelectItem value="north-east">North-East</SelectItem><SelectItem value="north-west">North-West</SelectItem><SelectItem value="south-east">South-East</SelectItem><SelectItem value="south-west">South-West</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Title Clear (Yes/No) *</Label>
+                        <Select value={jvFormData.common?.titleClear === true ? "yes" : jvFormData.common?.titleClear === false ? "no" : ""} onValueChange={(v) => updateJvCommon("titleClear", v === "yes")}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Land Use Zoning *</Label>
+                        <Select value={jvFormData.common?.landUseZoning ?? ""} onValueChange={(v) => updateJvCommon("landUseZoning", v)}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="residential">Residential</SelectItem><SelectItem value="commercial">Commercial</SelectItem><SelectItem value="mixed">Mixed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Conversion Status (if agricultural) *</Label>
+                        <Input value={jvFormData.common?.conversionStatus ?? ""} onChange={(e) => updateJvCommon("conversionStatus", e.target.value)} placeholder="e.g. Converted / NA" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Encumbrance Free (Yes/No) *</Label>
+                        <Select value={jvFormData.common?.encumbranceFree === true ? "yes" : jvFormData.common?.encumbranceFree === false ? "no" : ""} onValueChange={(v) => updateJvCommon("encumbranceFree", v === "yes")}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Govt Approvals Available (Yes/No) *</Label>
+                        <Select value={jvFormData.common?.govtApprovalsAvailable === true ? "yes" : jvFormData.common?.govtApprovalsAvailable === false ? "no" : ""} onValueChange={(v) => updateJvCommon("govtApprovalsAvailable", v === "yes")}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Ready for Development (Yes/No) *</Label>
+                        <Select value={jvFormData.common?.readyForDevelopment === true ? "yes" : jvFormData.common?.readyForDevelopment === false ? "no" : ""} onValueChange={(v) => updateJvCommon("readyForDevelopment", v === "yes")}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Existing Structure (Yes/No) *</Label>
+                        <Select value={jvFormData.common?.existingStructure === true ? "yes" : jvFormData.common?.existingStructure === false ? "no" : ""} onValueChange={(v) => updateJvCommon("existingStructure", v === "yes")}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Vacant Possession (Yes/No)</Label>
+                        <Select value={jvFormData.common?.vacantPossession === true ? "yes" : jvFormData.common?.vacantPossession === false ? "no" : ""} onValueChange={(v) => updateJvCommon("vacantPossession", v === "yes")}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Timeline Preference</Label>
+                        <Input value={jvFormData.common?.timelinePreference ?? ""} onChange={(e) => updateJvCommon("timelinePreference", e.target.value)} placeholder="e.g. 6 months" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* JV section */}
+                  <div>
+                    <h3 className="font-semibold mb-4">Joint Venture</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>JV Type *</Label>
+                        <Select value={jvFormData.jvType ?? ""} onValueChange={(v) => updateJv("jvType", v === "revenue_share" ? "revenue_share" : v === "built_up_share" ? "built_up_share" : undefined)}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent><SelectItem value="revenue_share">Revenue Share</SelectItem><SelectItem value="built_up_share">Built-up Share</SelectItem></SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Landowner Expectation (%) *</Label>
+                        <Input type="number" min={0} max={100} value={jvFormData.landownerExpectationPercent ?? ""} onChange={(e) => updateJv("landownerExpectationPercent", e.target.value === "" ? undefined : Number(e.target.value))} placeholder="e.g. 40" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Developer Expectation (%) *</Label>
+                        <Input type="number" min={0} max={100} value={jvFormData.developerExpectationPercent ?? ""} onChange={(e) => updateJv("developerExpectationPercent", e.target.value === "" ? undefined : Number(e.target.value))} placeholder="e.g. 60" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Open to Negotiation (Yes/No)</Label>
+                        <Select value={jvFormData.openToNegotiation === true ? "yes" : jvFormData.openToNegotiation === false ? "no" : ""} onValueChange={(v) => updateJv("openToNegotiation", v === "yes")}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Preferred Developer Profile</Label>
+                        <Select value={jvFormData.preferredDeveloperProfile ?? ""} onValueChange={(v) => updateJv("preferredDeveloperProfile", v === "local" ? "local" : v === "national" ? "national" : null)}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent><SelectItem value="local">Local</SelectItem><SelectItem value="national">National</SelectItem></SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Development type */}
+                  <div>
+                    <h3 className="font-semibold mb-4">Development Type</h3>
+                    <Select value={jvFormData.developmentType ?? ""} onValueChange={(v) => updateJv("developmentType", v as JvDetailsType["developmentType"])}>
+                      <SelectTrigger className="max-w-xs"><SelectValue placeholder="Select type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="apartment_construction">Apartment Construction</SelectItem>
+                        <SelectItem value="plotted_development">Plotted Development</SelectItem>
+                        <SelectItem value="villa_construction">Villa Construction</SelectItem>
+                        <SelectItem value="commercial_construction">Commercial Construction</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Type-specific: Apartment */}
+                  {jvFormData.developmentType === "apartment_construction" && (
+                    <div>
+                      <h3 className="font-semibold mb-4">Apartment Construction</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>FSI / FAR Available</Label>
+                          <Input value={jvFormData.apartmentConstruction?.fsiFarAvailable ?? ""} onChange={(e) => setJvFormData((p) => ({ ...p, apartmentConstruction: { ...p.apartmentConstruction, fsiFarAvailable: e.target.value } }))} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Approx Build-up Potential</Label>
+                          <Input value={jvFormData.apartmentConstruction?.approxBuildUpPotential ?? ""} onChange={(e) => setJvFormData((p) => ({ ...p, apartmentConstruction: { ...p.apartmentConstruction, approxBuildUpPotential: e.target.value } }))} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Expected Segment</Label>
+                          <Select value={jvFormData.apartmentConstruction?.expectedSegment ?? ""} onValueChange={(v) => setJvFormData((p) => ({ ...p, apartmentConstruction: { ...p.apartmentConstruction, expectedSegment: v } }))}>
+                            <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                            <SelectContent><SelectItem value="affordable">Affordable</SelectItem><SelectItem value="mid">Mid</SelectItem><SelectItem value="premium">Premium</SelectItem></SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Type-specific: Plotted */}
+                  {jvFormData.developmentType === "plotted_development" && (
+                    <div>
+                      <h3 className="font-semibold mb-4">Plotted Development</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Expected No. of Plots</Label>
+                          <Input value={jvFormData.plottedDevelopment?.expectedNoOfPlots ?? ""} onChange={(e) => setJvFormData((p) => ({ ...p, plottedDevelopment: { ...p.plottedDevelopment, expectedNoOfPlots: e.target.value } }))} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Gated Layout (Yes/No)</Label>
+                          <Select value={jvFormData.plottedDevelopment?.gatedLayout === true ? "yes" : jvFormData.plottedDevelopment?.gatedLayout === false ? "no" : ""} onValueChange={(v) => setJvFormData((p) => ({ ...p, plottedDevelopment: { ...p.plottedDevelopment, gatedLayout: v === "yes" } }))}>
+                            <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                            <SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Type-specific: Villa */}
+                  {jvFormData.developmentType === "villa_construction" && (
+                    <div>
+                      <h3 className="font-semibold mb-4">Villa Construction</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Villa Size Range</Label>
+                          <Input value={jvFormData.villaConstruction?.villaSizeRange ?? ""} onChange={(e) => setJvFormData((p) => ({ ...p, villaConstruction: { ...p.villaConstruction, villaSizeRange: e.target.value } }))} placeholder="e.g. 2000-3000 sq ft" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Gated Community (Yes/No)</Label>
+                          <Select value={jvFormData.villaConstruction?.gatedCommunity === true ? "yes" : jvFormData.villaConstruction?.gatedCommunity === false ? "no" : ""} onValueChange={(v) => setJvFormData((p) => ({ ...p, villaConstruction: { ...p.villaConstruction, gatedCommunity: v === "yes" } }))}>
+                            <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                            <SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Type-specific: Commercial */}
+                  {jvFormData.developmentType === "commercial_construction" && (
+                    <div>
+                      <h3 className="font-semibold mb-4">Commercial Construction</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Office / Retail / Mixed-Use</Label>
+                          <Input value={jvFormData.commercialConstruction?.officeRetailMixedUse ?? ""} onChange={(e) => setJvFormData((p) => ({ ...p, commercialConstruction: { ...p.commercialConstruction, officeRetailMixedUse: e.target.value } }))} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Total Built-up Potential</Label>
+                          <Input value={jvFormData.commercialConstruction?.totalBuiltUpPotential ?? ""} onChange={(e) => setJvFormData((p) => ({ ...p, commercialConstruction: { ...p.commercialConstruction, totalBuiltUpPotential: e.target.value } }))} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between pt-6">
+                    <Link href="/seller/listings/create/step1">
+                      <Button variant="outline" type="button"><ArrowLeft className="h-4 w-4 mr-2" /> Back</Button>
+                    </Link>
+                    <Button type="submit" data-testid="button-next">Next: Photos & Videos <ArrowRight className="h-4 w-4 ml-2" /></Button>
+                  </div>
+                </>
+              ) : (
+                <>
               {/* Room Details */}
               <div>
                 <h3 className="font-semibold mb-4">Room Configuration</h3>
@@ -454,18 +787,13 @@ export default function CreateListingStep2Page() {
                     Back
                   </Button>
                 </Link>
-                <Button 
-                  type="button" 
-                  data-testid="button-next"
-                  onClick={() => {
-                    localStorage.setItem("createListingStep2", JSON.stringify(formData));
-                    navigate("/seller/listings/create/step3");
-                  }}
-                >
+                <Button type="submit" data-testid="button-next">
                   Next: Photos & Videos
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
+                </>
+              )}
             </form>
           </Card>
         </div>

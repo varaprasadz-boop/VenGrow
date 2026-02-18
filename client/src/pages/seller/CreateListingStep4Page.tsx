@@ -25,7 +25,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { PropertyCategory, PropertySubcategory } from "@shared/schema";
+import type { PropertyCategory, PropertySubcategory, JvDetailsType } from "@shared/schema";
 import { validateEmail, validatePhone, cleanPhone, normalizeEmail } from "@/utils/validation";
 import { PhoneInput } from "@/components/ui/location-select";
 
@@ -46,17 +46,21 @@ interface Step1Data {
 }
 
 interface Step2Data {
-  bedrooms: string;
-  bathrooms: string;
-  balconies: string;
-  area: string;
-  floor: string;
-  totalFloors: string;
-  facing: string;
-  furnishing: string;
-  possessionStatus: string;
-  ageOfProperty: string;
-  amenities: string[];
+  isJv?: boolean;
+  jvDetails?: JvDetailsType;
+  bedrooms?: string;
+  bathrooms?: string;
+  balconies?: string;
+  area?: string;
+  carpetArea?: string;
+  plotArea?: string;
+  floor?: string;
+  totalFloors?: string;
+  facing?: string;
+  furnishing?: string;
+  possessionStatus?: string;
+  ageOfProperty?: string;
+  amenities?: string[];
 }
 
 interface Step3Data {
@@ -180,6 +184,8 @@ export default function CreateListingStep4Page() {
         return "plot";
       case "commercial":
         return "commercial";
+      case "joint-venture":
+        return "plot"; // JV listings stored as plot; categoryId/subcategoryId identify as JV
       case "independent-house":
         return "villa"; // Independent house maps to villa
       case "new-projects":
@@ -278,7 +284,9 @@ export default function CreateListingStep4Page() {
       return;
     }
 
-    const propertyData = {
+    const isJvListing = step2Data.isJv === true && step2Data.jvDetails;
+
+    const propertyData: Record<string, unknown> = {
       title: step1Data.title,
       description: step1Data.description,
       propertyType: getPropertyType(step1Data.categoryId, step1Data.subcategoryId || null),
@@ -288,17 +296,6 @@ export default function CreateListingStep4Page() {
       projectStage: step1Data.projectStage || null,
       projectId: step1Data.projectId || null,
       price: parseInt(step1Data.price) || 0,
-      area: parseInt(step2Data.area) || 0,
-      bedrooms: step2Data.bedrooms ? parseInt(step2Data.bedrooms) : null,
-      bathrooms: step2Data.bathrooms ? parseInt(step2Data.bathrooms) : null,
-      balconies: step2Data.balconies ? parseInt(step2Data.balconies) : null,
-      floor: step2Data.floor ? parseInt(step2Data.floor) : null,
-      totalFloors: step2Data.totalFloors ? parseInt(step2Data.totalFloors) : null,
-      facing: step2Data.facing || null,
-      furnishing: step2Data.furnishing || null,
-      ageOfProperty: step2Data.ageOfProperty ? parseInt(step2Data.ageOfProperty) : null,
-      possessionStatus: step2Data.possessionStatus || null,
-      amenities: step2Data.amenities || [],
       address: step1Data.address,
       city: step1Data.city,
       state: step1Data.state,
@@ -311,6 +308,36 @@ export default function CreateListingStep4Page() {
       contactEmail: normalizeEmail(contactData.contactEmail),
       contactWhatsapp: contactData.whatsappNumber || null,
     };
+
+    if (isJvListing && step2Data.jvDetails) {
+      const jv = step2Data.jvDetails;
+      const landArea = jv.common?.landArea ? parseInt(String(jv.common.landArea), 10) : undefined;
+      propertyData.area = !isNaN(landArea as number) ? landArea : 0;
+      propertyData.bedrooms = null;
+      propertyData.bathrooms = null;
+      propertyData.balconies = null;
+      propertyData.floor = null;
+      propertyData.totalFloors = null;
+      propertyData.facing = null;
+      propertyData.furnishing = null;
+      propertyData.ageOfProperty = null;
+      propertyData.possessionStatus = null;
+      propertyData.amenities = [];
+      propertyData.jvDetails = jv;
+    } else {
+      const areaStr = step2Data.area ?? step2Data.carpetArea ?? step2Data.plotArea ?? "";
+      propertyData.area = parseInt(areaStr as string, 10) || 0;
+      propertyData.bedrooms = step2Data.bedrooms ? parseInt(step2Data.bedrooms, 10) : null;
+      propertyData.bathrooms = step2Data.bathrooms ? parseInt(step2Data.bathrooms, 10) : null;
+      propertyData.balconies = step2Data.balconies ? parseInt(step2Data.balconies, 10) : null;
+      propertyData.floor = step2Data.floor ? parseInt(step2Data.floor, 10) : null;
+      propertyData.totalFloors = step2Data.totalFloors ? parseInt(step2Data.totalFloors, 10) : null;
+      propertyData.facing = step2Data.facing || null;
+      propertyData.furnishing = step2Data.furnishing || null;
+      propertyData.ageOfProperty = step2Data.ageOfProperty ? parseInt(step2Data.ageOfProperty, 10) : null;
+      propertyData.possessionStatus = step2Data.possessionStatus || null;
+      propertyData.amenities = step2Data.amenities || [];
+    }
 
     createListingMutation.mutate(propertyData);
   };
@@ -547,12 +574,15 @@ export default function CreateListingStep4Page() {
                           {step1Data.locality}
                         </Badge>
                       )}
-                      {step2Data.possessionStatus && (
+                      {step2Data.isJv && step2Data.jvDetails && (
+                        <Badge variant="secondary" className="text-xs">Joint Venture</Badge>
+                      )}
+                      {!step2Data.isJv && step2Data.possessionStatus && (
                         <Badge variant="outline" className="text-xs" data-testid="badge-possession">
                           {step2Data.possessionStatus}
                         </Badge>
                       )}
-                      {step2Data.furnishing && (
+                      {!step2Data.isJv && step2Data.furnishing && (
                         <Badge variant="outline" className="text-xs" data-testid="badge-furnishing">
                           {step2Data.furnishing}
                         </Badge>
@@ -574,6 +604,23 @@ export default function CreateListingStep4Page() {
 
                   <Separator />
 
+                  {step2Data.isJv && step2Data.jvDetails ? (
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium">Joint Venture</p>
+                      <div className="text-sm space-y-1">
+                        <p><span className="text-muted-foreground">Type:</span> {step2Data.jvDetails.jvType === "revenue_share" ? "Revenue Share" : step2Data.jvDetails.jvType === "built_up_share" ? "Built-up Share" : "—"}</p>
+                        <p><span className="text-muted-foreground">Landowner:</span> {step2Data.jvDetails.landownerExpectationPercent != null ? `${step2Data.jvDetails.landownerExpectationPercent}%` : "—"}</p>
+                        <p><span className="text-muted-foreground">Developer:</span> {step2Data.jvDetails.developerExpectationPercent != null ? `${step2Data.jvDetails.developerExpectationPercent}%` : "—"}</p>
+                        <p><span className="text-muted-foreground">Development:</span> {step2Data.jvDetails.developmentType?.replace(/_/g, " ") ?? "—"}</p>
+                        {step2Data.jvDetails.common?.landArea && (
+                          <p><span className="text-muted-foreground">Land area:</span> {step2Data.jvDetails.common.landArea}</p>
+                        )}
+                        {step2Data.jvDetails.common?.locality && (
+                          <p><span className="text-muted-foreground">Locality:</span> {step2Data.jvDetails.common.locality}</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
                   <div className="grid grid-cols-3 gap-3 text-sm">
                     {step2Data.bedrooms && (
                       <div className="flex flex-col items-center p-2 bg-muted/50 rounded-lg">
@@ -589,16 +636,17 @@ export default function CreateListingStep4Page() {
                         <span className="text-xs text-muted-foreground">Baths</span>
                       </div>
                     )}
-                    {step2Data.area && (
+                    {(step2Data.area ?? step2Data.carpetArea ?? step2Data.plotArea) && (
                       <div className="flex flex-col items-center p-2 bg-muted/50 rounded-lg">
                         <Maximize className="h-4 w-4 text-muted-foreground mb-1" />
-                        <span className="font-medium">{step2Data.area}</span>
+                        <span className="font-medium">{step2Data.area ?? step2Data.carpetArea ?? step2Data.plotArea}</span>
                         <span className="text-xs text-muted-foreground">sqft</span>
                       </div>
                     )}
                   </div>
+                  )}
 
-                  {step2Data.amenities.length > 0 && (
+                  {!step2Data.isJv && step2Data.amenities && step2Data.amenities.length > 0 && (
                     <div>
                       <p className="text-sm font-medium mb-2">Key Features:</p>
                       <div className="grid grid-cols-2 gap-2">
