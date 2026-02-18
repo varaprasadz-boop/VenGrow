@@ -18,6 +18,14 @@ import {
   TENANTS_PREFERRED_OPTIONS,
   LOCK_IN_MONTHS_OPTIONS,
   NEGOTIABLE_OPTIONS,
+  PG_GENDER_OPTIONS,
+  PG_LISTED_FOR_OPTIONS,
+  PG_ROOM_TYPE_OPTIONS,
+  PG_AVAILABLE_IN_OPTIONS,
+  PG_FACILITIES_LIST,
+  PG_RULES_LIST,
+  PG_SERVICES_LIST,
+  PG_NOTICE_PERIOD_OPTIONS,
 } from "@/constants/property-options";
 
 interface AdminPropertyEditDialogProps {
@@ -101,6 +109,23 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
         approachRoadType: (property as any).approachRoadType || "",
         distanceFromNearestTown: (property as any).distanceFromNearestTown || "",
         farmProjectName: (property as any).farmProjectName || "",
+        coLivingName: (property as any).coLivingName || "",
+        pgGender: (property as any).pgGender || "",
+        pgListedFor: (property as any).pgListedFor || "",
+        pgRoomType: (property as any).pgRoomType || "",
+        pgAvailableIn: (property as any).pgAvailableIn || "",
+        pgFurnishingDetails: (property as any).pgFurnishingDetails || "",
+        pgAcAvailable: (property as any).pgAcAvailable ?? undefined,
+        pgWashRoomType: (property as any).pgWashRoomType || "",
+        pgFacilities: Array.isArray((property as any).pgFacilities) ? (property as any).pgFacilities : [],
+        pgRules: Array.isArray((property as any).pgRules) ? (property as any).pgRules : [],
+        pgCctv: (property as any).pgCctv ?? undefined,
+        pgBiometricEntry: (property as any).pgBiometricEntry ?? undefined,
+        pgSecurityGuard: (property as any).pgSecurityGuard ?? undefined,
+        pgServices: Array.isArray((property as any).pgServices) ? (property as any).pgServices : [],
+        pgFoodProvided: (property as any).pgFoodProvided ?? undefined,
+        pgNonVegProvided: (property as any).pgNonVegProvided ?? undefined,
+        pgNoticePeriod: (property as any).pgNoticePeriod || "",
       });
     }
   }, [property]);
@@ -199,6 +224,23 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
       approachRoadType: (formData as any).approachRoadType || undefined,
       distanceFromNearestTown: (formData as any).distanceFromNearestTown || undefined,
       farmProjectName: (formData as any).farmProjectName || undefined,
+      coLivingName: (formData as any).coLivingName?.trim() || undefined,
+      pgGender: (formData as any).pgGender || undefined,
+      pgListedFor: (formData as any).pgListedFor || undefined,
+      pgRoomType: (formData as any).pgRoomType || undefined,
+      pgAvailableIn: (formData as any).pgAvailableIn || undefined,
+      pgFurnishingDetails: (formData as any).pgFurnishingDetails?.trim() || undefined,
+      pgAcAvailable: (formData as any).pgAcAvailable,
+      pgWashRoomType: (formData as any).pgWashRoomType || undefined,
+      pgFacilities: (formData as any).pgFacilities?.length ? (formData as any).pgFacilities : undefined,
+      pgRules: (formData as any).pgRules?.length ? (formData as any).pgRules : undefined,
+      pgCctv: (formData as any).pgCctv,
+      pgBiometricEntry: (formData as any).pgBiometricEntry,
+      pgSecurityGuard: (formData as any).pgSecurityGuard,
+      pgServices: (formData as any).pgServices?.length ? (formData as any).pgServices : undefined,
+      pgFoodProvided: (formData as any).pgFoodProvided,
+      pgNonVegProvided: (formData as any).pgNonVegProvided,
+      pgNoticePeriod: (formData as any).pgNoticePeriod || undefined,
     };
 
     // Remove empty strings
@@ -265,6 +307,7 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
                   <SelectItem value="commercial">Commercial</SelectItem>
                   <SelectItem value="farmhouse">Farmhouse</SelectItem>
                   <SelectItem value="penthouse">Penthouse</SelectItem>
+                  <SelectItem value="pg_co_living">PG Co-living</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -938,6 +981,235 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
                     value={(formData as any).farmProjectName ?? ""}
                     onChange={(e) => setFormData({ ...formData, farmProjectName: e.target.value } as Partial<Property>)}
                   />
+                </div>
+              </>
+            )}
+            {formData.propertyType === "pg_co_living" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="coLivingName">Co-Living Name</Label>
+                  <Input
+                    id="coLivingName"
+                    value={(formData as any).coLivingName ?? ""}
+                    onChange={(e) => setFormData({ ...formData, coLivingName: e.target.value } as Partial<Property>)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pgGender">Gender</Label>
+                  <Select
+                    value={(formData as any).pgGender || ""}
+                    onValueChange={(value) => setFormData({ ...formData, pgGender: value } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {PG_GENDER_OPTIONS.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pgListedFor">Listed for</Label>
+                  <Select
+                    value={(formData as any).pgListedFor || ""}
+                    onValueChange={(value) => setFormData({ ...formData, pgListedFor: value } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {PG_LISTED_FOR_OPTIONS.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pgRoomType">Room Type</Label>
+                  <Select
+                    value={(formData as any).pgRoomType || ""}
+                    onValueChange={(value) => setFormData({ ...formData, pgRoomType: value } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {PG_ROOM_TYPE_OPTIONS.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pgAvailableIn">Available In</Label>
+                  <Select
+                    value={(formData as any).pgAvailableIn || ""}
+                    onValueChange={(value) => setFormData({ ...formData, pgAvailableIn: value } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {PG_AVAILABLE_IN_OPTIONS.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pgFurnishingDetails">Furnishing Details</Label>
+                  <Textarea
+                    id="pgFurnishingDetails"
+                    value={(formData as any).pgFurnishingDetails ?? ""}
+                    onChange={(e) => setFormData({ ...formData, pgFurnishingDetails: e.target.value } as Partial<Property>)}
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pgAcAvailable">AC / Non-AC</Label>
+                  <Select
+                    value={(formData as any).pgAcAvailable === true ? "yes" : (formData as any).pgAcAvailable === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, pgAcAvailable: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pgWashRoomType">Wash Room</Label>
+                  <Select
+                    value={(formData as any).pgWashRoomType || ""}
+                    onValueChange={(value) => setFormData({ ...formData, pgWashRoomType: value } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Attached">Attached</SelectItem>
+                      <SelectItem value="Common Bathroom">Common Bathroom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Facilities</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {PG_FACILITIES_LIST.map((facility) => (
+                      <div key={facility} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`admin-pg-fac-${facility}`}
+                          checked={((formData as any).pgFacilities || []).includes(facility)}
+                          onCheckedChange={(checked) => {
+                            const current = (formData as any).pgFacilities || [];
+                            const updated = checked ? [...current, facility] : current.filter((x: string) => x !== facility);
+                            setFormData({ ...formData, pgFacilities: updated } as Partial<Property>);
+                          }}
+                        />
+                        <Label htmlFor={`admin-pg-fac-${facility}`} className="text-sm font-normal cursor-pointer">{facility}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Rules</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {PG_RULES_LIST.map((rule) => (
+                      <div key={rule} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`admin-pg-rule-${rule}`}
+                          checked={((formData as any).pgRules || []).includes(rule)}
+                          onCheckedChange={(checked) => {
+                            const current = (formData as any).pgRules || [];
+                            const updated = checked ? [...current, rule] : current.filter((x: string) => x !== rule);
+                            setFormData({ ...formData, pgRules: updated } as Partial<Property>);
+                          }}
+                        />
+                        <Label htmlFor={`admin-pg-rule-${rule}`} className="text-sm font-normal cursor-pointer">{rule}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pgCctv">CCTV</Label>
+                  <Select
+                    value={(formData as any).pgCctv === true ? "yes" : (formData as any).pgCctv === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, pgCctv: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Yes/No" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pgBiometricEntry">Biometric Entry</Label>
+                  <Select
+                    value={(formData as any).pgBiometricEntry === true ? "yes" : (formData as any).pgBiometricEntry === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, pgBiometricEntry: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Yes/No" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pgSecurityGuard">Security Guard</Label>
+                  <Select
+                    value={(formData as any).pgSecurityGuard === true ? "yes" : (formData as any).pgSecurityGuard === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, pgSecurityGuard: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Yes/No" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Services</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {PG_SERVICES_LIST.map((service) => (
+                      <div key={service} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`admin-pg-svc-${service}`}
+                          checked={((formData as any).pgServices || []).includes(service)}
+                          onCheckedChange={(checked) => {
+                            const current = (formData as any).pgServices || [];
+                            const updated = checked ? [...current, service] : current.filter((x: string) => x !== service);
+                            setFormData({ ...formData, pgServices: updated } as Partial<Property>);
+                          }}
+                        />
+                        <Label htmlFor={`admin-pg-svc-${service}`} className="text-sm font-normal cursor-pointer">{service}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pgFoodProvided">Food Provided</Label>
+                  <Select
+                    value={(formData as any).pgFoodProvided === true ? "yes" : (formData as any).pgFoodProvided === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, pgFoodProvided: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pgNonVegProvided">Non Veg Provided</Label>
+                  <Select
+                    value={(formData as any).pgNonVegProvided === true ? "yes" : (formData as any).pgNonVegProvided === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, pgNonVegProvided: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pgNoticePeriod">Notice Period</Label>
+                  <Select
+                    value={(formData as any).pgNoticePeriod || ""}
+                    onValueChange={(value) => setFormData({ ...formData, pgNoticePeriod: value } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {PG_NOTICE_PERIOD_OPTIONS.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </>
             )}

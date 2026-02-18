@@ -63,6 +63,14 @@ import {
   LOCK_IN_MONTHS_OPTIONS,
   NEGOTIABLE_OPTIONS,
   PROPERTY_AMENITIES,
+  PG_GENDER_OPTIONS,
+  PG_LISTED_FOR_OPTIONS,
+  PG_ROOM_TYPE_OPTIONS,
+  PG_AVAILABLE_IN_OPTIONS,
+  PG_FACILITIES_LIST,
+  PG_RULES_LIST,
+  PG_SERVICES_LIST,
+  PG_NOTICE_PERIOD_OPTIONS,
 } from "@/constants/property-options";
 
 interface PropertyFormData {
@@ -135,6 +143,23 @@ interface PropertyFormData {
   approachRoadType: string;
   distanceFromNearestTown: string;
   farmProjectName: string;
+  coLivingName: string;
+  pgGender: string;
+  pgListedFor: string;
+  pgRoomType: string;
+  pgAvailableIn: string;
+  pgFurnishingDetails: string;
+  pgAcAvailable: string;
+  pgWashRoomType: string;
+  pgFacilities: string[];
+  pgRules: string[];
+  pgCctv: string;
+  pgBiometricEntry: string;
+  pgSecurityGuard: string;
+  pgServices: string[];
+  pgFoodProvided: string;
+  pgNonVegProvided: string;
+  pgNoticePeriod: string;
 }
 
 const STEPS = [
@@ -248,6 +273,23 @@ export default function CreatePropertyPage() {
     approachRoadType: "",
     distanceFromNearestTown: "",
     farmProjectName: "",
+    coLivingName: "",
+    pgGender: "",
+    pgListedFor: "",
+    pgRoomType: "",
+    pgAvailableIn: "",
+    pgFurnishingDetails: "",
+    pgAcAvailable: "",
+    pgWashRoomType: "",
+    pgFacilities: [],
+    pgRules: [],
+    pgCctv: "",
+    pgBiometricEntry: "",
+    pgSecurityGuard: "",
+    pgServices: [],
+    pgFoodProvided: "",
+    pgNonVegProvided: "",
+    pgNoticePeriod: "",
   });
 
   const { data: canCreateData, isLoading: checkingLimit } = useQuery<{
@@ -490,6 +532,23 @@ export default function CreatePropertyPage() {
         approachRoadType: (propertyData as any).approachRoadType || "",
         distanceFromNearestTown: (propertyData as any).distanceFromNearestTown || "",
         farmProjectName: (propertyData as any).farmProjectName || "",
+        coLivingName: (propertyData as any).coLivingName || "",
+        pgGender: (propertyData as any).pgGender || "",
+        pgListedFor: (propertyData as any).pgListedFor || "",
+        pgRoomType: (propertyData as any).pgRoomType || "",
+        pgAvailableIn: (propertyData as any).pgAvailableIn || "",
+        pgFurnishingDetails: (propertyData as any).pgFurnishingDetails || "",
+        pgAcAvailable: (propertyData as any).pgAcAvailable === true ? "yes" : (propertyData as any).pgAcAvailable === false ? "no" : "",
+        pgWashRoomType: (propertyData as any).pgWashRoomType || "",
+        pgFacilities: Array.isArray((propertyData as any).pgFacilities) ? (propertyData as any).pgFacilities : [],
+        pgRules: Array.isArray((propertyData as any).pgRules) ? (propertyData as any).pgRules : [],
+        pgCctv: (propertyData as any).pgCctv === true ? "yes" : (propertyData as any).pgCctv === false ? "no" : "",
+        pgBiometricEntry: (propertyData as any).pgBiometricEntry === true ? "yes" : (propertyData as any).pgBiometricEntry === false ? "no" : "",
+        pgSecurityGuard: (propertyData as any).pgSecurityGuard === true ? "yes" : (propertyData as any).pgSecurityGuard === false ? "no" : "",
+        pgServices: Array.isArray((propertyData as any).pgServices) ? (propertyData as any).pgServices : [],
+        pgFoodProvided: (propertyData as any).pgFoodProvided === true ? "yes" : (propertyData as any).pgFoodProvided === false ? "no" : "",
+        pgNonVegProvided: (propertyData as any).pgNonVegProvided === true ? "yes" : (propertyData as any).pgNonVegProvided === false ? "no" : "",
+        pgNoticePeriod: (propertyData as any).pgNoticePeriod || "",
       }));
     }
   }, [propertyData]);
@@ -660,6 +719,14 @@ export default function CreatePropertyPage() {
     updateField(field, updated);
   };
 
+  const togglePgArray = (field: "pgFacilities" | "pgRules" | "pgServices", item: string) => {
+    const current = formData[field];
+    const updated = current.includes(item)
+      ? current.filter(i => i !== item)
+      : [...current, item];
+    updateField(field, updated);
+  };
+
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1: {
@@ -685,6 +752,22 @@ export default function CreatePropertyPage() {
         return true;
       }
       case 2: {
+        if (formData.propertyType === "pg_co_living") {
+          const pgBase = !!(formData.coLivingName?.trim() && (formData.price || formData.area));
+          if (!pgBase) return false;
+          return !!(
+            formData.pgGender?.trim() &&
+            formData.pgListedFor?.trim() &&
+            formData.pgRoomType?.trim() &&
+            formData.pgAvailableIn?.trim() &&
+            (formData.pgAcAvailable === "yes" || formData.pgAcAvailable === "no") &&
+            formData.pgWashRoomType?.trim() &&
+            (formData.pgFacilities?.length > 0 || formData.pgRules?.length > 0 || formData.pgServices?.length > 0) &&
+            (formData.pgFoodProvided === "yes" || formData.pgFoodProvided === "no") &&
+            (formData.pgNonVegProvided === "yes" || formData.pgNonVegProvided === "no") &&
+            formData.pgNoticePeriod?.trim()
+          );
+        }
         const base = !!(
           formData.area &&
           (
@@ -857,6 +940,12 @@ export default function CreatePropertyPage() {
             description: "For farm listings, please enter Land Area, Soil Type, Fencing, Water Source, Title Clear, and Farm House.",
             variant: "destructive",
           });
+        } else if (currentStep === 2 && formData.propertyType === "pg_co_living") {
+          toast({
+            title: "PG/Co-living details required",
+            description: "Please fill in all required PG/Co-living details (name, gender, listed for, room type, wash room, food, notice period, and at least one of facilities, rules, or services).",
+            variant: "destructive",
+          });
         } else {
           toast({
             title: "Missing Information",
@@ -970,6 +1059,23 @@ export default function CreatePropertyPage() {
       approachRoadType: formData.approachRoadType || null,
       distanceFromNearestTown: formData.distanceFromNearestTown || null,
       farmProjectName: formData.farmProjectName || null,
+      coLivingName: formData.propertyType === "pg_co_living" ? (formData.coLivingName?.trim() || null) : null,
+      pgGender: formData.propertyType === "pg_co_living" ? (formData.pgGender || null) : null,
+      pgListedFor: formData.propertyType === "pg_co_living" ? (formData.pgListedFor || null) : null,
+      pgRoomType: formData.propertyType === "pg_co_living" ? (formData.pgRoomType || null) : null,
+      pgAvailableIn: formData.propertyType === "pg_co_living" ? (formData.pgAvailableIn || null) : null,
+      pgFurnishingDetails: formData.propertyType === "pg_co_living" ? (formData.pgFurnishingDetails?.trim() || null) : null,
+      pgAcAvailable: formData.propertyType === "pg_co_living" ? (formData.pgAcAvailable === "yes" ? true : formData.pgAcAvailable === "no" ? false : null) : null,
+      pgWashRoomType: formData.propertyType === "pg_co_living" ? (formData.pgWashRoomType || null) : null,
+      pgFacilities: formData.propertyType === "pg_co_living" ? (formData.pgFacilities?.length ? formData.pgFacilities : null) : null,
+      pgRules: formData.propertyType === "pg_co_living" ? (formData.pgRules?.length ? formData.pgRules : null) : null,
+      pgCctv: formData.propertyType === "pg_co_living" ? (formData.pgCctv === "yes" ? true : formData.pgCctv === "no" ? false : null) : null,
+      pgBiometricEntry: formData.propertyType === "pg_co_living" ? (formData.pgBiometricEntry === "yes" ? true : formData.pgBiometricEntry === "no" ? false : null) : null,
+      pgSecurityGuard: formData.propertyType === "pg_co_living" ? (formData.pgSecurityGuard === "yes" ? true : formData.pgSecurityGuard === "no" ? false : null) : null,
+      pgServices: formData.propertyType === "pg_co_living" ? (formData.pgServices?.length ? formData.pgServices : null) : null,
+      pgFoodProvided: formData.propertyType === "pg_co_living" ? (formData.pgFoodProvided === "yes" ? true : formData.pgFoodProvided === "no" ? false : null) : null,
+      pgNonVegProvided: formData.propertyType === "pg_co_living" ? (formData.pgNonVegProvided === "yes" ? true : formData.pgNonVegProvided === "no" ? false : null) : null,
+      pgNoticePeriod: formData.propertyType === "pg_co_living" ? (formData.pgNoticePeriod || null) : null,
       availableFrom:
         formData.availableFrom?.trim() === "immediate" || (formData.availableFrom && formData.availableFrom.length === 10)
           ? formData.availableFrom.trim()
@@ -1110,7 +1216,13 @@ export default function CreatePropertyPage() {
                     <Label htmlFor="propertyType">Property Type *</Label>
                     <Select
                       value={formData.propertyType}
-                      onValueChange={(value) => updateField("propertyType", value)}
+                      onValueChange={(value) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          propertyType: value,
+                          ...(value === "pg_co_living" ? { transactionType: "rent" } : {}),
+                        }));
+                      }}
                     >
                       <SelectTrigger id="propertyType" data-testid="select-property-type">
                         <SelectValue placeholder="Select type" />
@@ -1123,6 +1235,7 @@ export default function CreatePropertyPage() {
                         <SelectItem value="plot">Plot/Land</SelectItem>
                         <SelectItem value="farmhouse">Farmhouse / Farm Land</SelectItem>
                         <SelectItem value="penthouse">Penthouse</SelectItem>
+                        <SelectItem value="pg_co_living">PG Co-living</SelectItem>
                         <SelectItem value="studio">Studio</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1133,16 +1246,20 @@ export default function CreatePropertyPage() {
                     <Select
                       value={formData.transactionType}
                       onValueChange={(value) => updateField("transactionType", value)}
+                      disabled={formData.propertyType === "pg_co_living"}
                     >
                       <SelectTrigger id="transactionType" data-testid="select-transaction-type">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="sale">For Sale</SelectItem>
+                        {formData.propertyType !== "pg_co_living" && <SelectItem value="sale">For Sale</SelectItem>}
                         <SelectItem value="rent">For Rent</SelectItem>
                         <SelectItem value="lease">For Lease</SelectItem>
                       </SelectContent>
                     </Select>
+                    {formData.propertyType === "pg_co_living" && (
+                      <p className="text-xs text-muted-foreground">PG Co-living is rent-only (monthly rent).</p>
+                    )}
                   </div>
                 </div>
 
@@ -1673,7 +1790,7 @@ export default function CreatePropertyPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="area">
-                        {formData.propertyType === "plot" ? "Plot Area" : "Carpet Area"} ({formData.areaUnit}) *
+                        {formData.propertyType === "plot" ? "Plot Area" : "Carpet Area"} ({formData.areaUnit}){formData.propertyType === "pg_co_living" ? " (Optional)" : " *"}
                       </Label>
                       <Input
                         id="area"
@@ -2263,6 +2380,263 @@ export default function CreatePropertyPage() {
                               value={formData.farmProjectName}
                               onChange={(e) => updateField("farmProjectName", e.target.value)}
                             />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.propertyType === "pg_co_living" && (
+                      <div>
+                        <h3 className="font-semibold mb-4">PG / Co-living Details</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 space-y-4">
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="coLivingName">Co-Living Name *</Label>
+                            <Input
+                              id="coLivingName"
+                              placeholder="e.g., StayEasy Co-living"
+                              value={formData.coLivingName}
+                              onChange={(e) => updateField("coLivingName", e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="pgGender">Gender *</Label>
+                            <Select
+                              value={formData.pgGender || ""}
+                              onValueChange={(value) => updateField("pgGender", value)}
+                            >
+                              <SelectTrigger id="pgGender">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {PG_GENDER_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="pgListedFor">Listed for *</Label>
+                            <Select
+                              value={formData.pgListedFor || ""}
+                              onValueChange={(value) => updateField("pgListedFor", value)}
+                            >
+                              <SelectTrigger id="pgListedFor">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {PG_LISTED_FOR_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="pgRoomType">Room Type *</Label>
+                            <Select
+                              value={formData.pgRoomType || ""}
+                              onValueChange={(value) => updateField("pgRoomType", value)}
+                            >
+                              <SelectTrigger id="pgRoomType">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {PG_ROOM_TYPE_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="pgAvailableIn">Available In *</Label>
+                            <Select
+                              value={formData.pgAvailableIn || ""}
+                              onValueChange={(value) => updateField("pgAvailableIn", value)}
+                            >
+                              <SelectTrigger id="pgAvailableIn">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {PG_AVAILABLE_IN_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="pgFurnishingDetails">Furnishing Details</Label>
+                            <Textarea
+                              id="pgFurnishingDetails"
+                              placeholder="Describe furnishing..."
+                              value={formData.pgFurnishingDetails}
+                              onChange={(e) => updateField("pgFurnishingDetails", e.target.value)}
+                              rows={2}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="pgAcAvailable">AC / Non-AC *</Label>
+                            <Select
+                              value={formData.pgAcAvailable || ""}
+                              onValueChange={(value) => updateField("pgAcAvailable", value)}
+                            >
+                              <SelectTrigger id="pgAcAvailable">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="pgWashRoomType">Wash Room *</Label>
+                            <Select
+                              value={formData.pgWashRoomType || ""}
+                              onValueChange={(value) => updateField("pgWashRoomType", value)}
+                            >
+                              <SelectTrigger id="pgWashRoomType">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Attached">Attached</SelectItem>
+                                <SelectItem value="Common Bathroom">Common Bathroom</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2 md:col-span-2">
+                            <Label>Facilities * (select at least one)</Label>
+                            <div className="flex flex-wrap gap-2">
+                              {PG_FACILITIES_LIST.map((facility) => (
+                                <div key={facility} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`pg-fac-${facility}`}
+                                    checked={formData.pgFacilities.includes(facility)}
+                                    onCheckedChange={() => togglePgArray("pgFacilities", facility)}
+                                  />
+                                  <Label htmlFor={`pg-fac-${facility}`} className="text-sm font-normal cursor-pointer">{facility}</Label>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="space-y-2 md:col-span-2">
+                            <Label>Rules * (select at least one)</Label>
+                            <div className="flex flex-wrap gap-2">
+                              {PG_RULES_LIST.map((rule) => (
+                                <div key={rule} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`pg-rule-${rule}`}
+                                    checked={formData.pgRules.includes(rule)}
+                                    onCheckedChange={() => togglePgArray("pgRules", rule)}
+                                  />
+                                  <Label htmlFor={`pg-rule-${rule}`} className="text-sm font-normal cursor-pointer">{rule}</Label>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="pgCctv">CCTV Coverage</Label>
+                            <Select
+                              value={formData.pgCctv || ""}
+                              onValueChange={(value) => updateField("pgCctv", value)}
+                            >
+                              <SelectTrigger id="pgCctv">
+                                <SelectValue placeholder="Yes/No" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="pgBiometricEntry">Biometric Entry</Label>
+                            <Select
+                              value={formData.pgBiometricEntry || ""}
+                              onValueChange={(value) => updateField("pgBiometricEntry", value)}
+                            >
+                              <SelectTrigger id="pgBiometricEntry">
+                                <SelectValue placeholder="Yes/No" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="pgSecurityGuard">Security Guard</Label>
+                            <Select
+                              value={formData.pgSecurityGuard || ""}
+                              onValueChange={(value) => updateField("pgSecurityGuard", value)}
+                            >
+                              <SelectTrigger id="pgSecurityGuard">
+                                <SelectValue placeholder="Yes/No" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2 md:col-span-2">
+                            <Label>Services * (select at least one)</Label>
+                            <div className="flex flex-wrap gap-2">
+                              {PG_SERVICES_LIST.map((service) => (
+                                <div key={service} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`pg-svc-${service}`}
+                                    checked={formData.pgServices.includes(service)}
+                                    onCheckedChange={() => togglePgArray("pgServices", service)}
+                                  />
+                                  <Label htmlFor={`pg-svc-${service}`} className="text-sm font-normal cursor-pointer">{service}</Label>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="pgFoodProvided">Food Provided *</Label>
+                            <Select
+                              value={formData.pgFoodProvided || ""}
+                              onValueChange={(value) => updateField("pgFoodProvided", value)}
+                            >
+                              <SelectTrigger id="pgFoodProvided">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="pgNonVegProvided">Non Veg Provided *</Label>
+                            <Select
+                              value={formData.pgNonVegProvided || ""}
+                              onValueChange={(value) => updateField("pgNonVegProvided", value)}
+                            >
+                              <SelectTrigger id="pgNonVegProvided">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="pgNoticePeriod">Notice Period *</Label>
+                            <Select
+                              value={formData.pgNoticePeriod || ""}
+                              onValueChange={(value) => updateField("pgNoticePeriod", value)}
+                            >
+                              <SelectTrigger id="pgNoticePeriod">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {PG_NOTICE_PERIOD_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       </div>

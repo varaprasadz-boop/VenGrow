@@ -218,6 +218,23 @@ export default function PropertyDetailPage() {
     approachRoadType: p.approachRoadType || null,
     distanceFromNearestTown: p.distanceFromNearestTown || null,
     farmProjectName: p.farmProjectName || null,
+    coLivingName: p.coLivingName || null,
+    pgGender: p.pgGender || null,
+    pgListedFor: p.pgListedFor || null,
+    pgRoomType: p.pgRoomType || null,
+    pgAvailableIn: p.pgAvailableIn || null,
+    pgFurnishingDetails: p.pgFurnishingDetails || null,
+    pgAcAvailable: p.pgAcAvailable,
+    pgWashRoomType: p.pgWashRoomType || null,
+    pgFacilities: Array.isArray(p.pgFacilities) ? p.pgFacilities : [],
+    pgRules: Array.isArray(p.pgRules) ? p.pgRules : [],
+    pgCctv: p.pgCctv,
+    pgBiometricEntry: p.pgBiometricEntry,
+    pgSecurityGuard: p.pgSecurityGuard,
+    pgServices: Array.isArray(p.pgServices) ? p.pgServices : [],
+    pgFoodProvided: p.pgFoodProvided,
+    pgNonVegProvided: p.pgNonVegProvided,
+    pgNoticePeriod: p.pgNoticePeriod || null,
   };
 
   return (
@@ -649,6 +666,105 @@ export default function PropertyDetailPage() {
                         <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
                           <span className="text-muted-foreground">Farm Project Name</span>
                           <span className="font-medium">{features.farmProjectName}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" && (features as any).coLivingName && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg md:col-span-2">
+                          <span className="text-muted-foreground">Co-Living Name</span>
+                          <span className="font-medium">{(features as any).coLivingName}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" && (features as any).pgGender && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Gender</span>
+                          <span className="font-medium">{(features as any).pgGender}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" && (features as any).pgListedFor && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Listed for</span>
+                          <span className="font-medium">{(features as any).pgListedFor}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" && (features as any).pgRoomType && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Room Type</span>
+                          <span className="font-medium">{(features as any).pgRoomType}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" && (features as any).pgAvailableIn && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Available In</span>
+                          <span className="font-medium">{(features as any).pgAvailableIn}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" && (features as any).pgFurnishingDetails && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg md:col-span-2">
+                          <span className="text-muted-foreground">Furnishing Details</span>
+                          <span className="font-medium">{(features as any).pgFurnishingDetails}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" && ((features as any).pgAcAvailable === true || (features as any).pgAcAvailable === false) && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">AC</span>
+                          <span className="font-medium">{(features as any).pgAcAvailable === true ? "Yes" : "No"}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" && (features as any).pgWashRoomType && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Wash Room</span>
+                          <span className="font-medium">{(features as any).pgWashRoomType}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" && (features as any).pgFacilities?.length > 0 && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg md:col-span-2">
+                          <span className="text-muted-foreground">Facilities</span>
+                          <span className="font-medium">{(features as any).pgFacilities.join(", ")}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" && (features as any).pgRules?.length > 0 && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg md:col-span-2">
+                          <span className="text-muted-foreground">Rules</span>
+                          <span className="font-medium">{(features as any).pgRules.join(", ")}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" &&
+                        ((features as any).pgCctv === true || (features as any).pgCctv === false ||
+                         (features as any).pgBiometricEntry === true || (features as any).pgBiometricEntry === false ||
+                         (features as any).pgSecurityGuard === true || (features as any).pgSecurityGuard === false) && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg md:col-span-2">
+                          <span className="text-muted-foreground">Safety</span>
+                          <span className="font-medium">
+                            {[
+                              (features as any).pgCctv === true && "CCTV",
+                              (features as any).pgBiometricEntry === true && "Biometric",
+                              (features as any).pgSecurityGuard === true && "Security Guard",
+                            ].filter(Boolean).join(", ") || "—"}
+                          </span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" && (features as any).pgServices?.length > 0 && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg md:col-span-2">
+                          <span className="text-muted-foreground">Services</span>
+                          <span className="font-medium">{(features as any).pgServices.join(", ")}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" && ((features as any).pgFoodProvided === true || (features as any).pgFoodProvided === false) && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Food Provided</span>
+                          <span className="font-medium">{(features as any).pgFoodProvided === true ? "Yes" : "No"}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" && ((features as any).pgNonVegProvided === true || (features as any).pgNonVegProvided === false) && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Non Veg Provided</span>
+                          <span className="font-medium">{(features as any).pgNonVegProvided === true ? "Yes" : "No"}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "pg_co_living" && (features as any).pgNoticePeriod && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Notice Period</span>
+                          <span className="font-medium">{(features as any).pgNoticePeriod}</span>
                         </div>
                       )}
                       {(property.transactionType === "rent" || property.transactionType === "lease") && features.availableFrom && (

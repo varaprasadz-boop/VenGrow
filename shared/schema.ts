@@ -15,7 +15,7 @@ export const sessions = pgTable(
 
 export const userRoleEnum = pgEnum("user_role", ["buyer", "seller", "admin"]);
 export const sellerTypeEnum = pgEnum("seller_type", ["individual", "broker", "builder"]);
-export const propertyTypeEnum = pgEnum("property_type", ["apartment", "villa", "plot", "commercial", "farmhouse", "penthouse", "independent_house"]);
+export const propertyTypeEnum = pgEnum("property_type", ["apartment", "villa", "plot", "commercial", "farmhouse", "penthouse", "independent_house", "pg_co_living"]);
 export const transactionTypeEnum = pgEnum("transaction_type", ["sale", "rent", "lease"]);
 export const projectStageEnum = pgEnum("project_stage", ["pre_launch", "launch", "under_construction", "ready_to_move"]);
 export const listingStatusEnum = pgEnum("listing_status", ["draft", "pending", "active", "sold", "rented", "expired", "rejected"]);
@@ -186,6 +186,23 @@ export const properties = pgTable("properties", {
   approachRoadType: text("approach_road_type"),
   distanceFromNearestTown: text("distance_from_nearest_town"),
   farmProjectName: text("farm_project_name"),
+  coLivingName: text("co_living_name"),
+  pgGender: text("pg_gender"),
+  pgListedFor: text("pg_listed_for"),
+  pgRoomType: text("pg_room_type"),
+  pgAvailableIn: text("pg_available_in"),
+  pgFurnishingDetails: text("pg_furnishing_details"),
+  pgAcAvailable: boolean("pg_ac_available"),
+  pgWashRoomType: text("pg_wash_room_type"),
+  pgFacilities: jsonb("pg_facilities").$type<string[]>(),
+  pgRules: jsonb("pg_rules").$type<string[]>(),
+  pgCctv: boolean("pg_cctv"),
+  pgBiometricEntry: boolean("pg_biometric_entry"),
+  pgSecurityGuard: boolean("pg_security_guard"),
+  pgServices: jsonb("pg_services").$type<string[]>(),
+  pgFoodProvided: boolean("pg_food_provided"),
+  pgNonVegProvided: boolean("pg_non_veg_provided"),
+  pgNoticePeriod: text("pg_notice_period"),
   availableFrom: text("available_from"),
   status: listingStatusEnum("status").notNull().default("draft"),
   workflowStatus: workflowStatusEnum("workflow_status").notNull().default("draft"),

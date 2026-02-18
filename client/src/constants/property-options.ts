@@ -136,8 +136,73 @@ export const PROPERTY_AMENITIES = [
   "Wrap around Balcony",
 ] as const;
 
+/**
+ * PG / Co-living: Gender options.
+ */
+export const PG_GENDER_OPTIONS = ["Male", "Female", "Unisex"] as const;
+
+/**
+ * PG / Co-living: Listed for (target audience).
+ */
+export const PG_LISTED_FOR_OPTIONS = ["Student", "Working Professional", "Mixed"] as const;
+
+/**
+ * PG / Co-living: Room type.
+ */
+export const PG_ROOM_TYPE_OPTIONS = ["Private", "Shared"] as const;
+
+/**
+ * PG / Co-living: Available in (unit type).
+ */
+export const PG_AVAILABLE_IN_OPTIONS = ["Studio", "Micro-apartment"] as const;
+
+/**
+ * PG / Co-living: Facilities multi-select list.
+ */
+export const PG_FACILITIES_LIST = [
+  "Geyser",
+  "Cupboard",
+  "TV",
+  "AC",
+  "Cot",
+  "Mattress",
+  "Side Table",
+  "Air Cooler",
+] as const;
+
+/**
+ * PG / Co-living: Rules multi-select list.
+ */
+export const PG_RULES_LIST = [
+  "No Smoking",
+  "Drinking alcohol not allowed",
+  "Entry of opposite gender not allowed",
+  "Guardian not allowed",
+] as const;
+
+/**
+ * PG / Co-living: Services multi-select list.
+ */
+export const PG_SERVICES_LIST = ["Laundry", "Room Cleaning", "Warden"] as const;
+
+/**
+ * PG / Co-living: Notice period options.
+ */
+export const PG_NOTICE_PERIOD_OPTIONS = [
+  "1 Week",
+  "15 Days",
+  "1 Month",
+  "2 Months",
+  "3 Months",
+] as const;
+
 export type MeasurementUnit = (typeof MEASUREMENT_UNITS)[number];
 export type FlooringOption = (typeof FLOORING_OPTIONS)[number];
 export type ViewOption = (typeof VIEW_OPTIONS)[number];
 export type TenantsPreferredOption = (typeof TENANTS_PREFERRED_OPTIONS)[number];
 export type NegotiableOption = (typeof NEGOTIABLE_OPTIONS)[number];
+export type PgGenderOption = (typeof PG_GENDER_OPTIONS)[number];
+export type PgListedForOption = (typeof PG_LISTED_FOR_OPTIONS)[number];
+export type PgRoomTypeOption = (typeof PG_ROOM_TYPE_OPTIONS)[number];
+export type PgAvailableInOption = (typeof PG_AVAILABLE_IN_OPTIONS)[number];
+export type PgNoticePeriodOption = (typeof PG_NOTICE_PERIOD_OPTIONS)[number];
