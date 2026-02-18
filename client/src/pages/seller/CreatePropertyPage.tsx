@@ -1346,7 +1346,7 @@ export default function CreatePropertyPage() {
                   </div>
                   {index < STEPS.length - 1 && (
                     <div
-                      className={`h-1 w-8 shrink-0 self-center mt-5 transition-colors ${
+                      className={`h-1 flex-1 min-w-4 mx-1 self-center mt-5 transition-colors ${
                         currentStep > step.id ? "bg-primary" : "bg-muted"
                       }`}
                       aria-hidden
