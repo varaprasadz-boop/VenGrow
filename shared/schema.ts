@@ -138,6 +138,8 @@ export const properties = pgTable("properties", {
   totalFloors: integer("total_floors"),
   facing: text("facing"),
   furnishing: text("furnishing"),
+  areaUnit: text("area_unit"),
+  flooring: text("flooring"),
   ageOfProperty: integer("age_of_property"),
   possessionStatus: text("possession_status"),
   address: text("address").notNull(),

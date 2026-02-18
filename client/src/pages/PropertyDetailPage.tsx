@@ -668,8 +668,17 @@ export default function PropertyDetailPage() {
                       <Maximize className="h-4 w-4" />
                       <span className="text-sm">Area</span>
                     </div>
-                    <p className="font-medium" data-testid="text-area">{property.area} sq.ft</p>
+                    <p className="font-medium" data-testid="text-area">{property.area} {(property as { areaUnit?: string }).areaUnit || "sq.ft"}</p>
                   </div>
+                  {(property as { flooring?: string }).flooring && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Home className="h-4 w-4" />
+                        <span className="text-sm">Flooring</span>
+                      </div>
+                      <p className="font-medium">{(property as { flooring?: string }).flooring}</p>
+                    </div>
+                  )}
                   {property.floor && (
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 text-muted-foreground">

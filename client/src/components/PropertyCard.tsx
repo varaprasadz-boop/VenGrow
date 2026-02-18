@@ -16,6 +16,8 @@ interface PropertyCardProps {
   bedrooms?: number;
   bathrooms?: number;
   area: number;
+  /** Area unit for display (e.g. "Sq-ft", "Marla"). Defaults to "sq.ft". */
+  areaUnit?: string;
   propertyType: string;
   subcategory?: string;
   projectStage?: "pre_launch" | "launch" | "under_construction" | "ready_to_move";
@@ -51,6 +53,7 @@ export default function PropertyCard({
   bedrooms,
   bathrooms,
   area,
+  areaUnit,
   propertyType,
   subcategory,
   projectStage,
@@ -263,7 +266,7 @@ export default function PropertyCard({
           )}
           <div className="flex items-center gap-1 flex-shrink-0">
             <Maximize className="h-4 w-4 flex-shrink-0" />
-            <span>{area} sq.ft</span>
+            <span>{area} {areaUnit || "sq.ft"}</span>
           </div>
         </div>
 

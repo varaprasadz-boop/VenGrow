@@ -55,6 +55,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import { MEASUREMENT_UNITS, FLOORING_OPTIONS } from "@/constants/property-options";
 
 interface PropertyFormData {
   propertyType: string;
@@ -75,6 +76,8 @@ interface PropertyFormData {
   floor: string;
   totalFloors: string;
   area: string;
+  areaUnit: string;
+  flooring: string;
   facing: string;
   furnishing: string;
   ageOfProperty: string;
@@ -174,6 +177,8 @@ export default function CreatePropertyPage() {
     floor: "",
     totalFloors: "",
     area: "",
+    areaUnit: "Sq-ft",
+    flooring: "",
     facing: "",
     furnishing: "",
     ageOfProperty: "",
@@ -371,6 +376,8 @@ export default function CreatePropertyPage() {
         floor: propertyData.floor?.toString() || "",
         totalFloors: propertyData.totalFloors?.toString() || "",
         area: propertyData.area?.toString() || "",
+        areaUnit: (propertyData as any).areaUnit || "Sq-ft",
+        flooring: (propertyData as any).flooring || "",
         facing: propertyData.facing || "",
         furnishing: propertyData.furnishing || "",
         ageOfProperty: propertyData.ageOfProperty?.toString() || "",
@@ -695,6 +702,8 @@ export default function CreatePropertyPage() {
       price: parseInt(formData.price) || 0,
       pricePerSqft: formData.area ? Math.round(parseInt(formData.price) / parseInt(formData.area)) : null,
       area: parseInt(formData.area) || 0,
+      areaUnit: formData.areaUnit || "Sq-ft",
+      flooring: formData.flooring || null,
       bedrooms: parseInt(formData.bedrooms) || null,
       bathrooms: parseInt(formData.bathrooms) || null,
       balconies: parseInt(formData.balconies) || null,
@@ -1223,7 +1232,7 @@ export default function CreatePropertyPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="area">
-                        {formData.propertyType === "plot" ? "Plot Area" : "Carpet Area"} (sq ft) *
+                        {formData.propertyType === "plot" ? "Plot Area" : "Carpet Area"} ({formData.areaUnit}) *
                       </Label>
                       <Input
                         id="area"
@@ -1234,10 +1243,27 @@ export default function CreatePropertyPage() {
                         data-testid="input-area"
                       />
                     </div>
-
+                    <div className="space-y-2">
+                      <Label htmlFor="areaUnit">Measuring in</Label>
+                      <Select
+                        value={formData.areaUnit}
+                        onValueChange={(value) => updateField("areaUnit", value)}
+                      >
+                        <SelectTrigger id="areaUnit" data-testid="select-area-unit">
+                          <SelectValue placeholder="Select unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MEASUREMENT_UNITS.map((unit) => (
+                            <SelectItem key={unit} value={unit}>
+                              {unit}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     {formData.area && formData.price && (
                       <div className="space-y-2">
-                        <Label>Price per sq ft</Label>
+                        <Label>Price per {formData.areaUnit.toLowerCase()}</Label>
                         <p className="text-lg font-semibold text-primary py-2">
                           ₹{Math.round(parseInt(formData.price) / parseInt(formData.area)).toLocaleString("en-IN")}
                         </p>
@@ -1320,7 +1346,25 @@ export default function CreatePropertyPage() {
                           </SelectContent>
                         </Select>
                       </div>
-
+                      <div className="space-y-2">
+                        <Label htmlFor="flooring">Flooring</Label>
+                        <Select
+                          value={formData.flooring || "none"}
+                          onValueChange={(value) => updateField("flooring", value === "none" ? "" : value)}
+                        >
+                          <SelectTrigger id="flooring" data-testid="select-flooring">
+                            <SelectValue placeholder="Select flooring" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            {FLOORING_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>
+                                {opt}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="ageOfProperty">Age of Property (years)</Label>
                         <Select
@@ -1861,7 +1905,7 @@ export default function CreatePropertyPage() {
                         <div className="flex flex-col items-center p-2 bg-muted/50 rounded-lg">
                           <Maximize className="h-4 w-4 text-muted-foreground mb-1" />
                           <span className="font-medium">{formData.area || "-"}</span>
-                          <span className="text-xs text-muted-foreground">sqft</span>
+                          <span className="text-xs text-muted-foreground">{formData.areaUnit || "Sq-ft"}</span>
                         </div>
                       </div>
                     )}

@@ -113,6 +113,7 @@ export default function SellerDashboardPage() {
     bedrooms: property.bedrooms || 0,
     bathrooms: property.bathrooms || 0,
     area: property.area,
+    areaUnit: (property as { areaUnit?: string }).areaUnit,
     propertyType: property.propertyType,
     isFeatured: property.isFeatured || false,
     isVerified: property.isVerified || false,

@@ -299,6 +299,7 @@ export default function CityPropertiesPage() {
                         bedrooms={property.bedrooms || undefined}
                         bathrooms={property.bathrooms || undefined}
                         area={property.area}
+                        areaUnit={(property as { areaUnit?: string }).areaUnit}
                         propertyType={property.propertyType}
                         isFeatured={property.isFeatured || false}
                         isVerified={property.isVerified || false}

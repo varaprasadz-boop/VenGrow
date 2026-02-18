@@ -330,6 +330,7 @@ export default function ListingsPage() {
         bedrooms: property.bedrooms || undefined,
         bathrooms: property.bathrooms || undefined,
         area: property.area || 0,
+        areaUnit: (property as { areaUnit?: string }).areaUnit,
         propertyType: property.propertyType || "Property",
         isFeatured: property.isFeatured || false,
         isVerified: property.isVerified || false,

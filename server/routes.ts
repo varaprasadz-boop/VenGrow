@@ -2033,6 +2033,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "totalFloors",
         "facing",
         "furnishing",
+        "area_unit",
+        "flooring",
         "ageOfProperty",
         "possessionStatus",
         "address",
@@ -2054,7 +2056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create CSV content with headers and one example row
       const csvContent = [
         headers.join(","),
-        "2 BHK Apartment in Bandra West,Beautiful 2 BHK apartment with modern amenities,apartment,sale,8500000,1200,2,2,2,5,10,North,Semi-Furnished,5,Ready to Move,123 Main Street,Bandra West,Mumbai,Maharashtra,400050,19.0596,72.8295,\"Swimming Pool, Gym, Parking\",\"Near Metro Station, Good Connectivity\",7083,,,ready_to_move,",
+        "2 BHK Apartment in Bandra West,Beautiful 2 BHK apartment with modern amenities,apartment,sale,8500000,1200,2,2,2,5,10,North,Semi-Furnished,Sq-ft,Vitrified,5,Ready to Move,123 Main Street,Bandra West,Mumbai,Maharashtra,400050,19.0596,72.8295,\"Swimming Pool, Gym, Parking\",\"Near Metro Station, Good Connectivity\",7083,,,ready_to_move,",
       ].join("\n");
 
       res.setHeader("Content-Type", "text/csv");
@@ -2216,6 +2218,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           if (row.furnishing) {
             propertyData.furnishing = row.furnishing;
+          }
+          if (row.area_unit) {
+            propertyData.areaUnit = row.area_unit.trim();
+          }
+          if (row.flooring) {
+            propertyData.flooring = row.flooring.trim();
           }
           if (row.ageOfProperty && !isNaN(parseInt(row.ageOfProperty))) {
             propertyData.ageOfProperty = parseInt(row.ageOfProperty);

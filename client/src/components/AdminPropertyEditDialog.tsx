@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import type { Property } from "@shared/schema";
+import { MEASUREMENT_UNITS, FLOORING_OPTIONS } from "@/constants/property-options";
 
 interface AdminPropertyEditDialogProps {
   property: Property | null;
@@ -32,6 +33,8 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
         price: property.price || 0,
         pricePerSqft: property.pricePerSqft || undefined,
         area: property.area || 0,
+        areaUnit: (property as { areaUnit?: string }).areaUnit || "Sq-ft",
+        flooring: (property as { flooring?: string }).flooring || undefined,
         bedrooms: property.bedrooms || undefined,
         bathrooms: property.bathrooms || undefined,
         balconies: property.balconies || undefined,
@@ -116,6 +119,8 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
       price: formData.price ? Number(formData.price) : undefined,
       pricePerSqft: formData.pricePerSqft ? Number(formData.pricePerSqft) : undefined,
       area: formData.area ? Number(formData.area) : undefined,
+      areaUnit: (formData as { areaUnit?: string }).areaUnit || undefined,
+      flooring: (formData as { flooring?: string }).flooring || undefined,
       bedrooms: formData.bedrooms ? Number(formData.bedrooms) : undefined,
       bathrooms: formData.bathrooms ? Number(formData.bathrooms) : undefined,
       balconies: formData.balconies ? Number(formData.balconies) : undefined,
@@ -235,7 +240,7 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="area">Area (sqft) *</Label>
+              <Label htmlFor="area">Area ({(formData as { areaUnit?: string }).areaUnit || "Sq-ft"}) *</Label>
               <Input
                 id="area"
                 type="number"
@@ -243,6 +248,45 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
                 onChange={(e) => setFormData({ ...formData, area: Number(e.target.value) })}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="areaUnit">Measuring in</Label>
+              <Select
+                value={(formData as { areaUnit?: string }).areaUnit || "Sq-ft"}
+                onValueChange={(value) => setFormData({ ...formData, areaUnit: value } as Partial<Property>)}
+              >
+                <SelectTrigger id="areaUnit">
+                  <SelectValue placeholder="Select unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEASUREMENT_UNITS.map((unit) => (
+                    <SelectItem key={unit} value={unit}>
+                      {unit}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="flooring">Flooring</Label>
+              <Select
+                value={(formData as { flooring?: string }).flooring || "none"}
+                onValueChange={(value) => setFormData({ ...formData, flooring: value === "none" ? undefined : value } as Partial<Property>)}
+              >
+                <SelectTrigger id="flooring">
+                  <SelectValue placeholder="Select flooring" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {FLOORING_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>
+                      {opt}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Location */}

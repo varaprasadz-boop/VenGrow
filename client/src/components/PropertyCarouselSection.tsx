@@ -13,6 +13,7 @@ interface PropertyCardData {
   bedrooms?: number;
   bathrooms?: number;
   area: number;
+  areaUnit?: string;
   propertyType: string;
   isFeatured?: boolean;
   isVerified?: boolean;

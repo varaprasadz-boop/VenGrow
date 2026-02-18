@@ -19,6 +19,7 @@ import {
   Bed,
   Bath,
   Maximize,
+  Home,
   Calendar,
   Building2,
   CheckCircle,
@@ -338,9 +339,20 @@ export default function PropertyDetailPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{property.area}</p>
-                    <p className="text-xs text-muted-foreground">sq ft</p>
+                    <p className="text-xs text-muted-foreground">{(property as { areaUnit?: string }).areaUnit || "sq ft"}</p>
                   </div>
                 </div>
+                {(property as { flooring?: string }).flooring && (
+                  <div className="flex items-center gap-3 p-4 rounded-lg border">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Home className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{(property as { flooring?: string }).flooring}</p>
+                      <p className="text-xs text-muted-foreground">Flooring</p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3 p-4 rounded-lg border">
                   <div className="p-2 rounded-lg bg-primary/10">
                     <Building2 className="h-5 w-5 text-primary" />
