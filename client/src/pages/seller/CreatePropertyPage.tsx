@@ -1491,7 +1491,6 @@ export default function CreatePropertyPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Price Negotiable</Label>
                       <Select
@@ -1507,18 +1506,6 @@ export default function CreatePropertyPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="numberOfLifts">No. of lifts</Label>
-                      <Input
-                        id="numberOfLifts"
-                        type="number"
-                        min={0}
-                        placeholder="e.g., 2"
-                        value={formData.numberOfLifts}
-                        onChange={(e) => updateField("numberOfLifts", e.target.value)}
-                      />
-                    </div>
-                  </div>
                   </>
                 )}
 
@@ -1717,7 +1704,7 @@ export default function CreatePropertyPage() {
               </h2>
 
               <div className="space-y-6">
-                {formData.propertyType !== "plot" && (
+                {formData.propertyType !== "plot" && formData.propertyType !== "farmhouse" && (
                   <>
                     <div>
                       <h3 className="font-semibold mb-4">Room Configuration</h3>
@@ -1889,56 +1876,58 @@ export default function CreatePropertyPage() {
                   <>
                     <Separator />
 
-                    <div>
-                      <h3 className="font-semibold mb-4">Floor & Facing</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="floor">Floor Number</Label>
-                          <Input
-                            id="floor"
-                            type="number"
-                            placeholder="3"
-                            value={formData.floor}
-                            onChange={(e) => updateField("floor", e.target.value)}
-                            data-testid="input-floor"
-                          />
-                        </div>
+                    {formData.propertyType !== "farmhouse" && (
+                      <div>
+                        <h3 className="font-semibold mb-4">Floor & Facing</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="floor">Floor Number</Label>
+                            <Input
+                              id="floor"
+                              type="number"
+                              placeholder="3"
+                              value={formData.floor}
+                              onChange={(e) => updateField("floor", e.target.value)}
+                              data-testid="input-floor"
+                            />
+                          </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="totalFloors">Total Floors</Label>
-                          <Input
-                            id="totalFloors"
-                            type="number"
-                            placeholder="10"
-                            value={formData.totalFloors}
-                            onChange={(e) => updateField("totalFloors", e.target.value)}
-                            data-testid="input-total-floors"
-                          />
-                        </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="totalFloors">Total Floors</Label>
+                            <Input
+                              id="totalFloors"
+                              type="number"
+                              placeholder="10"
+                              value={formData.totalFloors}
+                              onChange={(e) => updateField("totalFloors", e.target.value)}
+                              data-testid="input-total-floors"
+                            />
+                          </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="facing">Facing</Label>
-                          <Select
-                            value={formData.facing}
-                            onValueChange={(value) => updateField("facing", value)}
-                          >
-                            <SelectTrigger id="facing" data-testid="select-facing">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="north">North</SelectItem>
-                              <SelectItem value="south">South</SelectItem>
-                              <SelectItem value="east">East</SelectItem>
-                              <SelectItem value="west">West</SelectItem>
-                              <SelectItem value="north-east">North-East</SelectItem>
-                              <SelectItem value="north-west">North-West</SelectItem>
-                              <SelectItem value="south-east">South-East</SelectItem>
-                              <SelectItem value="south-west">South-West</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <div className="space-y-2">
+                            <Label htmlFor="facing">Facing</Label>
+                            <Select
+                              value={formData.facing}
+                              onValueChange={(value) => updateField("facing", value)}
+                            >
+                              <SelectTrigger id="facing" data-testid="select-facing">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="north">North</SelectItem>
+                                <SelectItem value="south">South</SelectItem>
+                                <SelectItem value="east">East</SelectItem>
+                                <SelectItem value="west">West</SelectItem>
+                                <SelectItem value="north-east">North-East</SelectItem>
+                                <SelectItem value="north-west">North-West</SelectItem>
+                                <SelectItem value="south-east">South-East</SelectItem>
+                                <SelectItem value="south-west">South-West</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
                     {formData.propertyType === "apartment" && formData.transactionType === "sale" && (
                       <div>
@@ -1967,6 +1956,17 @@ export default function CreatePropertyPage() {
                               onChange={(e) => updateField("flatsOnFloor", e.target.value)}
                             />
                             <p className="text-xs text-muted-foreground">Flats on the same floor</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="numberOfLifts">No. of lifts</Label>
+                            <Input
+                              id="numberOfLifts"
+                              type="number"
+                              min={0}
+                              placeholder="e.g., 2"
+                              value={formData.numberOfLifts}
+                              onChange={(e) => updateField("numberOfLifts", e.target.value)}
+                            />
                           </div>
                         </div>
                       </div>
@@ -2676,124 +2676,143 @@ export default function CreatePropertyPage() {
                             />
                             <p className="text-xs text-muted-foreground">Flats on the same floor</p>
                           </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="numberOfLiftsRent">No. of lifts</Label>
+                            <Input
+                              id="numberOfLiftsRent"
+                              type="number"
+                              min={0}
+                              placeholder="e.g., 2"
+                              value={formData.numberOfLifts}
+                              onChange={(e) => updateField("numberOfLifts", e.target.value)}
+                            />
+                          </div>
                         </div>
                       </div>
                     )}
 
-                    <Separator />
+                    {formData.propertyType !== "farmhouse" && (
+                      <>
+                        <Separator />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="furnishing">Furnishing</Label>
-                        <Select
-                          value={formData.furnishing}
-                          onValueChange={(value) => updateField("furnishing", value)}
-                        >
-                          <SelectTrigger id="furnishing" data-testid="select-furnishing">
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="unfurnished">Unfurnished</SelectItem>
-                            <SelectItem value="semi-furnished">Semi Furnished</SelectItem>
-                            <SelectItem value="fully-furnished">Fully Furnished</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="flooring">Flooring</Label>
-                        <Select
-                          value={formData.flooring || "none"}
-                          onValueChange={(value) => updateField("flooring", value === "none" ? "" : value)}
-                        >
-                          <SelectTrigger id="flooring" data-testid="select-flooring">
-                            <SelectValue placeholder="Select flooring" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            {FLOORING_OPTIONS.map((opt) => (
-                              <SelectItem key={opt} value={opt}>
-                                {opt}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="ageOfProperty">Age of Property (years)</Label>
-                        <Select
-                          value={formData.ageOfProperty}
-                          onValueChange={(value) => updateField("ageOfProperty", value)}
-                        >
-                          <SelectTrigger id="ageOfProperty" data-testid="select-age">
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="0">New Construction</SelectItem>
-                            <SelectItem value="1">Less than 1 year</SelectItem>
-                            <SelectItem value="3">1-3 years</SelectItem>
-                            <SelectItem value="5">3-5 years</SelectItem>
-                            <SelectItem value="10">5-10 years</SelectItem>
-                            <SelectItem value="15">10+ years</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="furnishing">Furnishing</Label>
+                            <Select
+                              value={formData.furnishing}
+                              onValueChange={(value) => updateField("furnishing", value)}
+                            >
+                              <SelectTrigger id="furnishing" data-testid="select-furnishing">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="unfurnished">Unfurnished</SelectItem>
+                                <SelectItem value="semi-furnished">Semi Furnished</SelectItem>
+                                <SelectItem value="fully-furnished">Fully Furnished</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="flooring">Flooring</Label>
+                            <Select
+                              value={formData.flooring || "none"}
+                              onValueChange={(value) => updateField("flooring", value === "none" ? "" : value)}
+                            >
+                              <SelectTrigger id="flooring" data-testid="select-flooring">
+                                <SelectValue placeholder="Select flooring" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                {FLOORING_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt} value={opt}>
+                                    {opt}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="ageOfProperty">Age of Property (years)</Label>
+                            <Select
+                              value={formData.ageOfProperty}
+                              onValueChange={(value) => updateField("ageOfProperty", value)}
+                            >
+                              <SelectTrigger id="ageOfProperty" data-testid="select-age">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0">New Construction</SelectItem>
+                                <SelectItem value="1">Less than 1 year</SelectItem>
+                                <SelectItem value="3">1-3 years</SelectItem>
+                                <SelectItem value="5">3-5 years</SelectItem>
+                                <SelectItem value="10">5-10 years</SelectItem>
+                                <SelectItem value="15">10+ years</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="possessionStatus">Possession Status</Label>
-                        <Select
-                          value={formData.possessionStatus}
-                          onValueChange={(value) => updateField("possessionStatus", value)}
-                        >
-                          <SelectTrigger id="possessionStatus" data-testid="select-possession">
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ready">Ready to Move</SelectItem>
-                            <SelectItem value="under_construction">Under Construction</SelectItem>
-                            <SelectItem value="upcoming">Upcoming Project</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="possessionStatus">Possession Status</Label>
+                            <Select
+                              value={formData.possessionStatus}
+                              onValueChange={(value) => updateField("possessionStatus", value)}
+                            >
+                              <SelectTrigger id="possessionStatus" data-testid="select-possession">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="ready">Ready to Move</SelectItem>
+                                <SelectItem value="under_construction">Under Construction</SelectItem>
+                                <SelectItem value="upcoming">Upcoming Project</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-                      {(formData.possessionStatus === "under_construction" || formData.possessionStatus === "under-construction") && (
-                        <div className="space-y-2">
-                          <Label htmlFor="expectedPossessionDate">Expected Possession Date</Label>
-                          <Input
-                            id="expectedPossessionDate"
-                            type="month"
-                            value={formData.expectedPossessionDate}
-                            onChange={(e) => updateField("expectedPossessionDate", e.target.value)}
-                            data-testid="input-expected-possession-date"
-                          />
+                          {(formData.possessionStatus === "under_construction" || formData.possessionStatus === "under-construction") && (
+                            <div className="space-y-2">
+                              <Label htmlFor="expectedPossessionDate">Expected Possession Date</Label>
+                              <Input
+                                id="expectedPossessionDate"
+                                type="month"
+                                value={formData.expectedPossessionDate}
+                                onChange={(e) => updateField("expectedPossessionDate", e.target.value)}
+                                data-testid="input-expected-possession-date"
+                              />
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      </>
+                    )}
                   </>
                 )}
 
-                <Separator />
+                {formData.propertyType !== "farmhouse" && formData.propertyType !== "plot" && (
+                  <>
+                    <Separator />
 
-                <div>
-                  <h3 className="font-semibold mb-4">Amenities</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {PROPERTY_AMENITIES.map((amenity) => (
-                      <div key={amenity} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`amenity-${amenity}`}
-                          checked={formData.amenities.includes(amenity)}
-                          onCheckedChange={() => toggleArrayItem("amenities", amenity)}
-                          data-testid={`checkbox-amenity-${amenity.toLowerCase().replace(/\s/g, "-")}`}
-                        />
-                        <Label
-                          htmlFor={`amenity-${amenity}`}
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          {amenity}
-                        </Label>
+                    <div>
+                      <h3 className="font-semibold mb-4">Amenities</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {PROPERTY_AMENITIES.map((amenity) => (
+                          <div key={amenity} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`amenity-${amenity}`}
+                              checked={formData.amenities.includes(amenity)}
+                              onCheckedChange={() => toggleArrayItem("amenities", amenity)}
+                              data-testid={`checkbox-amenity-${amenity.toLowerCase().replace(/\s/g, "-")}`}
+                            />
+                            <Label
+                              htmlFor={`amenity-${amenity}`}
+                              className="text-sm font-normal cursor-pointer"
+                            >
+                              {amenity}
+                            </Label>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+                  </>
+                )}
 
                 <Separator />
 
