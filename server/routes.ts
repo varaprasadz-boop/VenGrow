@@ -1955,6 +1955,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create property with seller ID
       // Ensure latitude and longitude are properly formatted (convert empty strings to null)
       const { latitude: rawLat, longitude: rawLng, ...restBody } = req.body;
+
+      // New projects: require projectId and validate it belongs to seller
+      if (restBody.propertyType === "new_projects") {
+        if (!restBody.projectId || typeof restBody.projectId !== "string" || !restBody.projectId.trim()) {
+          return res.status(400).json({ success: false, message: "Project / Society Name is required for New Project listings." });
+        }
+        const validCategories = ["apartment", "row_house", "villa", "plot"];
+        if (!restBody.newProjectCategory || !validCategories.includes(restBody.newProjectCategory)) {
+          return res.status(400).json({ success: false, message: "Valid New Project category (apartment, row_house, villa, plot) is required." });
+        }
+        const sellerProjects = await storage.getProjectsBySeller(sellerProfile.id);
+        const projectBelongsToSeller = sellerProjects.some((p: { id: string }) => p.id === restBody.projectId.trim());
+        if (!projectBelongsToSeller) {
+          return res.status(400).json({ success: false, message: "Selected project does not belong to you." });
+        }
+      }
       
       // Convert latitude/longitude to numbers or null
       const latitude = rawLat && rawLat !== "" && !isNaN(parseFloat(rawLat))

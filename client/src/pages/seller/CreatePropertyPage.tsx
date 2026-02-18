@@ -63,6 +63,12 @@ import {
   LOCK_IN_MONTHS_OPTIONS,
   NEGOTIABLE_OPTIONS,
   PROPERTY_AMENITIES,
+  NEW_PROJECT_AMENITIES,
+  NEW_PROJECT_CATEGORIES,
+  NEW_PROJECT_CAR_PARKING_OPTIONS,
+  NEW_PROJECT_TOTAL_FLOORS_OPTIONS,
+  NEW_PROJECT_FLATS_ON_FLOOR_OPTIONS,
+  NEW_PROJECT_LIFTS_OPTIONS,
   PG_GENDER_OPTIONS,
   PG_LISTED_FOR_OPTIONS,
   PG_ROOM_TYPE_OPTIONS,
@@ -160,6 +166,10 @@ interface PropertyFormData {
   pgFoodProvided: string;
   pgNonVegProvided: string;
   pgNoticePeriod: string;
+  newProjectCategory: string;
+  areaInLocality: string;
+  newProjectFloorPlans: { superBuiltUpArea: string; carpetArea: string; bhk: string; bathrooms: string; balconies: string; totalPrice: string }[];
+  newProjectDimensions: { area: string; totalPrice: string }[];
 }
 
 const STEPS = [
@@ -290,6 +300,20 @@ export default function CreatePropertyPage() {
     pgFoodProvided: "",
     pgNonVegProvided: "",
     pgNoticePeriod: "",
+    newProjectCategory: "",
+    areaInLocality: "",
+    newProjectFloorPlans: [
+      { superBuiltUpArea: "", carpetArea: "", bhk: "", bathrooms: "", balconies: "", totalPrice: "" },
+      { superBuiltUpArea: "", carpetArea: "", bhk: "", bathrooms: "", balconies: "", totalPrice: "" },
+      { superBuiltUpArea: "", carpetArea: "", bhk: "", bathrooms: "", balconies: "", totalPrice: "" },
+      { superBuiltUpArea: "", carpetArea: "", bhk: "", bathrooms: "", balconies: "", totalPrice: "" },
+    ],
+    newProjectDimensions: [
+      { area: "", totalPrice: "" },
+      { area: "", totalPrice: "" },
+      { area: "", totalPrice: "" },
+      { area: "", totalPrice: "" },
+    ],
   });
 
   const { data: canCreateData, isLoading: checkingLimit } = useQuery<{
@@ -549,6 +573,38 @@ export default function CreatePropertyPage() {
         pgFoodProvided: (propertyData as any).pgFoodProvided === true ? "yes" : (propertyData as any).pgFoodProvided === false ? "no" : "",
         pgNonVegProvided: (propertyData as any).pgNonVegProvided === true ? "yes" : (propertyData as any).pgNonVegProvided === false ? "no" : "",
         pgNoticePeriod: (propertyData as any).pgNoticePeriod || "",
+        newProjectCategory: (propertyData as any).newProjectCategory || "",
+        areaInLocality: (propertyData as any).areaInLocality || "",
+        newProjectFloorPlans: (() => {
+          const raw = (propertyData as any).newProjectFloorPlans;
+          if (!Array.isArray(raw) || raw.length === 0) {
+            return [
+              { superBuiltUpArea: "", carpetArea: "", bhk: "", bathrooms: "", balconies: "", totalPrice: "" },
+              { superBuiltUpArea: "", carpetArea: "", bhk: "", bathrooms: "", balconies: "", totalPrice: "" },
+              { superBuiltUpArea: "", carpetArea: "", bhk: "", bathrooms: "", balconies: "", totalPrice: "" },
+              { superBuiltUpArea: "", carpetArea: "", bhk: "", bathrooms: "", balconies: "", totalPrice: "" },
+            ];
+          }
+          const mapped = raw.map((fp: any) => ({
+            superBuiltUpArea: fp.superBuiltUpArea?.toString() ?? "",
+            carpetArea: fp.carpetArea?.toString() ?? "",
+            bhk: fp.bhk?.toString() ?? "",
+            bathrooms: fp.bathrooms?.toString() ?? "",
+            balconies: fp.balconies?.toString() ?? "",
+            totalPrice: fp.totalPrice?.toString() ?? "",
+          }));
+          while (mapped.length < 4) mapped.push({ superBuiltUpArea: "", carpetArea: "", bhk: "", bathrooms: "", balconies: "", totalPrice: "" });
+          return mapped.slice(0, 4);
+        })(),
+        newProjectDimensions: (() => {
+          const raw = (propertyData as any).newProjectDimensions;
+          if (!Array.isArray(raw) || raw.length === 0) {
+            return [{ area: "", totalPrice: "" }, { area: "", totalPrice: "" }, { area: "", totalPrice: "" }, { area: "", totalPrice: "" }];
+          }
+          const mapped = raw.map((d: any) => ({ area: d.area?.toString() ?? "", totalPrice: d.totalPrice?.toString() ?? "" }));
+          while (mapped.length < 4) mapped.push({ area: "", totalPrice: "" });
+          return mapped.slice(0, 4);
+        })(),
       }));
     }
   }, [propertyData]);
@@ -727,6 +783,30 @@ export default function CreatePropertyPage() {
     updateField(field, updated);
   };
 
+  const updateNewProjectFloorPlan = (planIndex: number, field: string, value: string) => {
+    setFormData(prev => {
+      const next = [...prev.newProjectFloorPlans];
+      next[planIndex] = { ...next[planIndex], [field]: value };
+      return { ...prev, newProjectFloorPlans: next };
+    });
+  };
+
+  const updateNewProjectDimension = (dimIndex: number, field: "area" | "totalPrice", value: string) => {
+    setFormData(prev => {
+      const next = [...prev.newProjectDimensions];
+      next[dimIndex] = { ...next[dimIndex], [field]: value };
+      return { ...prev, newProjectDimensions: next };
+    });
+  };
+
+  const toggleNewProjectAmenity = (item: string) => {
+    const current = formData.amenities;
+    const updated = current.includes(item)
+      ? current.filter(i => i !== item)
+      : [...current, item];
+    updateField("amenities", updated);
+  };
+
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1: {
@@ -740,6 +820,12 @@ export default function CreatePropertyPage() {
           formData.state
         );
         if (!base) return false;
+        if (formData.propertyType === "new_projects") {
+          const hasLocation = !!(formData.latitude && formData.longitude && formData.locality?.trim());
+          const hasProject = !!formData.projectId?.trim();
+          const hasCategory = !!formData.newProjectCategory?.trim();
+          if (!hasCategory || !hasProject || !formData.locality?.trim() || !hasLocation) return false;
+        }
         if (formData.transactionType === "sale") {
           return !!(formData.isResale === "new" || formData.isResale === "resale");
         }
@@ -768,6 +854,32 @@ export default function CreatePropertyPage() {
             formData.pgNoticePeriod?.trim()
           );
         }
+        if (formData.propertyType === "new_projects") {
+          const cat = formData.newProjectCategory;
+          const hasFacing = !!formData.facing?.trim();
+          const hasMaintenance = !!(formData.maintenanceCharges && parseInt(formData.maintenanceCharges, 10) >= 0);
+          const hasPrice = !!(formData.price && parseInt(formData.price, 10) > 0);
+          const hasPossession = !!formData.possessionStatus?.trim();
+          if (cat === "apartment") {
+            const fp1 = formData.newProjectFloorPlans[0];
+            const hasFp1 = !!(fp1?.superBuiltUpArea && fp1?.carpetArea && fp1?.bhk && fp1?.bathrooms && fp1?.balconies !== "" && fp1?.totalPrice);
+            const hasFlats = !!(formData.totalFlats && formData.flatsOnFloor && formData.totalFloors && formData.numberOfLifts !== "" && formData.flooring && formData.carParkingCount !== undefined && formData.carParkingCount !== "");
+            return !!(hasFp1 && hasFlats && hasFacing && hasMaintenance && hasPrice && hasPossession);
+          }
+          if (cat === "row_house" || cat === "villa") {
+            const fp1 = formData.newProjectFloorPlans[0];
+            const hasFp1 = !!(fp1?.superBuiltUpArea && fp1?.carpetArea && fp1?.bhk && fp1?.bathrooms && fp1?.balconies !== "" && fp1?.totalPrice);
+            const hasUnits = !!(formData.totalVillas && parseInt(formData.totalVillas, 10) > 0);
+            return !!(hasFp1 && hasUnits && formData.flooring && formData.carParkingCount !== undefined && formData.carParkingCount !== "" && hasFacing && hasMaintenance && hasPrice && hasPossession);
+          }
+          if (cat === "plot") {
+            const dim1 = formData.newProjectDimensions[0];
+            const hasDim1 = !!(dim1?.area && dim1?.totalPrice);
+            const hasUnits = !!(formData.totalVillas && parseInt(formData.totalVillas, 10) > 0);
+            return !!(hasDim1 && hasUnits && hasFacing && hasMaintenance && hasPrice);
+          }
+          return false;
+        }
         const base = !!(
           formData.area &&
           (
@@ -780,7 +892,7 @@ export default function CreatePropertyPage() {
         );
         if (!base) return false;
         if (
-          (formData.propertyType === "apartment" || formData.propertyType === "new_projects") &&
+          formData.propertyType === "apartment" &&
           (formData.transactionType === "sale" || formData.transactionType === "lease")
         ) {
           return !!(formData.totalFlats && formData.flatsOnFloor && parseInt(formData.totalFlats, 10) > 0 && parseInt(formData.flatsOnFloor, 10) > 0);
@@ -899,13 +1011,31 @@ export default function CreatePropertyPage() {
             description: "Please select when the property is available (Immediate or date).",
             variant: "destructive",
           });
-        } else if (currentStep === 2 && (formData.propertyType === "apartment" || formData.propertyType === "new_projects") && formData.transactionType === "sale" && (!formData.totalFlats || !formData.flatsOnFloor)) {
+        } else if (currentStep === 1 && formData.propertyType === "new_projects") {
+          if (!formData.newProjectCategory?.trim()) {
+            toast({ title: "Category required", description: "Please select Apartment, Row House, Villa, or Plots.", variant: "destructive" });
+          } else if (!formData.projectId?.trim()) {
+            toast({ title: "Project required", description: "Please select a Project / Society Name.", variant: "destructive" });
+          } else if (!formData.locality?.trim()) {
+            toast({ title: "Locality required", description: "Please enter Locality.", variant: "destructive" });
+          } else if (!formData.latitude || !formData.longitude) {
+            toast({ title: "Location on map required", description: "Please pin the location on the map (Google Search).", variant: "destructive" });
+          } else {
+            toast({ title: "Missing information", description: "Please fill all required New Project fields.", variant: "destructive" });
+          }
+        } else if (currentStep === 2 && formData.propertyType === "new_projects") {
+          toast({
+            title: "New project details required",
+            description: "Please fill all required fields for your category (floor plans or dimensions, common details, possession).",
+            variant: "destructive",
+          });
+        } else if (currentStep === 2 && formData.propertyType === "apartment" && formData.transactionType === "sale" && (!formData.totalFlats || !formData.flatsOnFloor)) {
           toast({
             title: "Building details required",
             description: "For apartment sale, please enter Total Flats and Flats on the Floor.",
             variant: "destructive",
           });
-        } else if (currentStep === 2 && (formData.propertyType === "apartment" || formData.propertyType === "new_projects") && formData.transactionType === "lease" && (!formData.totalFlats || !formData.flatsOnFloor)) {
+        } else if (currentStep === 2 && formData.propertyType === "apartment" && formData.transactionType === "lease" && (!formData.totalFlats || !formData.flatsOnFloor)) {
           toast({
             title: "Building details required",
             description: "For apartment lease, please enter Total Flats and Flats on the Floor.",
@@ -993,14 +1123,26 @@ export default function CreatePropertyPage() {
       return;
     }
 
+    const isNewProject = formData.propertyType === "new_projects";
+    const primaryPrice = isNewProject && (formData.newProjectCategory === "apartment" || formData.newProjectCategory === "row_house" || formData.newProjectCategory === "villa")
+      ? (formData.newProjectFloorPlans[0]?.totalPrice ? parseInt(formData.newProjectFloorPlans[0].totalPrice, 10) : parseInt(formData.price, 10) || 0)
+      : isNewProject && formData.newProjectCategory === "plot"
+        ? (formData.newProjectDimensions[0]?.totalPrice ? parseInt(formData.newProjectDimensions[0].totalPrice, 10) : parseInt(formData.price, 10) || 0)
+        : parseInt(formData.price) || 0;
+    const primaryArea = isNewProject && (formData.newProjectCategory === "apartment" || formData.newProjectCategory === "row_house" || formData.newProjectCategory === "villa")
+      ? (formData.newProjectFloorPlans[0]?.superBuiltUpArea ? parseInt(formData.newProjectFloorPlans[0].superBuiltUpArea, 10) : parseInt(formData.area, 10) || 0)
+      : isNewProject && formData.newProjectCategory === "plot"
+        ? (formData.newProjectDimensions[0]?.area ? parseInt(formData.newProjectDimensions[0].area, 10) : parseInt(formData.area, 10) || 0)
+        : parseInt(formData.area) || 0;
+
     const propertyData = {
       title: formData.title,
       description: formData.description,
       propertyType: formData.propertyType,
       transactionType: formData.transactionType,
-      price: parseInt(formData.price) || 0,
-      pricePerSqft: formData.area ? Math.round(parseInt(formData.price) / parseInt(formData.area)) : null,
-      area: parseInt(formData.area) || 0,
+      price: primaryPrice,
+      pricePerSqft: primaryArea ? Math.round(primaryPrice / primaryArea) : (formData.area ? Math.round(parseInt(formData.price) / parseInt(formData.area)) : null),
+      area: primaryArea,
       areaUnit: formData.areaUnit || "Sq-ft",
       flooring: formData.flooring || null,
       bedrooms: parseInt(formData.bedrooms) || null,
@@ -1027,6 +1169,20 @@ export default function CreatePropertyPage() {
       contactPhone: formData.contactPhone ? cleanPhone(formData.contactPhone) : null,
       contactEmail: formData.contactEmail ? normalizeEmail(formData.contactEmail) : null,
       nearbyLandmark: formData.nearbyLandmark?.trim() || null,
+      newProjectCategory: formData.propertyType === "new_projects" ? (formData.newProjectCategory || null) : null,
+      areaInLocality: formData.propertyType === "new_projects" ? (formData.areaInLocality?.trim() || null) : null,
+      newProjectFloorPlans: formData.propertyType === "new_projects" ? formData.newProjectFloorPlans.map(fp => ({
+        superBuiltUpArea: fp.superBuiltUpArea ? parseInt(fp.superBuiltUpArea, 10) : undefined,
+        carpetArea: fp.carpetArea ? parseInt(fp.carpetArea, 10) : undefined,
+        bhk: fp.bhk ? parseInt(fp.bhk, 10) : undefined,
+        bathrooms: fp.bathrooms ? parseInt(fp.bathrooms, 10) : undefined,
+        balconies: fp.balconies !== "" ? parseInt(fp.balconies, 10) : undefined,
+        totalPrice: fp.totalPrice ? parseInt(fp.totalPrice, 10) : undefined,
+      })).filter(fp => fp.superBuiltUpArea || fp.totalPrice) : undefined,
+      newProjectDimensions: formData.propertyType === "new_projects" ? formData.newProjectDimensions.map(d => ({
+        area: d.area ? parseInt(d.area, 10) : undefined,
+        totalPrice: d.totalPrice ? parseInt(d.totalPrice, 10) : undefined,
+      })).filter(d => d.area || d.totalPrice) : undefined,
       superBuiltUpArea: formData.superBuiltUpArea ? parseInt(formData.superBuiltUpArea, 10) : null,
       carParkingCount: formData.carParkingCount ? parseInt(formData.carParkingCount, 10) : null,
       maintenanceCharges: formData.maintenanceCharges ? parseInt(formData.maintenanceCharges, 10) : null,
@@ -1222,6 +1378,7 @@ export default function CreatePropertyPage() {
                           ...prev,
                           propertyType: value,
                           ...(value === "pg_co_living" ? { transactionType: "rent" } : {}),
+                          ...(value === "new_projects" ? { transactionType: "sale", isResale: "new" } : {}),
                         }));
                       }}
                     >
@@ -1265,7 +1422,58 @@ export default function CreatePropertyPage() {
                   </div>
                 </div>
 
-                {canHaveProjects && formData.transactionType === "sale" && liveProjects.length > 0 && (
+                {formData.propertyType === "new_projects" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="newProjectCategory">Category *</Label>
+                      <Select
+                        value={formData.newProjectCategory}
+                        onValueChange={(value) => updateField("newProjectCategory", value)}
+                      >
+                        <SelectTrigger id="newProjectCategory" data-testid="select-new-project-category">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {NEW_PROJECT_CATEGORIES.map((c) => (
+                            <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="projectIdNew" className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Project / Society Name *
+                      </Label>
+                      <Select
+                        value={formData.projectId || "none"}
+                        onValueChange={(value) => updateField("projectId", value === "none" ? "" : value)}
+                      >
+                        <SelectTrigger id="projectIdNew" data-testid="select-project-new">
+                          <SelectValue placeholder="Select a project" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Select project</SelectItem>
+                          {(sellerProjects || []).map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.name} – {project.city}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {!canHaveProjects && (
+                        <p className="text-xs text-amber-600">Only Brokers and Builders can create projects. <a href="/seller/projects/create" className="underline">Create a project</a> first if you have access.</p>
+                      )}
+                      {canHaveProjects && liveProjects.length === 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          <a href="/seller/projects/create" className="text-primary underline">Create a project</a> first, then add this new project listing.
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {(canHaveProjects && formData.transactionType === "sale" && liveProjects.length > 0 && formData.propertyType !== "new_projects") && (
                   <div className="space-y-2">
                     <Label htmlFor="projectId" className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
@@ -1562,7 +1770,7 @@ export default function CreatePropertyPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="locality">Locality</Label>
+                        <Label htmlFor="locality">Locality {formData.propertyType === "new_projects" && "*"}</Label>
                         <Input
                           id="locality"
                           placeholder="e.g., Bandra West"
@@ -1586,7 +1794,7 @@ export default function CreatePropertyPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="nearbyLandmark">Nearby Landmark (Optional)</Label>
+                      <Label htmlFor="nearbyLandmark">Near by Land mark (Optional)</Label>
                       <Input
                         id="nearbyLandmark"
                         placeholder="e.g., Near metro station"
@@ -1595,11 +1803,23 @@ export default function CreatePropertyPage() {
                       />
                     </div>
 
+                    {formData.propertyType === "new_projects" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="areaInLocality">Area in Locality (Optional)</Label>
+                        <Input
+                          id="areaInLocality"
+                          placeholder="e.g., Sector 5"
+                          value={formData.areaInLocality}
+                          onChange={(e) => updateField("areaInLocality", e.target.value)}
+                        />
+                      </div>
+                    )}
+
                     <div className="space-y-4 mt-4">
                       <div>
                         <Label className="flex items-center gap-2 mb-2">
                           <MapPin className="h-4 w-4" />
-                          Pin Location on Map
+                          {formData.propertyType === "new_projects" ? "Google Search *" : "Pin Location on Map"}
                         </Label>
                         <p className="text-sm text-muted-foreground mb-3">
                           Select your property's exact location on the map or enter coordinates manually
@@ -1706,6 +1926,192 @@ export default function CreatePropertyPage() {
               </h2>
 
               <div className="space-y-6">
+                {formData.propertyType === "new_projects" && (
+                  <>
+                    {(formData.newProjectCategory === "apartment" || formData.newProjectCategory === "row_house" || formData.newProjectCategory === "villa") && (
+                      <div>
+                        <h3 className="font-semibold mb-4">Floor Plans</h3>
+                        <p className="text-sm text-muted-foreground mb-4">Add up to 4 floor plan configurations. At least Floor Plan 1 is required.</p>
+                        {[0, 1, 2, 3].map((idx) => {
+                          const fp = formData.newProjectFloorPlans[idx];
+                          return (
+                            <div key={idx} className="border rounded-lg p-4 mb-4 space-y-3">
+                              <h4 className="font-medium text-sm">Floor Plan {idx + 1}</h4>
+                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                                <div className="space-y-1">
+                                  <Label>Super Built Up (sqft)</Label>
+                                  <Input type="number" placeholder="e.g. 1200" value={fp.superBuiltUpArea} onChange={(e) => updateNewProjectFloorPlan(idx, "superBuiltUpArea", e.target.value)} />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label>Carpet Area (sqft)</Label>
+                                  <Input type="number" placeholder="e.g. 1000" value={fp.carpetArea} onChange={(e) => updateNewProjectFloorPlan(idx, "carpetArea", e.target.value)} />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label>BHK</Label>
+                                  <Input type="number" min={1} placeholder="e.g. 3" value={fp.bhk} onChange={(e) => updateNewProjectFloorPlan(idx, "bhk", e.target.value)} />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label>Bathroom</Label>
+                                  <Input type="number" min={1} placeholder="e.g. 2" value={fp.bathrooms} onChange={(e) => updateNewProjectFloorPlan(idx, "bathrooms", e.target.value)} />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label>Balcony</Label>
+                                  <Input type="number" min={0} placeholder="e.g. 2" value={fp.balconies} onChange={(e) => updateNewProjectFloorPlan(idx, "balconies", e.target.value)} />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label>Total Price (₹)</Label>
+                                  <Input type="number" placeholder="e.g. 8500000" value={fp.totalPrice} onChange={(e) => updateNewProjectFloorPlan(idx, "totalPrice", e.target.value)} />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {formData.newProjectCategory === "plot" && (
+                      <div>
+                        <h3 className="font-semibold mb-4">Dimensions</h3>
+                        <p className="text-sm text-muted-foreground mb-4">Add up to 4 dimension configurations. At least Dimension 1 is required.</p>
+                        {[0, 1, 2, 3].map((idx) => {
+                          const dim = formData.newProjectDimensions[idx];
+                          return (
+                            <div key={idx} className="border rounded-lg p-4 mb-4 flex flex-wrap gap-4 items-end">
+                              <span className="font-medium text-sm">Dimension {idx + 1}</span>
+                              <div className="space-y-1">
+                                <Label>Area (sqft)</Label>
+                                <Input type="number" placeholder="e.g. 1200" value={dim.area} onChange={(e) => updateNewProjectDimension(idx, "area", e.target.value)} className="w-40" />
+                              </div>
+                              <div className="space-y-1">
+                                <Label>Total Price (₹)</Label>
+                                <Input type="number" placeholder="e.g. 5000000" value={dim.totalPrice} onChange={(e) => updateNewProjectDimension(idx, "totalPrice", e.target.value)} className="w-40" />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <Separator />
+
+                    <div>
+                      <h3 className="font-semibold mb-4">Common Details</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Facings Available *</Label>
+                          <Input placeholder="e.g. North, East" value={formData.facing} onChange={(e) => updateField("facing", e.target.value)} />
+                        </div>
+                        {(formData.newProjectCategory === "apartment" || formData.newProjectCategory === "row_house" || formData.newProjectCategory === "villa") && (
+                          <div className="space-y-2">
+                            <Label>Flooring Type *</Label>
+                            <Select value={formData.flooring} onValueChange={(v) => updateField("flooring", v)}>
+                              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                              <SelectContent>
+                                {FLOORING_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        <div className="space-y-2">
+                          <Label>No. of car parking *</Label>
+                          <Select value={formData.carParkingCount ?? ""} onValueChange={(v) => updateField("carParkingCount", v)}>
+                            <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                            <SelectContent>
+                              {NEW_PROJECT_CAR_PARKING_OPTIONS.map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Maintenance charges (₹) *</Label>
+                          <Input type="number" placeholder="e.g. 3000" value={formData.maintenanceCharges} onChange={(e) => updateField("maintenanceCharges", e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Per sft price (₹) *</Label>
+                          <Input type="number" placeholder="e.g. 7000" value={formData.price} onChange={(e) => updateField("price", e.target.value)} />
+                          <p className="text-xs text-muted-foreground">Used as indicative price per sqft for the project</p>
+                        </div>
+                        {formData.newProjectCategory === "apartment" && (
+                          <>
+                            <div className="space-y-2">
+                              <Label>Total Flats *</Label>
+                              <Input type="number" min={1} placeholder="e.g. 100" value={formData.totalFlats} onChange={(e) => updateField("totalFlats", e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Total Floors *</Label>
+                              <Select value={formData.totalFloors ?? ""} onValueChange={(v) => updateField("totalFloors", v)}>
+                                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                                <SelectContent>
+                                  {NEW_PROJECT_TOTAL_FLOORS_OPTIONS.map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Flats on the Floor *</Label>
+                              <Select value={formData.flatsOnFloor ?? ""} onValueChange={(v) => updateField("flatsOnFloor", v)}>
+                                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                                <SelectContent>
+                                  {NEW_PROJECT_FLATS_ON_FLOOR_OPTIONS.map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>No. of Lifts *</Label>
+                              <Select value={formData.numberOfLifts ?? ""} onValueChange={(v) => updateField("numberOfLifts", v)}>
+                                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                                <SelectContent>
+                                  {NEW_PROJECT_LIFTS_OPTIONS.map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </>
+                        )}
+                        {(formData.newProjectCategory === "row_house" || formData.newProjectCategory === "villa" || formData.newProjectCategory === "plot") && (
+                          <div className="space-y-2">
+                            <Label>Total Units *</Label>
+                            <Input type="number" min={1} placeholder="e.g. 24" value={formData.totalVillas} onChange={(e) => updateField("totalVillas", e.target.value)} />
+                          </div>
+                        )}
+                        <div className="space-y-2 md:col-span-2">
+                          <Label>Possession *</Label>
+                          <Select value={formData.possessionStatus ?? ""} onValueChange={(v) => updateField("possessionStatus", v)}>
+                            <SelectTrigger><SelectValue placeholder="Under Construction or Ready to Move" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Under Construction">Under Construction</SelectItem>
+                              <SelectItem value="Ready to Move">Ready to Move</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {formData.possessionStatus === "Under Construction" && (
+                            <div className="mt-2">
+                              <Label className="text-muted-foreground">When is the possession?</Label>
+                              <Input type="text" placeholder="e.g. Dec 2026" value={formData.expectedPossessionDate} onChange={(e) => updateField("expectedPossessionDate", e.target.value)} className="mt-1" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <h3 className="font-semibold mb-4">Amenities</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        {NEW_PROJECT_AMENITIES.map((a) => (
+                          <div key={a} className="flex items-center gap-2">
+                            <Checkbox
+                              id={`amenity-np-${a}`}
+                              checked={formData.amenities.includes(a)}
+                              onCheckedChange={() => toggleNewProjectAmenity(a)}
+                            />
+                            <Label htmlFor={`amenity-np-${a}`} className="font-normal cursor-pointer text-sm">{a}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {formData.propertyType !== "new_projects" && (
+                <>
                 {formData.propertyType !== "plot" && formData.propertyType !== "joint_venture" && formData.propertyType !== "farmhouse" && (
                   <>
                     <div>
@@ -2839,6 +3245,8 @@ export default function CreatePropertyPage() {
                     ))}
                   </div>
                 </div>
+            </>
+                )}
               </div>
             </Card>
           )}

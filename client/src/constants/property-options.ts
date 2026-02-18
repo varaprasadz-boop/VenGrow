@@ -137,6 +137,95 @@ export const PROPERTY_AMENITIES = [
 ] as const;
 
 /**
+ * New Project (Property Type: New Project) – full 52 amenities from spec.
+ * Used for Apartment, Row House, Villa, and Plots new project listings.
+ */
+export const NEW_PROJECT_AMENITIES = [
+  "Air Conditioned",
+  "Banquet Hall",
+  "Bar/Lounge",
+  "Cafeteria/Food Court",
+  "Club House",
+  "Concierge Services",
+  "Conference Room",
+  "DTH Television Facility",
+  "Downtown",
+  "Fingerprint Access",
+  "Fireplace",
+  "Full Glass Wall",
+  "Golf Course",
+  "Gymnasium",
+  "Health club with Steam / Jaccuzi",
+  "Helipad",
+  "Hilltop",
+  "House help accommodation",
+  "Intercom Facility",
+  "Internet/Wi-Fi Connectivity",
+  "Island Kitchen Layout",
+  "Jogging and Strolling Track",
+  "Laundry Service",
+  "Lift",
+  "Maintenance Staff",
+  "Outdoor Tennis Courts",
+  "Park",
+  "Piped Gas",
+  "Power Back Up",
+  "Private Garage",
+  "Private Terrace/Garden",
+  "Private jaccuzi",
+  "Private pool",
+  "RO Water System",
+  "Rain Water Harvesting",
+  "Reserved Parking",
+  "Sea facing",
+  "Security",
+  "Service/Goods Lift",
+  "Sky Villa",
+  "Skydeck",
+  "Skyline View",
+  "Smart Home",
+  "Swimming Pool",
+  "Theme based Architectures",
+  "Vaastu Compliant",
+  "Visitor Parking",
+  "Waste Disposal",
+  "Water Front",
+  "Water Storage",
+  "Wine Cellar",
+  "Wrap Around Balcony",
+] as const;
+
+/**
+ * New Project: No. of car parking dropdown options (0 to 10+).
+ */
+export const NEW_PROJECT_CAR_PARKING_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+
+/**
+ * New Project: Total Floors dropdown options (1 to 50).
+ */
+export const NEW_PROJECT_TOTAL_FLOORS_OPTIONS = Array.from({ length: 50 }, (_, i) => i + 1);
+
+/**
+ * New Project: Flats on the Floor dropdown options (1 to 20).
+ */
+export const NEW_PROJECT_FLATS_ON_FLOOR_OPTIONS = Array.from({ length: 20 }, (_, i) => i + 1);
+
+/**
+ * New Project: No. of Lifts dropdown options (0 to 10).
+ */
+export const NEW_PROJECT_LIFTS_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+
+/**
+ * New Project category options (Property Type: New Project).
+ */
+export const NEW_PROJECT_CATEGORIES = [
+  { value: "apartment", label: "Apartment" },
+  { value: "row_house", label: "Row House" },
+  { value: "villa", label: "Villa" },
+  { value: "plot", label: "Plots" },
+] as const;
+
+/**
  * PG / Co-living: Gender options.
  */
 export const PG_GENDER_OPTIONS = ["Male", "Female", "Unisex"] as const;
@@ -206,3 +295,5 @@ export type PgListedForOption = (typeof PG_LISTED_FOR_OPTIONS)[number];
 export type PgRoomTypeOption = (typeof PG_ROOM_TYPE_OPTIONS)[number];
 export type PgAvailableInOption = (typeof PG_AVAILABLE_IN_OPTIONS)[number];
 export type PgNoticePeriodOption = (typeof PG_NOTICE_PERIOD_OPTIONS)[number];
+export type NewProjectAmenity = (typeof NEW_PROJECT_AMENITIES)[number];
+export type NewProjectCategory = (typeof NEW_PROJECT_CATEGORIES)[number]["value"];
