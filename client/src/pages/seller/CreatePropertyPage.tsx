@@ -772,6 +772,7 @@ export default function CreatePropertyPage() {
           formData.area &&
           (
             formData.propertyType === "plot" ||
+            formData.propertyType === "joint_venture" ||
             formData.propertyType === "commercial" ||
             formData.propertyType === "farmhouse" ||
             (formData.bedrooms && formData.bathrooms)
@@ -779,7 +780,7 @@ export default function CreatePropertyPage() {
         );
         if (!base) return false;
         if (
-          formData.propertyType === "apartment" &&
+          (formData.propertyType === "apartment" || formData.propertyType === "new_projects") &&
           (formData.transactionType === "sale" || formData.transactionType === "lease")
         ) {
           return !!(formData.totalFlats && formData.flatsOnFloor && parseInt(formData.totalFlats, 10) > 0 && parseInt(formData.flatsOnFloor, 10) > 0);
@@ -798,7 +799,7 @@ export default function CreatePropertyPage() {
           const liftsOk = formData.liftsAvailable === "yes" || formData.liftsAvailable === "no";
           return !!(totalUnitsOk && totalFloorsOk && cornerOk && liftsOk);
         }
-        if (formData.propertyType === "plot") {
+        if (formData.propertyType === "plot" || formData.propertyType === "joint_venture") {
           const lengthOk = !!(formData.plotLength && parseInt(formData.plotLength, 10) > 0);
           const breadthOk = !!(formData.plotBreadth && parseInt(formData.plotBreadth, 10) > 0);
           const cornerOk = formData.isCornerPlot === "yes" || formData.isCornerPlot === "no";
@@ -898,13 +899,13 @@ export default function CreatePropertyPage() {
             description: "Please select when the property is available (Immediate or date).",
             variant: "destructive",
           });
-        } else if (currentStep === 2 && formData.propertyType === "apartment" && formData.transactionType === "sale" && (!formData.totalFlats || !formData.flatsOnFloor)) {
+        } else if (currentStep === 2 && (formData.propertyType === "apartment" || formData.propertyType === "new_projects") && formData.transactionType === "sale" && (!formData.totalFlats || !formData.flatsOnFloor)) {
           toast({
             title: "Building details required",
             description: "For apartment sale, please enter Total Flats and Flats on the Floor.",
             variant: "destructive",
           });
-        } else if (currentStep === 2 && formData.propertyType === "apartment" && formData.transactionType === "lease" && (!formData.totalFlats || !formData.flatsOnFloor)) {
+        } else if (currentStep === 2 && (formData.propertyType === "apartment" || formData.propertyType === "new_projects") && formData.transactionType === "lease" && (!formData.totalFlats || !formData.flatsOnFloor)) {
           toast({
             title: "Building details required",
             description: "For apartment lease, please enter Total Flats and Flats on the Floor.",
@@ -922,7 +923,7 @@ export default function CreatePropertyPage() {
             description: "For independent house listings, please enter Total Units, Total Floors, Corner Property, and Lifts Available.",
             variant: "destructive",
           });
-        } else if (currentStep === 2 && formData.propertyType === "plot") {
+        } else if (currentStep === 2 && (formData.propertyType === "plot" || formData.propertyType === "joint_venture")) {
           toast({
             title: "Plot details required",
             description: "For plot listings, please enter Plot Area, Length, Breadth, Corner Plot, Road width, and Club House. For sale, also enter Floor allowed for Construction.",
@@ -1228,15 +1229,16 @@ export default function CreatePropertyPage() {
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="apartment">Apartment</SelectItem>
-                        <SelectItem value="villa">Villa</SelectItem>
+                        <SelectItem value="apartment">Apartments</SelectItem>
+                        <SelectItem value="villa">Villas</SelectItem>
+                        <SelectItem value="plot">Plots</SelectItem>
                         <SelectItem value="independent_house">Independent House</SelectItem>
+                        <SelectItem value="new_projects">New Projects</SelectItem>
                         <SelectItem value="commercial">Commercial</SelectItem>
-                        <SelectItem value="plot">Plot/Land</SelectItem>
-                        <SelectItem value="farmhouse">Farmhouse / Farm Land</SelectItem>
+                        <SelectItem value="joint_venture">Joint Venture</SelectItem>
+                        <SelectItem value="pg_co_living">PG / Co-Living</SelectItem>
+                        <SelectItem value="farmhouse">Farm Land</SelectItem>
                         <SelectItem value="penthouse">Penthouse</SelectItem>
-                        <SelectItem value="pg_co_living">PG Co-living</SelectItem>
-                        <SelectItem value="studio">Studio</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1704,7 +1706,7 @@ export default function CreatePropertyPage() {
               </h2>
 
               <div className="space-y-6">
-                {formData.propertyType !== "plot" && formData.propertyType !== "farmhouse" && (
+                {formData.propertyType !== "plot" && formData.propertyType !== "joint_venture" && formData.propertyType !== "farmhouse" && (
                   <>
                     <div>
                       <h3 className="font-semibold mb-4">Room Configuration</h3>
@@ -1777,7 +1779,7 @@ export default function CreatePropertyPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="area">
-                        {formData.propertyType === "plot" ? "Plot Area" : "Carpet Area"} ({formData.areaUnit}){formData.propertyType === "pg_co_living" ? " (Optional)" : " *"}
+                        {(formData.propertyType === "plot" || formData.propertyType === "joint_venture") ? "Plot Area" : "Carpet Area"} ({formData.areaUnit}){formData.propertyType === "pg_co_living" ? " (Optional)" : " *"}
                       </Label>
                       <Input
                         id="area"
@@ -1806,7 +1808,7 @@ export default function CreatePropertyPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    {formData.propertyType !== "plot" && (
+                    {formData.propertyType !== "plot" && formData.propertyType !== "joint_venture" && (
                       <div className="space-y-2 md:col-span-2">
                         <Label htmlFor="superBuiltUpArea">Super Built-up Area ({formData.areaUnit}) (Optional)</Label>
                         <Input
@@ -1872,7 +1874,7 @@ export default function CreatePropertyPage() {
                   </div>
                 </div>
 
-                {formData.propertyType !== "plot" && (
+                {formData.propertyType !== "plot" && formData.propertyType !== "joint_venture" && (
                   <>
                     <Separator />
 
@@ -1929,7 +1931,7 @@ export default function CreatePropertyPage() {
                       </div>
                     )}
 
-                    {formData.propertyType === "apartment" && formData.transactionType === "sale" && (
+                    {(formData.propertyType === "apartment" || formData.propertyType === "new_projects") && formData.transactionType === "sale" && (
                       <div>
                         <h3 className="font-semibold mb-4">Building Details (Sale)</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2117,7 +2119,7 @@ export default function CreatePropertyPage() {
                       </div>
                     )}
 
-                    {formData.propertyType === "plot" && (
+                    {(formData.propertyType === "plot" || formData.propertyType === "joint_venture") && (
                       <div>
                         <h3 className="font-semibold mb-4">Plot Details</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2642,7 +2644,7 @@ export default function CreatePropertyPage() {
                       </div>
                     )}
 
-                    {(formData.propertyType === "apartment" && (formData.transactionType === "rent" || formData.transactionType === "lease")) && (
+                    {((formData.propertyType === "apartment" || formData.propertyType === "new_projects") && (formData.transactionType === "rent" || formData.transactionType === "lease")) && (
                       <div>
                         <h3 className="font-semibold mb-4">
                           Building Details{formData.transactionType === "lease" ? "" : " (Optional)"}
@@ -2786,7 +2788,7 @@ export default function CreatePropertyPage() {
                   </>
                 )}
 
-                {formData.propertyType !== "farmhouse" && formData.propertyType !== "plot" && (
+                {formData.propertyType !== "farmhouse" && formData.propertyType !== "plot" && formData.propertyType !== "joint_venture" && (
                   <>
                     <Separator />
 
@@ -3262,7 +3264,7 @@ export default function CreatePropertyPage() {
 
                     <Separator />
 
-                    {formData.propertyType !== "plot" && (
+                    {formData.propertyType !== "plot" && formData.propertyType !== "joint_venture" && (
                       <div className="grid grid-cols-3 gap-3 text-sm">
                         <div className="flex flex-col items-center p-2 bg-muted/50 rounded-lg">
                           <Bed className="h-4 w-4 text-muted-foreground mb-1" />

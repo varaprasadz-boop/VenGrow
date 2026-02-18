@@ -155,7 +155,7 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
               );
             })
           ) : (
-            categories.slice(0, 11).map((category) => {
+            categories.map((category) => {
               const IconComponent = iconMap[category.icon || "Building2"] || Building2;
               return (
                 <Link 

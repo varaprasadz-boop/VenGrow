@@ -15,7 +15,7 @@ export const sessions = pgTable(
 
 export const userRoleEnum = pgEnum("user_role", ["buyer", "seller", "admin"]);
 export const sellerTypeEnum = pgEnum("seller_type", ["individual", "broker", "builder"]);
-export const propertyTypeEnum = pgEnum("property_type", ["apartment", "villa", "plot", "commercial", "farmhouse", "penthouse", "independent_house", "pg_co_living"]);
+export const propertyTypeEnum = pgEnum("property_type", ["apartment", "villa", "plot", "commercial", "farmhouse", "penthouse", "independent_house", "pg_co_living", "new_projects", "joint_venture"]);
 export const transactionTypeEnum = pgEnum("transaction_type", ["sale", "rent", "lease"]);
 export const projectStageEnum = pgEnum("project_stage", ["pre_launch", "launch", "under_construction", "ready_to_move"]);
 export const listingStatusEnum = pgEnum("listing_status", ["draft", "pending", "active", "sold", "rented", "expired", "rejected"]);
