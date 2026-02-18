@@ -55,7 +55,15 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
-import { MEASUREMENT_UNITS, FLOORING_OPTIONS } from "@/constants/property-options";
+import {
+  MEASUREMENT_UNITS,
+  FLOORING_OPTIONS,
+  VIEW_OPTIONS,
+  TENANTS_PREFERRED_OPTIONS,
+  LOCK_IN_MONTHS_OPTIONS,
+  NEGOTIABLE_OPTIONS,
+  PROPERTY_AMENITIES,
+} from "@/constants/property-options";
 
 interface PropertyFormData {
   propertyType: string;
@@ -92,6 +100,23 @@ interface PropertyFormData {
   agreedToTerms: boolean;
   verifiedInfo: boolean;
   projectId: string;
+  nearbyLandmark: string;
+  superBuiltUpArea: string;
+  carParkingCount: string;
+  maintenanceCharges: string;
+  viewType: string;
+  numberOfLifts: string;
+  isNegotiable: string;
+  securityDeposit: string;
+  lockInMonths: string;
+  tenantsPreferred: string;
+  negotiableRent: string;
+  brokerageBothSides: string;
+  disclosure: string;
+  isResale: string;
+  totalFlats: string;
+  flatsOnFloor: string;
+  availableFrom: string;
 }
 
 const STEPS = [
@@ -99,29 +124,6 @@ const STEPS = [
   { id: 2, title: "Details", description: "Rooms & specifications" },
   { id: 3, title: "Photos", description: "Upload images" },
   { id: 4, title: "Review", description: "Contact & submit" },
-];
-
-const AMENITIES_LIST = [
-  "Swimming Pool",
-  "Gym",
-  "Garden",
-  "Power Backup",
-  "Lift",
-  "24/7 Security",
-  "Children's Play Area",
-  "Club House",
-  "Intercom",
-  "Gas Pipeline",
-  "Park",
-  "Water Storage",
-  "CCTV Surveillance",
-  "Covered Parking",
-  "Visitor Parking",
-  "Fire Safety",
-  "Rainwater Harvesting",
-  "Solar Panels",
-  "WiFi Connectivity",
-  "Indoor Games",
 ];
 
 const HIGHLIGHTS_LIST = [
@@ -193,6 +195,23 @@ export default function CreatePropertyPage() {
     agreedToTerms: false,
     verifiedInfo: false,
     projectId: "",
+    nearbyLandmark: "",
+    superBuiltUpArea: "",
+    carParkingCount: "",
+    maintenanceCharges: "",
+    viewType: "",
+    numberOfLifts: "",
+    isNegotiable: "",
+    securityDeposit: "",
+    lockInMonths: "",
+    tenantsPreferred: "",
+    negotiableRent: "",
+    brokerageBothSides: "",
+    disclosure: "",
+    isResale: "",
+    totalFlats: "",
+    flatsOnFloor: "",
+    availableFrom: "",
   });
 
   const { data: canCreateData, isLoading: checkingLimit } = useQuery<{
@@ -400,6 +419,23 @@ export default function CreatePropertyPage() {
         agreedToTerms: true,
         verifiedInfo: true,
         projectId: propertyData.projectId || "",
+        nearbyLandmark: (propertyData as any).nearbyLandmark || "",
+        superBuiltUpArea: (propertyData as any).superBuiltUpArea?.toString() || "",
+        carParkingCount: (propertyData as any).carParkingCount?.toString() || "",
+        maintenanceCharges: (propertyData as any).maintenanceCharges?.toString() || "",
+        viewType: (propertyData as any).viewType || "",
+        numberOfLifts: (propertyData as any).numberOfLifts?.toString() || "",
+        isNegotiable: (propertyData as any).isNegotiable != null ? String((propertyData as any).isNegotiable) : "",
+        securityDeposit: (propertyData as any).securityDeposit?.toString() || "",
+        lockInMonths: (propertyData as any).lockInMonths?.toString() || "",
+        tenantsPreferred: (propertyData as any).tenantsPreferred || "",
+        negotiableRent: (propertyData as any).negotiableRent || "",
+        brokerageBothSides: (propertyData as any).brokerageBothSides || "",
+        disclosure: (propertyData as any).disclosure || "",
+        isResale: (propertyData as any).isResale === true ? "resale" : (propertyData as any).isResale === false ? "new" : "",
+        totalFlats: (propertyData as any).totalFlats?.toString() || "",
+        flatsOnFloor: (propertyData as any).flatsOnFloor?.toString() || "",
+        availableFrom: (propertyData as any).availableFrom || "",
       }));
     }
   }, [propertyData]);
@@ -572,8 +608,8 @@ export default function CreatePropertyPage() {
 
   const validateStep = (step: number): boolean => {
     switch (step) {
-      case 1:
-        return !!(
+      case 1: {
+        const base = !!(
           formData.propertyType &&
           formData.transactionType &&
           formData.title &&
@@ -582,11 +618,32 @@ export default function CreatePropertyPage() {
           formData.city &&
           formData.state
         );
-      case 2:
-        return !!(
+        if (!base) return false;
+        if (formData.transactionType === "sale") {
+          return !!(formData.isResale === "new" || formData.isResale === "resale");
+        }
+        if (formData.transactionType === "rent" || formData.transactionType === "lease") {
+          return !!(
+            formData.availableFrom === "immediate" ||
+            (formData.availableFrom && formData.availableFrom.length === 10)
+          );
+        }
+        return true;
+      }
+      case 2: {
+        const base = !!(
           formData.area &&
           (formData.propertyType === "plot" || (formData.bedrooms && formData.bathrooms))
         );
+        if (!base) return false;
+        if (
+          formData.propertyType === "apartment" &&
+          (formData.transactionType === "sale" || formData.transactionType === "lease")
+        ) {
+          return !!(formData.totalFlats && formData.flatsOnFloor && parseInt(formData.totalFlats, 10) > 0 && parseInt(formData.flatsOnFloor, 10) > 0);
+        }
+        return true;
+      }
       case 3:
         // Photos are optional but recommended - allow proceeding without photos
         // User can add photos later or proceed to next step
@@ -650,11 +707,37 @@ export default function CreatePropertyPage() {
           });
         }
       } else {
-        toast({
-          title: "Missing Information",
-          description: "Please fill in all required fields before proceeding.",
-          variant: "destructive",
-        });
+        if (currentStep === 1 && formData.transactionType === "sale" && !formData.isResale) {
+          toast({
+            title: "Sale details required",
+            description: "Please select New property or Resale.",
+            variant: "destructive",
+          });
+        } else if (currentStep === 1 && (formData.transactionType === "rent" || formData.transactionType === "lease") && !formData.availableFrom) {
+          toast({
+            title: "Available From required",
+            description: "Please select when the property is available (Immediate or date).",
+            variant: "destructive",
+          });
+        } else if (currentStep === 2 && formData.propertyType === "apartment" && formData.transactionType === "sale" && (!formData.totalFlats || !formData.flatsOnFloor)) {
+          toast({
+            title: "Building details required",
+            description: "For apartment sale, please enter Total Flats and Flats on the Floor.",
+            variant: "destructive",
+          });
+        } else if (currentStep === 2 && formData.propertyType === "apartment" && formData.transactionType === "lease" && (!formData.totalFlats || !formData.flatsOnFloor)) {
+          toast({
+            title: "Building details required",
+            description: "For apartment lease, please enter Total Flats and Flats on the Floor.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Missing Information",
+            description: "Please fill in all required fields before proceeding.",
+            variant: "destructive",
+          });
+        }
       }
     }
   };
@@ -727,6 +810,26 @@ export default function CreatePropertyPage() {
       contactName: formData.contactName?.trim() || null,
       contactPhone: formData.contactPhone ? cleanPhone(formData.contactPhone) : null,
       contactEmail: formData.contactEmail ? normalizeEmail(formData.contactEmail) : null,
+      nearbyLandmark: formData.nearbyLandmark?.trim() || null,
+      superBuiltUpArea: formData.superBuiltUpArea ? parseInt(formData.superBuiltUpArea, 10) : null,
+      carParkingCount: formData.carParkingCount ? parseInt(formData.carParkingCount, 10) : null,
+      maintenanceCharges: formData.maintenanceCharges ? parseInt(formData.maintenanceCharges, 10) : null,
+      viewType: formData.viewType || null,
+      numberOfLifts: formData.numberOfLifts ? parseInt(formData.numberOfLifts, 10) : null,
+      isNegotiable: formData.isNegotiable === "true" ? true : formData.isNegotiable === "false" ? false : null,
+      securityDeposit: formData.securityDeposit ? parseInt(formData.securityDeposit, 10) : null,
+      lockInMonths: formData.lockInMonths ? parseInt(formData.lockInMonths, 10) : null,
+      tenantsPreferred: formData.tenantsPreferred || null,
+      negotiableRent: formData.negotiableRent || null,
+      brokerageBothSides: formData.brokerageBothSides || null,
+      disclosure: formData.disclosure || null,
+      isResale: formData.isResale === "resale" ? true : formData.isResale === "new" ? false : null,
+      totalFlats: formData.totalFlats ? parseInt(formData.totalFlats, 10) : null,
+      flatsOnFloor: formData.flatsOnFloor ? parseInt(formData.flatsOnFloor, 10) : null,
+      availableFrom:
+        formData.availableFrom?.trim() === "immediate" || (formData.availableFrom && formData.availableFrom.length === 10)
+          ? formData.availableFrom.trim()
+          : null,
     };
 
     if (isEditMode) {
@@ -975,6 +1078,188 @@ export default function CreatePropertyPage() {
                   )}
                 </div>
 
+                {(formData.transactionType === "rent" || formData.transactionType === "lease") && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="availableFrom">Available From *</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={
+                            formData.availableFrom === "immediate"
+                              ? "immediate"
+                              : formData.availableFrom && formData.availableFrom.length === 10
+                                ? "date"
+                                : !formData.availableFrom
+                                  ? ""
+                                  : "date"
+                          }
+                          onValueChange={(value) => updateField("availableFrom", value === "immediate" ? "immediate" : value === "date" ? "date" : "")}
+                        >
+                          <SelectTrigger id="availableFrom">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="immediate">Immediate</SelectItem>
+                            <SelectItem value="date">Select date</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {(formData.availableFrom === "date" || (formData.availableFrom && formData.availableFrom !== "immediate" && formData.availableFrom.length === 10)) && (
+                          <Input
+                            type="date"
+                            value={formData.availableFrom === "date" ? "" : formData.availableFrom}
+                            onChange={(e) => updateField("availableFrom", e.target.value)}
+                          />
+                        )}
+                        {formData.availableFrom === "immediate" && (
+                          <p className="text-xs text-muted-foreground">Property is available for occupancy immediately.</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="securityDeposit">Security Deposit (₹)</Label>
+                        <Input
+                          id="securityDeposit"
+                          type="number"
+                          placeholder="e.g., 100000"
+                          value={formData.securityDeposit}
+                          onChange={(e) => updateField("securityDeposit", e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lockInMonths">Lock-in period (months)</Label>
+                        <Select
+                          value={formData.lockInMonths}
+                          onValueChange={(value) => updateField("lockInMonths", value)}
+                        >
+                          <SelectTrigger id="lockInMonths">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LOCK_IN_MONTHS_OPTIONS.map((m) => (
+                              <SelectItem key={m} value={String(m)}>{m} months</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tenantsPreferred">Tenants Preferred</Label>
+                      <Select
+                        value={formData.tenantsPreferred}
+                        onValueChange={(value) => updateField("tenantsPreferred", value)}
+                      >
+                        <SelectTrigger id="tenantsPreferred">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TENANTS_PREFERRED_OPTIONS.map((opt) => (
+                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Negotiable (Rent)</Label>
+                        <Select
+                          value={formData.negotiableRent}
+                          onValueChange={(value) => updateField("negotiableRent", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {NEGOTIABLE_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Brokerage Both Sides</Label>
+                        <Select
+                          value={formData.brokerageBothSides}
+                          onValueChange={(value) => updateField("brokerageBothSides", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {NEGOTIABLE_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Disclosure</Label>
+                        <Select
+                          value={formData.disclosure}
+                          onValueChange={(value) => updateField("disclosure", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {NEGOTIABLE_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {formData.transactionType === "sale" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>New property or Resale *</Label>
+                      <Select
+                        value={formData.isResale}
+                        onValueChange={(value) => updateField("isResale", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="new">New property</SelectItem>
+                          <SelectItem value="resale">Resale</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Price Negotiable</Label>
+                      <Select
+                        value={formData.isNegotiable}
+                        onValueChange={(value) => updateField("isNegotiable", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Yes</SelectItem>
+                          <SelectItem value="false">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="numberOfLifts">No. of lifts</Label>
+                      <Input
+                        id="numberOfLifts"
+                        type="number"
+                        min={0}
+                        placeholder="e.g., 2"
+                        value={formData.numberOfLifts}
+                        onChange={(e) => updateField("numberOfLifts", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  </>
+                )}
+
                 <Separator />
 
                 <div>
@@ -1047,6 +1332,16 @@ export default function CreatePropertyPage() {
                           data-testid="input-pincode"
                         />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="nearbyLandmark">Nearby Landmark (Optional)</Label>
+                      <Input
+                        id="nearbyLandmark"
+                        placeholder="e.g., Near metro station"
+                        value={formData.nearbyLandmark}
+                        onChange={(e) => updateField("nearbyLandmark", e.target.value)}
+                      />
                     </div>
 
                     <div className="space-y-4 mt-4">
@@ -1175,6 +1470,7 @@ export default function CreatePropertyPage() {
                               <SelectValue placeholder="Select" />
                             </SelectTrigger>
                             <SelectContent>
+                              <SelectItem value="0">Studio</SelectItem>
                               <SelectItem value="1">1 BHK</SelectItem>
                               <SelectItem value="2">2 BHK</SelectItem>
                               <SelectItem value="3">3 BHK</SelectItem>
@@ -1261,6 +1557,61 @@ export default function CreatePropertyPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                    {formData.propertyType !== "plot" && (
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="superBuiltUpArea">Super Built-up Area ({formData.areaUnit}) (Optional)</Label>
+                        <Input
+                          id="superBuiltUpArea"
+                          type="number"
+                          placeholder="e.g., 1400"
+                          value={formData.superBuiltUpArea}
+                          onChange={(e) => updateField("superBuiltUpArea", e.target.value)}
+                        />
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <Label htmlFor="carParkingCount">No. of car parking</Label>
+                      <Select
+                        value={formData.carParkingCount || "0"}
+                        onValueChange={(value) => updateField("carParkingCount", value)}
+                      >
+                        <SelectTrigger id="carParkingCount">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                          <SelectContent>
+                            {[0, 1, 2, 3, 4, 5].map((n) => (
+                              <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                            ))}
+                            <SelectItem value="6">6+</SelectItem>
+                          </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="maintenanceCharges">Maintenance charges (₹/month)</Label>
+                      <Input
+                        id="maintenanceCharges"
+                        type="number"
+                        placeholder="e.g., 3000"
+                        value={formData.maintenanceCharges}
+                        onChange={(e) => updateField("maintenanceCharges", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="viewType">View</Label>
+                      <Select
+                        value={formData.viewType}
+                        onValueChange={(value) => updateField("viewType", value)}
+                      >
+                        <SelectTrigger id="viewType">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {VIEW_OPTIONS.map((opt) => (
+                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     {formData.area && formData.price && (
                       <div className="space-y-2">
                         <Label>Price per {formData.areaUnit.toLowerCase()}</Label>
@@ -1327,6 +1678,76 @@ export default function CreatePropertyPage() {
                       </div>
                     </div>
 
+                    {formData.transactionType === "sale" && (
+                      <div>
+                        <h3 className="font-semibold mb-4">Building Details (Sale)</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="totalFlats">Total Flats *</Label>
+                            <Input
+                              id="totalFlats"
+                              type="number"
+                              min={1}
+                              placeholder="e.g., 24"
+                              value={formData.totalFlats}
+                              onChange={(e) => updateField("totalFlats", e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">Total flats in the building</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="flatsOnFloor">Flats on the Floor *</Label>
+                            <Input
+                              id="flatsOnFloor"
+                              type="number"
+                              min={1}
+                              placeholder="e.g., 2"
+                              value={formData.flatsOnFloor}
+                              onChange={(e) => updateField("flatsOnFloor", e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">Flats on the same floor</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {(formData.propertyType === "apartment" && (formData.transactionType === "rent" || formData.transactionType === "lease")) && (
+                      <div>
+                        <h3 className="font-semibold mb-4">
+                          Building Details{formData.transactionType === "lease" ? "" : " (Optional)"}
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="totalFlatsRent">
+                              Total Flats{formData.transactionType === "lease" ? " *" : ""}
+                            </Label>
+                            <Input
+                              id="totalFlatsRent"
+                              type="number"
+                              min={1}
+                              placeholder="e.g., 24"
+                              value={formData.totalFlats}
+                              onChange={(e) => updateField("totalFlats", e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">Total flats in the building</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="flatsOnFloorRent">
+                              Flats on the Floor{formData.transactionType === "lease" ? " *" : ""}
+                            </Label>
+                            <Input
+                              id="flatsOnFloorRent"
+                              type="number"
+                              min={1}
+                              placeholder="e.g., 2"
+                              value={formData.flatsOnFloor}
+                              onChange={(e) => updateField("flatsOnFloor", e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">Flats on the same floor</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <Separator />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1341,7 +1762,7 @@ export default function CreatePropertyPage() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="unfurnished">Unfurnished</SelectItem>
-                            <SelectItem value="semi-furnished">Semi-Furnished</SelectItem>
+                            <SelectItem value="semi-furnished">Semi Furnished</SelectItem>
                             <SelectItem value="fully-furnished">Fully Furnished</SelectItem>
                           </SelectContent>
                         </Select>
@@ -1423,7 +1844,7 @@ export default function CreatePropertyPage() {
                 <div>
                   <h3 className="font-semibold mb-4">Amenities</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {AMENITIES_LIST.map((amenity) => (
+                    {PROPERTY_AMENITIES.map((amenity) => (
                       <div key={amenity} className="flex items-center space-x-2">
                         <Checkbox
                           id={`amenity-${amenity}`}

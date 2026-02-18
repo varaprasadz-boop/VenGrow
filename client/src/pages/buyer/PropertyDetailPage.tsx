@@ -179,13 +179,27 @@ export default function PropertyDetailPage() {
 
   const location = `${property.locality || ''}, ${property.city || ''}, ${property.state || ''}`.replace(/^, |, $/g, '').replace(/,,/g, ',');
   const amenities = (property.amenities as string[]) || [];
+  const p = property as any;
   const features = {
     facing: property.facing || "Not specified",
     floor: property.floor ? `${property.floor}${property.floor === 1 ? 'st' : property.floor === 2 ? 'nd' : property.floor === 3 ? 'rd' : 'th'} Floor` : "Not specified",
     totalFloors: property.totalFloors || "Not specified",
     furnishing: property.furnishing || "Not specified",
-    parking: property.parking || "Not specified",
-    ageOfProperty: property.ageOfProperty || "Not specified",
+    parking: p.carParkingCount != null ? `${p.carParkingCount} car parking` : property.parking || "Not specified",
+    ageOfProperty: property.ageOfProperty != null ? `${property.ageOfProperty} years` : "Not specified",
+    maintenanceCharges: p.maintenanceCharges != null ? `₹${Number(p.maintenanceCharges).toLocaleString("en-IN")}/month` : null,
+    viewType: p.viewType || null,
+    superBuiltUpArea: p.superBuiltUpArea != null ? `${p.superBuiltUpArea} ${(property as { areaUnit?: string }).areaUnit || "Sq-ft"}` : null,
+    numberOfLifts: p.numberOfLifts != null ? p.numberOfLifts : null,
+    isNegotiable: p.isNegotiable,
+    securityDeposit: p.securityDeposit != null ? `₹${Number(p.securityDeposit).toLocaleString("en-IN")}` : null,
+    lockInMonths: p.lockInMonths != null ? `${p.lockInMonths} months` : null,
+    tenantsPreferred: p.tenantsPreferred || null,
+    nearbyLandmark: p.nearbyLandmark || null,
+    isResale: p.isResale,
+    totalFlats: p.totalFlats != null ? p.totalFlats : null,
+    flatsOnFloor: p.flatsOnFloor != null ? p.flatsOnFloor : null,
+    availableFrom: p.availableFrom || null,
   };
 
   return (
@@ -419,6 +433,95 @@ export default function PropertyDetailPage() {
                         <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
                           <span className="text-muted-foreground">Age</span>
                           <span className="font-medium">{features.ageOfProperty}</span>
+                        </div>
+                      )}
+                      {features.maintenanceCharges && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Maintenance</span>
+                          <span className="font-medium">{features.maintenanceCharges}</span>
+                        </div>
+                      )}
+                      {features.viewType && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">View</span>
+                          <span className="font-medium">{features.viewType}</span>
+                        </div>
+                      )}
+                      {features.superBuiltUpArea && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Super Built-up</span>
+                          <span className="font-medium">{features.superBuiltUpArea}</span>
+                        </div>
+                      )}
+                      {features.numberOfLifts != null && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Lifts</span>
+                          <span className="font-medium">{features.numberOfLifts}</span>
+                        </div>
+                      )}
+                      {property.transactionType === "sale" && features.isNegotiable === true && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Price</span>
+                          <span className="font-medium">Negotiable</span>
+                        </div>
+                      )}
+                      {property.transactionType === "sale" && (features.isResale === true || features.isResale === false) && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Property</span>
+                          <span className="font-medium">{features.isResale === true ? "Resale" : "New property"}</span>
+                        </div>
+                      )}
+                      {property.transactionType === "sale" && features.totalFlats != null && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Total Flats</span>
+                          <span className="font-medium">{features.totalFlats}</span>
+                        </div>
+                      )}
+                      {property.transactionType === "sale" && features.flatsOnFloor != null && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Flats on Floor</span>
+                          <span className="font-medium">{features.flatsOnFloor}</span>
+                        </div>
+                      )}
+                      {(property.transactionType === "rent" || property.transactionType === "lease") && features.availableFrom && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Available From</span>
+                          <span className="font-medium">
+                            {features.availableFrom === "immediate"
+                              ? "Immediate"
+                              : (() => {
+                                  try {
+                                    const d = new Date(features.availableFrom);
+                                    return isNaN(d.getTime()) ? features.availableFrom : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+                                  } catch {
+                                    return features.availableFrom;
+                                  }
+                                })()}
+                          </span>
+                        </div>
+                      )}
+                      {(property.transactionType === "rent" || property.transactionType === "lease") && features.securityDeposit && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Security Deposit</span>
+                          <span className="font-medium">{features.securityDeposit}</span>
+                        </div>
+                      )}
+                      {(property.transactionType === "rent" || property.transactionType === "lease") && features.lockInMonths && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Lock-in</span>
+                          <span className="font-medium">{features.lockInMonths}</span>
+                        </div>
+                      )}
+                      {(property.transactionType === "rent" || property.transactionType === "lease") && features.tenantsPreferred && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Tenants Preferred</span>
+                          <span className="font-medium">{features.tenantsPreferred}</span>
+                        </div>
+                      )}
+                      {features.nearbyLandmark && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg md:col-span-2">
+                          <span className="text-muted-foreground">Nearby Landmark</span>
+                          <span className="font-medium">{features.nearbyLandmark}</span>
                         </div>
                       )}
                     </div>

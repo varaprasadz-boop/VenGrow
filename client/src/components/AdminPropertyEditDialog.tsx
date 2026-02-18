@@ -11,7 +11,14 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import type { Property } from "@shared/schema";
-import { MEASUREMENT_UNITS, FLOORING_OPTIONS } from "@/constants/property-options";
+import {
+  MEASUREMENT_UNITS,
+  FLOORING_OPTIONS,
+  VIEW_OPTIONS,
+  TENANTS_PREFERRED_OPTIONS,
+  LOCK_IN_MONTHS_OPTIONS,
+  NEGOTIABLE_OPTIONS,
+} from "@/constants/property-options";
 
 interface AdminPropertyEditDialogProps {
   property: Property | null;
@@ -59,6 +66,23 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
         isVerified: property.isVerified || false,
         isFeatured: property.isFeatured || false,
         slug: property.slug || "",
+        nearbyLandmark: (property as any).nearbyLandmark || "",
+        superBuiltUpArea: (property as any).superBuiltUpArea ?? undefined,
+        carParkingCount: (property as any).carParkingCount ?? undefined,
+        maintenanceCharges: (property as any).maintenanceCharges ?? undefined,
+        viewType: (property as any).viewType || "",
+        numberOfLifts: (property as any).numberOfLifts ?? undefined,
+        isNegotiable: (property as any).isNegotiable ?? undefined,
+        securityDeposit: (property as any).securityDeposit ?? undefined,
+        lockInMonths: (property as any).lockInMonths ?? undefined,
+        tenantsPreferred: (property as any).tenantsPreferred || "",
+        negotiableRent: (property as any).negotiableRent || "",
+        brokerageBothSides: (property as any).brokerageBothSides || "",
+        disclosure: (property as any).disclosure || "",
+        isResale: (property as any).isResale ?? undefined,
+        totalFlats: (property as any).totalFlats ?? undefined,
+        flatsOnFloor: (property as any).flatsOnFloor ?? undefined,
+        availableFrom: (property as any).availableFrom || "",
       });
     }
   }, [property]);
@@ -129,6 +153,16 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
       ageOfProperty: formData.ageOfProperty ? Number(formData.ageOfProperty) : undefined,
       latitude: formData.latitude ? parseFloat(formData.latitude as any) : undefined,
       longitude: formData.longitude ? parseFloat(formData.longitude as any) : undefined,
+      superBuiltUpArea: (formData as any).superBuiltUpArea ? Number((formData as any).superBuiltUpArea) : undefined,
+      carParkingCount: (formData as any).carParkingCount != null ? Number((formData as any).carParkingCount) : undefined,
+      maintenanceCharges: (formData as any).maintenanceCharges ? Number((formData as any).maintenanceCharges) : undefined,
+      numberOfLifts: (formData as any).numberOfLifts != null ? Number((formData as any).numberOfLifts) : undefined,
+      securityDeposit: (formData as any).securityDeposit ? Number((formData as any).securityDeposit) : undefined,
+      lockInMonths: (formData as any).lockInMonths != null ? Number((formData as any).lockInMonths) : undefined,
+      isResale: (formData as any).isResale,
+      totalFlats: (formData as any).totalFlats != null ? Number((formData as any).totalFlats) : undefined,
+      flatsOnFloor: (formData as any).flatsOnFloor != null ? Number((formData as any).flatsOnFloor) : undefined,
+      availableFrom: (formData as any).availableFrom?.trim() || undefined,
     };
 
     // Remove empty strings
@@ -464,6 +498,218 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
                 value={formData.longitude || ""}
                 onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
               />
+            </div>
+
+            {/* Additional (Property Posting Details) */}
+            <div className="space-y-2">
+              <Label htmlFor="nearbyLandmark">Nearby Landmark</Label>
+              <Input
+                id="nearbyLandmark"
+                value={(formData as any).nearbyLandmark || ""}
+                onChange={(e) => setFormData({ ...formData, nearbyLandmark: e.target.value } as Partial<Property>)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="superBuiltUpArea">Super Built-up Area</Label>
+              <Input
+                id="superBuiltUpArea"
+                type="number"
+                value={(formData as any).superBuiltUpArea ?? ""}
+                onChange={(e) => setFormData({ ...formData, superBuiltUpArea: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="carParkingCount">Car Parking Count</Label>
+              <Input
+                id="carParkingCount"
+                type="number"
+                min={0}
+                value={(formData as any).carParkingCount ?? ""}
+                onChange={(e) => setFormData({ ...formData, carParkingCount: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="maintenanceCharges">Maintenance Charges (₹/month)</Label>
+              <Input
+                id="maintenanceCharges"
+                type="number"
+                value={(formData as any).maintenanceCharges ?? ""}
+                onChange={(e) => setFormData({ ...formData, maintenanceCharges: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="viewType">View</Label>
+              <Select
+                value={(formData as any).viewType || ""}
+                onValueChange={(value) => setFormData({ ...formData, viewType: value } as Partial<Property>)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select view" />
+                </SelectTrigger>
+                <SelectContent>
+                  {VIEW_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="numberOfLifts">No. of Lifts</Label>
+              <Input
+                id="numberOfLifts"
+                type="number"
+                min={0}
+                value={(formData as any).numberOfLifts ?? ""}
+                onChange={(e) => setFormData({ ...formData, numberOfLifts: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Price Negotiable (Sale)</Label>
+              <Select
+                value={(formData as any).isNegotiable === true ? "true" : (formData as any).isNegotiable === false ? "false" : ""}
+                onValueChange={(value) => setFormData({ ...formData, isNegotiable: value === "true" ? true : value === "false" ? false : undefined } as Partial<Property>)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Yes</SelectItem>
+                  <SelectItem value="false">No</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>New property or Resale (Sale)</Label>
+              <Select
+                value={(formData as any).isResale === true ? "resale" : (formData as any).isResale === false ? "new" : ""}
+                onValueChange={(value) => setFormData({ ...formData, isResale: value === "resale" ? true : value === "new" ? false : undefined } as Partial<Property>)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">New property</SelectItem>
+                  <SelectItem value="resale">Resale</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="totalFlats">Total Flats (Sale)</Label>
+              <Input
+                id="totalFlats"
+                type="number"
+                min={1}
+                value={(formData as any).totalFlats ?? ""}
+                onChange={(e) => setFormData({ ...formData, totalFlats: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="flatsOnFloor">Flats on the Floor (Sale)</Label>
+              <Input
+                id="flatsOnFloor"
+                type="number"
+                min={1}
+                value={(formData as any).flatsOnFloor ?? ""}
+                onChange={(e) => setFormData({ ...formData, flatsOnFloor: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="availableFrom">Available From (Rent/Lease)</Label>
+              <Input
+                id="availableFrom"
+                placeholder="immediate or YYYY-MM-DD"
+                value={(formData as any).availableFrom ?? ""}
+                onChange={(e) => setFormData({ ...formData, availableFrom: e.target.value } as Partial<Property>)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="securityDeposit">Security Deposit (₹)</Label>
+              <Input
+                id="securityDeposit"
+                type="number"
+                value={(formData as any).securityDeposit ?? ""}
+                onChange={(e) => setFormData({ ...formData, securityDeposit: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lockInMonths">Lock-in (months)</Label>
+              <Select
+                value={(formData as any).lockInMonths != null ? String((formData as any).lockInMonths) : ""}
+                onValueChange={(value) => setFormData({ ...formData, lockInMonths: value ? Number(value) : undefined } as Partial<Property>)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LOCK_IN_MONTHS_OPTIONS.map((m) => (
+                    <SelectItem key={m} value={String(m)}>{m} months</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tenantsPreferred">Tenants Preferred</Label>
+              <Select
+                value={(formData as any).tenantsPreferred || ""}
+                onValueChange={(value) => setFormData({ ...formData, tenantsPreferred: value } as Partial<Property>)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TENANTS_PREFERRED_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Negotiable Rent</Label>
+              <Select
+                value={(formData as any).negotiableRent || ""}
+                onValueChange={(value) => setFormData({ ...formData, negotiableRent: value } as Partial<Property>)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  {NEGOTIABLE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Brokerage Both Sides</Label>
+              <Select
+                value={(formData as any).brokerageBothSides || ""}
+                onValueChange={(value) => setFormData({ ...formData, brokerageBothSides: value } as Partial<Property>)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  {NEGOTIABLE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Disclosure</Label>
+              <Select
+                value={(formData as any).disclosure || ""}
+                onValueChange={(value) => setFormData({ ...formData, disclosure: value } as Partial<Property>)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  {NEGOTIABLE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Status Fields (Admin Only) */}
