@@ -299,15 +299,18 @@ export interface PropertyFilters {
   city?: string;
   state?: string;
   propertyType?: string;
+  /** Comma-separated or single: e.g. "sale", "sale,rent" */
   transactionType?: string;
   categoryId?: string;
   subcategoryId?: string;
+  /** Comma-separated or single: e.g. "under_construction", "pre_launch,launch" */
   projectStage?: string;
   minPrice?: number;
   maxPrice?: number;
   minArea?: number;
   maxArea?: number;
-  bedrooms?: number;
+  /** Comma-separated or single: e.g. "1,2,3" or "5+" (for 5 or more) */
+  bedrooms?: number | string;
   status?: string;
   isVerified?: boolean;
   isFeatured?: boolean;
@@ -607,16 +610,18 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Helper to execute property queries with fallback to raw SQL if slug column doesn't exist
+  // Helper to execute property queries with fallback to raw SQL if Drizzle query fails (e.g. missing column, enum mismatch)
   private async executePropertyQuery<T>(queryFn: () => Promise<T>, rawSqlFn: () => Promise<T>): Promise<T> {
     try {
       return await queryFn();
     } catch (error: any) {
-      if (error?.code === '42703' || error?.message?.includes('column "slug" does not exist')) {
-        console.warn("Slug column doesn't exist, using raw SQL fallback");
+      console.warn("[getProperties] Drizzle query failed, falling back to raw SQL:", error?.message || error);
+      try {
         return await rawSqlFn();
+      } catch (rawError: any) {
+        console.error("[getProperties] Raw SQL fallback also failed:", rawError?.message || rawError);
+        throw rawError;
       }
-      throw error;
     }
   }
 
@@ -642,28 +647,74 @@ export class DatabaseStorage implements IStorage {
         if (filters?.city) conditions.push(eq(properties.city, filters.city));
         if (filters?.state) conditions.push(eq(properties.state, filters.state));
         if (filters?.propertyType) conditions.push(eq(properties.propertyType, filters.propertyType as any));
-        if (filters?.transactionType) conditions.push(eq(properties.transactionType, filters.transactionType as any));
+        if (filters?.transactionType) {
+          const txStr = String(filters.transactionType).trim();
+          const txList = txStr.includes(",") ? txStr.split(",").map((t) => t.trim()).filter(Boolean) : [txStr];
+          if (txList.length > 1) {
+            conditions.push(inArray(properties.transactionType, txList as any));
+          } else if (txList.length === 1) {
+            conditions.push(eq(properties.transactionType, txList[0] as any));
+          }
+        }
         if (filters?.categoryId) conditions.push(eq(properties.categoryId, filters.categoryId));
         if (filters?.subcategoryId) conditions.push(eq(properties.subcategoryId, filters.subcategoryId));
-        if (filters?.projectStage) conditions.push(eq(properties.projectStage, filters.projectStage as any));
-        if (filters?.minPrice) conditions.push(gte(properties.price, filters.minPrice));
-        if (filters?.maxPrice) conditions.push(lte(properties.price, filters.maxPrice));
+        if (filters?.projectStage) {
+          const psStr = String(filters.projectStage).trim();
+          const psList = psStr.includes(",") ? psStr.split(",").map((p) => p.trim()).filter(Boolean) : [psStr];
+          if (psList.length > 1) {
+            conditions.push(inArray(properties.projectStage, psList as any));
+          } else if (psList.length === 1) {
+            conditions.push(eq(properties.projectStage, psList[0] as any));
+          }
+        }
+        if (filters?.minPrice != null) conditions.push(gte(properties.price, filters.minPrice));
+        if (filters?.maxPrice != null) conditions.push(lte(properties.price, filters.maxPrice));
         if (filters?.minArea) conditions.push(gte(properties.area, filters.minArea));
         if (filters?.maxArea) conditions.push(lte(properties.area, filters.maxArea));
-        if (filters?.bedrooms) conditions.push(eq(properties.bedrooms, filters.bedrooms));
+        if (filters?.bedrooms !== undefined && filters.bedrooms !== null && filters.bedrooms !== "") {
+          const bedRaw = filters.bedrooms;
+          const bedStr = typeof bedRaw === "string" ? bedRaw.trim() : String(bedRaw);
+          const parts = bedStr.includes(",") ? bedStr.split(",").map((p) => p.trim()) : [bedStr];
+          const exactNums: number[] = [];
+          let hasFivePlus = false;
+          for (const p of parts) {
+            if (p === "5+" || p === "5") {
+              hasFivePlus = true;
+            } else {
+              const n = parseInt(p, 10);
+              if (!Number.isNaN(n)) exactNums.push(n);
+            }
+          }
+          if (exactNums.length > 0 && hasFivePlus) {
+            conditions.push(or(inArray(properties.bedrooms, exactNums), gte(properties.bedrooms, 5)) as any);
+          } else if (hasFivePlus) {
+            conditions.push(gte(properties.bedrooms, 5));
+          } else if (exactNums.length > 1) {
+            conditions.push(inArray(properties.bedrooms, exactNums));
+          } else if (exactNums.length === 1) {
+            conditions.push(eq(properties.bedrooms, exactNums[0]));
+          }
+        }
         if (filters?.status) conditions.push(eq(properties.status, filters.status as any));
         if (filters?.isVerified !== undefined) conditions.push(eq(properties.isVerified, filters.isVerified));
         if (filters?.isFeatured !== undefined) conditions.push(eq(properties.isFeatured, filters.isFeatured));
         if (filters?.sellerId) conditions.push(eq(properties.sellerId, filters.sellerId));
         if (filters?.sellerType) {
-          const sellerConditions: any[] = [eq(sellerProfiles.sellerType, filters.sellerType as any)];
+          const types = (filters.sellerType as string).split(",").map((t: string) => t.trim()).filter(Boolean);
+          const sellerConditions: any[] =
+            types.length > 1
+              ? [inArray(sellerProfiles.sellerType, types)]
+              : [eq(sellerProfiles.sellerType, filters.sellerType as any)];
           if (filters.verifiedSeller) {
             sellerConditions.push(eq(sellerProfiles.verificationStatus, "verified"));
           }
-          const sellerSubquery = db.select({ id: sellerProfiles.id })
+          const sellerRows = await db
+            .select({ id: sellerProfiles.id })
             .from(sellerProfiles)
             .where(and(...sellerConditions));
-          conditions.push(inArray(properties.sellerId, sellerSubquery));
+          const sellerIds = sellerRows.map((r) => r.id);
+          if (sellerIds.length === 0) return [];
+          conditions.push(inArray(properties.sellerId, sellerIds));
         }
         if (filters?.search) {
           conditions.push(or(
@@ -686,7 +737,7 @@ export class DatabaseStorage implements IStorage {
           result = result.offset(filters.offset) as any;
         }
         
-        return result;
+        return await result;
       },
       async () => {
         // Build raw SQL query
@@ -707,8 +758,15 @@ export class DatabaseStorage implements IStorage {
           params.push(filters.propertyType);
         }
         if (filters?.transactionType) {
-          whereConditions.push(`transaction_type = $${paramIndex++}`);
-          params.push(filters.transactionType);
+          const txStr = String(filters.transactionType).trim();
+          const txList = txStr.includes(",") ? txStr.split(",").map((t: string) => t.trim()).filter(Boolean) : [txStr];
+          if (txList.length > 1) {
+            whereConditions.push(`transaction_type IN (${txList.map(() => `$${paramIndex++}`).join(", ")})`);
+            params.push(...txList);
+          } else if (txList.length === 1) {
+            whereConditions.push(`transaction_type = $${paramIndex++}`);
+            params.push(txList[0]);
+          }
         }
         if (filters?.categoryId) {
           whereConditions.push(`category_id = $${paramIndex++}`);
@@ -719,15 +777,24 @@ export class DatabaseStorage implements IStorage {
           params.push(filters.subcategoryId);
         }
         if (filters?.projectStage) {
-          whereConditions.push(`project_stage = $${paramIndex++}`);
-          params.push(filters.projectStage);
+          const psStr = String(filters.projectStage).trim();
+          const psList = psStr.includes(",") ? psStr.split(",").map((p: string) => p.trim()).filter(Boolean) : [psStr];
+          if (psList.length > 1) {
+            whereConditions.push(`project_stage IN (${psList.map(() => `$${paramIndex++}`).join(", ")})`);
+            params.push(...psList);
+          } else if (psList.length === 1) {
+            whereConditions.push(`project_stage = $${paramIndex++}`);
+            params.push(psList[0]);
+          }
         }
         if (filters?.sellerType) {
+          const types = (filters.sellerType as string).split(",").map((t: string) => t.trim()).filter(Boolean);
           const verifiedClause = filters.verifiedSeller
             ? ` AND verification_status = 'verified'`
             : "";
-          whereConditions.push(`seller_id IN (SELECT id FROM seller_profiles WHERE seller_type = $${paramIndex++}${verifiedClause})`);
-          params.push(filters.sellerType);
+          const placeholders = types.map(() => `$${paramIndex++}`).join(", ");
+          whereConditions.push(`seller_id IN (SELECT id FROM seller_profiles WHERE seller_type IN (${placeholders})${verifiedClause})`);
+          params.push(...types);
         }
         if (filters?.minPrice) {
           whereConditions.push(`price >= $${paramIndex++}`);
@@ -745,9 +812,31 @@ export class DatabaseStorage implements IStorage {
           whereConditions.push(`area <= $${paramIndex++}`);
           params.push(filters.maxArea);
         }
-        if (filters?.bedrooms) {
-          whereConditions.push(`bedrooms = $${paramIndex++}`);
-          params.push(filters.bedrooms);
+        if (filters?.bedrooms !== undefined && filters?.bedrooms !== null && filters?.bedrooms !== "") {
+          const bedStr = typeof filters.bedrooms === "string" ? filters.bedrooms.trim() : String(filters.bedrooms);
+          const parts = bedStr.includes(",") ? bedStr.split(",").map((p: string) => p.trim()) : [bedStr];
+          const exactNums: number[] = [];
+          let hasFivePlus = false;
+          for (const p of parts) {
+            if (p === "5+" || p === "5") hasFivePlus = true;
+            else {
+              const n = parseInt(p, 10);
+              if (!Number.isNaN(n)) exactNums.push(n);
+            }
+          }
+          if (exactNums.length > 0 && hasFivePlus) {
+            whereConditions.push(`(bedrooms IN (${exactNums.map(() => `$${paramIndex++}`).join(", ")}) OR bedrooms >= 5)`);
+            params.push(...exactNums);
+          } else if (hasFivePlus) {
+            whereConditions.push(`bedrooms >= $${paramIndex++}`);
+            params.push(5);
+          } else if (exactNums.length > 1) {
+            whereConditions.push(`bedrooms IN (${exactNums.map(() => `$${paramIndex++}`).join(", ")})`);
+            params.push(...exactNums);
+          } else if (exactNums.length === 1) {
+            whereConditions.push(`bedrooms = $${paramIndex++}`);
+            params.push(exactNums[0]);
+          }
         }
         if (filters?.status) {
           whereConditions.push(`status = $${paramIndex++}`);
@@ -1007,7 +1096,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async recordSearch(userId: string, filters: Record<string, unknown>): Promise<SearchHistory> {
-    const [row] = await db.insert(searchHistory).values({ userId, filters }).returning();
+    const normalized = filters && typeof filters === "object"
+      ? (JSON.parse(JSON.stringify(filters)) as Record<string, unknown>)
+      : {};
+    const [row] = await db.insert(searchHistory).values({ userId, filters: normalized }).returning();
     return row;
   }
 

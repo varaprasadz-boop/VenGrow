@@ -10,7 +10,7 @@ import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { verifySuperadminCredentials, hashPassword, verifyPassword, validateEmail, validatePhone, validatePassword } from "./auth-utils";
 import * as emailService from "./email";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { properties, propertyViews, users, favorites, inquiries } from "@shared/schema";
 import { eq, and, or, desc, sql, notInArray, gte, lte, inArray } from "drizzle-orm";
 
@@ -1750,30 +1750,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all properties with filters
   app.get("/api/properties", async (req: Request, res: Response) => {
     try {
-      const { 
-        city, state, propertyType, transactionType, 
-        minPrice, maxPrice, minArea, maxArea, 
+      const {
+        city, state, propertyType, transactionType,
+        minPrice, maxPrice, minArea, maxArea,
         bedrooms, status, isVerified, isFeatured,
         search, limit, offset, sellerId,
         categoryId, subcategoryId, projectStage,
         sellerType, verifiedSeller
       } = req.query;
-      // Default to active-only for public listing when status not explicitly provided
       const statusFilter = status !== undefined ? (status as string) : "active";
-      
+      const minPriceNum = minPrice != null && minPrice !== "" ? Number(minPrice) : undefined;
+      const maxPriceNum = maxPrice != null && maxPrice !== "" ? Number(maxPrice) : undefined;
+      const validMinPrice = minPriceNum !== undefined && !Number.isNaN(minPriceNum) ? minPriceNum : undefined;
+      const validMaxPrice = maxPriceNum !== undefined && !Number.isNaN(maxPriceNum) ? maxPriceNum : undefined;
+      const bedroomsParam = bedrooms != null && bedrooms !== "" ? String(bedrooms).trim() : undefined;
+      const transactionTypeParam = transactionType != null && transactionType !== "" ? String(transactionType).trim() : undefined;
+      const projectStageParam = projectStage != null && projectStage !== "" ? String(projectStage).trim() : undefined;
+
+      // Normalize propertyType: DB enum is singular (apartment, villa, ...); client may send slug/plural (apartments, villas)
+      const PROPERTY_TYPE_ENUM = ["apartment", "villa", "plot", "commercial", "farmhouse", "penthouse"] as const;
+      const propertyTypeRaw = propertyType != null && propertyType !== "" ? String(propertyType).trim().toLowerCase() : undefined;
+      const slugToEnum: Record<string, string> = {
+        apartments: "apartment", villa: "villa", villas: "villa",
+        plot: "plot", plots: "plot", commercial: "commercial", commercials: "commercial",
+        farmhouse: "farmhouse", farmhouses: "farmhouse", penthouse: "penthouse", penthouses: "penthouse",
+        apartment: "apartment",
+      };
+      const propertyTypeNormalized = propertyTypeRaw
+        ? (PROPERTY_TYPE_ENUM.includes(propertyTypeRaw as any) ? propertyTypeRaw : slugToEnum[propertyTypeRaw] ?? undefined)
+        : undefined;
+
       const properties = await storage.getProperties({
         city: city as string,
         state: state as string,
-        propertyType: propertyType as string,
-        transactionType: transactionType as string,
+        ...(propertyTypeNormalized && { propertyType: propertyTypeNormalized }),
+        transactionType: transactionTypeParam,
         categoryId: categoryId as string,
         subcategoryId: subcategoryId as string,
-        projectStage: projectStage as string,
-        minPrice: minPrice ? parseInt(minPrice as string) : undefined,
-        maxPrice: maxPrice ? parseInt(maxPrice as string) : undefined,
-        minArea: minArea ? parseInt(minArea as string) : undefined,
-        maxArea: maxArea ? parseInt(maxArea as string) : undefined,
-        bedrooms: bedrooms ? parseInt(bedrooms as string) : undefined,
+        projectStage: projectStageParam,
+        minPrice: validMinPrice,
+        maxPrice: validMaxPrice,
+        minArea: minArea != null && minArea !== "" ? parseInt(minArea as string) : undefined,
+        maxArea: maxArea != null && maxArea !== "" ? parseInt(maxArea as string) : undefined,
+        bedrooms: bedroomsParam,
         status: statusFilter,
         isVerified: isVerified === "true" ? true : isVerified === "false" ? false : undefined,
         isFeatured: isFeatured === "true" ? true : isFeatured === "false" ? false : undefined,
@@ -1781,8 +1800,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sellerType: sellerType as string,
         verifiedSeller: verifiedSeller === "true",
         search: search as string,
-        limit: limit ? parseInt(limit as string) : undefined,
-        offset: offset ? parseInt(offset as string) : undefined,
+        limit: limit != null && limit !== "" ? parseInt(limit as string) : undefined,
+        offset: offset != null && offset !== "" ? parseInt(offset as string) : undefined,
       });
       
       // Fetch images for each property
@@ -1794,7 +1813,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       res.json(propertiesWithImages);
-    } catch (error) {
+    } catch (error: any) {
+      console.error("[GET /api/properties] Error:", error?.message || error);
+      console.error("[GET /api/properties] Stack:", error?.stack);
       res.status(500).json({ error: "Failed to get properties" });
     }
   });
@@ -5063,9 +5084,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const { filters } = req.body;
       if (!filters || typeof filters !== "object") return res.status(400).json({ error: "filters object is required" });
-      const row = await storage.recordSearch(userId, filters);
+      let row;
+      try {
+        row = await storage.recordSearch(userId, filters);
+      } catch (createError: any) {
+        if (createError?.message?.includes("search_history") && createError?.message?.includes("does not exist")) {
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS search_history (
+              id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+              user_id VARCHAR NOT NULL REFERENCES users(id),
+              filters JSONB NOT NULL,
+              created_at TIMESTAMP NOT NULL DEFAULT NOW()
+            )
+          `);
+          await pool.query("CREATE INDEX IF NOT EXISTS idx_search_history_user_id ON search_history(user_id)");
+          await pool.query("CREATE INDEX IF NOT EXISTS idx_search_history_created_at ON search_history(created_at DESC)");
+          row = await storage.recordSearch(userId, filters);
+        } else {
+          throw createError;
+        }
+      }
       res.status(201).json(row);
-    } catch (error) {
+    } catch (error: any) {
+      console.error("[POST /api/me/search-history] Error:", error?.message || error);
       res.status(500).json({ error: "Failed to record search" });
     }
   });

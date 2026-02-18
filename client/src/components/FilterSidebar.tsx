@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation as useWouterLocation } from "wouter";
-import { Filter, X, Search, Calendar, Building2, Layers, Milestone, Bookmark, Loader2 } from "lucide-react";
+import { Filter, X, Search, Calendar, Building2, Layers, Milestone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -19,19 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { PropertyCategory, PropertySubcategory } from "@shared/schema";
 
 interface FilterSidebarProps {
@@ -62,8 +50,6 @@ const lacsToRupees = (lacs: number) => Math.round(lacs * 100000);
 const rupeesToLacs = (rupees: number) => rupees / 100000;
 
 export default function FilterSidebar({ onApplyFilters, initialCategory, initialFilters }: FilterSidebarProps) {
-  const { user } = useAuth();
-  const { toast } = useToast();
   const [wouterLocation] = useWouterLocation();
   
   // Read category directly from URL as fallback - use window.location to get query string
@@ -103,8 +89,6 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
     initialFilters?.propertyAge || []
   );
   const [corporateSearch, setCorporateSearch] = useState<string>("");
-  const [saveSearchOpen, setSaveSearchOpen] = useState(false);
-  const [searchName, setSearchName] = useState("");
   const [accordionValue, setAccordionValue] = useState<string[]>(["category", "subcategory", "projectStage", "transaction", "price", "seller"]);
   
   // Fetch categories - must be declared before useEffects that use it
@@ -198,54 +182,6 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
       window.removeEventListener('popstate', handleLocationChange);
     };
   }, [selectedCategory]);
-
-  const saveSearchMutation = useMutation({
-    mutationFn: async () => {
-      const filters = {
-        minPrice: priceRange[0],
-        maxPrice: priceRange[1],
-        transactionTypes: selectedTransactionTypes,
-        category: selectedCategory,
-        subcategories: selectedSubcategories,
-        projectStages: selectedProjectStages,
-        bedrooms: selectedBHK,
-        sellerTypes: selectedSeller,
-        propertyAge: selectedPropertyAge,
-        builder: corporateSearch || undefined,
-      };
-      
-      return await apiRequest("POST", "/api/saved-searches", {
-        userId: user?.id,
-        name: searchName,
-        filters,
-      });
-    },
-    onSuccess: () => {
-      toast({ title: "Search saved successfully!" });
-      setSaveSearchOpen(false);
-      setSearchName("");
-      queryClient.invalidateQueries({ queryKey: ["/api/me/saved-searches"] });
-    },
-    onError: () => {
-      toast({ title: "Failed to save search", variant: "destructive" });
-    },
-  });
-
-  const handleSaveSearch = () => {
-    if (!searchName.trim()) {
-      toast({ title: "Please enter a name for your search", variant: "destructive" });
-      return;
-    }
-    saveSearchMutation.mutate();
-  };
-
-  const generateSearchName = () => {
-    const parts: string[] = [];
-    if (selectedCategory !== "all") parts.push(selectedCategory);
-    if (selectedBHK.length > 0) parts.push(`${selectedBHK.join('/')} BHK`);
-    if (selectedTransactionTypes.length > 0) parts.push(selectedTransactionTypes.join('/'));
-    return parts.length > 0 ? parts.join(' - ') : "My Search"
-  };
 
   // Get category ID from slug for subcategories query
   const selectedCategoryId = useMemo(() => {
@@ -711,76 +647,6 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
         <Button className="w-full" onClick={handleApply} data-testid="button-apply-filters">
           Apply Filters
         </Button>
-        
-        {user ? (
-          <Dialog open={saveSearchOpen} onOpenChange={setSaveSearchOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => setSearchName(generateSearchName())}
-                data-testid="button-save-search"
-              >
-                <Bookmark className="h-4 w-4 mr-2" />
-                Save Search
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Save this search</DialogTitle>
-                <DialogDescription>
-                  Give your search a name to easily find it later. You'll receive alerts when new properties match your criteria.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <Label htmlFor="search-name">Search Name</Label>
-                <Input
-                  id="search-name"
-                  value={searchName}
-                  onChange={(e) => setSearchName(e.target.value)}
-                  placeholder="e.g., 3BHK in Mumbai"
-                  className="mt-2"
-                  data-testid="input-search-name"
-                />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setSaveSearchOpen(false)}>
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleSaveSearch}
-                  disabled={saveSearchMutation.isPending}
-                  data-testid="button-confirm-save-search"
-                >
-                  {saveSearchMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Search"
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        ) : (
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => {
-              toast({
-                title: "Please login to save searches",
-                description: "You'll be redirected to the login page",
-              });
-              window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname + window.location.search);
-            }}
-            data-testid="button-save-search-guest"
-          >
-            <Bookmark className="h-4 w-4 mr-2" />
-            Save Search (Login Required)
-          </Button>
-        )}
       </div>
     </div>
   );

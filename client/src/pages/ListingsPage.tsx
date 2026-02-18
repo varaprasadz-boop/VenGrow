@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
@@ -12,7 +12,18 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Filter, Grid3x3, List, Map, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Filter, Grid3x3, List, Map, Loader2, Bookmark } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -22,7 +33,8 @@ import {
 } from "@/components/ui/select";
 import type { Property } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
-import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface FilterState {
   priceRange?: [number, number];
@@ -45,7 +57,10 @@ export default function ListingsPage() {
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isApplyingFilters, setIsApplyingFilters] = useState(false);
+  const [saveSearchOpen, setSaveSearchOpen] = useState(false);
+  const [searchName, setSearchName] = useState("");
   const itemsPerPage = 20;
+  const { toast } = useToast();
   
   // Parse URL parameters
   const urlParams = useMemo(() => {
@@ -178,6 +193,56 @@ export default function ListingsPage() {
     }
   }, [updateURL, user, transactionTypeFromPath]);
 
+  // Save search mutation (uses current applied filters)
+  const saveSearchMutation = useMutation({
+    mutationFn: async () => {
+      const payload: Record<string, unknown> = {
+        minPrice: filters.priceRange?.[0],
+        maxPrice: filters.priceRange?.[1],
+        transactionTypes: transactionTypeFromPath ? [transactionTypeFromPath.toLowerCase()] : filters.transactionTypes,
+        category: filters.category && filters.category !== "all" ? filters.category : undefined,
+        subcategories: filters.subcategories?.length ? filters.subcategories : undefined,
+        projectStages: filters.projectStages?.length ? filters.projectStages : undefined,
+        bedrooms: filters.bhk?.length ? filters.bhk.map(b => b.replace(" BHK", "").replace("+", "")) : undefined,
+        sellerTypes: filters.sellerTypes?.length ? filters.sellerTypes : undefined,
+        propertyAge: filters.propertyAge?.length ? filters.propertyAge : undefined,
+        builder: filters.corporateSearch || undefined,
+      };
+      Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
+      return apiRequest("POST", "/api/saved-searches", {
+        userId: user?.id,
+        name: searchName,
+        filters: payload,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Search saved successfully!" });
+      setSaveSearchOpen(false);
+      setSearchName("");
+      queryClient.invalidateQueries({ queryKey: ["/api/me/saved-searches"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to save search", variant: "destructive" });
+    },
+  });
+
+  const handleSaveSearch = () => {
+    if (!searchName.trim()) {
+      toast({ title: "Please enter a name for your search", variant: "destructive" });
+      return;
+    }
+    saveSearchMutation.mutate();
+  };
+
+  const generateSearchName = () => {
+    const parts: string[] = [];
+    if (filters.category && filters.category !== "all") parts.push(filters.category);
+    if (filters.bhk && filters.bhk.length > 0) parts.push(`${filters.bhk.join("/")} BHK`);
+    const tx = transactionTypeFromPath || filters.transactionTypes?.[0];
+    if (tx) parts.push(tx);
+    return parts.length > 0 ? parts.join(" - ") : "My Search";
+  };
+
   // Build API query parameters from filters
   const apiQueryParams = useMemo(() => {
     const params: Record<string, string> = {
@@ -216,6 +281,9 @@ export default function ListingsPage() {
     if (filters.category && filters.category !== "all") {
       params.propertyType = filters.category;
     }
+    if (filters.projectStages && filters.projectStages.length > 0) {
+      params.projectStage = filters.projectStages.join(",");
+    }
     if (urlParams.featured) {
       params.isFeatured = "true";
     }
@@ -230,7 +298,7 @@ export default function ListingsPage() {
   }, [filters, currentPage, urlParams.featured, urlParams.sellerId, transactionTypeFromPath]);
 
   // Fetch real properties from the API with filters
-  const { data: propertiesData, isLoading, error } = useQuery<Property[]>({
+  const { data: propertiesData, isLoading, error, refetch } = useQuery<Property[]>({
     queryKey: ["/api/properties", apiQueryParams],
     queryFn: async () => {
       const queryString = new URLSearchParams(apiQueryParams).toString();
@@ -508,6 +576,79 @@ export default function ListingsPage() {
                       </SelectContent>
                     </Select>
 
+                    {/* Save Search - in header next to sort and view */}
+                    {user ? (
+                      <Dialog open={saveSearchOpen} onOpenChange={setSaveSearchOpen}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="hidden sm:flex"
+                            onClick={() => setSearchName(generateSearchName())}
+                            data-testid="button-save-search"
+                          >
+                            <Bookmark className="h-4 w-4 mr-2" />
+                            Save Search
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Save this search</DialogTitle>
+                            <DialogDescription>
+                              Give your search a name to easily find it later. You'll receive alerts when new properties match your criteria.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="py-4">
+                            <Label htmlFor="search-name">Search Name</Label>
+                            <Input
+                              id="search-name"
+                              value={searchName}
+                              onChange={(e) => setSearchName(e.target.value)}
+                              placeholder="e.g., 3BHK in Mumbai"
+                              className="mt-2"
+                              data-testid="input-search-name"
+                            />
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setSaveSearchOpen(false)}>
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={handleSaveSearch}
+                              disabled={saveSearchMutation.isPending}
+                              data-testid="button-confirm-save-search"
+                            >
+                              {saveSearchMutation.isPending ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Saving...
+                                </>
+                              ) : (
+                                "Save Search"
+                              )}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="hidden sm:flex"
+                        onClick={() => {
+                          toast({
+                            title: "Please login to save searches",
+                            description: "You'll be redirected to the login page",
+                          });
+                          window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname + window.location.search);
+                        }}
+                        data-testid="button-save-search-guest"
+                      >
+                        <Bookmark className="h-4 w-4 mr-2" />
+                        Save Search
+                      </Button>
+                    )}
+
                     {/* Mobile Filter */}
                     <Sheet open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
                       <SheetTrigger asChild>
@@ -568,7 +709,7 @@ export default function ListingsPage() {
                   <p className="text-destructive mb-4">Failed to load properties. Please try again.</p>
                   <Button 
                     variant="outline" 
-                    onClick={() => window.location.reload()}
+                    onClick={() => refetch()}
                   >
                     Retry
                   </Button>
