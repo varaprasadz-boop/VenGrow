@@ -116,7 +116,25 @@ interface PropertyFormData {
   isResale: string;
   totalFlats: string;
   flatsOnFloor: string;
+  totalVillas: string;
+  isCornerProperty: string;
+  roadWidthFeet: string;
+  liftsAvailable: string;
   availableFrom: string;
+  plotLength: string;
+  plotBreadth: string;
+  isCornerPlot: string;
+  roadWidthPlotMeters: string;
+  clubHouseAvailable: string;
+  floorAllowedConstruction: string;
+  soilType: string;
+  fencing: string;
+  waterSource: string;
+  titleClear: string;
+  farmHouse: string;
+  approachRoadType: string;
+  distanceFromNearestTown: string;
+  farmProjectName: string;
 }
 
 const STEPS = [
@@ -211,7 +229,25 @@ export default function CreatePropertyPage() {
     isResale: "",
     totalFlats: "",
     flatsOnFloor: "",
+    totalVillas: "",
+    isCornerProperty: "",
+    roadWidthFeet: "",
+    liftsAvailable: "",
     availableFrom: "",
+    plotLength: "",
+    plotBreadth: "",
+    isCornerPlot: "",
+    roadWidthPlotMeters: "",
+    clubHouseAvailable: "",
+    floorAllowedConstruction: "",
+    soilType: "",
+    fencing: "",
+    waterSource: "",
+    titleClear: "",
+    farmHouse: "",
+    approachRoadType: "",
+    distanceFromNearestTown: "",
+    farmProjectName: "",
   });
 
   const { data: canCreateData, isLoading: checkingLimit } = useQuery<{
@@ -435,7 +471,25 @@ export default function CreatePropertyPage() {
         isResale: (propertyData as any).isResale === true ? "resale" : (propertyData as any).isResale === false ? "new" : "",
         totalFlats: (propertyData as any).totalFlats?.toString() || "",
         flatsOnFloor: (propertyData as any).flatsOnFloor?.toString() || "",
+        totalVillas: (propertyData as any).totalVillas?.toString() || "",
+        isCornerProperty: (propertyData as any).isCornerProperty === true ? "yes" : (propertyData as any).isCornerProperty === false ? "no" : "",
+        roadWidthFeet: (propertyData as any).roadWidthFeet?.toString() || "",
+        liftsAvailable: (propertyData as any).liftsAvailable === true ? "yes" : (propertyData as any).liftsAvailable === false ? "no" : "",
         availableFrom: (propertyData as any).availableFrom || "",
+        plotLength: (propertyData as any).plotLength?.toString() || "",
+        plotBreadth: (propertyData as any).plotBreadth?.toString() || "",
+        isCornerPlot: (propertyData as any).isCornerPlot === true ? "yes" : (propertyData as any).isCornerPlot === false ? "no" : "",
+        roadWidthPlotMeters: (propertyData as any).roadWidthPlotMeters?.toString() || "",
+        clubHouseAvailable: (propertyData as any).clubHouseAvailable === true ? "yes" : (propertyData as any).clubHouseAvailable === false ? "no" : "",
+        floorAllowedConstruction: (propertyData as any).floorAllowedConstruction?.toString() || "",
+        soilType: (propertyData as any).soilType || "",
+        fencing: (propertyData as any).fencing === true ? "yes" : (propertyData as any).fencing === false ? "no" : "",
+        waterSource: (propertyData as any).waterSource || "",
+        titleClear: (propertyData as any).titleClear === true ? "yes" : (propertyData as any).titleClear === false ? "no" : "",
+        farmHouse: (propertyData as any).farmHouse === true ? "yes" : (propertyData as any).farmHouse === false ? "no" : "",
+        approachRoadType: (propertyData as any).approachRoadType || "",
+        distanceFromNearestTown: (propertyData as any).distanceFromNearestTown || "",
+        farmProjectName: (propertyData as any).farmProjectName || "",
       }));
     }
   }, [propertyData]);
@@ -633,7 +687,12 @@ export default function CreatePropertyPage() {
       case 2: {
         const base = !!(
           formData.area &&
-          (formData.propertyType === "plot" || (formData.bedrooms && formData.bathrooms))
+          (
+            formData.propertyType === "plot" ||
+            formData.propertyType === "commercial" ||
+            formData.propertyType === "farmhouse" ||
+            (formData.bedrooms && formData.bathrooms)
+          )
         );
         if (!base) return false;
         if (
@@ -641,6 +700,43 @@ export default function CreatePropertyPage() {
           (formData.transactionType === "sale" || formData.transactionType === "lease")
         ) {
           return !!(formData.totalFlats && formData.flatsOnFloor && parseInt(formData.totalFlats, 10) > 0 && parseInt(formData.flatsOnFloor, 10) > 0);
+        }
+        if (formData.propertyType === "villa") {
+          const totalVillasOk = !!(formData.totalVillas && parseInt(formData.totalVillas, 10) > 0);
+          const totalFloorsOk = !!(formData.totalFloors && parseInt(formData.totalFloors, 10) > 0);
+          const cornerOk = formData.isCornerProperty === "yes" || formData.isCornerProperty === "no";
+          const liftsOk = formData.liftsAvailable === "yes" || formData.liftsAvailable === "no";
+          return !!(totalVillasOk && totalFloorsOk && cornerOk && liftsOk);
+        }
+        if (formData.propertyType === "independent_house") {
+          const totalUnitsOk = !!(formData.totalVillas && parseInt(formData.totalVillas, 10) > 0);
+          const totalFloorsOk = !!(formData.totalFloors && parseInt(formData.totalFloors, 10) > 0);
+          const cornerOk = formData.isCornerProperty === "yes" || formData.isCornerProperty === "no";
+          const liftsOk = formData.liftsAvailable === "yes" || formData.liftsAvailable === "no";
+          return !!(totalUnitsOk && totalFloorsOk && cornerOk && liftsOk);
+        }
+        if (formData.propertyType === "plot") {
+          const lengthOk = !!(formData.plotLength && parseInt(formData.plotLength, 10) > 0);
+          const breadthOk = !!(formData.plotBreadth && parseInt(formData.plotBreadth, 10) > 0);
+          const cornerOk = formData.isCornerPlot === "yes" || formData.isCornerPlot === "no";
+          const roadOk = !!(formData.roadWidthPlotMeters !== "" && parseInt(formData.roadWidthPlotMeters, 10) >= 0);
+          const clubOk = formData.clubHouseAvailable === "yes" || formData.clubHouseAvailable === "no";
+          const floorOk = formData.transactionType !== "sale" || !!(formData.floorAllowedConstruction !== "" && parseInt(formData.floorAllowedConstruction, 10) >= 0);
+          return !!(lengthOk && breadthOk && cornerOk && roadOk && clubOk && floorOk);
+        }
+        if (formData.propertyType === "commercial") {
+          const areaOk = !!(formData.area && parseInt(formData.area, 10) > 0);
+          const facingOk = !!formData.facing?.trim();
+          return !!(areaOk && facingOk);
+        }
+        if (formData.propertyType === "farmhouse") {
+          const areaOk = !!(formData.area && parseInt(formData.area, 10) > 0);
+          const soilOk = !!formData.soilType?.trim();
+          const fencingOk = formData.fencing === "yes" || formData.fencing === "no";
+          const waterOk = !!formData.waterSource?.trim();
+          const titleOk = formData.titleClear === "yes" || formData.titleClear === "no";
+          const farmHouseOk = formData.farmHouse === "yes" || formData.farmHouse === "no";
+          return !!(areaOk && soilOk && fencingOk && waterOk && titleOk && farmHouseOk);
         }
         return true;
       }
@@ -729,6 +825,36 @@ export default function CreatePropertyPage() {
           toast({
             title: "Building details required",
             description: "For apartment lease, please enter Total Flats and Flats on the Floor.",
+            variant: "destructive",
+          });
+        } else if (currentStep === 2 && formData.propertyType === "villa" && (!formData.totalVillas || !formData.totalFloors || !formData.isCornerProperty || !formData.liftsAvailable)) {
+          toast({
+            title: "Villa details required",
+            description: "For villa listings, please enter Total Villas, Total Floors, Corner Property, and Lifts Available.",
+            variant: "destructive",
+          });
+        } else if (currentStep === 2 && formData.propertyType === "independent_house" && (!formData.totalVillas || !formData.totalFloors || !formData.isCornerProperty || !formData.liftsAvailable)) {
+          toast({
+            title: "Independent house details required",
+            description: "For independent house listings, please enter Total Units, Total Floors, Corner Property, and Lifts Available.",
+            variant: "destructive",
+          });
+        } else if (currentStep === 2 && formData.propertyType === "plot") {
+          toast({
+            title: "Plot details required",
+            description: "For plot listings, please enter Plot Area, Length, Breadth, Corner Plot, Road width, and Club House. For sale, also enter Floor allowed for Construction.",
+            variant: "destructive",
+          });
+        } else if (currentStep === 2 && formData.propertyType === "commercial") {
+          toast({
+            title: "Commercial details required",
+            description: "For commercial listings, please enter Available Area and Facing.",
+            variant: "destructive",
+          });
+        } else if (currentStep === 2 && formData.propertyType === "farmhouse") {
+          toast({
+            title: "Farm details required",
+            description: "For farm listings, please enter Land Area, Soil Type, Fencing, Water Source, Title Clear, and Farm House.",
             variant: "destructive",
           });
         } else {
@@ -826,6 +952,24 @@ export default function CreatePropertyPage() {
       isResale: formData.isResale === "resale" ? true : formData.isResale === "new" ? false : null,
       totalFlats: formData.totalFlats ? parseInt(formData.totalFlats, 10) : null,
       flatsOnFloor: formData.flatsOnFloor ? parseInt(formData.flatsOnFloor, 10) : null,
+      totalVillas: formData.totalVillas ? parseInt(formData.totalVillas, 10) : null,
+      isCornerProperty: formData.isCornerProperty === "yes" ? true : formData.isCornerProperty === "no" ? false : null,
+      roadWidthFeet: formData.roadWidthFeet ? parseInt(formData.roadWidthFeet, 10) : null,
+      liftsAvailable: formData.liftsAvailable === "yes" ? true : formData.liftsAvailable === "no" ? false : null,
+      plotLength: formData.plotLength ? parseInt(formData.plotLength, 10) : null,
+      plotBreadth: formData.plotBreadth ? parseInt(formData.plotBreadth, 10) : null,
+      isCornerPlot: formData.isCornerPlot === "yes" ? true : formData.isCornerPlot === "no" ? false : null,
+      roadWidthPlotMeters: formData.roadWidthPlotMeters ? parseInt(formData.roadWidthPlotMeters, 10) : null,
+      clubHouseAvailable: formData.clubHouseAvailable === "yes" ? true : formData.clubHouseAvailable === "no" ? false : null,
+      floorAllowedConstruction: formData.floorAllowedConstruction ? parseInt(formData.floorAllowedConstruction, 10) : null,
+      soilType: formData.soilType || null,
+      fencing: formData.fencing === "yes" ? true : formData.fencing === "no" ? false : null,
+      waterSource: formData.waterSource || null,
+      titleClear: formData.titleClear === "yes" ? true : formData.titleClear === "no" ? false : null,
+      farmHouse: formData.farmHouse === "yes" ? true : formData.farmHouse === "no" ? false : null,
+      approachRoadType: formData.approachRoadType || null,
+      distanceFromNearestTown: formData.distanceFromNearestTown || null,
+      farmProjectName: formData.farmProjectName || null,
       availableFrom:
         formData.availableFrom?.trim() === "immediate" || (formData.availableFrom && formData.availableFrom.length === 10)
           ? formData.availableFrom.trim()
@@ -977,6 +1121,7 @@ export default function CreatePropertyPage() {
                         <SelectItem value="independent_house">Independent House</SelectItem>
                         <SelectItem value="commercial">Commercial</SelectItem>
                         <SelectItem value="plot">Plot/Land</SelectItem>
+                        <SelectItem value="farmhouse">Farmhouse / Farm Land</SelectItem>
                         <SelectItem value="penthouse">Penthouse</SelectItem>
                         <SelectItem value="studio">Studio</SelectItem>
                       </SelectContent>
@@ -1678,7 +1823,7 @@ export default function CreatePropertyPage() {
                       </div>
                     </div>
 
-                    {formData.transactionType === "sale" && (
+                    {formData.propertyType === "apartment" && formData.transactionType === "sale" && (
                       <div>
                         <h3 className="font-semibold mb-4">Building Details (Sale)</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1705,6 +1850,419 @@ export default function CreatePropertyPage() {
                               onChange={(e) => updateField("flatsOnFloor", e.target.value)}
                             />
                             <p className="text-xs text-muted-foreground">Flats on the same floor</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.propertyType === "villa" && (
+                      <div>
+                        <h3 className="font-semibold mb-4">Villa Details</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="totalVillas">Total Villas *</Label>
+                            <Input
+                              id="totalVillas"
+                              type="number"
+                              min={1}
+                              placeholder="e.g., 12"
+                              value={formData.totalVillas}
+                              onChange={(e) => updateField("totalVillas", e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">Total villas in the complex</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="totalFloorsVilla">Total Floors *</Label>
+                            <Input
+                              id="totalFloorsVilla"
+                              type="number"
+                              min={1}
+                              placeholder="e.g., 2"
+                              value={formData.totalFloors}
+                              onChange={(e) => updateField("totalFloors", e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">Number of floors in the villa</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="isCornerProperty">Corner Property *</Label>
+                            <Select
+                              value={formData.isCornerProperty || ""}
+                              onValueChange={(value) => updateField("isCornerProperty", value)}
+                            >
+                              <SelectTrigger id="isCornerProperty">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="roadWidthFeet">Width of road facing the Villa (ft)</Label>
+                            <Input
+                              id="roadWidthFeet"
+                              type="number"
+                              min={0}
+                              placeholder="e.g., 30"
+                              value={formData.roadWidthFeet}
+                              onChange={(e) => updateField("roadWidthFeet", e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="liftsAvailable">Lifts Available *</Label>
+                            <Select
+                              value={formData.liftsAvailable || ""}
+                              onValueChange={(value) => updateField("liftsAvailable", value)}
+                            >
+                              <SelectTrigger id="liftsAvailable">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.propertyType === "independent_house" && (
+                      <div>
+                        <h3 className="font-semibold mb-4">Independent House Details</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="totalUnitsIH">Total Units *</Label>
+                            <Input
+                              id="totalUnitsIH"
+                              type="number"
+                              min={1}
+                              placeholder="e.g., 1"
+                              value={formData.totalVillas}
+                              onChange={(e) => updateField("totalVillas", e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">Number of units</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="totalFloorsIH">Total Floors *</Label>
+                            <Input
+                              id="totalFloorsIH"
+                              type="number"
+                              min={1}
+                              placeholder="e.g., 2"
+                              value={formData.totalFloors}
+                              onChange={(e) => updateField("totalFloors", e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="isCornerPropertyIH">Corner Property *</Label>
+                            <Select
+                              value={formData.isCornerProperty || ""}
+                              onValueChange={(value) => updateField("isCornerProperty", value)}
+                            >
+                              <SelectTrigger id="isCornerPropertyIH">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="roadWidthFeetIH">Width of road (ft)</Label>
+                            <Input
+                              id="roadWidthFeetIH"
+                              type="number"
+                              min={0}
+                              placeholder="e.g., 30"
+                              value={formData.roadWidthFeet}
+                              onChange={(e) => updateField("roadWidthFeet", e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="liftsAvailableIH">Lifts Available *</Label>
+                            <Select
+                              value={formData.liftsAvailable || ""}
+                              onValueChange={(value) => updateField("liftsAvailable", value)}
+                            >
+                              <SelectTrigger id="liftsAvailableIH">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.propertyType === "plot" && (
+                      <div>
+                        <h3 className="font-semibold mb-4">Plot Details</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="plotLength">Plot Length *</Label>
+                            <Input
+                              id="plotLength"
+                              type="number"
+                              min={1}
+                              placeholder="e.g., 50"
+                              value={formData.plotLength}
+                              onChange={(e) => updateField("plotLength", e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">In meters or same as area unit</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="plotBreadth">Plot Breadth *</Label>
+                            <Input
+                              id="plotBreadth"
+                              type="number"
+                              min={1}
+                              placeholder="e.g., 30"
+                              value={formData.plotBreadth}
+                              onChange={(e) => updateField("plotBreadth", e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="isCornerPlot">Is Corner Plot *</Label>
+                            <Select
+                              value={formData.isCornerPlot || ""}
+                              onValueChange={(value) => updateField("isCornerPlot", value)}
+                            >
+                              <SelectTrigger id="isCornerPlot">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="roadWidthPlotMeters">Width of Road Facing the Plot (m) *</Label>
+                            <Input
+                              id="roadWidthPlotMeters"
+                              type="number"
+                              min={0}
+                              placeholder="e.g., 12"
+                              value={formData.roadWidthPlotMeters}
+                              onChange={(e) => updateField("roadWidthPlotMeters", e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="clubHouseAvailable">Club House Available *</Label>
+                            <Select
+                              value={formData.clubHouseAvailable || ""}
+                              onValueChange={(value) => updateField("clubHouseAvailable", value)}
+                            >
+                              <SelectTrigger id="clubHouseAvailable">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {formData.transactionType === "sale" && (
+                            <div className="space-y-2">
+                              <Label htmlFor="floorAllowedConstruction">Floor allowed for Construction *</Label>
+                              <Input
+                                id="floorAllowedConstruction"
+                                type="number"
+                                min={0}
+                                placeholder="e.g., 2"
+                                value={formData.floorAllowedConstruction}
+                                onChange={(e) => updateField("floorAllowedConstruction", e.target.value)}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.propertyType === "commercial" && (
+                      <div>
+                        <h3 className="font-semibold mb-4">Commercial Details</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="availableAreaCommercial">Available Area ({formData.areaUnit}) *</Label>
+                            <Input
+                              id="availableAreaCommercial"
+                              type="number"
+                              min={1}
+                              placeholder="e.g., 2000"
+                              value={formData.area}
+                              onChange={(e) => updateField("area", e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">Area available for use</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="facingCommercial">Facing</Label>
+                            <Select
+                              value={formData.facing || ""}
+                              onValueChange={(value) => updateField("facing", value)}
+                            >
+                              <SelectTrigger id="facingCommercial">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="east">East</SelectItem>
+                                <SelectItem value="west">West</SelectItem>
+                                <SelectItem value="north">North</SelectItem>
+                                <SelectItem value="south">South</SelectItem>
+                                <SelectItem value="north-east">North-East</SelectItem>
+                                <SelectItem value="north-west">North-West</SelectItem>
+                                <SelectItem value="south-east">South-East</SelectItem>
+                                <SelectItem value="south-west">South-West</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="roadWidthCommercial">Width of Road (ft)</Label>
+                            <Input
+                              id="roadWidthCommercial"
+                              type="number"
+                              min={0}
+                              placeholder="e.g., 30"
+                              value={formData.roadWidthFeet}
+                              onChange={(e) => updateField("roadWidthFeet", e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.propertyType === "farmhouse" && (
+                      <div>
+                        <h3 className="font-semibold mb-4">Farm Details</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="soilType">Soil Type *</Label>
+                            <Select
+                              value={formData.soilType || ""}
+                              onValueChange={(value) => updateField("soilType", value)}
+                            >
+                              <SelectTrigger id="soilType">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="red">Red</SelectItem>
+                                <SelectItem value="black">Black</SelectItem>
+                                <SelectItem value="sandy">Sandy</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="fencing">Fencing *</Label>
+                            <Select
+                              value={formData.fencing || ""}
+                              onValueChange={(value) => updateField("fencing", value)}
+                            >
+                              <SelectTrigger id="fencing">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="waterSource">Water Source *</Label>
+                            <Select
+                              value={formData.waterSource || ""}
+                              onValueChange={(value) => updateField("waterSource", value)}
+                            >
+                              <SelectTrigger id="waterSource">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="borewell">Borewell</SelectItem>
+                                <SelectItem value="open_well">Open Well</SelectItem>
+                                <SelectItem value="canal">Canal</SelectItem>
+                                <SelectItem value="river">River</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="titleClear">Title Clear *</Label>
+                            <Select
+                              value={formData.titleClear || ""}
+                              onValueChange={(value) => updateField("titleClear", value)}
+                            >
+                              <SelectTrigger id="titleClear">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="farmHouse">Farm House *</Label>
+                            <Select
+                              value={formData.farmHouse || ""}
+                              onValueChange={(value) => updateField("farmHouse", value)}
+                            >
+                              <SelectTrigger id="farmHouse">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="approachRoadType">Approach Road Type</Label>
+                            <Select
+                              value={formData.approachRoadType || ""}
+                              onValueChange={(value) => updateField("approachRoadType", value)}
+                            >
+                              <SelectTrigger id="approachRoadType">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="mud">Mud</SelectItem>
+                                <SelectItem value="tar">Tar</SelectItem>
+                                <SelectItem value="concrete">Concrete</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="roadWidthFeetFarm">Width of Road (ft)</Label>
+                            <Input
+                              id="roadWidthFeetFarm"
+                              type="number"
+                              min={0}
+                              placeholder="e.g., 20"
+                              value={formData.roadWidthFeet}
+                              onChange={(e) => updateField("roadWidthFeet", e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="distanceFromNearestTown">Distance from Nearest Town</Label>
+                            <Input
+                              id="distanceFromNearestTown"
+                              placeholder="e.g., 5 km"
+                              value={formData.distanceFromNearestTown}
+                              onChange={(e) => updateField("distanceFromNearestTown", e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="farmProjectName">Farm Project Name (Manage Farm Land)</Label>
+                            <Input
+                              id="farmProjectName"
+                              placeholder="e.g., Green Valley Farms"
+                              value={formData.farmProjectName}
+                              onChange={(e) => updateField("farmProjectName", e.target.value)}
+                            />
                           </div>
                         </div>
                       </div>

@@ -199,7 +199,25 @@ export default function PropertyDetailPage() {
     isResale: p.isResale,
     totalFlats: p.totalFlats != null ? p.totalFlats : null,
     flatsOnFloor: p.flatsOnFloor != null ? p.flatsOnFloor : null,
+    totalVillas: p.totalVillas != null ? p.totalVillas : null,
+    isCornerProperty: p.isCornerProperty,
+    roadWidthFeet: p.roadWidthFeet != null ? p.roadWidthFeet : null,
+    liftsAvailable: p.liftsAvailable,
     availableFrom: p.availableFrom || null,
+    plotLength: p.plotLength != null ? p.plotLength : null,
+    plotBreadth: p.plotBreadth != null ? p.plotBreadth : null,
+    isCornerPlot: p.isCornerPlot,
+    roadWidthPlotMeters: p.roadWidthPlotMeters != null ? p.roadWidthPlotMeters : null,
+    clubHouseAvailable: p.clubHouseAvailable,
+    floorAllowedConstruction: p.floorAllowedConstruction != null ? p.floorAllowedConstruction : null,
+    soilType: p.soilType || null,
+    fencing: p.fencing,
+    waterSource: p.waterSource || null,
+    titleClear: p.titleClear,
+    farmHouse: p.farmHouse,
+    approachRoadType: p.approachRoadType || null,
+    distanceFromNearestTown: p.distanceFromNearestTown || null,
+    farmProjectName: p.farmProjectName || null,
   };
 
   return (
@@ -481,6 +499,156 @@ export default function PropertyDetailPage() {
                         <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
                           <span className="text-muted-foreground">Flats on Floor</span>
                           <span className="font-medium">{features.flatsOnFloor}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "villa" && features.totalVillas != null && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Total Villas</span>
+                          <span className="font-medium">{features.totalVillas}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "villa" && features.totalFloors && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Total Floors</span>
+                          <span className="font-medium">{features.totalFloors}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "villa" && (features.isCornerProperty === true || features.isCornerProperty === false) && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Corner Property</span>
+                          <span className="font-medium">{features.isCornerProperty === true ? "Yes" : "No"}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "villa" && features.roadWidthFeet != null && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Road width (ft)</span>
+                          <span className="font-medium">{features.roadWidthFeet} ft</span>
+                        </div>
+                      )}
+                      {property.propertyType === "villa" && (features.liftsAvailable === true || features.liftsAvailable === false) && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Lifts Available</span>
+                          <span className="font-medium">{features.liftsAvailable === true ? "Yes" : "No"}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "independent_house" && features.totalVillas != null && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Total Units</span>
+                          <span className="font-medium">{features.totalVillas}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "independent_house" && features.totalFloors && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Total Floors</span>
+                          <span className="font-medium">{features.totalFloors}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "independent_house" && (features.isCornerProperty === true || features.isCornerProperty === false) && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Corner Property</span>
+                          <span className="font-medium">{features.isCornerProperty === true ? "Yes" : "No"}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "independent_house" && features.roadWidthFeet != null && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Road width (ft)</span>
+                          <span className="font-medium">{features.roadWidthFeet} ft</span>
+                        </div>
+                      )}
+                      {property.propertyType === "independent_house" && (features.liftsAvailable === true || features.liftsAvailable === false) && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Lifts Available</span>
+                          <span className="font-medium">{features.liftsAvailable === true ? "Yes" : "No"}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "plot" && features.plotLength != null && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Plot Length</span>
+                          <span className="font-medium">{features.plotLength}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "plot" && features.plotBreadth != null && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Plot Breadth</span>
+                          <span className="font-medium">{features.plotBreadth}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "plot" && (features.isCornerPlot === true || features.isCornerPlot === false) && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Corner Plot</span>
+                          <span className="font-medium">{features.isCornerPlot === true ? "Yes" : "No"}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "plot" && features.roadWidthPlotMeters != null && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Road width (m)</span>
+                          <span className="font-medium">{features.roadWidthPlotMeters} m</span>
+                        </div>
+                      )}
+                      {property.propertyType === "plot" && (features.clubHouseAvailable === true || features.clubHouseAvailable === false) && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Club House</span>
+                          <span className="font-medium">{features.clubHouseAvailable === true ? "Yes" : "No"}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "plot" && property.transactionType === "sale" && features.floorAllowedConstruction != null && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Floor allowed for Construction</span>
+                          <span className="font-medium">{features.floorAllowedConstruction}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "commercial" && features.roadWidthFeet != null && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Width of Road (ft)</span>
+                          <span className="font-medium">{features.roadWidthFeet} ft</span>
+                        </div>
+                      )}
+                      {property.propertyType === "farmhouse" && features.soilType && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Soil Type</span>
+                          <span className="font-medium">{features.soilType}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "farmhouse" && (features.fencing === true || features.fencing === false) && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Fencing</span>
+                          <span className="font-medium">{features.fencing === true ? "Yes" : "No"}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "farmhouse" && features.waterSource && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Water Source</span>
+                          <span className="font-medium">{features.waterSource}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "farmhouse" && (features.titleClear === true || features.titleClear === false) && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Title Clear</span>
+                          <span className="font-medium">{features.titleClear === true ? "Yes" : "No"}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "farmhouse" && (features.farmHouse === true || features.farmHouse === false) && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Farm House</span>
+                          <span className="font-medium">{features.farmHouse === true ? "Yes" : "No"}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "farmhouse" && features.approachRoadType && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Approach Road</span>
+                          <span className="font-medium">{features.approachRoadType}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "farmhouse" && features.distanceFromNearestTown && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Distance from Nearest Town</span>
+                          <span className="font-medium">{features.distanceFromNearestTown}</span>
+                        </div>
+                      )}
+                      {property.propertyType === "farmhouse" && features.farmProjectName && (
+                        <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-muted-foreground">Farm Project Name</span>
+                          <span className="font-medium">{features.farmProjectName}</span>
                         </div>
                       )}
                       {(property.transactionType === "rent" || property.transactionType === "lease") && features.availableFrom && (

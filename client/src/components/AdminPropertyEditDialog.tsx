@@ -82,7 +82,25 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
         isResale: (property as any).isResale ?? undefined,
         totalFlats: (property as any).totalFlats ?? undefined,
         flatsOnFloor: (property as any).flatsOnFloor ?? undefined,
+        totalVillas: (property as any).totalVillas ?? undefined,
+        isCornerProperty: (property as any).isCornerProperty ?? undefined,
+        roadWidthFeet: (property as any).roadWidthFeet ?? undefined,
+        liftsAvailable: (property as any).liftsAvailable ?? undefined,
         availableFrom: (property as any).availableFrom || "",
+        plotLength: (property as any).plotLength ?? undefined,
+        plotBreadth: (property as any).plotBreadth ?? undefined,
+        isCornerPlot: (property as any).isCornerPlot ?? undefined,
+        roadWidthPlotMeters: (property as any).roadWidthPlotMeters ?? undefined,
+        clubHouseAvailable: (property as any).clubHouseAvailable ?? undefined,
+        floorAllowedConstruction: (property as any).floorAllowedConstruction ?? undefined,
+        soilType: (property as any).soilType || "",
+        fencing: (property as any).fencing ?? undefined,
+        waterSource: (property as any).waterSource || "",
+        titleClear: (property as any).titleClear ?? undefined,
+        farmHouse: (property as any).farmHouse ?? undefined,
+        approachRoadType: (property as any).approachRoadType || "",
+        distanceFromNearestTown: (property as any).distanceFromNearestTown || "",
+        farmProjectName: (property as any).farmProjectName || "",
       });
     }
   }, [property]);
@@ -162,7 +180,25 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
       isResale: (formData as any).isResale,
       totalFlats: (formData as any).totalFlats != null ? Number((formData as any).totalFlats) : undefined,
       flatsOnFloor: (formData as any).flatsOnFloor != null ? Number((formData as any).flatsOnFloor) : undefined,
+      totalVillas: (formData as any).totalVillas != null ? Number((formData as any).totalVillas) : undefined,
+      isCornerProperty: (formData as any).isCornerProperty,
+      roadWidthFeet: (formData as any).roadWidthFeet != null ? Number((formData as any).roadWidthFeet) : undefined,
+      liftsAvailable: (formData as any).liftsAvailable,
       availableFrom: (formData as any).availableFrom?.trim() || undefined,
+      plotLength: (formData as any).plotLength != null ? Number((formData as any).plotLength) : undefined,
+      plotBreadth: (formData as any).plotBreadth != null ? Number((formData as any).plotBreadth) : undefined,
+      isCornerPlot: (formData as any).isCornerPlot,
+      roadWidthPlotMeters: (formData as any).roadWidthPlotMeters != null ? Number((formData as any).roadWidthPlotMeters) : undefined,
+      clubHouseAvailable: (formData as any).clubHouseAvailable,
+      floorAllowedConstruction: (formData as any).floorAllowedConstruction != null ? Number((formData as any).floorAllowedConstruction) : undefined,
+      soilType: (formData as any).soilType || undefined,
+      fencing: (formData as any).fencing,
+      waterSource: (formData as any).waterSource || undefined,
+      titleClear: (formData as any).titleClear,
+      farmHouse: (formData as any).farmHouse,
+      approachRoadType: (formData as any).approachRoadType || undefined,
+      distanceFromNearestTown: (formData as any).distanceFromNearestTown || undefined,
+      farmProjectName: (formData as any).farmProjectName || undefined,
     };
 
     // Remove empty strings
@@ -223,14 +259,12 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="apartment">Apartment</SelectItem>
-                  <SelectItem value="house">House</SelectItem>
                   <SelectItem value="villa">Villa</SelectItem>
+                  <SelectItem value="independent_house">Independent House</SelectItem>
                   <SelectItem value="plot">Plot</SelectItem>
                   <SelectItem value="commercial">Commercial</SelectItem>
-                  <SelectItem value="office">Office</SelectItem>
-                  <SelectItem value="shop">Shop</SelectItem>
-                  <SelectItem value="warehouse">Warehouse</SelectItem>
-                  <SelectItem value="industrial">Industrial</SelectItem>
+                  <SelectItem value="farmhouse">Farmhouse</SelectItem>
+                  <SelectItem value="penthouse">Penthouse</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -593,26 +627,320 @@ export function AdminPropertyEditDialog({ property, open, onOpenChange }: AdminP
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="totalFlats">Total Flats (Sale)</Label>
-              <Input
-                id="totalFlats"
-                type="number"
-                min={1}
-                value={(formData as any).totalFlats ?? ""}
-                onChange={(e) => setFormData({ ...formData, totalFlats: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="flatsOnFloor">Flats on the Floor (Sale)</Label>
-              <Input
-                id="flatsOnFloor"
-                type="number"
-                min={1}
-                value={(formData as any).flatsOnFloor ?? ""}
-                onChange={(e) => setFormData({ ...formData, flatsOnFloor: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
-              />
-            </div>
+            {formData.propertyType === "apartment" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="totalFlats">Total Flats (Sale)</Label>
+                  <Input
+                    id="totalFlats"
+                    type="number"
+                    min={1}
+                    value={(formData as any).totalFlats ?? ""}
+                    onChange={(e) => setFormData({ ...formData, totalFlats: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="flatsOnFloor">Flats on the Floor (Sale)</Label>
+                  <Input
+                    id="flatsOnFloor"
+                    type="number"
+                    min={1}
+                    value={(formData as any).flatsOnFloor ?? ""}
+                    onChange={(e) => setFormData({ ...formData, flatsOnFloor: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+                  />
+                </div>
+              </>
+            )}
+            {formData.propertyType === "villa" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="totalVillas">Total Villas</Label>
+                  <Input
+                    id="totalVillas"
+                    type="number"
+                    min={1}
+                    value={(formData as any).totalVillas ?? ""}
+                    onChange={(e) => setFormData({ ...formData, totalVillas: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="isCornerProperty">Corner Property</Label>
+                  <Select
+                    value={(formData as any).isCornerProperty === true ? "yes" : (formData as any).isCornerProperty === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, isCornerProperty: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="roadWidthFeet">Width of road facing the Villa (ft)</Label>
+                  <Input
+                    id="roadWidthFeet"
+                    type="number"
+                    min={0}
+                    value={(formData as any).roadWidthFeet ?? ""}
+                    onChange={(e) => setFormData({ ...formData, roadWidthFeet: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="liftsAvailable">Lifts Available</Label>
+                  <Select
+                    value={(formData as any).liftsAvailable === true ? "yes" : (formData as any).liftsAvailable === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, liftsAvailable: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+            {formData.propertyType === "independent_house" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="totalVillasIH">Total Units</Label>
+                  <Input
+                    id="totalVillasIH"
+                    type="number"
+                    min={1}
+                    value={(formData as any).totalVillas ?? ""}
+                    onChange={(e) => setFormData({ ...formData, totalVillas: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="isCornerPropertyIH">Corner Property</Label>
+                  <Select
+                    value={(formData as any).isCornerProperty === true ? "yes" : (formData as any).isCornerProperty === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, isCornerProperty: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="roadWidthFeetIH">Width of road (ft)</Label>
+                  <Input
+                    id="roadWidthFeetIH"
+                    type="number"
+                    min={0}
+                    value={(formData as any).roadWidthFeet ?? ""}
+                    onChange={(e) => setFormData({ ...formData, roadWidthFeet: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="liftsAvailableIH">Lifts Available</Label>
+                  <Select
+                    value={(formData as any).liftsAvailable === true ? "yes" : (formData as any).liftsAvailable === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, liftsAvailable: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+            {formData.propertyType === "plot" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="plotLength">Plot Length</Label>
+                  <Input
+                    id="plotLength"
+                    type="number"
+                    min={1}
+                    value={(formData as any).plotLength ?? ""}
+                    onChange={(e) => setFormData({ ...formData, plotLength: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="plotBreadth">Plot Breadth</Label>
+                  <Input
+                    id="plotBreadth"
+                    type="number"
+                    min={1}
+                    value={(formData as any).plotBreadth ?? ""}
+                    onChange={(e) => setFormData({ ...formData, plotBreadth: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="isCornerPlot">Corner Plot</Label>
+                  <Select
+                    value={(formData as any).isCornerPlot === true ? "yes" : (formData as any).isCornerPlot === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, isCornerPlot: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="roadWidthPlotMeters">Road width (m)</Label>
+                  <Input
+                    id="roadWidthPlotMeters"
+                    type="number"
+                    min={0}
+                    value={(formData as any).roadWidthPlotMeters ?? ""}
+                    onChange={(e) => setFormData({ ...formData, roadWidthPlotMeters: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="clubHouseAvailable">Club House Available</Label>
+                  <Select
+                    value={(formData as any).clubHouseAvailable === true ? "yes" : (formData as any).clubHouseAvailable === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, clubHouseAvailable: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="floorAllowedConstruction">Floor allowed for Construction</Label>
+                  <Input
+                    id="floorAllowedConstruction"
+                    type="number"
+                    min={0}
+                    value={(formData as any).floorAllowedConstruction ?? ""}
+                    onChange={(e) => setFormData({ ...formData, floorAllowedConstruction: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+                  />
+                </div>
+              </>
+            )}
+            {formData.propertyType === "commercial" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="roadWidthFeetComm">Width of Road (ft)</Label>
+                  <Input
+                    id="roadWidthFeetComm"
+                    type="number"
+                    min={0}
+                    value={(formData as any).roadWidthFeet ?? ""}
+                    onChange={(e) => setFormData({ ...formData, roadWidthFeet: e.target.value ? Number(e.target.value) : undefined } as Partial<Property>)}
+                  />
+                </div>
+              </>
+            )}
+            {formData.propertyType === "farmhouse" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="soilType">Soil Type</Label>
+                  <Select
+                    value={(formData as any).soilType || ""}
+                    onValueChange={(value) => setFormData({ ...formData, soilType: value } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="red">Red</SelectItem>
+                      <SelectItem value="black">Black</SelectItem>
+                      <SelectItem value="sandy">Sandy</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fencing">Fencing</Label>
+                  <Select
+                    value={(formData as any).fencing === true ? "yes" : (formData as any).fencing === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, fencing: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="waterSource">Water Source</Label>
+                  <Select
+                    value={(formData as any).waterSource || ""}
+                    onValueChange={(value) => setFormData({ ...formData, waterSource: value } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="borewell">Borewell</SelectItem>
+                      <SelectItem value="open_well">Open Well</SelectItem>
+                      <SelectItem value="canal">Canal</SelectItem>
+                      <SelectItem value="river">River</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="titleClear">Title Clear</Label>
+                  <Select
+                    value={(formData as any).titleClear === true ? "yes" : (formData as any).titleClear === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, titleClear: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="farmHouse">Farm House</Label>
+                  <Select
+                    value={(formData as any).farmHouse === true ? "yes" : (formData as any).farmHouse === false ? "no" : ""}
+                    onValueChange={(value) => setFormData({ ...formData, farmHouse: value === "yes" ? true : value === "no" ? false : undefined } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="approachRoadType">Approach Road Type</Label>
+                  <Select
+                    value={(formData as any).approachRoadType || ""}
+                    onValueChange={(value) => setFormData({ ...formData, approachRoadType: value } as Partial<Property>)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mud">Mud</SelectItem>
+                      <SelectItem value="tar">Tar</SelectItem>
+                      <SelectItem value="concrete">Concrete</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="distanceFromNearestTown">Distance from Nearest Town</Label>
+                  <Input
+                    id="distanceFromNearestTown"
+                    value={(formData as any).distanceFromNearestTown ?? ""}
+                    onChange={(e) => setFormData({ ...formData, distanceFromNearestTown: e.target.value } as Partial<Property>)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="farmProjectName">Farm Project Name</Label>
+                  <Input
+                    id="farmProjectName"
+                    value={(formData as any).farmProjectName ?? ""}
+                    onChange={(e) => setFormData({ ...formData, farmProjectName: e.target.value } as Partial<Property>)}
+                  />
+                </div>
+              </>
+            )}
             <div className="space-y-2">
               <Label htmlFor="availableFrom">Available From (Rent/Lease)</Label>
               <Input

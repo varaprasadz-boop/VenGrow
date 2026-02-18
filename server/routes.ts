@@ -1768,13 +1768,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectStageParam = projectStage != null && projectStage !== "" ? String(projectStage).trim() : undefined;
 
       // Normalize propertyType: DB enum is singular (apartment, villa, ...); client may send slug/plural (apartments, villas)
-      const PROPERTY_TYPE_ENUM = ["apartment", "villa", "plot", "commercial", "farmhouse", "penthouse"] as const;
+      const PROPERTY_TYPE_ENUM = ["apartment", "villa", "plot", "commercial", "farmhouse", "penthouse", "independent_house"] as const;
       const propertyTypeRaw = propertyType != null && propertyType !== "" ? String(propertyType).trim().toLowerCase() : undefined;
       const slugToEnum: Record<string, string> = {
         apartments: "apartment", villa: "villa", villas: "villa",
         plot: "plot", plots: "plot", commercial: "commercial", commercials: "commercial",
         farmhouse: "farmhouse", farmhouses: "farmhouse", penthouse: "penthouse", penthouses: "penthouse",
-        apartment: "apartment",
+        apartment: "apartment", independent_house: "independent_house", "independent house": "independent_house",
       };
       const propertyTypeNormalized = propertyTypeRaw
         ? (PROPERTY_TYPE_ENUM.includes(propertyTypeRaw as any) ? propertyTypeRaw : slugToEnum[propertyTypeRaw] ?? undefined)

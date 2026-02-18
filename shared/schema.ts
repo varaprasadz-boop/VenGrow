@@ -15,7 +15,7 @@ export const sessions = pgTable(
 
 export const userRoleEnum = pgEnum("user_role", ["buyer", "seller", "admin"]);
 export const sellerTypeEnum = pgEnum("seller_type", ["individual", "broker", "builder"]);
-export const propertyTypeEnum = pgEnum("property_type", ["apartment", "villa", "plot", "commercial", "farmhouse", "penthouse"]);
+export const propertyTypeEnum = pgEnum("property_type", ["apartment", "villa", "plot", "commercial", "farmhouse", "penthouse", "independent_house"]);
 export const transactionTypeEnum = pgEnum("transaction_type", ["sale", "rent", "lease"]);
 export const projectStageEnum = pgEnum("project_stage", ["pre_launch", "launch", "under_construction", "ready_to_move"]);
 export const listingStatusEnum = pgEnum("listing_status", ["draft", "pending", "active", "sold", "rented", "expired", "rejected"]);
@@ -168,6 +168,24 @@ export const properties = pgTable("properties", {
   isResale: boolean("is_resale"),
   totalFlats: integer("total_flats"),
   flatsOnFloor: integer("flats_on_floor"),
+  totalVillas: integer("total_villas"),
+  isCornerProperty: boolean("is_corner_property"),
+  roadWidthFeet: integer("road_width_feet"),
+  liftsAvailable: boolean("lifts_available"),
+  plotLength: integer("plot_length"),
+  plotBreadth: integer("plot_breadth"),
+  isCornerPlot: boolean("is_corner_plot"),
+  roadWidthPlotMeters: integer("road_width_plot_meters"),
+  clubHouseAvailable: boolean("club_house_available"),
+  floorAllowedConstruction: integer("floor_allowed_construction"),
+  soilType: text("soil_type"),
+  fencing: boolean("fencing"),
+  waterSource: text("water_source"),
+  titleClear: boolean("title_clear"),
+  farmHouse: boolean("farm_house"),
+  approachRoadType: text("approach_road_type"),
+  distanceFromNearestTown: text("distance_from_nearest_town"),
+  farmProjectName: text("farm_project_name"),
   availableFrom: text("available_from"),
   status: listingStatusEnum("status").notNull().default("draft"),
   workflowStatus: workflowStatusEnum("workflow_status").notNull().default("draft"),
