@@ -74,6 +74,16 @@ Renders different form fields based on `categoryId` from Step 1. Each category h
 
 **Plots Details fields:** Plot Area (in Step 1), Plot Length, Plot Breadth, Is Corner Plot (Yes/No), Facing, Floor Allowed for Construction, Maintenance Charges, Width of Road Facing Plot (in meters), Overlooking, New/Resale, Club House Available (Yes/No). NO amenities, NO BHK/bathrooms, NO furnishing.
 
+### Independent House Category Analysis [PENDING IMPLEMENTATION]
+
+**Shares with Apartment/Villa:** BHK, bathrooms, balconies, superBuiltUpArea, carpetArea, facing, floor, totalFloors, furnishing, flooring, carParkingCount, maintenanceCharges, overlooking, possessionStatus, isResale, roomSizes (dynamic), pricePerSqft
+
+**Key unique aspects:** BHK includes "1 RK" option (not in apartment/villa). Uses "Total Units" label (reuse totalFlats column). NO amenities list, NO lifts.
+
+**New DB columns needed:** None beyond what apartment/villa already require (roomSizes jsonb, overlookingType text). totalFlats can be reused and labeled "Total Units" in the form.
+
+**Independent House Details fields:** BHK (with 1 RK), Bathrooms, Balconies, Super Built Up Area, Carpet Area, Room Sizes (dynamic based on BHK), Facing, Floor Number, Flooring Type, No of Car Parking, Maintenance Charges, Overlooking, Furnished Status, Total Units (reuse totalFlats), Total Floors, New/Resale, Possession Status (conditional: under construction → possession date; ready to move → age of building). NO amenities, NO lifts.
+
 **Other categories (PG, Farmland, Commercial, etc.):** Awaiting user input before implementation. Will implement all categories together.
 
 ### Implementation Approach
