@@ -52,21 +52,16 @@ export default function PendingPropertiesPage() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  const { data: allProperties = [], isLoading, isError, refetch } = useQuery<Property[]>({
-    queryKey: ["/api/properties"],
+  // Fetch only pending approval properties (submitted or under_review) from API
+  const { data: properties = [], isLoading, isError, refetch } = useQuery<Property[]>({
+    queryKey: ["/api/properties", "pending-approval"],
     queryFn: async () => {
-      const response = await fetch("/api/properties", { credentials: "include" });
+      const params = new URLSearchParams({ workflowStatus: "submitted,under_review" });
+      const response = await fetch(`/api/properties?${params.toString()}`, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch properties");
       return response.json();
     },
   });
-
-  // Filter properties that are pending approval (submitted or under review)
-  const properties = allProperties.filter(
-    (p) => p.workflowStatus === "submitted" ||
-      p.workflowStatus === "under_review" ||
-      (p.status === "pending" && p.workflowStatus !== "live" && p.workflowStatus !== "rejected")
-  );
 
   const handleRefresh = async () => {
     const result = await refetch();
@@ -196,6 +191,7 @@ export default function PendingPropertiesPage() {
                 <TableRow>
                   <TableHead>Property</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Seller</TableHead>
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead className="text-center">Submitted</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -204,7 +200,7 @@ export default function PendingPropertiesPage() {
               <TableBody>
                 {properties.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-16">
+                    <TableCell colSpan={6} className="text-center py-16">
                       <Clock className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                       <h3 className="font-semibold text-xl mb-2">No Pending Properties</h3>
                       <p className="text-muted-foreground">All properties have been reviewed. Great job!</p>
@@ -223,6 +219,15 @@ export default function PendingPropertiesPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize">{property.propertyType}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {property.sellerId ? (
+                          <Link href={`/admin/sellers/${property.sellerId}`} className="text-primary hover:underline font-medium">
+                            View seller
+                          </Link>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
                         {formatPrice(property.price ?? 0)}

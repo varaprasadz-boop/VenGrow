@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, Search, Heart, MessageSquare, Bell, Settings, 
   Building2, LogOut, Scale, Eye, Calendar, MapPin, Home,
-  Filter, History, Star, HelpCircle, User
+  Filter, History, HelpCircle, User
 } from "lucide-react";
 import { RefreshButton } from "@/components/RefreshButton";
 import { Button } from "@/components/ui/button";
@@ -53,7 +53,6 @@ const communicationItems = [
 const accountItems = [
   { title: "My Profile", href: "/buyer/profile", icon: User },
   { title: "Settings", href: "/buyer/settings", icon: Settings },
-  { title: "My Reviews", href: "/buyer/reviews", icon: Star },
   { title: "Help Center", href: "/help", icon: HelpCircle },
 ];
 
@@ -217,30 +216,32 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
         </Sidebar>
 
         <div className="flex flex-col flex-1 overflow-hidden">
-          <header className="flex items-center justify-between h-14 px-4 border-b bg-background shrink-0">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger data-testid="button-sidebar-toggle" />
-              <DashboardSwitcher />
-            </div>
-            <div className="flex items-center gap-2">
-              <RefreshButton variant="ghost" size="icon" aria-label="Refresh page data" />
-              <Button variant="ghost" size="icon" asChild>
-                <Link href="/buyer/favorites" data-testid="button-favorites">
-                  <Heart className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="icon" asChild>
-                <Link href="/buyer/notifications" data-testid="button-notifications">
-                  <Bell className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="icon" asChild>
-                <Link href="/buyer/settings" data-testid="button-settings">
-                  <Settings className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </header>
+          {location !== "/buyer/dashboard" && location !== "/dashboard" && (
+            <header className="flex items-center justify-between h-14 px-4 border-b bg-background shrink-0">
+              <div className="flex items-center gap-2">
+                <SidebarTrigger data-testid="button-sidebar-toggle" />
+                <DashboardSwitcher />
+              </div>
+              <div className="flex items-center gap-2">
+                <RefreshButton variant="ghost" size="icon" aria-label="Refresh page data" />
+                <Button variant="ghost" size="icon" asChild>
+                  <Link href="/buyer/favorites" data-testid="button-favorites">
+                    <Heart className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="icon" asChild>
+                  <Link href="/buyer/notifications" data-testid="button-notifications">
+                    <Bell className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="icon" asChild>
+                  <Link href="/buyer/settings" data-testid="button-settings">
+                    <Settings className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </header>
+          )}
           <main className="flex-1 overflow-auto">
             {children}
           </main>

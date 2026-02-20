@@ -96,92 +96,76 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
     queryKey: ["/api/property-categories"],
   });
 
-  // Memoize the category from props/URL for stable dependency tracking
-  const categoryFromProps = useMemo(() => {
-    return categoryFromURL || initialFilters?.category || initialCategory || "all";
+  // Memoize the category from URL for sync - we only sync when URL actually changes, not when user selects a different category in the dropdown
+  const categoryFromURLOrProps = useMemo(() => {
+    return categoryFromURL || initialFilters?.category || initialCategory || null;
   }, [categoryFromURL, initialCategory, initialFilters?.category]);
-  
-  // Sync selectedCategory when categoryFromProps changes or URL changes
-  useEffect(() => {
-    const newCategory = categoryFromProps;
-    if (newCategory && newCategory !== selectedCategory) {
-      // Verify the category exists in the loaded categories (unless it's "all")
-      const categoryExists = categories.length > 0 ? categories.some(c => c.slug === newCategory) : false;
-      if (newCategory === "all" || categories.length === 0 || categoryExists) {
-        setSelectedCategory(newCategory);
-        // Clear subcategories when category changes from props (always clear to ensure clean state)
-        setSelectedSubcategories([]);
-        // Open category and subcategory accordion if category is selected from URL
-        if (newCategory !== "all") {
-          setAccordionValue(prev => {
-            const newValue = [...prev];
-            if (!newValue.includes("category")) {
-              newValue.push("category");
-            }
-            if (!newValue.includes("subcategory")) {
-              newValue.push("subcategory");
-            }
-            return newValue;
-          });
-        }
-      }
-    }
-  }, [categoryFromProps, selectedCategory, categories]);
 
-  // Also sync when categories load (in case category was set before categories were loaded)
+  // Track last URL category we synced from - so we only sync when URL/props changed (e.g. Apply or navigation), not when user changes dropdown
+  const lastSyncedUrlCategoryRef = useRef<string | null>(null);
+
+  // Sync selectedCategory from URL only when the URL category actually changed. Normalize slug so Select value matches an option (e.g. "apartments" -> "apartment").
   useEffect(() => {
-    if (categories.length > 0 && categoryFromProps && categoryFromProps !== "all") {
-      const categoryExists = categories.some(c => c.slug === categoryFromProps);
-      if (categoryExists && selectedCategory !== categoryFromProps) {
-        setSelectedCategory(categoryFromProps);
-        // Open category and subcategory accordion when category loads
-        setAccordionValue(prev => {
-          const newValue = [...prev];
-          if (!newValue.includes("category")) {
-            newValue.push("category");
-          }
-          if (!newValue.includes("subcategory")) {
-            newValue.push("subcategory");
-          }
-          return newValue;
-        });
-      }
+    const urlCategory = categoryFromURLOrProps;
+    const effectiveUrlCategory = urlCategory || "all";
+    if (effectiveUrlCategory === lastSyncedUrlCategoryRef.current) return;
+    lastSyncedUrlCategoryRef.current = effectiveUrlCategory;
+
+    if (effectiveUrlCategory === "all") {
+      setSelectedCategory("all");
+      return;
     }
-  }, [categories, categoryFromProps, selectedCategory]);
-  
-  // Initial sync on mount - ensure URL category is set even if categories haven't loaded
-  // Also listen to URL changes via window.location
+    let valueToSet = effectiveUrlCategory;
+    if (categories.length > 0) {
+      const exact = categories.find(c => c.slug === effectiveUrlCategory);
+      const withoutS = categories.find(c => c.slug === effectiveUrlCategory.replace(/s$/, ""));
+      const withS = categories.find(c => c.slug + "s" === effectiveUrlCategory);
+      if (exact) valueToSet = exact.slug;
+      else if (withoutS) valueToSet = withoutS.slug;
+      else if (withS) valueToSet = withS.slug;
+      else valueToSet = categories.some(c => c.slug === effectiveUrlCategory) ? effectiveUrlCategory : "all";
+    }
+    setSelectedCategory(valueToSet);
+    setSelectedSubcategories([]);
+    if (valueToSet !== "all") {
+      setAccordionValue(prev => {
+        const newValue = [...prev];
+        if (!newValue.includes("category")) newValue.push("category");
+        if (!newValue.includes("subcategory")) newValue.push("subcategory");
+        return newValue;
+      });
+    }
+  }, [categoryFromURLOrProps, categories]);
+
+  // When categories first load, if we have a URL category that wasn't synced yet (e.g. categories were empty on first run), sync once
+  const hasSyncedCategoriesRef = useRef(false);
   useEffect(() => {
-    const handleLocationChange = () => {
+    if (categories.length === 0) return;
+    if (hasSyncedCategoriesRef.current) return;
+    const urlCategory = categoryFromURLOrProps;
+    if (!urlCategory || urlCategory === "all") {
+      hasSyncedCategoriesRef.current = true;
+      return;
+    }
+    const exact = categories.find(c => c.slug === urlCategory);
+    const withoutS = categories.find(c => c.slug === urlCategory.replace(/s$/, ""));
+    const withS = categories.find(c => c.slug + "s" === urlCategory);
+    const valueToSet = exact ? exact.slug : withoutS ? withoutS.slug : withS ? withS.slug : "all";
+    setSelectedCategory(valueToSet);
+    setSelectedSubcategories([]);
+    hasSyncedCategoriesRef.current = true;
+  }, [categories, categoryFromURLOrProps]);
+
+  // On popstate (browser back/forward), update ref so next effect run will see URL change
+  useEffect(() => {
+    const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       const urlCategory = params.get('category') || params.get('type') || null;
-      if (urlCategory && urlCategory !== selectedCategory) {
-        setSelectedCategory(urlCategory);
-        if (urlCategory !== "all") {
-          setAccordionValue(prev => {
-            const newValue = [...prev];
-            if (!newValue.includes("category")) {
-              newValue.push("category");
-            }
-            if (!newValue.includes("subcategory")) {
-              newValue.push("subcategory");
-            }
-            return newValue;
-          });
-        }
-      }
+      lastSyncedUrlCategoryRef.current = null;
     };
-    
-    // Check on mount
-    handleLocationChange();
-    
-    // Listen to popstate for browser back/forward
-    window.addEventListener('popstate', handleLocationChange);
-    
-    return () => {
-      window.removeEventListener('popstate', handleLocationChange);
-    };
-  }, [selectedCategory]);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Get category ID from slug for subcategories query
   const selectedCategoryId = useMemo(() => {

@@ -13,12 +13,15 @@ import { apiRequest } from "@/lib/queryClient";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthStore } from "@/stores/authStore";
 import { queryClient } from "@/lib/queryClient";
 
 export default function CorporateRegisterPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, refetch: refetchAuth } = useAuth();
+  const setUser = useAuthStore((s) => s.setUser);
+  const setActiveDashboard = useAuthStore((s) => s.setActiveDashboard);
   const isAttachFlow = isAuthenticated;
   const [isLoading, setIsLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -78,9 +81,7 @@ export default function CorporateRegisterPage() {
 
     // CIN number is optional
 
-    if (!formData.gstNumber.trim()) {
-      newErrors.gstNumber = "GST number is required";
-    } else if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gstNumber.toUpperCase())) {
+    if (formData.gstNumber.trim() && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gstNumber.toUpperCase())) {
       newErrors.gstNumber = "Invalid GST format (e.g., 22AAAAA0000A1Z5)";
     }
 
@@ -233,7 +234,7 @@ export default function CorporateRegisterPage() {
           phone: formData.phone.replace(/\D/g, ""),
           companyName: formData.companyName.trim(),
           cinNumber: formData.cinNumber.trim(),
-          gstNumber: formData.gstNumber.toUpperCase(),
+          gstNumber: formData.gstNumber?.trim() ? formData.gstNumber.toUpperCase() : undefined,
           reraNumber: formData.reraNumber.trim(),
           website: formData.website.trim() || undefined,
           address: formData.address.trim(),
@@ -247,7 +248,14 @@ export default function CorporateRegisterPage() {
           const err = await response.json();
           throw new Error(err.message || "Failed to add seller profile");
         }
+        const data = await response.json();
+        if (data.user) {
+          const roles = Array.isArray(data.user.roles) ? data.user.roles : (data.user.role ? [data.user.role] : []);
+          setUser({ ...data.user, roles });
+          setActiveDashboard("seller");
+        }
         await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+        await refetchAuth();
         toast({
           title: "Seller profile added",
           description: "Your corporate registration is pending approval. You can switch between Buyer and Seller from the header.",
@@ -532,7 +540,7 @@ export default function CorporateRegisterPage() {
               <h2 className="font-semibold text-lg mb-4">Legal & Registration Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="cinNumber">CIN Number *</Label>
+                  <Label htmlFor="cinNumber">CIN Number</Label>
                   <Input
                     id="cinNumber"
                     placeholder="U12345MH2010PTC123456"
@@ -549,7 +557,7 @@ export default function CorporateRegisterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="gstNumber">GST Number *</Label>
+                  <Label htmlFor="gstNumber">GST Number (optional)</Label>
                   <Input
                     id="gstNumber"
                     placeholder="22AAAAA0000A1Z5"

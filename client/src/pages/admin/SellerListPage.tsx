@@ -498,7 +498,7 @@ export default function SellerListPage() {
                           <span className="font-semibold">{seller.totalInquiries}</span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Link href={`/admin/seller/${seller.id}`}>
+                          <Link href={`/admin/sellers/${seller.id}`}>
                             <Button variant="ghost" size="sm" data-testid={`button-view-${seller.id}`}>
                               <Eye className="h-4 w-4" />
                             </Button>

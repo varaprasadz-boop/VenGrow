@@ -342,7 +342,13 @@ export default function ListingModerationPage() {
                           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <User className="h-4 w-4" />
-                              {approval.submitter?.firstName} {approval.submitter?.lastName || "Unknown Seller"}
+                              {approval.sellerId ? (
+                                <Link href={`/admin/sellers/${approval.sellerId}`} className="text-primary hover:underline font-medium">
+                                  {approval.submitter?.firstName} {approval.submitter?.lastName || "View seller"}
+                                </Link>
+                              ) : (
+                                <>{approval.submitter?.firstName} {approval.submitter?.lastName || "Unknown Seller"}</>
+                              )}
                             </span>
                             <span>•</span>
                             <span className="flex items-center gap-1">

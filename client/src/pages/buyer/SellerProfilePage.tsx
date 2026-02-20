@@ -10,7 +10,6 @@ export default function SellerProfilePage() {
     name: "Raj Properties",
     type: "Broker",
     rating: 4.5,
-    reviews: 234,
     location: "Mumbai, Maharashtra",
     activeListings: 45,
     totalSold: 123,
@@ -64,9 +63,6 @@ export default function SellerProfilePage() {
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                     <span className="font-semibold">{seller.rating}</span>
-                    <span className="text-sm text-muted-foreground">
-                      ({seller.reviews} reviews)
-                    </span>
                   </div>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <MapPin className="h-4 w-4" />
@@ -151,55 +147,6 @@ export default function SellerProfilePage() {
             </div>
           </div>
 
-          {/* Reviews */}
-          <Card className="p-8">
-            <h2 className="font-serif font-bold text-2xl mb-6">
-              Customer Reviews
-            </h2>
-            <div className="space-y-6">
-              {[
-                {
-                  name: "Amit Kumar",
-                  rating: 5,
-                  comment: "Very professional and helpful. Found my dream home!",
-                  date: "Nov 15, 2025",
-                },
-                {
-                  name: "Priya Sharma",
-                  rating: 4,
-                  comment: "Good service, quick response to queries.",
-                  date: "Nov 10, 2025",
-                },
-              ].map((review, index) => (
-                <div key={index} className="pb-6 border-b last:border-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback>
-                          {review.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{review.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {review.date}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: review.rating }).map((_, i) => (
-                        <Star
-                          key={i}
-                          className="h-4 w-4 fill-yellow-400 text-yellow-400"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{review.comment}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
         </div>
       </main>
 

@@ -66,9 +66,9 @@ export function ObjectUploader({
   maxFiles,
   accept,
 }: ObjectUploaderProps) {
-  // Support legacy props
+  // Support legacy props - parse accept comma-separated into array for Uppy (e.g. ".pdf,application/pdf" -> [".pdf", "application/pdf"])
   const maxNumberOfFiles = maxNumberOfFilesProp ?? maxFiles ?? 1;
-  const allowedFileTypes = allowedFileTypesProp ?? (accept ? [accept] : ["image/*"]);
+  const allowedFileTypes = allowedFileTypesProp ?? (accept ? accept.split(",").map((t) => t.trim()).filter(Boolean) : ["image/*"]);
   
   const [showModal, setShowModal] = useState(false);
   const [files, setFiles] = useState<FileWithPreview[]>([]);
@@ -587,15 +587,15 @@ export function ObjectUploader({
           }
         }}
       >
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="shrink-0 px-6 pt-6 pb-4">
             <DialogTitle className="text-2xl">Upload Photos</DialogTitle>
             <DialogDescription>
               Upload high-quality images. Maximum {maxNumberOfFiles} file{maxNumberOfFiles > 1 ? "s" : ""}, up to {formatFileSize(maxFileSize)} each.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 space-y-6">
             {/* Drop Zone */}
             <div
               ref={dropZoneRef}
@@ -751,45 +751,45 @@ export function ObjectUploader({
                 </div>
               </div>
             )}
+          </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t">
+          {/* Footer - always visible */}
+          <div className="shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t bg-background">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowModal(false)}
+              disabled={isUploading}
+            >
+              Cancel
+            </Button>
+            {allUploaded ? (
               <Button
                 type="button"
-                variant="outline"
                 onClick={() => setShowModal(false)}
-                disabled={isUploading}
               >
-                Cancel
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Done
               </Button>
-              {allUploaded ? (
-                <Button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                >
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Done
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  onClick={handleUpload}
-                  disabled={!canUpload || isUploading}
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload {files.length} File{files.length > 1 ? "s" : ""}
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
+            ) : (
+              <Button
+                type="button"
+                onClick={handleUpload}
+                disabled={!canUpload || isUploading}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload {files.length} File{files.length > 1 ? "s" : ""}
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

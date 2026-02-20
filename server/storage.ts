@@ -320,6 +320,8 @@ export interface PropertyFilters {
   search?: string;
   limit?: number;
   offset?: number;
+  /** Only return properties with this workflow status (e.g. "live" for public listing). Comma-separated for multiple. */
+  workflowStatus?: string;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -646,7 +648,12 @@ export class DatabaseStorage implements IStorage {
         
         if (filters?.city) conditions.push(eq(properties.city, filters.city));
         if (filters?.state) conditions.push(eq(properties.state, filters.state));
-        if (filters?.propertyType) conditions.push(eq(properties.propertyType, filters.propertyType as any));
+        if (filters?.categoryId && filters?.propertyType) {
+          conditions.push(or(eq(properties.categoryId, filters.categoryId), eq(properties.propertyType, filters.propertyType as any)) as any);
+        } else {
+          if (filters?.propertyType) conditions.push(eq(properties.propertyType, filters.propertyType as any));
+          if (filters?.categoryId) conditions.push(eq(properties.categoryId, filters.categoryId));
+        }
         if (filters?.transactionType) {
           const txStr = String(filters.transactionType).trim();
           const txList = txStr.includes(",") ? txStr.split(",").map((t) => t.trim()).filter(Boolean) : [txStr];
@@ -656,7 +663,6 @@ export class DatabaseStorage implements IStorage {
             conditions.push(eq(properties.transactionType, txList[0] as any));
           }
         }
-        if (filters?.categoryId) conditions.push(eq(properties.categoryId, filters.categoryId));
         if (filters?.subcategoryId) conditions.push(eq(properties.subcategoryId, filters.subcategoryId));
         if (filters?.projectStage) {
           const psStr = String(filters.projectStage).trim();
@@ -696,6 +702,15 @@ export class DatabaseStorage implements IStorage {
           }
         }
         if (filters?.status) conditions.push(eq(properties.status, filters.status as any));
+        if (filters?.workflowStatus) {
+          const wsStr = String(filters.workflowStatus).trim();
+          const wsList = wsStr.includes(",") ? wsStr.split(",").map((w) => w.trim()).filter(Boolean) : [wsStr];
+          if (wsList.length > 1) {
+            conditions.push(inArray(properties.workflowStatus, wsList as any));
+          } else if (wsList.length === 1) {
+            conditions.push(eq(properties.workflowStatus, wsList[0] as any));
+          }
+        }
         if (filters?.isVerified !== undefined) conditions.push(eq(properties.isVerified, filters.isVerified));
         if (filters?.isFeatured !== undefined) conditions.push(eq(properties.isFeatured, filters.isFeatured));
         if (filters?.sellerId) conditions.push(eq(properties.sellerId, filters.sellerId));
@@ -753,9 +768,18 @@ export class DatabaseStorage implements IStorage {
           whereConditions.push(`state = $${paramIndex++}`);
           params.push(filters.state);
         }
-        if (filters?.propertyType) {
-          whereConditions.push(`property_type = $${paramIndex++}`);
-          params.push(filters.propertyType);
+        if (filters?.categoryId && filters?.propertyType) {
+          whereConditions.push(`(category_id = $${paramIndex++} OR property_type = $${paramIndex++})`);
+          params.push(filters.categoryId, filters.propertyType);
+        } else {
+          if (filters?.propertyType) {
+            whereConditions.push(`property_type = $${paramIndex++}`);
+            params.push(filters.propertyType);
+          }
+          if (filters?.categoryId) {
+            whereConditions.push(`category_id = $${paramIndex++}`);
+            params.push(filters.categoryId);
+          }
         }
         if (filters?.transactionType) {
           const txStr = String(filters.transactionType).trim();
@@ -767,10 +791,6 @@ export class DatabaseStorage implements IStorage {
             whereConditions.push(`transaction_type = $${paramIndex++}`);
             params.push(txList[0]);
           }
-        }
-        if (filters?.categoryId) {
-          whereConditions.push(`category_id = $${paramIndex++}`);
-          params.push(filters.categoryId);
         }
         if (filters?.subcategoryId) {
           whereConditions.push(`subcategory_id = $${paramIndex++}`);
@@ -842,6 +862,17 @@ export class DatabaseStorage implements IStorage {
           whereConditions.push(`status = $${paramIndex++}`);
           params.push(filters.status);
         }
+        if (filters?.workflowStatus) {
+          const wsStr = String(filters.workflowStatus).trim();
+          const wsList = wsStr.includes(",") ? wsStr.split(",").map((w: string) => w.trim()).filter(Boolean) : [wsStr];
+          if (wsList.length > 1) {
+            whereConditions.push(`workflow_status IN (${wsList.map(() => `$${paramIndex++}`).join(", ")})`);
+            params.push(...wsList);
+          } else if (wsList.length === 1) {
+            whereConditions.push(`workflow_status = $${paramIndex++}`);
+            params.push(wsList[0]);
+          }
+        }
         if (filters?.isVerified !== undefined) {
           whereConditions.push(`is_verified = $${paramIndex++}`);
           params.push(filters.isVerified);
@@ -886,12 +917,16 @@ export class DatabaseStorage implements IStorage {
   async getFeaturedProperties(limit: number = 10): Promise<Property[]> {
     return this.executePropertyQuery(
       () => db.select().from(properties)
-        .where(and(eq(properties.isFeatured, true), eq(properties.status, 'active')))
+        .where(and(
+          eq(properties.isFeatured, true),
+          eq(properties.status, 'active'),
+          inArray(properties.workflowStatus, ['live', 'approved'])
+        ))
         .orderBy(desc(properties.createdAt))
         .limit(limit),
       async () => {
         const result = await pool.query(
-          "SELECT * FROM properties WHERE is_featured = true AND status = 'active' ORDER BY created_at DESC LIMIT $1",
+          "SELECT * FROM properties WHERE is_featured = true AND status = 'active' AND workflow_status IN ('live', 'approved') ORDER BY created_at DESC LIMIT $1",
           [limit]
         );
         return result.rows as Property[];

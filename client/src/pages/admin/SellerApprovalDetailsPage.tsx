@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link, useParams, useLocation } from "wouter";
+import { Link, useParams, useLocation, useRoute } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +46,10 @@ export default function SellerApprovalDetailsPage() {
   const { toast } = useToast();
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
+  const [isSellerDetailRoute] = useRoute("/admin/sellers/:id");
+  const backHref = isSellerDetailRoute ? "/admin/sellers" : "/admin/seller-approvals";
+  const backLabel = isSellerDetailRoute ? "Back to Sellers" : "Back to Seller Approvals";
+  const listLabel = isSellerDetailRoute ? "Sellers" : "Seller Approvals";
 
   const { data: sellerProfile, isLoading: profileLoading, isError: profileError } = useQuery<SellerProfile>({
     queryKey: ["/api/sellers", id],
@@ -69,7 +73,7 @@ export default function SellerApprovalDetailsPage() {
         title: variables.status === "verified" ? "Seller Approved" : "Seller Rejected",
         description: `The seller has been ${variables.status === "verified" ? "approved" : "rejected"} successfully.`,
       });
-      navigate("/admin/seller-approvals");
+      navigate(backHref);
     },
     onError: () => {
       toast({
@@ -101,10 +105,10 @@ export default function SellerApprovalDetailsPage() {
           <p className="text-muted-foreground mb-4">
             The seller profile you're looking for doesn't exist or has been removed.
           </p>
-          <Link href="/admin/seller-approvals">
+          <Link href={backHref}>
             <Button data-testid="button-back-to-list">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Seller Approvals
+              {backLabel}
             </Button>
           </Link>
         </div>
@@ -149,7 +153,7 @@ export default function SellerApprovalDetailsPage() {
           homeHref="/admin/dashboard"
           items={[
             { label: "User Management", href: "/admin/user-management" },
-            { label: "Seller Approvals", href: "/admin/seller-approvals" },
+            { label: listLabel, href: backHref },
             { label: sellerProfile.companyName || "Seller Details" },
           ]}
           className="mb-4"
@@ -157,7 +161,7 @@ export default function SellerApprovalDetailsPage() {
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div className="flex items-center gap-3">
-            <Link href="/admin/seller-approvals">
+            <Link href={backHref}>
               <Button variant="ghost" size="icon" data-testid="button-back">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
@@ -413,10 +417,10 @@ export default function SellerApprovalDetailsPage() {
           </Card>
 
           <div className="flex justify-between pt-4">
-            <Link href="/admin/seller-approvals">
+            <Link href={backHref}>
               <Button variant="outline" data-testid="button-back-bottom">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to List
+                {backLabel}
               </Button>
             </Link>
             {sellerProfile.verificationStatus === "pending" && (

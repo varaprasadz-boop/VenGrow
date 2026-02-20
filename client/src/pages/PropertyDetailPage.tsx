@@ -100,8 +100,8 @@ export default function PropertyDetailPage() {
   const [visitEmail, setVisitEmail] = useState("");
   const [visitNotes, setVisitNotes] = useState("");
   
-  // Fetch property details - supports both slug and ID
-  const { data: property, isLoading: propertyLoading } = useQuery<Property>({
+  // Fetch property details - supports both slug and ID (404 when not approved for non-admin)
+  const { data: property, isLoading: propertyLoading, isError: propertyError } = useQuery<Property>({
     queryKey: ["/api/properties", id],
     queryFn: async () => {
       const response = await fetch(`/api/properties/${id}`);
@@ -111,6 +111,7 @@ export default function PropertyDetailPage() {
       return response.json();
     },
     enabled: !!id,
+    retry: false,
   });
   
   // Redirect to slug URL if property was accessed via ID and has a slug
@@ -423,6 +424,16 @@ export default function PropertyDetailPage() {
       setInquiryPhone(user.phone || '');
     }
   }, [user]);
+
+  useEffect(() => {
+    if (propertyError && !property && !propertyLoading) {
+      setLocation("/404");
+    }
+  }, [propertyError, property, propertyLoading, setLocation]);
+
+  if (propertyError && !property) {
+    return null;
+  }
 
   if (propertyLoading) {
     return (

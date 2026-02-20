@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch, useSearchParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -50,56 +50,74 @@ interface FilterState {
 
 export default function ListingsPage() {
   const [location, setLocation] = useLocation();
+  const searchString = useSearch();
+  const [, setSearchParams] = useSearchParams();
   const { user } = useAuth();
-  const [viewType, setViewType] = useState<"grid" | "list" | "map">("grid");
-  const [sortBy, setSortBy] = useState("newest");
-  const [filters, setFilters] = useState<FilterState>({});
-  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isApplyingFilters, setIsApplyingFilters] = useState(false);
-  const [saveSearchOpen, setSaveSearchOpen] = useState(false);
-  const [searchName, setSearchName] = useState("");
   const itemsPerPage = 20;
   const { toast } = useToast();
-  
-  // Parse URL parameters
+
+  // Parse URL parameters from search string (useSearch may return with or without leading "?")
   const urlParams = useMemo(() => {
-    const params = new URLSearchParams(location.split('?')[1] || '');
+    const raw = typeof searchString === "string" ? searchString : "";
+    const params = new URLSearchParams(raw.startsWith("?") ? raw.slice(1) : raw);
     const parsedFilters: FilterState = {};
     
-    // Parse filters from URL
     if (params.get('category')) parsedFilters.category = params.get('category')!;
-    // Also handle 'type' parameter (used by CategorySection from home page)
     if (params.get('type') && !parsedFilters.category) parsedFilters.category = params.get('type')!;
-    if (params.get('minPrice') && params.get('maxPrice')) {
-      parsedFilters.priceRange = [
-        parseInt(params.get('minPrice')!),
-        parseInt(params.get('maxPrice')!)
-      ];
+    if (params.get('minPrice') != null && params.get('maxPrice') != null) {
+      const min = parseInt(params.get('minPrice')!, 10);
+      const max = parseInt(params.get('maxPrice')!, 10);
+      if (!Number.isNaN(min) && !Number.isNaN(max)) {
+        parsedFilters.priceRange = [min, max];
+      }
     }
     if (params.get('bhk')) {
-      parsedFilters.bhk = params.get('bhk')!.split(',');
+      parsedFilters.bhk = params.get('bhk')!.split(',').filter(Boolean);
     }
     if (params.get('transactionTypes')) {
-      parsedFilters.transactionTypes = params.get('transactionTypes')!.split(',');
+      parsedFilters.transactionTypes = params.get('transactionTypes')!.split(',').filter(Boolean);
     }
     if (params.get('sellerTypes')) {
-      parsedFilters.sellerTypes = params.get('sellerTypes')!.split(',');
+      parsedFilters.sellerTypes = params.get('sellerTypes')!.split(',').filter(Boolean);
     }
     if (params.get('propertyAge')) {
-      parsedFilters.propertyAge = params.get('propertyAge')!.split(',');
+      parsedFilters.propertyAge = params.get('propertyAge')!.split(',').filter(Boolean);
+    }
+    if (params.get('subcategories')) {
+      parsedFilters.subcategories = params.get('subcategories')!.split(',').filter(Boolean);
+    }
+    if (params.get('projectStages')) {
+      parsedFilters.projectStages = params.get('projectStages')!.split(',').filter(Boolean);
+    }
+    if (params.get('builder') || params.get('corporate')) {
+      parsedFilters.corporateSearch = params.get('builder') || params.get('corporate') || undefined;
     }
     
     return {
       category: params.get('category') || params.get('type') || null,
       featured: params.get('featured') === 'true',
       sort: params.get('sort') || null,
-      page: parseInt(params.get('page') || '1'),
+      page: parseInt(params.get('page') || '1', 10) || 1,
       sellerId: params.get('sellerId') || null,
       filters: parsedFilters,
     };
-  }, [location]);
+  }, [location, searchString]);
+
+  // Single source of truth: derive filters, page, sort from URL so Apply Filter and URL stay in sync
+  const filters = useMemo<FilterState>(() => ({
+    ...urlParams.filters,
+    ...(urlParams.category && { category: urlParams.category }),
+  }), [urlParams]);
+  const currentPage = urlParams.page;
+  const sortBy = urlParams.sort || "newest";
+
+  const [viewType, setViewType] = useState<"grid" | "list" | "map">("grid");
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [isApplyingFilters, setIsApplyingFilters] = useState(false);
+  const [saveSearchOpen, setSaveSearchOpen] = useState(false);
+  const [searchName, setSearchName] = useState("");
   
+  // Same page is used for /listings, /buy, /lease, /rent (buyer routes). Path sets default transaction type.
   const transactionTypeFromPath = useMemo(() => {
     if (location === "/buy" || location.startsWith("/buy?")) return "Sale";
     if (location === "/lease" || location.startsWith("/lease?")) return "Lease";
@@ -114,30 +132,14 @@ export default function ListingsPage() {
     return "All Properties";
   }, [location]);
   
-  // Initialize filters and page from URL on mount
-  useEffect(() => {
-    const newFilters: FilterState = { ...urlParams.filters };
-    // Always sync category from URL (handles both 'category' and 'type' params)
-    if (urlParams.category) {
-      newFilters.category = urlParams.category;
-    }
-    setFilters(newFilters);
-    if (urlParams.sort) {
-      setSortBy(urlParams.sort);
-    }
-    if (urlParams.page) {
-      setCurrentPage(urlParams.page);
-    }
-  }, [location]); // Only run when location changes
-
-  // Update URL with current filters and page
+  // Update URL with filters/page/sort using wouter's setSearchParams so URL and router stay in sync
   const updateURL = useCallback((newFilters: FilterState, newPage: number = 1, newSort?: string) => {
     const params = new URLSearchParams();
     
     if (newFilters.category && newFilters.category !== "all") {
       params.set('category', newFilters.category);
     }
-    if (newFilters.priceRange) {
+    if (newFilters.priceRange && (newFilters.priceRange[0] > 0 || newFilters.priceRange[1] < 200 * 100000)) {
       params.set('minPrice', newFilters.priceRange[0].toString());
       params.set('maxPrice', newFilters.priceRange[1].toString());
     }
@@ -153,26 +155,35 @@ export default function ListingsPage() {
     if (newFilters.propertyAge && newFilters.propertyAge.length > 0) {
       params.set('propertyAge', newFilters.propertyAge.join(','));
     }
+    if (newFilters.subcategories && newFilters.subcategories.length > 0) {
+      params.set('subcategories', newFilters.subcategories.join(','));
+    }
+    if (newFilters.projectStages && newFilters.projectStages.length > 0) {
+      params.set('projectStages', newFilters.projectStages.join(','));
+    }
+    if (newFilters.corporateSearch && newFilters.corporateSearch?.trim()) {
+      params.set('builder', newFilters.corporateSearch.trim());
+    }
     if (newPage > 1) {
       params.set('page', newPage.toString());
     }
-    if (newSort) {
-      params.set('sort', newSort);
-    } else if (sortBy !== "newest") {
-      params.set('sort', sortBy);
+    const sortVal = newSort ?? urlParams.sort ?? "newest";
+    if (sortVal && sortVal !== "newest") {
+      params.set('sort', sortVal);
+    }
+    if (urlParams.sellerId) {
+      params.set('sellerId', urlParams.sellerId);
+    }
+    if (urlParams.featured) {
+      params.set('featured', 'true');
     }
     
-    const basePath = location.split('?')[0];
-    const queryString = params.toString();
-    const newPath = queryString ? `${basePath}?${queryString}` : basePath;
-    setLocation(newPath);
-  }, [location, sortBy, setLocation]);
+    setSearchParams(params);
+  }, [urlParams.sort, urlParams.sellerId, urlParams.featured, setSearchParams]);
 
-  // Handle filter application
+  // Handle filter application - update URL only; filters are derived from URL on next render
   const handleApplyFilters = useCallback((newFilters: FilterState) => {
     setIsApplyingFilters(true);
-    setFilters(newFilters);
-    setCurrentPage(1); // Reset to first page when filters change
     updateURL(newFilters, 1);
     setMobileFilterOpen(false);
     setTimeout(() => setIsApplyingFilters(false), 300);
@@ -297,12 +308,12 @@ export default function ListingsPage() {
     return params;
   }, [filters, currentPage, urlParams.featured, urlParams.sellerId, transactionTypeFromPath]);
 
-  // Fetch real properties from the API with filters
+  // Fetch real properties from the API with filters (searchString in key ensures refetch when URL params change)
   const { data: propertiesData, isLoading, error, refetch } = useQuery<Property[]>({
-    queryKey: ["/api/properties", apiQueryParams],
+    queryKey: ["/api/properties", apiQueryParams, searchString],
     queryFn: async () => {
       const queryString = new URLSearchParams(apiQueryParams).toString();
-      const response = await fetch(`/api/properties?${queryString}`);
+      const response = await fetch(`/api/properties?${queryString}`, { credentials: "include" });
       if (!response.ok) {
         throw new Error("Failed to fetch properties");
       }
@@ -365,14 +376,13 @@ export default function ListingsPage() {
       result = result.filter(p => p.isFeatured === true);
     }
     
-    // Category filter from URL or filters
+    // Category filter from URL or filters (normalize slug to match DB propertyType: apartments->apartment, etc.)
     const categoryFilter = urlParams.category || filters.category;
     if (categoryFilter && categoryFilter !== "all") {
-      // Filter by propertyType or categoryId
+      const slugNorm = categoryFilter.toLowerCase().replace(/s$/, "") || categoryFilter.toLowerCase();
       result = result.filter(p => {
-        const propertyTypeMatch = p.propertyType?.toLowerCase() === categoryFilter.toLowerCase();
-        // You might also want to match by categoryId if available
-        return propertyTypeMatch;
+        const pt = (p.propertyType || "").toLowerCase();
+        return pt === categoryFilter.toLowerCase() || pt === slugNorm || (categoryFilter.toLowerCase().endsWith("s") && pt === categoryFilter.toLowerCase().slice(0, -1));
       });
     }
     
@@ -478,13 +488,11 @@ export default function ListingsPage() {
   }, [filteredProperties, currentPage]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
     updateURL(filters, page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSortChange = (newSort: string) => {
-    setSortBy(newSort);
     updateURL(filters, currentPage, newSort);
   };
 
@@ -500,17 +508,15 @@ export default function ListingsPage() {
       <ListingsFilterHeader 
         filters={filters}
         onFilterChange={(newFilters) => {
-          setFilters(newFilters);
-          setCurrentPage(1);
           updateURL(newFilters, 1);
         }}
         onOpenFilters={() => setMobileFilterOpen(true)}
       />
       
-      <main className="flex-1 flex flex-col">
-        <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
-          {/* Desktop Sidebar - sticky, scrolls in its own section */}
-          <aside className="hidden lg:block w-64 flex-shrink-0 sticky top-16 self-start max-h-[calc(100vh-4rem)] overflow-y-auto pr-2">
+      <main className="flex-1 flex flex-col min-h-0">
+        <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 min-h-0 lg:h-[calc(100vh-8.5rem)] lg:max-h-[calc(100vh-8.5rem)] lg:overflow-hidden">
+          {/* Desktop Sidebar - scrolls separately */}
+          <aside className="hidden lg:flex lg:flex-col w-64 flex-shrink-0 min-h-0 overflow-y-auto pr-2">
             <FilterSidebar 
               onApplyFilters={handleApplyFilters}
               initialCategory={filters.category}
@@ -518,8 +524,8 @@ export default function ListingsPage() {
             />
           </aside>
 
-          {/* Main Content - scrolls with page */}
-          <div className="flex-1 min-w-0 space-y-6">
+          {/* Main Content - scrolls separately on desktop */}
+          <div className="flex-1 min-w-0 min-h-0 lg:overflow-y-auto flex flex-col space-y-6">
               {/* Header - Stacked on mobile, side-by-side on desktop */}
               <div className="space-y-4 sm:space-y-0">
                 {/* Title Row - Always on its own line on mobile */}
@@ -725,11 +731,7 @@ export default function ListingsPage() {
                   <p className="text-muted-foreground mb-4">No properties found matching your criteria.</p>
                   <Button 
                     variant="outline" 
-                    onClick={() => {
-                      setFilters({});
-                      setCurrentPage(1);
-                      updateURL({}, 1);
-                    }}
+                    onClick={() => updateURL({}, 1)}
                   >
                     Clear Filters
                   </Button>

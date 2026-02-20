@@ -1774,21 +1774,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         apartments: "apartment", villa: "villa", villas: "villa",
         plot: "plot", plots: "plot", commercial: "commercial", commercials: "commercial",
         farmhouse: "farmhouse", farmhouses: "farmhouse", penthouse: "penthouse", penthouses: "penthouse",
-        apartment: "apartment", independent_house: "independent_house", "independent house": "independent_house",
-        pg_co_living: "pg_co_living", "pg co living": "pg_co_living", co_living: "pg_co_living",
-        new_projects: "new_projects", "new projects": "new_projects",
-        joint_venture: "joint_venture", "joint venture": "joint_venture",
+        apartment: "apartment", independent_house: "independent_house", "independent house": "independent_house", "independent-house": "independent_house",
+        pg_co_living: "pg_co_living", "pg co living": "pg_co_living", co_living: "pg_co_living", "pg-coliving": "pg_co_living", "pg_coliving": "pg_co_living",
+        new_projects: "new_projects", "new projects": "new_projects", "new-projects": "new_projects",
+        joint_venture: "joint_venture", "joint venture": "joint_venture", "joint-venture": "joint_venture",
+        "farm-land": "plot", "farm_land": "plot", "ultra-luxury": "penthouse", "rush-deal": "apartment",
       };
       const propertyTypeNormalized = propertyTypeRaw
         ? (PROPERTY_TYPE_ENUM.includes(propertyTypeRaw as any) ? propertyTypeRaw : slugToEnum[propertyTypeRaw] ?? undefined)
         : undefined;
 
+      // When client sends category slug as propertyType, resolve to categoryId so we filter by category (properties may use categoryId or propertyType in DB)
+      let resolvedCategoryId: string | undefined = categoryId != null && categoryId !== "" ? (categoryId as string) : undefined;
+      if (!resolvedCategoryId && propertyTypeRaw) {
+        let categoryBySlug = await storage.getPropertyCategoryBySlug(propertyTypeRaw);
+        if (!categoryBySlug && propertyTypeNormalized) categoryBySlug = await storage.getPropertyCategoryBySlug(propertyTypeNormalized);
+        if (categoryBySlug) resolvedCategoryId = categoryBySlug.id;
+      }
+
+      const adminUser = (req as any).session?.adminUser;
+      const localUser = (req as any).session?.localUser;
+      const isAdmin = adminUser?.isSuperAdmin || adminUser?.role === "admin" || localUser?.role === "admin";
+      const workflowStatusParam = (req.query.workflowStatus as string) || undefined;
+      // For non-admin, only allow live/approved. For admin, allow any workflowStatus filter (e.g. submitted,under_review for pending page).
+      const effectiveWorkflowStatus = isAdmin ? workflowStatusParam : "live,approved";
+
       const properties = await storage.getProperties({
         city: city as string,
         state: state as string,
+        ...(resolvedCategoryId && { categoryId: resolvedCategoryId }),
         ...(propertyTypeNormalized && { propertyType: propertyTypeNormalized }),
         transactionType: transactionTypeParam,
-        categoryId: categoryId as string,
         subcategoryId: subcategoryId as string,
         projectStage: projectStageParam,
         minPrice: validMinPrice,
@@ -1797,6 +1813,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         maxArea: maxArea != null && maxArea !== "" ? parseInt(maxArea as string) : undefined,
         bedrooms: bedroomsParam,
         status: statusFilter,
+        ...(effectiveWorkflowStatus && { workflowStatus: effectiveWorkflowStatus }),
         isVerified: isVerified === "true" ? true : isVerified === "false" ? false : undefined,
         isFeatured: isFeatured === "true" ? true : isFeatured === "false" ? false : undefined,
         sellerId: sellerId as string,
@@ -1851,6 +1868,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!property) {
         return res.status(404).json({ error: "Property not found" });
       }
+      const adminUser = (req as any).session?.adminUser;
+      const localUser = (req as any).session?.localUser;
+      const isAdmin = adminUser?.isSuperAdmin || adminUser?.role === "admin" || localUser?.role === "admin";
+      const isLiveOrApproved = property.workflowStatus === "live" || property.workflowStatus === "approved";
+      if (!isAdmin && !isLiveOrApproved) {
+        return res.status(404).json({ error: "Property not found" });
+      }
       
       // Increment view count (use property.id, not the slug/idOrSlug)
       await storage.incrementPropertyView(property.id);
@@ -1880,10 +1904,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
-
-      const adminUser = (req.session as any)?.adminUser;
-      const localUser = (req.session as any)?.localUser;
-      const isAdmin = adminUser?.isSuperAdmin || adminUser?.role === "admin" || localUser?.role === "admin";
 
       res.json({
         ...property,
@@ -6865,6 +6885,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!fileBuffer || fileBuffer.length === 0) {
         return res.status(400).json({ error: "No file data provided" });
+      }
+
+      // Brochure uploads must be PDF only
+      if (prefix && prefix.toLowerCase().includes("brochure")) {
+        const pdfMagic = Buffer.from([0x25, 0x50, 0x44, 0x46]); // %PDF
+        if (fileBuffer.length < 4 || !pdfMagic.equals(fileBuffer.subarray(0, 4))) {
+          return res.status(400).json({ error: "Brochure must be a PDF file. Only PDF format is allowed." });
+        }
       }
 
       // Get filename from headers or use upload ID

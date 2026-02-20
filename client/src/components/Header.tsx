@@ -171,7 +171,10 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
     setWouterLocation("/seller/type");
     setMobileMenuOpen(false);
   };
-
+  // Hide this header on buyer dashboard
+  if (location === "/buy") {
+    return null;
+  }
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -282,6 +285,10 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                   </Link>
                 )}
                 {userId && <NotificationBell userId={userId} />}
+                <Button variant="ghost" size="sm" onClick={handleLogout} data-testid="button-header-logout" className="hidden sm:flex">
+                  <LogOut className="h-4 w-4 mr-1" />
+                  Logout
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" data-testid="button-user-menu">

@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, Users, Building2, Package, CreditCard, MessageSquare, 
   Bell, Settings, Shield, FileText, BarChart3, HelpCircle, LogOut,
-  ChevronDown, UserCog, ListChecks, Globe, Mail, Clock, Star,
+  ChevronDown, UserCog, ListChecks, Globe, Mail, Star,
   Database, Activity, Megaphone, Image, Quote, BadgeCheck, Heart, UserCircle
 } from "lucide-react";
 import { RefreshButton } from "@/components/RefreshButton";
@@ -50,7 +50,6 @@ const userManagementItems = [
 const propertyManagementItems = [
   { title: "All Properties", href: "/admin/properties", icon: Building2 },
   { title: "Property Approvals", href: "/admin/listing-moderation", icon: ListChecks },
-  { title: "Pending Properties", href: "/admin/pending-properties", icon: Clock },
   { title: "Featured Properties", href: "/admin/featured", icon: Star },
 ];
 
