@@ -84,6 +84,16 @@ Renders different form fields based on `categoryId` from Step 1. Each category h
 
 **Independent House Details fields:** BHK (with 1 RK), Bathrooms, Balconies, Super Built Up Area, Carpet Area, Room Sizes (dynamic based on BHK), Facing, Floor Number, Flooring Type, No of Car Parking, Maintenance Charges, Overlooking, Furnished Status, Total Units (reuse totalFlats), Total Floors, New/Resale, Possession Status (conditional: under construction → possession date; ready to move → age of building). NO amenities, NO lifts.
 
+### New Projects Category Analysis [PENDING IMPLEMENTATION]
+
+**Already in DB schema:** newProjectFloorPlans (jsonb - array of {superBuiltUpArea, carpetArea, bhk, bathrooms, balconies, totalPrice}), facing, flooring, carParkingCount, maintenanceCharges, pricePerSqft, totalFlats, totalFloors, flatsOnFloor, possessionStatus, numberOfLifts, amenities
+
+**New DB columns needed:** None — all fields already exist in schema
+
+**Key unique aspect:** Multiple floor plans (up to 4) instead of single unit configuration. Each floor plan has its own Super Built Up Area, Carpet Area, BHK, Bathrooms, Balconies, Total Price stored in newProjectFloorPlans jsonb array.
+
+**New Projects Details fields:** Floor Plans (1-4, each with: Super Built Up Area, Carpet Area, BHK, Bathrooms, Balconies, Total Price), Facings Available, Flooring Type, No of Car Parking, Maintenance Charges, Per sqft Price, Total Flats, Total Floors, Flats on Floor, Possession Status (conditional: under construction → when is possession), No of Lifts (count dropdown), Amenities (55+ list)
+
 **Other categories (PG, Farmland, Commercial, etc.):** Awaiting user input before implementation. Will implement all categories together.
 
 ### Implementation Approach
