@@ -94,7 +94,17 @@ Renders different form fields based on `categoryId` from Step 1. Each category h
 
 **New Projects Details fields:** Floor Plans (1-4, each with: Super Built Up Area, Carpet Area, BHK, Bathrooms, Balconies, Total Price), Facings Available, Flooring Type, No of Car Parking, Maintenance Charges, Per sqft Price, Total Flats, Total Floors, Flats on Floor, Possession Status (conditional: under construction → when is possession), No of Lifts (count dropdown), Amenities (55+ list)
 
-**Other categories (PG, Farmland, Commercial, etc.):** Awaiting user input before implementation. Will implement all categories together.
+### Commercial Category Analysis [PENDING IMPLEMENTATION]
+
+**Already in DB schema:** facing, roadWidthPlotMeters — both already exist
+
+**New DB columns needed:** None
+
+**Key unique aspect:** Simplest category — only 2 fields in Details tab. No residential features (no BHK, bathrooms, amenities, furnishing, parking, lifts, floors). Location, Area, and Price are all in Step 1 (common fields).
+
+**Commercial Details fields:** Facing, Width of Road Facing the Plot (in meters). NO amenities, NO BHK/bathrooms, NO furnishing, NO parking, NO floors.
+
+**Other categories (PG, Farmland, etc.):** Awaiting user input before implementation. Will implement all categories together.
 
 ### Implementation Approach
 1. Schema changes: Add new columns (projectSocietyName, overlookingType, etc.) via Drizzle migration
