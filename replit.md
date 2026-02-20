@@ -40,7 +40,7 @@ The Add Property form has 4 stages: Basic Info, Details, Photos, Review (save to
 ### Details (Step 2) - Category-Specific
 Renders different form fields based on `categoryId` from Step 1. Each category has its own field config.
 
-### Apartment Category Analysis (completed)
+### Apartment Category Analysis [PENDING IMPLEMENTATION]
 
 **Already in DB schema AND form:** bedrooms (BHK), bathrooms, balconies, facing, floor, totalFloors, furnishing, flooring, ageOfProperty, possessionStatus, amenities (12 items only)
 
@@ -52,7 +52,29 @@ Renders different form fields based on `categoryId` from Step 1. Each category h
 
 **Per sqft Price:** `pricePerSqft` exists in schema - needs auto-calculation from price and area
 
-**Other categories (Villa, PG, Farmland, etc.):** Awaiting user input before implementation. Will implement all categories together.
+**Apartment Details fields:** BHK, Bathrooms, Balconies, Super Built Up Area, Carpet Area, Facing, Floor Number, Flooring Type, No of Car Parking, Maintenance Charges, Overlooking, Furnishing Status, Total Flats, Total Floors, Flats on Floor, New/Resale, Possession Status (conditional: under construction → possession date; ready to move → age of building), No of Lifts (count dropdown), Amenities (55+ list)
+
+### Villa Category Analysis [PENDING IMPLEMENTATION]
+
+**Shares with Apartment:** BHK, bathrooms, balconies, superBuiltUpArea, carpetArea, facing, furnishing, flooring, carParkingCount, maintenanceCharges, overlooking, amenities (same 55+ list), possessionStatus, isResale, pricePerSqft
+
+**Already in DB schema, not in form (quick wins):** totalVillas, isCornerProperty, roadWidthFeet, liftsAvailable (boolean)
+
+**New DB columns needed:** landArea (integer - separate from built-up area), roomSizes (jsonb - dynamic based on BHK count, e.g. [{room: "Bedroom 1", size: "12x14"}])
+
+**Key differences from Apartment:** Uses totalVillas instead of totalFlats/flatsOnFloor; lifts is Yes/No boolean instead of count; adds isCornerProperty, roadWidthFeet, landArea, roomSizes; floor number not relevant for standalone villas
+
+**Villa Details fields:** BHK, Bathrooms, Balconies, Land Area, Super Built Up Area, Carpet Area, Room Sizes (dynamic), Facing, Flooring Type, No of Car Parking, Maintenance Charges, Overlooking, Furnishing Status, Total Villas, Total Floors, Is Corner Property, Road Width in Feet, New/Resale, Possession Status (conditional), Lifts Available (Yes/No), Amenities (55+ list)
+
+### Plots Category Analysis [PENDING IMPLEMENTATION]
+
+**Already in DB schema:** plotLength, plotBreadth, isCornerPlot, roadWidthPlotMeters, floorAllowedConstruction, maintenanceCharges, isResale, clubHouseAvailable, facing
+
+**New DB columns needed:** None expected — all plot fields already exist in schema
+
+**Plots Details fields:** Plot Area (in Step 1), Plot Length, Plot Breadth, Is Corner Plot (Yes/No), Facing, Floor Allowed for Construction, Maintenance Charges, Width of Road Facing Plot (in meters), Overlooking, New/Resale, Club House Available (Yes/No). NO amenities, NO BHK/bathrooms, NO furnishing.
+
+**Other categories (PG, Farmland, Commercial, etc.):** Awaiting user input before implementation. Will implement all categories together.
 
 ### Implementation Approach
 1. Schema changes: Add new columns (projectSocietyName, overlookingType, etc.) via Drizzle migration
