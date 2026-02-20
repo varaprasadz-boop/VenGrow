@@ -417,40 +417,40 @@ export default function RegisterPage() {
   // Intent Selection Step
   if (step === "intent") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 py-12">
-        <div className="w-full max-w-3xl">
-          <div className="text-center mb-8">
-            <Link href="/" className="inline-block mb-4">
+      <div className="min-h-screen flex flex-col justify-center bg-muted/30 p-4 py-4 md:py-12 overflow-auto">
+        <div className="w-full max-w-3xl mx-auto flex flex-col justify-center min-h-0">
+          <div className="text-center mb-4 md:mb-8 shrink-0">
+            <Link href="/" className="inline-block mb-2 md:mb-4">
               <img 
                 src={vengrowLogo} 
                 alt="VenGrow - Verified Property Market" 
-                className="h-12 object-contain"
+                className="h-10 md:h-12 object-contain"
               />
             </Link>
-            <h1 className="text-3xl font-bold mb-2">Welcome to VenGrow</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">Welcome to VenGrow</h1>
+            <p className="text-muted-foreground text-sm md:text-base">
               India's trusted property marketplace. Tell us what brings you here.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4 md:gap-6 min-h-0">
             {/* Buyer Option */}
             <Card 
-              className="cursor-pointer hover-elevate transition-all border-2 hover:border-primary"
+              className="cursor-pointer hover-elevate transition-all border-2 hover:border-primary md:flex md:flex-col"
               onClick={() => handleIntentSelect("buyer")}
               data-testid="card-intent-buyer"
             >
-              <CardHeader className="text-center">
-                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Home className="h-8 w-8 text-primary" />
+              <CardHeader className="text-center p-4 md:p-6 pb-2 md:pb-6">
+                <div className="h-12 w-12 md:h-16 md:w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2 md:mb-4">
+                  <Home className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                 </div>
-                <CardTitle className="text-xl">I want to Browse, Rent, Lease or Buy</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg md:text-xl">I want to Browse, Rent, Lease or Buy</CardTitle>
+                <CardDescription className="text-sm">
                   Find your perfect property from thousands of verified listings
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
+              <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+                <div className="hidden md:block space-y-2">
                   {buyerBenefits.map((benefit, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm">
                       <Check className="h-4 w-4 text-primary shrink-0" />
@@ -458,7 +458,7 @@ export default function RegisterPage() {
                     </div>
                   ))}
                 </div>
-                <Button className="w-full mt-6" data-testid="button-select-buyer">
+                <Button className="w-full mt-4 md:mt-6" data-testid="button-select-buyer">
                   Continue as Buyer
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
@@ -467,21 +467,21 @@ export default function RegisterPage() {
 
             {/* Seller Option */}
             <Card 
-              className="cursor-pointer hover-elevate transition-all border-2 hover:border-primary"
+              className="cursor-pointer hover-elevate transition-all border-2 hover:border-primary md:flex md:flex-col"
               onClick={() => handleIntentSelect("seller")}
               data-testid="card-intent-seller"
             >
-              <CardHeader className="text-center">
-                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Store className="h-8 w-8 text-primary" />
+              <CardHeader className="text-center p-4 md:p-6 pb-2 md:pb-6">
+                <div className="h-12 w-12 md:h-16 md:w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2 md:mb-4">
+                  <Store className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                 </div>
-                <CardTitle className="text-xl">I want to Sell, Lease or Rent my Property</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg md:text-xl">I want to Sell, Lease or Rent my Property</CardTitle>
+                <CardDescription className="text-sm">
                   List your properties and connect with millions of buyers
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
+              <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+                <div className="hidden md:block space-y-2">
                   {sellerBenefits.map((benefit, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm">
                       <Check className="h-4 w-4 text-primary shrink-0" />
@@ -489,7 +489,7 @@ export default function RegisterPage() {
                     </div>
                   ))}
                 </div>
-                <Button className="w-full mt-6" data-testid="button-select-seller">
+                <Button className="w-full mt-4 md:mt-6" data-testid="button-select-seller">
                   Continue as Seller
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
@@ -497,7 +497,7 @@ export default function RegisterPage() {
             </Card>
           </div>
 
-          <div className="text-center mt-8">
+          <div className="text-center mt-4 md:mt-8 shrink-0">
             <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
               <Link href="/login" className="text-primary font-medium hover:underline" data-testid="link-login">

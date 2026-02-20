@@ -44,45 +44,45 @@ export default function SellerTypePage() {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <div className="w-full max-w-6xl">
-        {/* Logo */}
-        <div className="text-center mb-12">
-          <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <Building2 className="h-8 w-8 text-primary" />
-            <span className="font-serif font-bold text-2xl">VenGrow</span>
+    <div className="min-h-screen flex flex-col justify-center bg-muted/30 p-4 py-4 md:py-8 overflow-auto">
+      <div className="w-full max-w-6xl mx-auto flex flex-col justify-center min-h-0">
+        {/* Logo - compact on mobile */}
+        <div className="text-center mb-4 md:mb-12 shrink-0">
+          <Link href="/" className="inline-flex items-center gap-2 mb-2 md:mb-4">
+            <Building2 className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+            <span className="font-serif font-bold text-xl md:text-2xl">VenGrow</span>
           </Link>
-          <h1 className="font-serif font-bold text-3xl sm:text-4xl mb-3">
+          <h1 className="font-serif font-bold text-2xl md:text-3xl sm:text-4xl mb-1 md:mb-3">
             Choose Your Seller Type
           </h1>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-sm md:text-lg">
             Select the option that best describes you
           </p>
         </div>
 
-        {/* Seller Type Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Seller Type Cards - compact on mobile, no feature list */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 min-h-0">
           {sellerTypes.map((seller) => {
             const Icon = seller.icon;
             return (
               <Card
                 key={seller.type}
-                className="p-8 hover-elevate active-elevate-2 cursor-pointer transition-all group"
+                className="p-4 md:p-8 hover-elevate active-elevate-2 cursor-pointer transition-all group"
                 data-testid={`card-${seller.type}`}
               >
-                <div className="text-center mb-6">
-                  <div className="inline-flex p-6 rounded-full bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground transition-colors mb-4">
-                    <Icon className="h-10 w-10" />
+                <div className="text-center mb-4 md:mb-6">
+                  <div className="inline-flex p-4 md:p-6 rounded-full bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground transition-colors mb-2 md:mb-4">
+                    <Icon className="h-8 w-8 md:h-10 md:w-10" />
                   </div>
-                  <h2 className="font-serif font-bold text-2xl mb-2">
+                  <h2 className="font-serif font-bold text-lg md:text-2xl mb-1 md:mb-2">
                     {seller.title}
                   </h2>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground text-sm md:text-base">
                     {seller.description}
                   </p>
                 </div>
 
-                <ul className="space-y-3 mb-8">
+                <ul className="hidden md:block space-y-3 mb-8">
                   {seller.features.map((feature, index) => (
                     <li key={index} className="flex items-start gap-2 text-sm">
                       <div className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5" />
@@ -102,7 +102,7 @@ export default function SellerTypePage() {
         </div>
 
         {/* Back Link */}
-        <div className="text-center mt-8">
+        <div className="text-center mt-4 md:mt-8 shrink-0">
           <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground">
             Already have an account? Login
           </Link>
