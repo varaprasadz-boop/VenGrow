@@ -104,7 +104,23 @@ Renders different form fields based on `categoryId` from Step 1. Each category h
 
 **Commercial Details fields:** Facing, Width of Road Facing the Plot (in meters). NO amenities, NO BHK/bathrooms, NO furnishing, NO parking, NO floors.
 
-**Other categories (PG, Farmland, etc.):** Awaiting user input before implementation. Will implement all categories together.
+### PG (Paying Guest) Category Analysis [PENDING IMPLEMENTATION]
+
+**Already in DB schema:** coLivingName, pgGender, pgListedFor, pgRoomType, pgAvailableIn, pgFurnishingDetails, pgAcAvailable, pgWashRoomType, pgFacilities (jsonb), pgRules (jsonb), pgServices (jsonb), pgCctv, pgBiometricEntry, pgSecurityGuard, pgFoodProvided, pgNonVegProvided, pgNoticePeriod
+
+**New DB columns needed:** pgSharingPricing (jsonb - array of {type, rent, deposit} for single/two/three/four sharing)
+
+**Key unique aspect:** Completely different from sale/purchase categories. Sharing-based pricing, facilities instead of amenities, rules, services, safety features. No BHK, no facing, no floors, no area in traditional sense.
+
+**Facility options:** Geyser, Washrooms, Cupboard, TV, AC, Cot, Mattress, Side Table, Air Cooler
+
+**Rules options:** Veg Only, No Smoking, Drinking alcohol not allowed, Entry of opposite gender not allowed, Guardian not allowed
+
+**Services options:** Laundry, Room Cleaning, Warden
+
+**PG Details fields:** Sharing Type (1/2/3/4 with Rent & Deposit per type), Facilities (9 items), Rules (5 items), Safety & Security (CCTV, Biometric Entry, Security Guard — all Yes/No), Services (3 items), Food Provided (Yes/No), Non Veg Provided (Yes/No), Notice Period (1 Week/15 Days/1 Month/2 Month). NO amenities, NO BHK, NO facing, NO floors.
+
+**Other categories (Farmland, etc.):** Awaiting user input before implementation. Will implement all categories together.
 
 ### Implementation Approach
 1. Schema changes: Add new columns (projectSocietyName, overlookingType, etc.) via Drizzle migration
