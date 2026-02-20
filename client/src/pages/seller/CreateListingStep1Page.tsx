@@ -27,6 +27,19 @@ const projectStages = [
   { value: "ready_to_move", label: "Ready to Move" },
 ];
 
+const areaUnits = [
+  { value: "sqft", label: "Sq. Ft." },
+  { value: "sqm", label: "Sq. M." },
+  { value: "sqyd", label: "Sq. Yd." },
+  { value: "acres", label: "Acres" },
+  { value: "hectares", label: "Hectares" },
+  { value: "guntha", label: "Guntha" },
+  { value: "bigha", label: "Bigha" },
+  { value: "marla", label: "Marla" },
+  { value: "kanal", label: "Kanal" },
+  { value: "cent", label: "Cent" },
+];
+
 export default function CreateListingStep1Page() {
   const [, navigate] = useLocation();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -39,15 +52,19 @@ export default function CreateListingStep1Page() {
     title: "",
     description: "",
     price: "",
+    area: "",
+    areaUnit: "sqft",
     address: "",
     city: "",
     state: "",
     pincode: "",
     locality: "",
+    areaInLocality: "",
+    nearbyLandmark: "",
+    projectSocietyName: "",
     projectId: "",
   });
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
@@ -61,7 +78,6 @@ export default function CreateListingStep1Page() {
 
   const canHaveProjects = user?.sellerType && ["builder", "broker"].includes(user.sellerType);
 
-  // Check if seller can create more listings
   interface CanCreateResponse {
     success: boolean;
     canCreate: boolean;
@@ -108,6 +124,19 @@ export default function CreateListingStep1Page() {
     return selectedCategory.allowedTransactionTypes || ["sale", "rent", "lease"];
   }, [selectedCategory]);
 
+  const priceLabel = useMemo(() => {
+    if (formData.transactionType === "rent") return "Monthly Rent";
+    if (formData.transactionType === "lease") return "Lease Amount";
+    return "Expected Price";
+  }, [formData.transactionType]);
+
+  const pricePerSqft = useMemo(() => {
+    const price = parseInt(formData.price);
+    const area = parseInt(formData.area);
+    if (!price || !area || area === 0) return "";
+    return Math.round(price / area).toString();
+  }, [formData.price, formData.area]);
+
   const handleCategoryChange = (value: string) => {
     const category = categories.find(c => c.id === value);
     const allowed = category?.allowedTransactionTypes || ["sale", "rent", "lease"];
@@ -121,7 +150,7 @@ export default function CreateListingStep1Page() {
   };
 
   const isFormValid = useMemo(() => {
-    if (!formData.categoryId || !formData.transactionType || !formData.title || !formData.price || !formData.city) {
+    if (!formData.categoryId || !formData.transactionType || !formData.title || !formData.price || !formData.city || !formData.state) {
       return false;
     }
     if (filteredSubcategories.length > 0 && !formData.subcategoryId) {
@@ -135,12 +164,14 @@ export default function CreateListingStep1Page() {
 
   const handleNext = () => {
     if (!isFormValid) return;
-    console.log("Step 1 data:", formData);
-    localStorage.setItem("createListingStep1", JSON.stringify(formData));
+    const dataToSave = {
+      ...formData,
+      pricePerSqft: pricePerSqft || "",
+    };
+    localStorage.setItem("createListingStep1", JSON.stringify(dataToSave));
     navigate("/seller/listings/create/step2");
   };
 
-  // Show loading state
   if (authLoading || quotaLoading) {
     return (
       <main className="flex-1 flex items-center justify-center">
@@ -152,7 +183,6 @@ export default function CreateListingStep1Page() {
     );
   }
 
-  // Show quota exceeded message
   if (!canCreateListing && canCreateData) {
     return (
       <main className="flex-1">
@@ -180,7 +210,6 @@ export default function CreateListingStep1Page() {
   return (
     <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Quota Warning */}
           {remainingListings <= 2 && remainingListings > 0 && (
             <Alert className="mb-6 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
               <AlertCircle className="h-4 w-4 text-yellow-600" />
@@ -193,7 +222,6 @@ export default function CreateListingStep1Page() {
             </Alert>
           )}
 
-          {/* Error alerts */}
           {(categoriesError || subcategoriesError || quotaError) && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
@@ -364,6 +392,19 @@ export default function CreateListingStep1Page() {
               )}
 
               <div className="space-y-2">
+                <Label htmlFor="projectSocietyName">Project / Society Name</Label>
+                <Input
+                  id="projectSocietyName"
+                  placeholder="e.g., Green Valley Apartments, Sunshine Society"
+                  value={formData.projectSocietyName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, projectSocietyName: e.target.value })
+                  }
+                  data-testid="input-project-society-name"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="title">Property Title *</Label>
                 <Input
                   id="title"
@@ -380,10 +421,10 @@ export default function CreateListingStep1Page() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Property Description *</Label>
+                <Label htmlFor="description">Property Description</Label>
                 <Textarea
                   id="description"
-                  rows={6}
+                  rows={4}
                   placeholder="Describe your property, its features, amenities, and what makes it special..."
                   value={formData.description}
                   onChange={(e) =>
@@ -393,21 +434,70 @@ export default function CreateListingStep1Page() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="price">Price *</Label>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <PriceInput
-                      value={formData.price}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, price: value })
-                      }
-                      placeholder={formData.transactionType === "rent" || formData.transactionType === "lease" ? "45000" : "8500000"}
-                      data-testid="input-price"
-                    />
+              <div>
+                <h3 className="font-semibold mb-4">Price & Area</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="price">{priceLabel} *</Label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <PriceInput
+                          value={formData.price}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, price: value })
+                          }
+                          placeholder={formData.transactionType === "rent" || formData.transactionType === "lease" ? "45000" : "8500000"}
+                          data-testid="input-price"
+                        />
+                      </div>
+                      {(formData.transactionType === "rent" || formData.transactionType === "lease") && (
+                        <span className="text-muted-foreground whitespace-nowrap">/month</span>
+                      )}
+                    </div>
                   </div>
-                  {(formData.transactionType === "rent" || formData.transactionType === "lease") && (
-                    <span className="text-muted-foreground whitespace-nowrap">/month</span>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="area">Area *</Label>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Input
+                          id="area"
+                          type="number"
+                          placeholder="e.g., 1200"
+                          value={formData.area}
+                          onChange={(e) =>
+                            setFormData({ ...formData, area: e.target.value })
+                          }
+                          data-testid="input-area"
+                        />
+                      </div>
+                      <Select
+                        value={formData.areaUnit}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, areaUnit: value })
+                        }
+                      >
+                        <SelectTrigger className="w-[120px]" data-testid="select-area-unit">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {areaUnits.map((unit) => (
+                            <SelectItem key={unit.value} value={unit.value}>
+                              {unit.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {pricePerSqft && (
+                    <div className="space-y-2">
+                      <Label>Per Sq.ft Price (Auto-calculated)</Label>
+                      <div className="h-9 flex items-center px-3 border rounded-md bg-muted/50 text-muted-foreground" data-testid="text-price-per-sqft">
+                        Rs. {parseInt(pricePerSqft).toLocaleString("en-IN")} / sq.ft
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -415,20 +505,6 @@ export default function CreateListingStep1Page() {
               <div>
                 <h3 className="font-semibold mb-4">Location Details</h3>
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Street Address *</Label>
-                    <Textarea
-                      id="address"
-                      rows={2}
-                      placeholder="Building name, street, area"
-                      value={formData.address}
-                      onChange={(e) =>
-                        setFormData({ ...formData, address: e.target.value })
-                      }
-                      data-testid="textarea-address"
-                    />
-                  </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="state">State *</Label>
@@ -467,7 +543,33 @@ export default function CreateListingStep1Page() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="pincode">PIN Code *</Label>
+                      <Label htmlFor="areaInLocality">Area in Locality</Label>
+                      <Input
+                        id="areaInLocality"
+                        placeholder="e.g., Sector 5, Phase 2"
+                        value={formData.areaInLocality}
+                        onChange={(e) =>
+                          setFormData({ ...formData, areaInLocality: e.target.value })
+                        }
+                        data-testid="input-area-in-locality"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="nearbyLandmark">Nearby Landmark</Label>
+                      <Input
+                        id="nearbyLandmark"
+                        placeholder="e.g., Near City Mall, Opposite Metro Station"
+                        value={formData.nearbyLandmark}
+                        onChange={(e) =>
+                          setFormData({ ...formData, nearbyLandmark: e.target.value })
+                        }
+                        data-testid="input-nearby-landmark"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="pincode">PIN Code</Label>
                       <PinCodeInput
                         value={formData.pincode}
                         onValueChange={(value) =>
@@ -476,6 +578,20 @@ export default function CreateListingStep1Page() {
                         data-testid="input-pincode"
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Street Address</Label>
+                    <Textarea
+                      id="address"
+                      rows={2}
+                      placeholder="Building name, street, area"
+                      value={formData.address}
+                      onChange={(e) =>
+                        setFormData({ ...formData, address: e.target.value })
+                      }
+                      data-testid="textarea-address"
+                    />
                   </div>
                 </div>
               </div>

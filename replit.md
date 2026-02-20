@@ -25,10 +25,10 @@ The backend uses Node.js and Express.js with TypeScript, featuring a RESTful API
 -   **Location & Standardization:** Standardized dropdowns for Indian states, cities, and PIN codes.
 -   **Routing:** Client-side routing with Wouter for public, authenticated, and administrative sections, including sticky headers, mobile menus, and breadcrumbs.
 
-## Add Property Form Restructuring Plan
+## Add Property Form Restructuring (IMPLEMENTED)
 
 ### Overview
-The Add Property form has 4 stages: Basic Info, Details, Photos, Review (save to Draft). The Details tab (Step 2) will be made category-specific, showing different fields depending on the category selected in Basic Info (Step 1). All categories share common fields in Basic Info; category-unique fields appear in Details.
+The Add Property form has 4 stages: Basic Info, Details, Photos, Review (save to Draft). The Details tab (Step 2) is category-specific, showing different fields depending on the category selected in Basic Info (Step 1). All categories share common fields in Basic Info; category-unique fields appear in Details. propertyType enum values used: apartment, villa, plot, commercial, farmhouse, penthouse, independent_house, pg_co_living, new_projects, joint_venture.
 
 ### Basic Info (Step 1) - Common Fields for ALL Categories
 - Title, Description, Transaction Type
