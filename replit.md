@@ -25,6 +25,48 @@ The backend uses Node.js and Express.js with TypeScript, featuring a RESTful API
 -   **Location & Standardization:** Standardized dropdowns for Indian states, cities, and PIN codes.
 -   **Routing:** Client-side routing with Wouter for public, authenticated, and administrative sections, including sticky headers, mobile menus, and breadcrumbs.
 
+## Add Property Form Restructuring Plan
+
+### Overview
+The Add Property form has 4 stages: Basic Info, Details, Photos, Review (save to Draft). The Details tab (Step 2) will be made category-specific, showing different fields depending on the category selected in Basic Info (Step 1). All categories share common fields in Basic Info; category-unique fields appear in Details.
+
+### Basic Info (Step 1) - Common Fields for ALL Categories
+- Title, Description, Transaction Type
+- Category & Subcategory, Project Stage
+- Project/Society Name
+- Location (State, City, Locality, Area in Locality, Nearby Landmark, PIN code, Google Places Search)
+- Price, Area, Area Unit, Per sqft Price (auto-calculated)
+
+### Details (Step 2) - Category-Specific
+Renders different form fields based on `categoryId` from Step 1. Each category has its own field config.
+
+### Apartment Category Analysis (completed)
+
+**Already in DB schema AND form:** bedrooms (BHK), bathrooms, balconies, facing, floor, totalFloors, furnishing, flooring, ageOfProperty, possessionStatus, amenities (12 items only)
+
+**In DB schema but NOT in form (quick wins - no migration):** superBuiltUpArea, totalFlats, flatsOnFloor, isResale, numberOfLifts, carParkingCount, maintenanceCharges, viewType (overlooking)
+
+**New DB columns needed:** projectSocietyName (text), overlookingType (text - Garden/Pool/Road/Not Available)
+
+**Amenities expansion:** Current list has 12 items; apartment needs 55+ amenities (Air Conditioned, Banquet Hall, Bar/Lounge, Cafeteria/Food Court, Club House, Concierge Services, Conference Room, DTH Television, Doorman, Fingerprint Access, Fireplace, Full Glass Wall, Golf Course, Gymnasium, Health club with Steam/Jacuzzi, Helipad, Hilltop, House help accommodation, Intercom Facility, Internet/Wi-Fi, Island Kitchen, Jogging Track, Laundry Service, Lift, Maintenance Staff, Outdoor Tennis Courts, Park, Piped Gas, Power Back Up, Private Garage, Private Terrace/Garden, Private Jacuzzi, Private Pool, RO Water System, Rain Water Harvesting, Reserved Parking, Sea Facing, Security, Service/Goods Lift, Sky Villa, Skydeck, Skyline View, Smart Home, Swimming Pool, Theme Based Architecture, Vaastu Compliant, Visitor Parking, Waste Disposal, Water Front, Water Storage, Wine Cellar, Wrap Around Balcony)
+
+**Per sqft Price:** `pricePerSqft` exists in schema - needs auto-calculation from price and area
+
+**Other categories (Villa, PG, Farmland, etc.):** Awaiting user input before implementation. Will implement all categories together.
+
+### Implementation Approach
+1. Schema changes: Add new columns (projectSocietyName, overlookingType, etc.) via Drizzle migration
+2. Step 1 restructure: Move common fields, add Project/Society Name, auto-calc per sqft price
+3. Step 2 restructure: Read categoryId from Step 1, render category-specific fields using config mapping
+4. Expand amenities list to 55+ items with logical grouping
+5. Steps 3 (Photos) and 4 (Review) remain as-is
+6. Joint Venture form already implemented in Step 2 - keep as-is
+
+### Technical Notes
+- jsPDF Helvetica font doesn't support ₹ symbol - use "Rs." text instead in invoicePDF.ts
+- When importing User icon from lucide-react alongside User type from @shared/schema, alias as UserIcon
+- TanStack Query refetch() doesn't throw errors; check QueryObserverResult properties instead
+
 ## External Dependencies
 
 -   **UI Component Libraries:** @radix-ui/* primitives, shadcn/ui
