@@ -5,7 +5,19 @@ export async function seedFormTemplates() {
 
   const existing = await storage.getFormTemplates();
   if (existing.length > 0) {
-    console.log(`Found ${existing.length} form templates, skipping seed.`);
+    console.log(`Found ${existing.length} form templates, checking for missing categoryId...`);
+
+    const categories = await storage.getPropertyCategories();
+    const templatesWithoutCategory = existing.filter((t: any) => !t.categoryId);
+    if (templatesWithoutCategory.length > 0 && categories.length > 0) {
+      console.log(`Patching ${templatesWithoutCategory.length} templates with missing categoryId...`);
+      for (let i = 0; i < templatesWithoutCategory.length; i++) {
+        const cat = categories[i % categories.length];
+        await storage.updateFormTemplate(templatesWithoutCategory[i].id, { categoryId: cat.id } as any);
+        console.log(`  Assigned category "${cat.name}" to template "${templatesWithoutCategory[i].name}"`);
+      }
+    }
+
     return;
   }
 
