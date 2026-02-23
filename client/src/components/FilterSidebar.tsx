@@ -19,8 +19,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
+import { DynamicIcon } from "@/components/DynamicIcon";
 import type { PropertyCategory, PropertySubcategory } from "@shared/schema";
+
+interface DynamicFilterField {
+  label: string;
+  fieldKey: string;
+  fieldType: string;
+  icon: string | null;
+  options: string[] | null;
+}
+
+interface DynamicFilterSection {
+  sectionName: string;
+  sectionIcon: string | null;
+  fields: DynamicFilterField[];
+}
 
 interface FilterSidebarProps {
   onApplyFilters?: (filters: any) => void;
@@ -36,6 +52,7 @@ interface FilterSidebarProps {
     propertyAge?: string[];
     corporateSearch?: string;
     locality?: string;
+    dynamicFilters?: Record<string, string | string[]>;
   };
 }
 
@@ -95,11 +112,18 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
   const [localityDropdownOpen, setLocalityDropdownOpen] = useState(false);
   const localityInputRef = useRef<HTMLInputElement>(null);
   const localityDropdownRef = useRef<HTMLDivElement>(null);
+  const [dynamicFilterValues, setDynamicFilterValues] = useState<Record<string, string | string[]>>(
+    initialFilters?.dynamicFilters || {}
+  );
   const [accordionValue, setAccordionValue] = useState<string[]>(["category", "subcategory", "projectStage", "transaction", "price", "seller", "locality"]);
   
   // Fetch categories - must be declared before useEffects that use it
   const { data: categories = [] } = useQuery<PropertyCategory[]>({
     queryKey: ["/api/property-categories"],
+  });
+
+  const { data: dynamicFilterSections = [] } = useQuery<DynamicFilterSection[]>({
+    queryKey: ["/api/filter-fields"],
   });
 
   // Memoize the category from URL for sync - we only sync when URL actually changes, not when user selects a different category in the dropdown
@@ -298,6 +322,34 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
     }
   };
 
+  const handleDynamicFilterChange = (fieldKey: string, value: string | string[]) => {
+    setDynamicFilterValues(prev => {
+      const next = { ...prev };
+      if (value === "" || (Array.isArray(value) && value.length === 0)) {
+        delete next[fieldKey];
+      } else {
+        next[fieldKey] = value;
+      }
+      return next;
+    });
+  };
+
+  const handleDynamicCheckboxToggle = (fieldKey: string, option: string) => {
+    setDynamicFilterValues(prev => {
+      const current = (prev[fieldKey] as string[]) || [];
+      const updated = current.includes(option)
+        ? current.filter(v => v !== option)
+        : [...current, option];
+      const next = { ...prev };
+      if (updated.length === 0) {
+        delete next[fieldKey];
+      } else {
+        next[fieldKey] = updated;
+      }
+      return next;
+    });
+  };
+
   const handleClearFilters = () => {
     if (window.confirm("Are you sure you want to clear all filters?")) {
       const defaultMaxRupees = lacsToRupees(PRICE_MAX_LACS);
@@ -312,8 +364,8 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
       setCorporateSearch("");
       setLocalitySearch("");
       setLocalityInput("");
+      setDynamicFilterValues({});
       
-      // Apply cleared filters
       const clearedFilters = {
         priceRange: [0, defaultMaxRupees],
         transactionTypes: [],
@@ -325,13 +377,14 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
         propertyAge: [],
         corporateSearch: "",
         locality: "",
+        dynamicFilters: {},
       };
       onApplyFilters?.(clearedFilters);
     }
   };
 
   const handleApply = () => {
-    const filters = {
+    const filtersObj = {
       priceRange,
       transactionTypes: selectedTransactionTypes,
       category: selectedCategory,
@@ -342,8 +395,9 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
       propertyAge: selectedPropertyAge,
       corporateSearch,
       locality: localitySearch,
+      dynamicFilters: Object.keys(dynamicFilterValues).length > 0 ? dynamicFilterValues : undefined,
     };
-    onApplyFilters?.(filters);
+    onApplyFilters?.(filtersObj);
   };
 
   const corporateBuilders = [
@@ -361,7 +415,13 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
     return `${value.toLocaleString('en-IN')}`;
   };
 
-  // Calculate active filters count in real-time
+  const dynamicFiltersCount = useMemo(() => {
+    return Object.values(dynamicFilterValues).reduce((count, val) => {
+      if (Array.isArray(val)) return count + (val.length > 0 ? 1 : 0);
+      return count + (val ? 1 : 0);
+    }, 0);
+  }, [dynamicFilterValues]);
+
   const activeFiltersCount = useMemo(() => {
     const defaultMaxRupees = lacsToRupees(PRICE_MAX_LACS);
     return selectedTransactionTypes.length + 
@@ -373,7 +433,8 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
       selectedPropertyAge.length + 
       (corporateSearch ? 1 : 0) +
       (localitySearch ? 1 : 0) +
-      (priceRange[0] !== 0 || priceRange[1] !== defaultMaxRupees ? 1 : 0);
+      (priceRange[0] !== 0 || priceRange[1] !== defaultMaxRupees ? 1 : 0) +
+      dynamicFiltersCount;
   }, [
     selectedTransactionTypes,
     selectedCategory,
@@ -385,6 +446,7 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
     corporateSearch,
     localitySearch,
     priceRange,
+    dynamicFiltersCount,
   ]);
 
   return (
@@ -740,6 +802,158 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
             </p>
           </AccordionContent>
         </AccordionItem>
+
+        {dynamicFilterSections.map((section, sectionIdx) => (
+          <AccordionItem key={`dynamic-section-${sectionIdx}`} value={`dynamic-${sectionIdx}`}>
+            <AccordionTrigger>
+              <div className="flex items-center gap-2">
+                {section.sectionIcon && (
+                  <DynamicIcon name={section.sectionIcon} className="h-4 w-4" />
+                )}
+                {section.sectionName}
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4">
+              {section.fields.map((field) => {
+                const currentValue = dynamicFilterValues[field.fieldKey];
+
+                if (field.fieldType === "dropdown" && field.options && field.options.length > 0) {
+                  return (
+                    <div key={field.fieldKey} className="space-y-2">
+                      <Label className="text-sm font-medium flex items-center gap-1.5">
+                        {field.icon && <DynamicIcon name={field.icon} className="h-3.5 w-3.5" />}
+                        {field.label}
+                      </Label>
+                      <Select
+                        value={(currentValue as string) || ""}
+                        onValueChange={(val) => handleDynamicFilterChange(field.fieldKey, val === "__all__" ? "" : val)}
+                      >
+                        <SelectTrigger data-testid={`select-dynamic-${field.fieldKey}`}>
+                          <SelectValue placeholder={`Select ${field.label}`} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__all__">All</SelectItem>
+                          {field.options.map((opt) => (
+                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                }
+
+                if (field.fieldType === "checkbox" && field.options && field.options.length > 0) {
+                  const checkedValues = (currentValue as string[]) || [];
+                  return (
+                    <div key={field.fieldKey} className="space-y-2">
+                      <Label className="text-sm font-medium flex items-center gap-1.5">
+                        {field.icon && <DynamicIcon name={field.icon} className="h-3.5 w-3.5" />}
+                        {field.label}
+                      </Label>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {field.options.map((opt) => (
+                          <div key={opt} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`dynamic-${field.fieldKey}-${opt}`}
+                              checked={checkedValues.includes(opt)}
+                              onCheckedChange={() => handleDynamicCheckboxToggle(field.fieldKey, opt)}
+                              data-testid={`checkbox-dynamic-${field.fieldKey}-${opt.toLowerCase().replace(/\s+/g, '-')}`}
+                            />
+                            <Label
+                              htmlFor={`dynamic-${field.fieldKey}-${opt}`}
+                              className="flex-1 cursor-pointer text-sm font-normal"
+                            >
+                              {opt}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (field.fieldType === "radio" && field.options && field.options.length > 0) {
+                  return (
+                    <div key={field.fieldKey} className="space-y-2">
+                      <Label className="text-sm font-medium flex items-center gap-1.5">
+                        {field.icon && <DynamicIcon name={field.icon} className="h-3.5 w-3.5" />}
+                        {field.label}
+                      </Label>
+                      <RadioGroup
+                        value={(currentValue as string) || ""}
+                        onValueChange={(val) => handleDynamicFilterChange(field.fieldKey, val)}
+                      >
+                        {field.options.map((opt) => (
+                          <div key={opt} className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value={opt}
+                              id={`dynamic-radio-${field.fieldKey}-${opt}`}
+                              data-testid={`radio-dynamic-${field.fieldKey}-${opt.toLowerCase().replace(/\s+/g, '-')}`}
+                            />
+                            <Label
+                              htmlFor={`dynamic-radio-${field.fieldKey}-${opt}`}
+                              className="flex-1 cursor-pointer text-sm font-normal"
+                            >
+                              {opt}
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                  );
+                }
+
+                if (field.fieldType === "numeric") {
+                  const minKey = `${field.fieldKey}_min`;
+                  const maxKey = `${field.fieldKey}_max`;
+                  return (
+                    <div key={field.fieldKey} className="space-y-2">
+                      <Label className="text-sm font-medium flex items-center gap-1.5">
+                        {field.icon && <DynamicIcon name={field.icon} className="h-3.5 w-3.5" />}
+                        {field.label}
+                      </Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Input
+                          type="number"
+                          placeholder="Min"
+                          value={(dynamicFilterValues[minKey] as string) || ""}
+                          onChange={(e) => handleDynamicFilterChange(minKey, e.target.value)}
+                          data-testid={`input-dynamic-${field.fieldKey}-min`}
+                        />
+                        <Input
+                          type="number"
+                          placeholder="Max"
+                          value={(dynamicFilterValues[maxKey] as string) || ""}
+                          onChange={(e) => handleDynamicFilterChange(maxKey, e.target.value)}
+                          data-testid={`input-dynamic-${field.fieldKey}-max`}
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (field.fieldType === "text") {
+                  return (
+                    <div key={field.fieldKey} className="space-y-2">
+                      <Label className="text-sm font-medium flex items-center gap-1.5">
+                        {field.icon && <DynamicIcon name={field.icon} className="h-3.5 w-3.5" />}
+                        {field.label}
+                      </Label>
+                      <Input
+                        placeholder={`Search ${field.label}...`}
+                        value={(currentValue as string) || ""}
+                        onChange={(e) => handleDynamicFilterChange(field.fieldKey, e.target.value)}
+                        data-testid={`input-dynamic-${field.fieldKey}`}
+                      />
+                    </div>
+                  );
+                }
+
+                return null;
+              })}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
       </Accordion>
       </div>
 

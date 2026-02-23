@@ -46,6 +46,8 @@ interface FilterState {
   sellerTypes?: string[];
   propertyAge?: string[];
   corporateSearch?: string;
+  locality?: string;
+  dynamicFilters?: Record<string, string | string[]>;
 }
 
 export default function ListingsPage() {
@@ -91,6 +93,14 @@ export default function ListingsPage() {
     }
     if (params.get('builder') || params.get('corporate')) {
       parsedFilters.corporateSearch = params.get('builder') || params.get('corporate') || undefined;
+    }
+    if (params.get('locality')) {
+      parsedFilters.locality = params.get('locality')!;
+    }
+    if (params.get('dynamicFilters')) {
+      try {
+        parsedFilters.dynamicFilters = JSON.parse(params.get('dynamicFilters')!);
+      } catch {}
     }
     
     return {
@@ -163,6 +173,12 @@ export default function ListingsPage() {
     }
     if (newFilters.corporateSearch && newFilters.corporateSearch?.trim()) {
       params.set('builder', newFilters.corporateSearch.trim());
+    }
+    if (newFilters.locality && newFilters.locality.trim()) {
+      params.set('locality', newFilters.locality.trim());
+    }
+    if (newFilters.dynamicFilters && Object.keys(newFilters.dynamicFilters).length > 0) {
+      params.set('dynamicFilters', JSON.stringify(newFilters.dynamicFilters));
     }
     if (newPage > 1) {
       params.set('page', newPage.toString());
@@ -441,7 +457,7 @@ export default function ListingsPage() {
     if (filters.locality && filters.locality.trim()) {
       const localityTerm = filters.locality.trim().toLowerCase();
       result = result.filter(p => {
-        const loc = (p.locality || "").toLowerCase();
+        const loc = ((p as any).locality || "").toLowerCase();
         const area = ((p as any).areaInLocality || "").toLowerCase();
         const city = (p.city || "").toLowerCase();
         return loc.includes(localityTerm) || area.includes(localityTerm) || city.includes(localityTerm);
@@ -470,6 +486,38 @@ export default function ListingsPage() {
       });
     }
     
+    if (filters.dynamicFilters && Object.keys(filters.dynamicFilters).length > 0) {
+      result = result.filter(p => {
+        const customData = (p as any).property_custom_data?.formData || (p as any).customFormData || {};
+        for (const [key, filterVal] of Object.entries(filters.dynamicFilters!)) {
+          if (!filterVal || (Array.isArray(filterVal) && filterVal.length === 0)) continue;
+
+          if (key.endsWith('_min')) {
+            const baseKey = key.replace(/_min$/, '');
+            const propVal = parseFloat(customData[baseKey]);
+            const minVal = parseFloat(filterVal as string);
+            if (!isNaN(minVal) && (isNaN(propVal) || propVal < minVal)) return false;
+          } else if (key.endsWith('_max')) {
+            const baseKey = key.replace(/_max$/, '');
+            const propVal = parseFloat(customData[baseKey]);
+            const maxVal = parseFloat(filterVal as string);
+            if (!isNaN(maxVal) && (isNaN(propVal) || propVal > maxVal)) return false;
+          } else if (Array.isArray(filterVal)) {
+            const propVal = customData[key];
+            if (Array.isArray(propVal)) {
+              if (!filterVal.some(fv => propVal.includes(fv))) return false;
+            } else {
+              if (!filterVal.includes(String(propVal || ''))) return false;
+            }
+          } else {
+            const propVal = String(customData[key] || '').toLowerCase();
+            if (typeof filterVal === 'string' && !propVal.includes(filterVal.toLowerCase())) return false;
+          }
+        }
+        return true;
+      });
+    }
+
     // Sort properties (if not already sorted by API)
     switch (sortBy) {
       case "price-low":

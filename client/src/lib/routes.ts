@@ -377,6 +377,10 @@ export const adminRoutes: RouteConfig[] = [
   { path: "/admin/verifications", component: lazy(() => import("@/pages/admin/VerificationsPage")), requireAuth: true, roles: ["admin"], title: "Verification Requests" },
   { path: "/admin/buyers", component: lazy(() => import("@/pages/admin/BuyerListPage")), requireAuth: true, roles: ["admin"], title: "Buyer Accounts" },
   
+  // Form Builder
+  { path: "/admin/form-builder", component: lazy(() => import("@/pages/admin/FormBuilderPage")), requireAuth: true, roles: ["admin"], title: "Property Form Builder" },
+  { path: "/admin/form-builder/:id", component: lazy(() => import("@/pages/admin/FormBuilderEditorPage")), requireAuth: true, roles: ["admin"], title: "Edit Form Template" },
+
   // Listing Management
   { path: "/admin/listing-moderation", component: lazy(() => import("@/pages/admin/ListingModerationPage")), requireAuth: true, roles: ["admin"], title: "Listing Moderation" },
   { path: "/admin/listings", component: lazy(() => import("@/pages/admin/ListingModerationPage")), requireAuth: true, roles: ["admin"], title: "Listing Moderation" },

@@ -1,11 +1,45 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, ArrowLeft, Upload, X, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { DynamicFormRenderer } from "@/components/DynamicFormRenderer";
+
+interface FieldDef {
+  id: string;
+  label: string;
+  fieldKey: string;
+  fieldType: string;
+  icon?: string | null;
+  placeholder?: string | null;
+  isRequired: boolean;
+  options?: string[] | null;
+  validationRules?: { min?: number; max?: number; charLimit?: number; regex?: string } | null;
+  sourceType?: string | null;
+  linkedFieldKey?: string | null;
+  defaultValue?: string | null;
+  displayStyle?: string | null;
+  sortOrder: number;
+}
+
+interface SectionDef {
+  id: string;
+  name: string;
+  icon?: string | null;
+  stage: number;
+  sortOrder: number;
+  fields: FieldDef[];
+}
+
+interface FormTemplateDef {
+  id: string;
+  name: string;
+  sections: SectionDef[];
+}
 
 function isValidYouTubeUrl(url: string): boolean {
   if (!url) return true;
@@ -23,9 +57,25 @@ export default function CreateListingStep3Page() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState("");
   const [dataValidated, setDataValidated] = useState(false);
+  const [dynamicValues, setDynamicValues] = useState<Record<string, unknown>>({});
   const { toast } = useToast();
 
-  // Check for previous steps data and auth
+  const { data: formTemplate, isLoading: templateLoading } = useQuery<FormTemplateDef>({
+    queryKey: ["/api/seller/form-template"],
+    enabled: isAuthenticated,
+  });
+
+  const stage3Sections = useMemo(() => {
+    if (!formTemplate?.sections) return [];
+    return formTemplate.sections
+      .filter((s) => s.stage === 3)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((s) => ({
+        ...s,
+        fields: [...s.fields].sort((a, b) => a.sortOrder - b.sortOrder),
+      }));
+  }, [formTemplate]);
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
@@ -54,8 +104,24 @@ export default function CreateListingStep3Page() {
     }
   }, [authLoading, isAuthenticated, navigate, toast]);
 
-  // Show loading state while checking auth and validating data
-  if (authLoading || !dataValidated) {
+  useEffect(() => {
+    if (!dataValidated) return;
+    try {
+      const saved3 = localStorage.getItem("createListingStep3");
+      if (saved3) {
+        const parsed = JSON.parse(saved3);
+        if (parsed && typeof parsed === "object") {
+          if (parsed.photos) setPhotos(parsed.photos);
+          if (parsed.youtubeVideoUrl) setVideoUrl(parsed.youtubeVideoUrl);
+          if (parsed.dynamicFields && typeof parsed.dynamicFields === "object") {
+            setDynamicValues(parsed.dynamicFields);
+          }
+        }
+      }
+    } catch (_) {}
+  }, [dataValidated]);
+
+  if (authLoading || !dataValidated || templateLoading) {
     return (
       <main className="flex-1 flex items-center justify-center">
         <div className="text-center">
@@ -75,10 +141,46 @@ export default function CreateListingStep3Page() {
     setPhotos(photos.filter((_, i) => i !== index));
   };
 
+  const handleDynamicFieldChange = (fieldKey: string, value: unknown) => {
+    setDynamicValues((prev) => ({ ...prev, [fieldKey]: value }));
+  };
+
+  const handleNext = () => {
+    if (videoUrl && !isValidYouTubeUrl(videoUrl)) {
+      toast({
+        title: "Invalid YouTube URL",
+        description: "Please enter a valid YouTube link or leave the field empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (stage3Sections.length > 0) {
+      const requiredFields = stage3Sections.flatMap((s) => s.fields.filter((f) => f.isRequired));
+      for (const field of requiredFields) {
+        const val = dynamicValues[field.fieldKey];
+        if (val === undefined || val === null || val === "" || (Array.isArray(val) && val.length === 0)) {
+          toast({
+            title: "Required Field",
+            description: `"${field.label}" is required.`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
+
+    localStorage.setItem("createListingStep3", JSON.stringify({
+      photos,
+      youtubeVideoUrl: videoUrl,
+      dynamicFields: dynamicValues,
+    }));
+    navigate("/seller/listings/create/step4");
+  };
+
   return (
     <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Progress */}
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
@@ -109,7 +211,6 @@ export default function CreateListingStep3Page() {
             </p>
 
             <form className="space-y-8">
-              {/* Photos Upload */}
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -123,7 +224,6 @@ export default function CreateListingStep3Page() {
                   </span>
                 </div>
 
-                {/* Upload Button */}
                 <div
                   onClick={handlePhotoUpload}
                   className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-12 text-center cursor-pointer hover-elevate active-elevate-2 mb-6"
@@ -141,7 +241,6 @@ export default function CreateListingStep3Page() {
                   </p>
                 </div>
 
-                {/* Photo Grid */}
                 {photos.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {photos.map((photo, index) => (
@@ -180,7 +279,6 @@ export default function CreateListingStep3Page() {
                 </div>
               </div>
 
-              {/* YouTube Video */}
               <div>
                 <Label className="text-base">YouTube Video (Optional)</Label>
                 <p className="text-sm text-muted-foreground mt-1 mb-4">
@@ -219,7 +317,6 @@ export default function CreateListingStep3Page() {
                 </div>
               </div>
 
-              {/* Virtual Tour */}
               <div>
                 <Label className="text-base">Virtual Tour Link (Optional)</Label>
                 <p className="text-sm text-muted-foreground mt-1 mb-4">
@@ -233,7 +330,17 @@ export default function CreateListingStep3Page() {
                 />
               </div>
 
-              {/* Navigation */}
+              {stage3Sections.length > 0 && (
+                <div className="pt-4" data-testid="dynamic-stage3-sections">
+                  <DynamicFormRenderer
+                    sections={stage3Sections}
+                    values={dynamicValues}
+                    onChange={handleDynamicFieldChange}
+                    showSectionHeaders={true}
+                  />
+                </div>
+              )}
+
               <div className="flex justify-between pt-6">
                 <Link href="/seller/listings/create/step2">
                   <Button variant="outline" type="button" data-testid="button-back">
@@ -241,21 +348,10 @@ export default function CreateListingStep3Page() {
                     Back
                   </Button>
                 </Link>
-                <Button 
-                  type="button" 
+                <Button
+                  type="button"
                   data-testid="button-next"
-                  onClick={() => {
-                    if (videoUrl && !isValidYouTubeUrl(videoUrl)) {
-                      toast({
-                        title: "Invalid YouTube URL",
-                        description: "Please enter a valid YouTube link or leave the field empty.",
-                        variant: "destructive",
-                      });
-                      return;
-                    }
-                    localStorage.setItem("createListingStep3", JSON.stringify({ photos, youtubeVideoUrl: videoUrl }));
-                    navigate("/seller/listings/create/step4");
-                  }}
+                  onClick={handleNext}
                 >
                   Next: Contact & Preview
                   <ArrowRight className="h-4 w-4 ml-2" />
