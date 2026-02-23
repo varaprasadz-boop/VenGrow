@@ -36,6 +36,50 @@ const testimonials = [
   },
 ];
 
+// Duplicate for seamless infinite marquee (same pattern as VerifiedBuildersSection)
+const testimonialsDoubled = [...testimonials, ...testimonials];
+
+function TestimonialCard({ testimonial, index }: { testimonial: (typeof testimonials)[0]; index: number }) {
+  return (
+    <Card
+      className="p-6 relative flex-shrink-0 w-[min(85vw,380px)] min-w-[320px]"
+      data-testid={`card-testimonial-${testimonial.id}-${index}`}
+    >
+      <Quote className="absolute top-4 right-4 h-8 w-8 text-primary/10" />
+
+      <div className="flex items-center gap-1 mb-4">
+        {[...Array(testimonial.rating)].map((_, i) => (
+          <Star key={i} className="h-4 w-4 text-yellow-500 fill-current" />
+        ))}
+      </div>
+
+      <p
+        className="text-muted-foreground mb-6 line-clamp-4"
+        data-testid={`text-testimonial-comment-${testimonial.id}`}
+      >
+        "{testimonial.comment}"
+      </p>
+
+      <div className="flex items-center gap-3">
+        <Avatar>
+          <AvatarImage src={testimonial.avatarUrl} alt={testimonial.name} />
+          <AvatarFallback className="bg-primary text-primary-foreground">
+            {testimonial.name.split(" ").map((n) => n[0]).join("")}
+          </AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="font-semibold" data-testid={`text-testimonial-name-${testimonial.id}`}>
+            {testimonial.name}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {testimonial.location} • {testimonial.propertyType}
+          </p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export default function TestimonialsSection() {
   return (
     <section className="py-16" data-testid="section-testimonials">
@@ -53,52 +97,12 @@ export default function TestimonialsSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8" data-testid="grid-testimonials">
-          {testimonials.map((testimonial) => (
-            <Card 
-              key={testimonial.id} 
-              className="p-6 relative"
-              data-testid={`card-testimonial-${testimonial.id}`}
-            >
-              <Quote className="absolute top-4 right-4 h-8 w-8 text-primary/10" />
-              
-              <div className="flex items-center gap-1 mb-4">
-                {[...Array(testimonial.rating)].map((_, i) => (
-                  <Star 
-                    key={i} 
-                    className="h-4 w-4 text-yellow-500 fill-current" 
-                  />
-                ))}
-              </div>
-
-              <p 
-                className="text-muted-foreground mb-6 line-clamp-4"
-                data-testid={`text-testimonial-comment-${testimonial.id}`}
-              >
-                "{testimonial.comment}"
-              </p>
-
-              <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarImage src={testimonial.avatarUrl} alt={testimonial.name} />
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {testimonial.name.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p 
-                    className="font-semibold"
-                    data-testid={`text-testimonial-name-${testimonial.id}`}
-                  >
-                    {testimonial.name}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {testimonial.location} • {testimonial.propertyType}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          ))}
+        <div className="relative overflow-hidden py-2" data-testid="grid-testimonials">
+          <div className="flex gap-6 w-max animate-marquee-left">
+            {testimonialsDoubled.map((testimonial, index) => (
+              <TestimonialCard key={`${testimonial.id}-${index}`} testimonial={testimonial} index={index} />
+            ))}
+          </div>
         </div>
       </div>
     </section>

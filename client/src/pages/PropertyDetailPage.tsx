@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { validateEmail, validatePhone, cleanPhone } from "@/utils/validation";
@@ -404,10 +405,19 @@ export default function PropertyDetailPage() {
 
   const handleFavoriteClick = () => {
     if (!user) {
+      const redirectUrl = property ? getPropertyUrl(property) : `/property/${id}`;
       toast({
         title: "Please log in",
         description: "You need to be logged in to save favorites.",
         variant: "destructive",
+        action: (
+          <ToastAction
+            onClick={() => setLocation(`/login?redirect=${encodeURIComponent(redirectUrl)}`)}
+            altText="Go to login"
+          >
+            Login
+          </ToastAction>
+        ),
       });
       return;
     }

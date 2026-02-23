@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -88,10 +89,18 @@ export default function PropertyDetailPage() {
   const handleFavorite = () => {
     if (!user) {
       toast({
-        title: "Please login to save favorites",
+        title: "Please log in",
+        description: "You need to be logged in to save favorites.",
         variant: "destructive",
+        action: (
+          <ToastAction
+            onClick={() => setLocation(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)}
+            altText="Go to login"
+          >
+            Login
+          </ToastAction>
+        ),
       });
-      setLocation("/login");
       return;
     }
     favoriteMutation.mutate(!isFavorited);

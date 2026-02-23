@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, Search, Heart, MessageSquare, Bell, Settings, 
@@ -62,10 +63,19 @@ const quickLinks = [
   { title: "Rent Property", href: "/rent", icon: Building2 },
 ];
 
+const BROWSE_ROUTES = ["/buy", "/rent", "/lease", "/properties"];
+
 export default function BuyerLayout({ children }: BuyerLayoutProps) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
-  
+  const isBrowseRoute = BROWSE_ROUTES.includes(location);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Close sidebar when on browse (rent/lease/buy/properties) for a better view
+  useEffect(() => {
+    if (isBrowseRoute) setSidebarOpen(false);
+  }, [isBrowseRoute]);
+
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
@@ -86,7 +96,11 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
   };
 
   return (
-    <SidebarProvider style={style as React.CSSProperties}>
+    <SidebarProvider
+      open={sidebarOpen}
+      onOpenChange={setSidebarOpen}
+      style={style as React.CSSProperties}
+    >
       <div className="flex h-screen w-full">
         <Sidebar>
           <SidebarHeader className="border-b p-4">
