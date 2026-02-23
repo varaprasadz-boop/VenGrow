@@ -11,6 +11,9 @@ export async function seedFormTemplates() {
 
   console.log("No form templates found. Seeding default templates...");
 
+  const categories = await storage.getPropertyCategories();
+  const firstCategoryId = categories.length > 0 ? categories[0].id : null;
+
   const sellerTypes = ["individual", "broker", "builder"] as const;
 
   for (const sellerType of sellerTypes) {
@@ -19,6 +22,7 @@ export async function seedFormTemplates() {
     const template = await storage.createFormTemplate({
       name: templateName,
       sellerType,
+      categoryId: firstCategoryId,
       version: 1,
       status: "published",
       showPreviewBeforeSubmit: true,

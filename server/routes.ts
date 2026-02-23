@@ -8708,16 +8708,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new form template
   app.post("/api/admin/form-templates", isSuperAdmin, async (req: Request, res: Response) => {
     try {
-      const { name, sellerType, assignedCategories, showPreviewBeforeSubmit, allowSaveDraft, autoApproval, termsText, seoMetaTitle, seoMetaDescription } = req.body;
+      const { name, sellerType, categoryId, assignedCategories, showPreviewBeforeSubmit, allowSaveDraft, autoApproval, termsText, seoMetaTitle, seoMetaDescription } = req.body;
       if (!name || !sellerType) {
         return res.status(400).json({ message: "Name and seller type are required" });
       }
       if (!["individual", "broker", "builder"].includes(sellerType)) {
         return res.status(400).json({ message: "Invalid seller type" });
       }
+      if (categoryId) {
+        const categories = await storage.getPropertyCategories();
+        const cat = categories.find((c: any) => c.id === categoryId);
+        if (!cat) {
+          return res.status(400).json({ message: "Invalid category ID" });
+        }
+      }
       const template = await storage.createFormTemplate({
         name,
         sellerType,
+        categoryId: categoryId || null,
         assignedCategories: assignedCategories || null,
         showPreviewBeforeSubmit: showPreviewBeforeSubmit ?? true,
         allowSaveDraft: allowSaveDraft ?? true,
@@ -8797,8 +8805,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Form template not found" });
       }
       res.json(published);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error publishing form template:", error);
+      if (error.message?.includes("A published form already exists")) {
+        return res.status(409).json({ message: error.message });
+      }
       res.status(500).json({ message: "Failed to publish form template" });
     }
   });
@@ -8979,6 +8990,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get the published form template for the logged-in seller's type
+  app.get("/api/seller/form-templates", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile) {
+        return res.status(404).json({ message: "Seller profile not found. Please complete seller registration first." });
+      }
+
+      const templates = await storage.getPublishedFormsForSeller(sellerProfile.sellerType);
+
+      const categories = await storage.getPropertyCategories();
+      const categoryMap = new Map(categories.map((c: any) => [c.id, c]));
+
+      const enriched = templates.map((t: any) => ({
+        ...t,
+        category: t.categoryId ? categoryMap.get(t.categoryId) || null : null,
+      }));
+
+      res.json(enriched);
+    } catch (error) {
+      console.error("Error fetching seller form templates:", error);
+      res.status(500).json({ message: "Failed to fetch form templates" });
+    }
+  });
+
+  app.get("/api/seller/form-template/:id", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = getAuthenticatedUserId(req);
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const sellerProfile = await storage.getSellerProfileByUserId(userId);
+      if (!sellerProfile) {
+        return res.status(404).json({ message: "Seller profile not found" });
+      }
+
+      const template = await storage.getFormTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ message: "Form template not found" });
+      }
+
+      if (template.sellerType !== sellerProfile.sellerType) {
+        return res.status(403).json({ message: "This form is not available for your seller type" });
+      }
+
+      if (template.status !== "published") {
+        return res.status(404).json({ message: "This form is not currently published" });
+      }
+
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching seller form template:", error);
+      res.status(500).json({ message: "Failed to fetch form template" });
+    }
+  });
+
   app.get("/api/seller/form-template", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = getAuthenticatedUserId(req);

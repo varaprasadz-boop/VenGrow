@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ArrowRight, ArrowLeft, AlertCircle, Info } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -48,9 +49,22 @@ export default function CreateListingStep2Page() {
   const [step1Data, setStep1Data] = useState<Record<string, unknown> | null>(null);
   const [formValues, setFormValues] = useState<Record<string, unknown>>({});
 
+  const formTemplateId = localStorage.getItem("createListingFormTemplateId");
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && !formTemplateId) {
+      navigate("/seller/select-form");
+    }
+  }, [authLoading, isAuthenticated, formTemplateId, navigate]);
+
   const { data: formTemplate, isLoading: templateLoading } = useQuery<FormTemplateDef>({
-    queryKey: ["/api/seller/form-template"],
-    enabled: isAuthenticated,
+    queryKey: ["/api/seller/form-template", formTemplateId],
+    queryFn: async () => {
+      const res = await fetch(`/api/seller/form-template/${formTemplateId}`, { credentials: "include" });
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+    enabled: isAuthenticated && !!formTemplateId,
   });
 
   const stage2Sections = useMemo(() => {
@@ -140,6 +154,11 @@ export default function CreateListingStep2Page() {
     <main className="flex-1 overflow-y-auto">
       <div className="max-w-4xl mx-auto p-6">
         <div className="mb-6">
+          {formTemplate?.name && (
+            <Badge variant="secondary" className="mb-2" data-testid="badge-form-name">
+              Form: {formTemplate.name}
+            </Badge>
+          )}
           <h1 className="text-2xl font-bold" data-testid="text-page-title">Property Details</h1>
           <p className="text-muted-foreground" data-testid="text-page-subtitle">Step 2 of 4 - Enter property details</p>
           <div className="flex gap-1 mt-3">

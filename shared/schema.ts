@@ -1206,6 +1206,7 @@ export const formTemplates = pgTable("form_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   sellerType: sellerTypeEnum("seller_type").notNull(),
+  categoryId: varchar("category_id"),
   version: integer("version").notNull().default(1),
   status: formTemplateStatusEnum("status").notNull().default("draft"),
   assignedCategories: jsonb("assigned_categories").$type<string[]>(),

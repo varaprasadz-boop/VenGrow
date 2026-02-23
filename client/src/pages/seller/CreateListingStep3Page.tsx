@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, ArrowLeft, Upload, X, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -60,9 +61,22 @@ export default function CreateListingStep3Page() {
   const [dynamicValues, setDynamicValues] = useState<Record<string, unknown>>({});
   const { toast } = useToast();
 
+  const formTemplateId = localStorage.getItem("createListingFormTemplateId");
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && !formTemplateId) {
+      navigate("/seller/select-form");
+    }
+  }, [authLoading, isAuthenticated, formTemplateId, navigate]);
+
   const { data: formTemplate, isLoading: templateLoading } = useQuery<FormTemplateDef>({
-    queryKey: ["/api/seller/form-template"],
-    enabled: isAuthenticated,
+    queryKey: ["/api/seller/form-template", formTemplateId],
+    queryFn: async () => {
+      const res = await fetch(`/api/seller/form-template/${formTemplateId}`, { credentials: "include" });
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+    enabled: isAuthenticated && !!formTemplateId,
   });
 
   const stage3Sections = useMemo(() => {
@@ -203,6 +217,11 @@ export default function CreateListingStep3Page() {
           </div>
 
           <Card className="p-8">
+            {formTemplate?.name && (
+              <Badge variant="secondary" className="mb-3" data-testid="badge-form-name">
+                Form: {formTemplate.name}
+              </Badge>
+            )}
             <h1 className="font-serif font-bold text-2xl mb-2">
               Upload Photos & Videos
             </h1>

@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { FormTemplate } from "@shared/schema";
+import type { FormTemplate, PropertyCategory } from "@shared/schema";
 
 const filters: FilterConfig[] = [
   { key: "search", label: "Name", type: "search", placeholder: "Search form templates..." },
@@ -53,6 +53,7 @@ export default function FormBuilderPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [formName, setFormName] = useState("");
   const [sellerType, setSellerType] = useState("");
+  const [categoryId, setCategoryId] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -60,8 +61,14 @@ export default function FormBuilderPage() {
     queryKey: ["/api/admin/form-templates"],
   });
 
+  const { data: categories = [] } = useQuery<PropertyCategory[]>({
+    queryKey: ["/api/property-categories"],
+  });
+
+  const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c.name]));
+
   const createMutation = useMutation({
-    mutationFn: async (data: { name: string; sellerType: string }) => {
+    mutationFn: async (data: { name: string; sellerType: string; categoryId: string }) => {
       const res = await apiRequest("POST", "/api/admin/form-templates", data);
       return res.json();
     },
@@ -70,6 +77,7 @@ export default function FormBuilderPage() {
       setIsCreateOpen(false);
       setFormName("");
       setSellerType("");
+      setCategoryId("");
       toast({ title: "Form template created" });
       if (data?.id) {
         navigate(`/admin/form-builder/${data.id}`);
@@ -139,6 +147,15 @@ export default function FormBuilderPage() {
       ),
     },
     {
+      key: "categoryId",
+      header: "Category",
+      render: (template) => (
+        <span className="text-sm" data-testid={`text-category-${template.id}`}>
+          {template.categoryId ? (categoryMap[template.categoryId] || "—") : "—"}
+        </span>
+      ),
+    },
+    {
       key: "version",
       header: "Version",
       render: (template) => (
@@ -177,8 +194,8 @@ export default function FormBuilderPage() {
   };
 
   const handleCreate = () => {
-    if (!formName.trim() || !sellerType) return;
-    createMutation.mutate({ name: formName.trim(), sellerType });
+    if (!formName.trim() || !sellerType || !categoryId) return;
+    createMutation.mutate({ name: formName.trim(), sellerType, categoryId });
   };
 
   return (
@@ -275,6 +292,21 @@ export default function FormBuilderPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger id="category" data-testid="select-category">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id} data-testid={`select-category-item-${cat.id}`}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateOpen(false)} data-testid="button-cancel-create">
@@ -282,7 +314,7 @@ export default function FormBuilderPage() {
             </Button>
             <Button
               onClick={handleCreate}
-              disabled={createMutation.isPending || !formName.trim() || !sellerType}
+              disabled={createMutation.isPending || !formName.trim() || !sellerType || !categoryId}
               data-testid="button-confirm-create"
             >
               {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}

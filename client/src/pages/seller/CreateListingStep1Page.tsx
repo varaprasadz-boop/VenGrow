@@ -19,6 +19,7 @@ import { ArrowRight, ArrowLeft, Loader2, Building2, AlertCircle } from "lucide-r
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { DynamicFormRenderer } from "@/components/DynamicFormRenderer";
 import type { PropertyCategory, PropertySubcategory, Project } from "@shared/schema";
 
@@ -85,8 +86,12 @@ export default function CreateListingStep1Page() {
   const [, navigate] = useLocation();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
+
+  const formTemplateId = localStorage.getItem("createListingFormTemplateId");
+  const storedCategoryId = localStorage.getItem("createListingCategoryId");
+
   const [formData, setFormData] = useState({
-    categoryId: "",
+    categoryId: storedCategoryId || "",
     subcategoryId: "",
     projectStage: "",
     transactionType: "",
@@ -116,8 +121,12 @@ export default function CreateListingStep1Page() {
         variant: "destructive",
       });
       navigate("/login");
+      return;
     }
-  }, [authLoading, isAuthenticated, navigate, toast]);
+    if (!authLoading && isAuthenticated && !formTemplateId) {
+      navigate("/seller/select-form");
+    }
+  }, [authLoading, isAuthenticated, navigate, toast, formTemplateId]);
 
   const canHaveProjects = user?.sellerType && ["builder", "broker"].includes(user.sellerType);
 
@@ -147,8 +156,13 @@ export default function CreateListingStep1Page() {
   });
 
   const { data: formTemplate, isLoading: templateLoading, error: templateError } = useQuery<FormTemplateResponse>({
-    queryKey: ["/api/seller/form-template"],
-    enabled: isAuthenticated,
+    queryKey: ["/api/seller/form-template", formTemplateId],
+    queryFn: async () => {
+      const res = await fetch(`/api/seller/form-template/${formTemplateId}`, { credentials: "include" });
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+    enabled: isAuthenticated && !!formTemplateId,
   });
 
   const stage1Sections = useMemo(() => {
@@ -203,6 +217,21 @@ export default function CreateListingStep1Page() {
     return Math.round(price / area).toString();
   }, [formData.price, formData.area]);
 
+  useEffect(() => {
+    if (storedCategoryId && categories.length > 0 && formData.categoryId === storedCategoryId) {
+      const category = categories.find(c => c.id === storedCategoryId);
+      if (category) {
+        const allowed = category.allowedTransactionTypes || ["sale", "rent", "lease"];
+        if (!formData.transactionType || !allowed.includes(formData.transactionType)) {
+          setFormData(prev => ({
+            ...prev,
+            transactionType: allowed[0] || "sale",
+          }));
+        }
+      }
+    }
+  }, [storedCategoryId, categories]);
+
   const handleCategoryChange = (value: string) => {
     const category = categories.find(c => c.id === value);
     const allowed = category?.allowedTransactionTypes || ["sale", "rent", "lease"];
@@ -221,7 +250,10 @@ export default function CreateListingStep1Page() {
   };
 
   const isFormValid = useMemo(() => {
-    if (!formData.categoryId || !formData.transactionType || !formData.title || !formData.price || !formData.city || !formData.state) {
+    if (!formData.transactionType || !formData.title || !formData.price || !formData.city || !formData.state) {
+      return false;
+    }
+    if (!storedCategoryId && !formData.categoryId) {
       return false;
     }
     if (filteredSubcategories.length > 0 && !formData.subcategoryId) {
@@ -398,6 +430,11 @@ export default function CreateListingStep1Page() {
           </div>
 
           <Card className="p-8">
+            {formTemplate?.name && (
+              <Badge variant="secondary" className="mb-3" data-testid="badge-form-name">
+                Form: {formTemplate.name}
+              </Badge>
+            )}
             <h1 className="font-serif font-bold text-2xl mb-6">
               Property Basic Information
             </h1>
@@ -439,6 +476,7 @@ export default function CreateListingStep1Page() {
                     <Select
                       value={formData.categoryId}
                       onValueChange={handleCategoryChange}
+                      disabled={!!storedCategoryId}
                     >
                       <SelectTrigger id="category" data-testid="select-category">
                         <SelectValue placeholder="Select category" />

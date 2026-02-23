@@ -232,6 +232,7 @@ export const sellerRoutes: RouteConfig[] = [
   
   // Dashboard
   { path: "/seller/dashboard", component: lazy(() => import("@/pages/seller/SellerDashboardPage")), requireAuth: true, roles: ["seller"], title: "Seller Dashboard" },
+  { path: "/seller/select-form", component: lazy(() => import("@/pages/seller/SelectFormPage")), requireAuth: true, roles: ["seller"], title: "Select Property Type" },
   
   // Property Management - Sidebar Links
   { path: "/seller/property/add", component: lazy(() => import("@/pages/seller/CreatePropertyPage")), requireAuth: true, roles: ["seller"], title: "Add Property" },

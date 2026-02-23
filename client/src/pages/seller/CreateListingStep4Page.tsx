@@ -178,9 +178,22 @@ export default function CreateListingStep4Page() {
     queryKey: ["/api/property-subcategories"],
   });
 
+  const formTemplateId = localStorage.getItem("createListingFormTemplateId");
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && !formTemplateId) {
+      navigate("/seller/select-form");
+    }
+  }, [authLoading, isAuthenticated, formTemplateId, navigate]);
+
   const { data: formTemplate } = useQuery<TemplateWithSections>({
-    queryKey: ["/api/seller/form-template"],
-    enabled: isAuthenticated,
+    queryKey: ["/api/seller/form-template", formTemplateId],
+    queryFn: async () => {
+      const res = await fetch(`/api/seller/form-template/${formTemplateId}`, { credentials: "include" });
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+    enabled: isAuthenticated && !!formTemplateId,
   });
 
   const { data: subscriptionData } = useQuery<SubscriptionResponse>({
@@ -728,6 +741,11 @@ export default function CreateListingStep4Page() {
             <p className="text-sm text-muted-foreground">
               Step 4 of 4: Contact Details & Review
             </p>
+            {formTemplate?.name && (
+              <Badge variant="secondary" className="mt-2" data-testid="badge-form-name">
+                Form: {formTemplate.name}
+              </Badge>
+            )}
           </div>
 
           {createListingMutation.isError && (

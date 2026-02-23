@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { IconPicker } from "@/components/IconPicker";
 import { DynamicIcon } from "@/components/DynamicIcon";
-import type { FormTemplate, FormSection, FormField } from "@shared/schema";
+import type { FormTemplate, FormSection, FormField, PropertyCategory } from "@shared/schema";
 import {
   Save, Upload, Copy, ArrowLeft, Lock, Plus, Trash2, Edit, ChevronDown, ChevronRight,
   Loader2, Image, FileText, Settings, Layout, X,
@@ -127,6 +127,14 @@ export default function FormBuilderEditorPage() {
     queryKey: ["/api/admin/form-templates", id],
     enabled: !!id,
   });
+
+  const { data: categories = [] } = useQuery<PropertyCategory[]>({
+    queryKey: ["/api/property-categories"],
+  });
+
+  const categoryName = template?.categoryId
+    ? categories.find((c) => c.id === template.categoryId)?.name ?? ""
+    : "";
 
   if (template && !nameInitialized) {
     setFormName(template.name);
@@ -493,7 +501,10 @@ export default function FormBuilderEditorPage() {
                 />
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className="capitalize" data-testid="badge-seller-type">{template.sellerType}</Badge>
+                <Badge variant="outline" className="capitalize" data-testid="badge-seller-type">Seller Type: {template.sellerType}</Badge>
+                {categoryName && (
+                  <Badge variant="outline" data-testid="badge-category">Category: {categoryName}</Badge>
+                )}
                 <Badge variant="secondary" data-testid="badge-version">v{template.version}</Badge>
                 <StatusBadge status={template.status} />
               </div>

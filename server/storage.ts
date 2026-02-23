@@ -294,6 +294,7 @@ export interface IStorage {
   cloneFormTemplate(id: string): Promise<FormTemplate | undefined>;
   publishFormTemplate(id: string): Promise<FormTemplate | undefined>;
   getPublishedFormForSeller(sellerType: string): Promise<(FormTemplate & { sections: (FormSection & { fields: FormField[] })[] }) | undefined>;
+  getPublishedFormsForSeller(sellerType: string): Promise<FormTemplate[]>;
 
   // Form Sections & Fields (T006)
   createFormSection(data: InsertFormSection): Promise<FormSection>;
@@ -2442,12 +2443,17 @@ export class DatabaseStorage implements IStorage {
     const [template] = await db.select().from(formTemplates).where(eq(formTemplates.id, id));
     if (!template) return undefined;
 
-    await db.update(formTemplates)
-      .set({ status: "archived" as any, updatedAt: new Date() })
-      .where(and(
+    if (template.categoryId) {
+      const [duplicate] = await db.select().from(formTemplates).where(and(
         eq(formTemplates.sellerType, template.sellerType),
+        eq(formTemplates.categoryId, template.categoryId),
         eq(formTemplates.status, "published" as any),
-      ));
+        sql`${formTemplates.id} != ${id}`,
+      )).limit(1);
+      if (duplicate) {
+        throw new Error(`A published form already exists for this seller type and category (${duplicate.name}). Archive or delete it first.`);
+      }
+    }
 
     const [published] = await db.update(formTemplates)
       .set({ status: "published" as any, updatedAt: new Date() })
@@ -2465,6 +2471,16 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
     if (!template) return undefined;
     return this.getFormTemplate(template.id);
+  }
+
+  async getPublishedFormsForSeller(sellerType: string): Promise<FormTemplate[]> {
+    const templates = await db.select().from(formTemplates)
+      .where(and(
+        eq(formTemplates.sellerType, sellerType as any),
+        eq(formTemplates.status, "published" as any),
+      ))
+      .orderBy(formTemplates.name);
+    return templates;
   }
 
   // ==================== Form Sections & Fields (T006) ====================

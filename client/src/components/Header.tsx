@@ -252,7 +252,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
             )}
             <RefreshButton variant="ghost" size="icon" aria-label="Refresh page data" />
             {isSeller || !isLoggedIn ? (
-              <Link href={isLoggedIn ? "/seller/property/add" : "/login"}>
+              <Link href={isLoggedIn ? "/seller/select-form" : "/login"}>
                 <Button variant="outline" size="sm" data-testid="button-post-property">
                   Post Property <span className="text-primary font-bold italic ml-1">FREE</span>
                 </Button>
@@ -277,7 +277,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                   </Link>
                 )}
                 {isSeller && (
-                  <Link href="/seller/property/add">
+                  <Link href="/seller/select-form">
                     <Button data-testid="button-create-listing-header">
                       <Plus className="h-4 w-4 mr-1" />
                       Add Property
@@ -537,7 +537,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                                   My Listings
                                 </Button>
                               </Link>
-                              <Link href="/seller/property/add" onClick={() => setMobileMenuOpen(false)}>
+                              <Link href="/seller/select-form" onClick={() => setMobileMenuOpen(false)}>
                                 <Button variant="ghost" className="w-full justify-start">
                                   <Plus className="mr-2 h-4 w-4" />
                                   Add Property

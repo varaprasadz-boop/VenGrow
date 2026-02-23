@@ -31,10 +31,11 @@ The backend uses Node.js and Express.js with TypeScript, featuring a RESTful API
 The Add Property form is now powered by a dynamic Form Builder system. Super Admin designs configurable forms per seller type (individual/broker/builder) using a drag-and-drop interface. Sellers see forms tailored to their seller type. The system replaces all hardcoded category-specific forms.
 
 ### Architecture
-- **Database Tables:** `form_templates`, `form_sections`, `form_fields`, `property_custom_data`
-- **Admin UI:** Form Builder listing page + editor page with 4 stage tabs (Basic Info, Details, Photos, Review)
-- **Seller UI:** Dynamic form renderer that fetches published template for seller's type via `GET /api/seller/form-template`
+- **Database Tables:** `form_templates` (with `categoryId` column), `form_sections`, `form_fields`, `property_custom_data`
+- **Admin UI:** Form Builder listing page + editor page with 4 stage tabs (Basic Info, Details, Photos, Review). Each template tied to a seller type AND a property category.
+- **Seller UI:** Form selection page (`/seller/select-form`) shows available forms as category cards. Dynamic form renderer fetches specific template via `GET /api/seller/form-template/:id`. Category is frozen/readonly in Step 1.
 - **Buyer UI:** Property detail page renders custom data using displayStyle (grid/checklist/default); FilterSidebar auto-generates filters from sections marked `showInFilters`
+- **Multi-form per seller type:** Each seller type can have multiple published templates (one per category). Publishing prevents duplicates for same seller type + category combo.
 
 ### Key Components
 - `client/src/components/DynamicFormRenderer.tsx` — renders form fields dynamically based on field type configuration
@@ -42,6 +43,7 @@ The Add Property form is now powered by a dynamic Form Builder system. Super Adm
 - `client/src/components/IconPicker.tsx` — searchable icon picker for admin form builder (~80 curated real-estate icons)
 - `client/src/pages/admin/FormBuilderPage.tsx` — admin listing page for form templates
 - `client/src/pages/admin/FormBuilderEditorPage.tsx` — admin editor with all 4 stage tabs
+- `client/src/pages/seller/SelectFormPage.tsx` — form selection page showing category cards for sellers
 
 ### Form Template Structure
 - **Stage 1 (Basic Info):** Default fields (title, description, transaction type, category, location, price, area) + custom admin-added fields
@@ -58,8 +60,10 @@ The Add Property form is now powered by a dynamic Form Builder system. Super Adm
 - `GET /api/admin/form-templates` — list all templates
 - `POST/GET/PUT/DELETE /api/admin/form-templates/:id` — CRUD
 - `POST /api/admin/form-templates/:id/clone` — clone template
-- `POST /api/admin/form-templates/:id/publish` — publish (deactivates previous)
-- `GET /api/seller/form-template` — published template for logged-in seller's type
+- `POST /api/admin/form-templates/:id/publish` — publish (prevents duplicate seller type + category)
+- `GET /api/seller/form-templates` — all published templates for logged-in seller's type (with category info)
+- `GET /api/seller/form-template/:id` — specific published template with sections/fields
+- `GET /api/seller/form-template` — (legacy) first published template for logged-in seller's type
 - `GET /api/filter-fields` — filterable sections/fields for buyer FilterSidebar
 - Form section and field CRUD routes under `/api/admin/form-sections/` and `/api/admin/form-fields/`
 
