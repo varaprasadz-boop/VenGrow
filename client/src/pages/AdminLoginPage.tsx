@@ -90,13 +90,15 @@ export default function AdminLoginPage() {
         <Card className="w-full">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <Link href="/" className="inline-block">
-                <img
-                  src="/VenGrow.png"
-                  alt="VenGrow - Verified Property Market"
-                  className="h-12 w-auto max-w-[200px] object-contain"
-                  data-testid="img-admin-login-logo"
-                />
+              <Link href="/" className="flex items-center" data-testid="link-home">
+                <div className="px-2 pt-1">
+                  <img
+                    src="/VenGrow.png"
+                    alt="VenGrow - Verified Property Market"
+                    className="h-12 md:h-14 w-auto max-w-[200px] object-contain"
+                    data-testid="img-admin-login-logo"
+                  />
+                </div>
               </Link>
             </div>
             <CardTitle className="text-2xl">Admin Login</CardTitle>
