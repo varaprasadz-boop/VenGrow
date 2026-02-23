@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef, type ChangeEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation as useWouterLocation } from "wouter";
 import { Filter, X, Search, Calendar, Building2, Layers, Milestone, MapPin } from "lucide-react";
@@ -91,6 +91,10 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
   );
   const [corporateSearch, setCorporateSearch] = useState<string>("");
   const [localitySearch, setLocalitySearch] = useState<string>(initialFilters?.locality || "");
+  const [localityInput, setLocalityInput] = useState<string>(initialFilters?.locality || "");
+  const [localityDropdownOpen, setLocalityDropdownOpen] = useState(false);
+  const localityInputRef = useRef<HTMLInputElement>(null);
+  const localityDropdownRef = useRef<HTMLDivElement>(null);
   const [accordionValue, setAccordionValue] = useState<string[]>(["category", "subcategory", "projectStage", "transaction", "price", "seller", "locality"]);
   
   // Fetch categories - must be declared before useEffects that use it
@@ -200,6 +204,49 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
     return subcategories.filter(sub => sub.categoryId === category.id);
   }, [subcategories, categories, selectedCategory]);
 
+  const [debouncedLocalityInput, setDebouncedLocalityInput] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedLocalityInput(localityInput), 300);
+    return () => clearTimeout(timer);
+  }, [localityInput]);
+
+  const { data: localitySuggestions = [] } = useQuery<{ locality: string; city: string }[]>({
+    queryKey: ["/api/localities", debouncedLocalityInput],
+    queryFn: async () => {
+      const search = debouncedLocalityInput.trim();
+      if (!search) return [];
+      const res = await fetch(`/api/localities?search=${encodeURIComponent(search)}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: debouncedLocalityInput.trim().length >= 2,
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        localityDropdownRef.current && !localityDropdownRef.current.contains(e.target as Node) &&
+        localityInputRef.current && !localityInputRef.current.contains(e.target as Node)
+      ) {
+        setLocalityDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLocalitySelect = (locality: string, city: string) => {
+    setLocalitySearch(locality);
+    setLocalityInput(locality);
+    setLocalityDropdownOpen(false);
+  };
+
+  const handleLocalityClear = () => {
+    setLocalitySearch("");
+    setLocalityInput("");
+    setLocalityDropdownOpen(false);
+  };
+
   const handleSubcategoryToggle = (slug: string) => {
     setSelectedSubcategories(prev =>
       prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]
@@ -264,6 +311,7 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
       setSelectedPropertyAge([]);
       setCorporateSearch("");
       setLocalitySearch("");
+      setLocalityInput("");
       
       // Apply cleared filters
       const clearedFilters = {
@@ -464,20 +512,63 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
               Locality
             </div>
           </AccordionTrigger>
-          <AccordionContent className="space-y-3">
+          <AccordionContent className="space-y-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search locality..."
-                value={localitySearch}
-                onChange={(e) => setLocalitySearch(e.target.value)}
-                className="pl-8"
+                ref={localityInputRef}
+                placeholder="Type to search locality..."
+                value={localityInput}
+                onChange={(e) => {
+                  setLocalityInput(e.target.value);
+                  setLocalitySearch("");
+                  setLocalityDropdownOpen(true);
+                }}
+                onFocus={() => {
+                  if (localityInput.trim().length >= 2) setLocalityDropdownOpen(true);
+                }}
+                className="pl-8 pr-8"
                 data-testid="input-locality-search"
               />
+              {localityInput && (
+                <button
+                  type="button"
+                  onClick={handleLocalityClear}
+                  className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                  data-testid="button-locality-clear"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Filter properties by locality name
-            </p>
+            {localitySearch && (
+              <div className="flex items-center gap-1.5 text-sm">
+                <MapPin className="h-3 w-3 text-primary" />
+                <span className="font-medium">{localitySearch}</span>
+              </div>
+            )}
+            {localityDropdownOpen && localityInput.trim().length >= 2 && (
+              <div ref={localityDropdownRef} className="max-h-40 overflow-y-auto border rounded-md bg-background">
+                {localitySuggestions.length > 0 ? (
+                  localitySuggestions.map((item, idx) => (
+                    <button
+                      key={`${item.locality}-${item.city}-${idx}`}
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm hover-elevate flex items-center justify-between gap-2"
+                      onClick={() => handleLocalitySelect(item.locality, item.city)}
+                      data-testid={`option-locality-${idx}`}
+                    >
+                      <span>{item.locality}</span>
+                      <span className="text-xs text-muted-foreground">{item.city}</span>
+                    </button>
+                  ))
+                ) : debouncedLocalityInput.trim().length >= 2 ? (
+                  <p className="px-3 py-2 text-xs text-muted-foreground text-center">
+                    No localities found
+                  </p>
+                ) : null}
+              </div>
+            )}
           </AccordionContent>
         </AccordionItem>
 

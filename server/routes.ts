@@ -7449,6 +7449,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/localities", async (req: Request, res: Response) => {
+    try {
+      const search = (req.query.search as string || "").trim().toLowerCase();
+      const city = (req.query.city as string || "").trim();
+
+      const result = await db.execute(
+        sql`SELECT DISTINCT locality, city FROM properties WHERE locality IS NOT NULL AND locality != '' AND status = 'active' ORDER BY locality ASC`
+      );
+
+      let localities = (result.rows as { locality: string; city: string }[]).map(r => ({
+        locality: r.locality,
+        city: r.city,
+      }));
+
+      if (city) {
+        localities = localities.filter(l => l.city?.toLowerCase() === city.toLowerCase());
+      }
+
+      if (search) {
+        localities = localities.filter(l => l.locality.toLowerCase().includes(search));
+      }
+
+      res.json(localities);
+    } catch (error) {
+      console.error("Error fetching localities:", error);
+      res.status(500).json({ message: "Failed to fetch localities" });
+    }
+  });
+
   // Get all site settings (filterable by category)
   app.get("/api/site-settings", async (req: Request, res: Response) => {
     try {
