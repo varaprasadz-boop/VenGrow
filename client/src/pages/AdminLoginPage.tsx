@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Building2, Shield, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -90,14 +90,15 @@ export default function AdminLoginPage() {
         <Card className="w-full">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <Shield className="h-8 w-8 text-primary" />
-              </div>
+              <Link href="/" className="inline-block">
+                <img
+                  src="/VenGrow.png"
+                  alt="VenGrow - Verified Property Market"
+                  className="h-12 w-auto max-w-[200px] object-contain"
+                  data-testid="img-admin-login-logo"
+                />
+              </Link>
             </div>
-            <Link href="/" className="inline-flex items-center gap-2 justify-center mb-2">
-              <Building2 className="h-8 w-8 text-primary" />
-              <span className="font-serif font-bold text-xl">VenGrow</span>
-            </Link>
             <CardTitle className="text-2xl">Admin Login</CardTitle>
             <CardDescription>
               Super Admin access only

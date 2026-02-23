@@ -1,19 +1,35 @@
+# Deploy to staging VPS on push to main or manual trigger.
+# Required GitHub Actions secrets: VPS_HOST, VPS_SSH_PRIVATE_KEY
+# Optional: VPS_USER (default root), VPS_PROJECT_PATH (default VenGrow), VPS_WEB_DIR (default /var/www/staging.vengrow.net)
 name: Deploy to Staging VPS
 
 on:
   push:
     branches:
-      - main  # Change to 'staging' if you want to deploy from a different branch
-  workflow_dispatch:  # Allows manual triggering from GitHub Actions UI
+      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
-    name: Deploy to Hostinger VPS
+    name: Deploy to Staging VPS
     runs-on: ubuntu-latest
-    
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER || 'root' }}
+      VPS_PROJECT_PATH: ${{ secrets.VPS_PROJECT_PATH || 'VenGrow' }}
+      VPS_WEB_DIR: ${{ secrets.VPS_WEB_DIR || '/var/www/staging.vengrow.net' }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        run: |
+          if [ -z "$VPS_HOST" ]; then
+            echo "::error::VPS_HOST secret is not set. Add it in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          echo "Required secrets are set."
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
@@ -23,56 +39,36 @@ jobs:
       - name: Add VPS to known hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.VPS_HOST || '72.61.233.124' }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Deploy to VPS
         run: |
-          PROJECT_PATH="${{ secrets.VPS_PROJECT_PATH || 'VenGrow' }}"
-          WEB_DIR="${{ secrets.VPS_WEB_DIR || '/var/www/staging.vengrow.net' }}"
-          BRANCH_NAME="${{ github.ref_name }}"
-          
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER || 'root' }}@${{ secrets.VPS_HOST || '72.61.233.124' }} << EOF
-            set -e  # Exit on error
-            
+          # Pass env vars to remote so the heredoc can use them (quoted REMOTE = no local expansion)
+          ssh -o StrictHostKeyChecking=no "$VPS_USER@$VPS_HOST" \
+            "REMOTE_PROJECT_PATH='$VPS_PROJECT_PATH' REMOTE_WEB_DIR='$VPS_WEB_DIR' REMOTE_BRANCH='${{ github.ref_name }}' bash -s" << 'REMOTE'
+            set -e
             echo "🚀 Starting deployment..."
-            
-            # Navigate to project directory
-            cd ${PROJECT_PATH}
-            
-            # Pull latest changes
-            echo "📥 Pulling latest changes from branch: ${BRANCH_NAME}..."
+            cd "$REMOTE_PROJECT_PATH"
+            echo "📥 Pulling latest changes from branch: $REMOTE_BRANCH..."
             git fetch origin
-            git checkout ${BRANCH_NAME}
-            git pull origin ${BRANCH_NAME}
-            
-            # Install dependencies
+            git checkout "$REMOTE_BRANCH"
+            git pull origin "$REMOTE_BRANCH"
             echo "📦 Installing dependencies..."
             npm install
-            
-            # Build the project
             echo "🔨 Building project..."
             npm run build
-            
-            # Remove old files from web directory
             echo "🧹 Cleaning web directory..."
-            sudo rm -rf ${WEB_DIR}/*
-            
-            # Copy new build files
+            sudo rm -rf "$REMOTE_WEB_DIR"/*
             echo "📋 Copying build files..."
-            sudo cp -r dist/* ${WEB_DIR}/
-            
-            # Restart PM2 process
+            sudo cp -r dist/* "$REMOTE_WEB_DIR/"
             echo "🔄 Restarting PM2 process..."
             pm2 restart ecosystem.config.cjs --only vengrow-staging --update-env
-            
-            # Reload nginx
             echo "🔄 Reloading nginx..."
             sudo systemctl reload nginx
-            
+            echo "🗄️ Pushing database schema..."
+            npm run db:push
             echo "✅ Deployment completed successfully!"
-          EOF
+          REMOTE
 
-      - name: Deployment Status
-        run: |
-          echo "✅ Deployment to staging completed successfully!"
-
+      - name: Deployment complete
+        run: echo "✅ Staging deployment finished."
