@@ -17,6 +17,7 @@ import { validateEmail, validatePhone, cleanPhone } from "@/utils/validation";
 import { PhoneInput } from "@/components/ui/location-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { SellerDetailDialog } from "@/components/SellerDetailDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Property } from "@shared/schema";
 import PropertyMap from "@/components/PropertyMap";
@@ -100,6 +101,7 @@ export default function PropertyDetailPage() {
   const [visitPhone, setVisitPhone] = useState("");
   const [visitEmail, setVisitEmail] = useState("");
   const [visitNotes, setVisitNotes] = useState("");
+  const [sellerDialogOpen, setSellerDialogOpen] = useState(false);
   
   // Fetch property details - supports both slug and ID (404 when not approved for non-admin)
   const { data: property, isLoading: propertyLoading, isError: propertyError } = useQuery<Property>({
@@ -778,13 +780,18 @@ export default function PropertyDetailPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => setSellerDialogOpen(true)}
+                          className="font-semibold text-primary hover:underline underline-offset-2 text-left"
+                          data-testid="link-seller-details"
+                        >
                           {(property as any).seller.businessName ||
                             `${(property as any).seller.firstName || ""} ${(property as any).seller.lastName || ""}`.trim() ||
                             "Seller"}
-                        </h3>
+                        </button>
                         {(property as any).seller.isVerified && (
-                          <CheckCircle className="h-4 w-4 text-blue-600" />
+                          <CheckCircle className="h-4 w-4 text-blue-600 shrink-0" />
                         )}
                       </div>
                       <Badge variant="outline" className="text-xs">
@@ -842,6 +849,24 @@ export default function PropertyDetailPage() {
                     })()}
                   </div>
                 </Card>
+              )}
+
+              {(property as any).seller && (
+                <SellerDetailDialog
+                  open={sellerDialogOpen}
+                  onOpenChange={setSellerDialogOpen}
+                  seller={(property as any).seller}
+                  sellerContactVisibility={(property as any).sellerContactVisibility}
+                  contactPhone={property.contactPhone}
+                  sellerEmail={(property as any).sellerUser?.email}
+                  validatePhone={validatePhone}
+                  cleanPhone={cleanPhone}
+                  onChat={() => {
+                    const sellerId = (property as any).seller?.id ?? (property as any).sellerId;
+                    if (sellerId) setLocation(`/buyer/chat?sellerId=${encodeURIComponent(sellerId)}&propertyId=${encodeURIComponent(property.id)}`);
+                  }}
+                  onScheduleVisit={openScheduleModal}
+                />
               )}
 
               {/* Inquiry Form */}

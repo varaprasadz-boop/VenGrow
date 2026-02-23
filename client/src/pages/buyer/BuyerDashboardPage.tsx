@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import BuyerBottomNav from "@/components/layouts/BuyerBottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSidebar } from "@/components/ui/sidebar";
 import {
   Heart,
   MessageSquare,
@@ -17,6 +18,7 @@ import {
   Bell,
   CalendarDays,
   Calendar,
+  Building2,
 } from "lucide-react";
 import PropertyCard from "@/components/PropertyCard";
 import { useAuth } from "@/hooks/useAuth";
@@ -52,6 +54,14 @@ interface InquiryWithProperty extends Inquiry {
 
 export default function BuyerDashboardPage() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const { isMobile, setOpenMobile, setOpen } = useSidebar();
+
+  const openSidebarAndNavigate = (href: string) => {
+    if (isMobile) setOpenMobile(true);
+    else setOpen(true);
+    setLocation(href);
+  };
 
   const { data: dashboardStats, isLoading: statsLoading, isError: dashboardError } = useQuery<DashboardStats>({
     queryKey: ["/api/me/dashboard"],
@@ -308,9 +318,9 @@ export default function BuyerDashboardPage() {
                   <div className="text-center py-8 text-muted-foreground">
                     <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>No inquiries yet</p>
-                    <Link href="/properties">
-                      <Button variant="ghost" className="mt-2">Browse Properties</Button>
-                    </Link>
+                    <Button variant="ghost" className="mt-2" onClick={() => openSidebarAndNavigate("/properties")}>
+                      Browse Properties
+                    </Button>
                   </div>
                 )}
               </Card>
@@ -344,9 +354,9 @@ export default function BuyerDashboardPage() {
                   <Card className="p-8 text-center text-muted-foreground">
                     <Heart className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>No saved properties yet</p>
-                    <Link href="/properties">
-                      <Button variant="ghost" className="mt-2">Start Browsing</Button>
-                    </Link>
+                    <Button variant="ghost" className="mt-2" onClick={() => openSidebarAndNavigate("/properties")}>
+                      Start Browsing
+                    </Button>
                   </Card>
                 )}
               </div>
@@ -382,9 +392,9 @@ export default function BuyerDashboardPage() {
                   <div className="text-center py-4 text-muted-foreground text-sm">
                     <Eye className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No recently viewed</p>
-                    <Link href="/properties">
-                      <Button variant="ghost" size="sm" className="mt-2">Browse Properties</Button>
-                    </Link>
+                    <Button variant="ghost" size="sm" className="mt-2" onClick={() => openSidebarAndNavigate("/properties")}>
+                      Browse Properties
+                    </Button>
                   </div>
                 )}
               </Card>
@@ -476,9 +486,9 @@ export default function BuyerDashboardPage() {
                   <div className="text-center py-4 text-muted-foreground text-sm">
                     <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No scheduled visits</p>
-                    <Link href="/properties">
-                      <Button variant="ghost" size="sm" className="mt-2">Browse Properties</Button>
-                    </Link>
+                    <Button variant="ghost" size="sm" className="mt-2" onClick={() => openSidebarAndNavigate("/properties")}>
+                      Browse Properties
+                    </Button>
                   </div>
                 )}
               </Card>
@@ -486,12 +496,22 @@ export default function BuyerDashboardPage() {
               <Card className="p-4 sm:p-6">
                 <h3 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4">Quick Actions</h3>
                 <div className="space-y-2">
-                  <Link href="/properties">
-                    <Button variant="outline" className="w-full justify-start" data-testid="button-browse-properties">
-                      <Home className="h-4 w-4 mr-2" />
-                      Browse Properties
-                    </Button>
-                  </Link>
+                  <Button variant="outline" className="w-full justify-start" data-testid="button-browse-properties" onClick={() => openSidebarAndNavigate("/properties")}>
+                    <Home className="h-4 w-4 mr-2" />
+                    Browse Properties
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => openSidebarAndNavigate("/buy")}>
+                    <Home className="h-4 w-4 mr-2" />
+                    Buy Property
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => openSidebarAndNavigate("/rent")}>
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Rent Property
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => openSidebarAndNavigate("/lease")}>
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Lease Property
+                  </Button>
                   <Link href="/buyer/favorites">
                     <Button variant="outline" className="w-full justify-start" data-testid="button-view-favorites">
                       <Heart className="h-4 w-4 mr-2" />

@@ -33,6 +33,7 @@ import { format } from "date-fns";
 import type { Property } from "@shared/schema";
 import { Link } from "wouter";
 import { validatePhone, cleanPhone } from "@/utils/validation";
+import { SellerDetailDialog } from "@/components/SellerDetailDialog";
 
 export default function PropertyDetailPage() {
   const params = useParams();
@@ -40,6 +41,7 @@ export default function PropertyDetailPage() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const propertyId = params.id;
+  const [sellerDialogOpen, setSellerDialogOpen] = useState(false);
 
   const { data: property, isLoading } = useQuery<Property>({
     queryKey: [`/api/properties/${propertyId}`],
@@ -845,17 +847,22 @@ export default function PropertyDetailPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold">
-                          {(property as any).seller.businessName || 
-                           `${(property as any).seller.firstName || ''} ${(property as any).seller.lastName || ''}`.trim() || 
-                           'Seller'}
-                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => setSellerDialogOpen(true)}
+                          className="font-semibold text-primary hover:underline underline-offset-2 text-left"
+                          data-testid="link-seller-details"
+                        >
+                          {(property as any).seller.businessName ||
+                            `${(property as any).seller.firstName || ""} ${(property as any).seller.lastName || ""}`.trim() ||
+                            "Seller"}
+                        </button>
                         {(property as any).seller.isVerified && (
-                          <CheckCircle className="h-4 w-4 text-blue-600" />
+                          <CheckCircle className="h-4 w-4 text-blue-600 shrink-0" />
                         )}
                       </div>
                       <Badge variant="outline" className="text-xs">
-                        {(property as any).seller.sellerType || 'Individual'}
+                        {(property as any).seller.sellerType || "Individual"}
                       </Badge>
                     </div>
                   </div>
@@ -901,6 +908,24 @@ export default function PropertyDetailPage() {
                     })()}
                   </div>
                 </Card>
+              )}
+
+              {(property as any).seller && (
+                <SellerDetailDialog
+                  open={sellerDialogOpen}
+                  onOpenChange={setSellerDialogOpen}
+                  seller={(property as any).seller}
+                  sellerContactVisibility={(property as any).sellerContactVisibility}
+                  contactPhone={property.contactPhone}
+                  sellerEmail={(property as any).sellerUser?.email}
+                  validatePhone={validatePhone}
+                  cleanPhone={cleanPhone}
+                  onChat={() => {
+                    const sellerId = (property as any).seller?.id ?? (property as any).sellerId;
+                    if (sellerId) setLocation(`/buyer/chat?sellerId=${encodeURIComponent(sellerId)}&propertyId=${encodeURIComponent(property.id)}`);
+                  }}
+                  onScheduleVisit={() => setLocation(`/buyer/schedule-visit?propertyId=${property.id}`)}
+                />
               )}
 
               {/* Schedule Visit - only when seller allows */}
