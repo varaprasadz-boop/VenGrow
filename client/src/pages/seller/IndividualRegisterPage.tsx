@@ -83,9 +83,7 @@ export default function IndividualRegisterPage() {
       newErrors.pincode = "PIN code must be 6 digits";
     }
 
-    if (!formData.panNumber) {
-      newErrors.panNumber = "PAN number is required";
-    } else if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.panNumber.toUpperCase())) {
+    if (formData.panNumber && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.panNumber.toUpperCase())) {
       newErrors.panNumber = "Invalid PAN format (e.g., ABCDE1234F)";
     }
 
@@ -215,11 +213,8 @@ export default function IndividualRegisterPage() {
       <div className="w-full max-w-3xl">
         {/* Logo & Back */}
         <div className="text-center mb-8">
-          <Link href="/">
-            <a className="inline-flex items-center gap-2 mb-4">
-              <Building2 className="h-8 w-8 text-primary" />
-              <span className="font-serif font-bold text-2xl">VenGrow</span>
-            </a>
+          <Link href="/" className="inline-flex items-center mb-4">
+            <img src="/VenGrow.png" alt="VenGrow" className="h-10 md:h-12 w-auto max-w-[180px] object-contain" />
           </Link>
           <Link href="/seller/type">
             <a className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
@@ -412,7 +407,7 @@ export default function IndividualRegisterPage() {
               <h2 className="font-semibold text-lg mb-4">Verification Documents</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="panNumber">PAN Number *</Label>
+                  <Label htmlFor="panNumber">PAN Number (Optional)</Label>
                   <Input
                     id="panNumber"
                     placeholder="ABCDE1234F"
@@ -421,7 +416,6 @@ export default function IndividualRegisterPage() {
                       setFormData({ ...formData, panNumber: e.target.value.toUpperCase() })
                     }
                     data-testid="input-pan"
-                    required
                     maxLength={10}
                     className={errors.panNumber ? "border-destructive" : ""}
                   />

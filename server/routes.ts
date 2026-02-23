@@ -1872,19 +1872,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const localUser = (req as any).session?.localUser;
       const isAdmin = adminUser?.isSuperAdmin || adminUser?.role === "admin" || localUser?.role === "admin";
       const isLiveOrApproved = property.workflowStatus === "live" || property.workflowStatus === "approved";
-      if (!isAdmin && !isLiveOrApproved) {
-        return res.status(404).json({ error: "Property not found" });
-      }
-      
-      // Increment view count (use property.id, not the slug/idOrSlug)
-      await storage.incrementPropertyView(property.id);
-      // Record per-user view for recently viewed (authenticated users only)
       const viewUserId = getAuthenticatedUserId(req as any);
-      if (viewUserId) {
-        try {
-          await storage.recordPropertyView(property.id, viewUserId);
-        } catch (e) {
-          // ignore duplicate or constraint errors
+      const currentUserSellerProfile = viewUserId ? await storage.getSellerProfileByUserId(viewUserId) : null;
+      const isOwner = currentUserSellerProfile && currentUserSellerProfile.id === property.sellerId;
+
+      if (!isAdmin && !isLiveOrApproved) {
+        // Allow owning seller to load their own property (e.g. for edit form)
+        if (!isOwner) {
+          return res.status(404).json({ error: "Property not found" });
+        }
+      }
+
+      // Increment view count only when not the owner (use property.id, not the slug/idOrSlug)
+      if (!isOwner) {
+        await storage.incrementPropertyView(property.id);
+        if (viewUserId) {
+          try {
+            await storage.recordPropertyView(property.id, viewUserId);
+          } catch (e) {
+            // ignore duplicate or constraint errors
+          }
         }
       }
 
@@ -1894,17 +1901,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get seller profile and user (phone for contact/WhatsApp)
       let sellerProfile = null;
       let sellerUser = null;
+      let sellerListingSettings: { showPhoneNumber?: boolean; showEmail?: boolean; allowScheduleVisit?: boolean } = {};
       if (property.sellerId) {
         sellerProfile = await storage.getSellerProfile(property.sellerId);
         if (sellerProfile?.userId) {
           try {
             sellerUser = await storage.getUser(sellerProfile.userId);
+            const setting = await storage.getSystemSetting(`seller_listing_settings_${sellerProfile.userId}`);
+            const val = setting?.value as Record<string, unknown> | undefined;
+            sellerListingSettings = {
+              showPhoneNumber: val?.showPhoneNumber !== false,
+              showEmail: val?.showEmail === true,
+              allowScheduleVisit: val?.allowScheduleVisit !== false,
+            };
           } catch (error) {
             console.error("Error fetching seller user:", error);
           }
         }
       }
 
+      const sellerPhone = sellerListingSettings.showPhoneNumber !== false ? (sellerUser?.phone ?? null) : null;
       res.json({
         ...property,
         images,
@@ -1915,7 +1931,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: sellerProfile.lastName,
           sellerType: sellerProfile.sellerType,
           isVerified: sellerProfile.isVerified || false,
-          phone: sellerUser?.phone ?? null,
+          phone: sellerPhone,
         } : null,
         sellerUser: isAdmin && sellerUser ? {
           id: sellerUser.id,
@@ -1924,6 +1940,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: sellerUser.email,
           phone: sellerUser.phone,
         } : null,
+        sellerContactVisibility: sellerProfile ? sellerListingSettings : undefined,
       });
     } catch (error) {
       console.error("Error getting property:", error);
@@ -3011,20 +3028,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const inquiry = await storage.createInquiry(inquiryData);
       
-      // Send email notification to seller (async, don't wait)
+      // Send email notification to seller only when email notifications are enabled (async, don't wait)
       const sellerProfile = await storage.getSellerProfile(property.sellerId);
       if (sellerProfile) {
-        const sellerUser = await storage.getUser(sellerProfile.userId);
-        if (sellerUser?.email) {
-          emailService.sendInquiryNotification(
-            sellerUser.email,
-            sellerProfile.companyName || sellerUser.firstName || "Seller",
-            property.title,
-            name || "Buyer",
-            email || "",
-            phone || "",
-            message || ""
-          ).catch(err => console.log("[Email] Inquiry notification error:", err));
+        const listingSetting = await storage.getSystemSetting(`seller_listing_settings_${sellerProfile.userId}`);
+        const listingVal = listingSetting?.value as Record<string, unknown> | undefined;
+        const emailNotifications = listingVal?.emailNotifications !== false;
+        if (emailNotifications) {
+          const sellerUser = await storage.getUser(sellerProfile.userId);
+          if (sellerUser?.email) {
+            emailService.sendInquiryNotification(
+              sellerUser.email,
+              sellerProfile.companyName || sellerUser.firstName || "Seller",
+              property.title,
+              name || "Buyer",
+              email || "",
+              phone || "",
+              message || ""
+            ).catch(err => console.log("[Email] Inquiry notification error:", err));
+          }
         }
       }
       

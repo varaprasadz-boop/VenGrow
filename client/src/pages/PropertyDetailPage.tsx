@@ -27,6 +27,7 @@ import {
   Bath,
   Maximize,
   CheckCircle2,
+  CheckCircle,
   Heart,
   Share2,
   Phone,
@@ -134,6 +135,8 @@ export default function PropertyDetailPage() {
   // Add/remove favorite mutation
   const favoriteMutation = useMutation({
     mutationFn: async () => {
+      if (!id) throw new Error("Property not found");
+      if (!user) throw new Error("Please log in to save favorites");
       if (isFavorited) {
         await apiRequest("DELETE", "/api/me/favorites", { propertyId: id });
       } else {
@@ -147,9 +150,10 @@ export default function PropertyDetailPage() {
         title: isFavorited ? "Removed from favorites" : "Added to favorites",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Failed to update favorites",
+        description: error?.message || "Please try again.",
         variant: "destructive",
       });
     },
@@ -765,21 +769,29 @@ export default function PropertyDetailPage() {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Seller Info */}
-              <Card className="p-6 sticky top-24">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+              {/* Seller Card */}
+              {(property as any).seller && (
+                <Card className="p-6 sticky top-24">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="p-3 rounded-lg bg-primary/10">
                       <Building2 className="h-6 w-6 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">Property Seller</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold">
+                          {(property as any).seller.businessName ||
+                            `${(property as any).seller.firstName || ""} ${(property as any).seller.lastName || ""}`.trim() ||
+                            "Seller"}
+                        </h3>
+                        {(property as any).seller.isVerified && (
+                          <CheckCircle className="h-4 w-4 text-blue-600" />
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground">Contact for details</p>
+                      <Badge variant="outline" className="text-xs">
+                        {(property as any).seller.sellerType || "Individual"}
+                      </Badge>
                     </div>
                   </div>
-
                   <div className="space-y-2">
                     {(() => {
                       const sellerPhone = property.contactPhone || (property as any).seller?.phone || (property as any).sellerUser?.phone || "";
@@ -797,9 +809,9 @@ export default function PropertyDetailPage() {
                               Chat on WhatsApp
                             </Button>
                           )}
-                          <Button 
-                            variant="outline" 
-                            className="w-full" 
+                          <Button
+                            variant="outline"
+                            className="w-full"
                             data-testid="button-chat-seller"
                             onClick={() => {
                               if (!user) {
@@ -829,8 +841,8 @@ export default function PropertyDetailPage() {
                       );
                     })()}
                   </div>
-                </div>
-              </Card>
+                </Card>
+              )}
 
               {/* Inquiry Form */}
               <Card className="p-6">
@@ -900,24 +912,26 @@ export default function PropertyDetailPage() {
                 </form>
               </Card>
               
-              {/* Schedule Visit Card */}
-              <Card className="p-6">
-                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                  <CalendarDays className="h-5 w-5" />
-                  Schedule a Visit
-                </h3>
-                <p className="text-muted-foreground text-sm mb-4">
-                  Book a visit to see this property in person
-                </p>
-                <Button 
-                  className="w-full" 
-                  onClick={openScheduleModal}
-                  data-testid="button-schedule-visit"
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Schedule Property Visit
-                </Button>
-              </Card>
+              {/* Schedule Visit Card - only when seller allows */}
+              {(property as any).sellerContactVisibility?.allowScheduleVisit !== false && (
+                <Card className="p-6">
+                  <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                    <CalendarDays className="h-5 w-5" />
+                    Schedule a Visit
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Book a visit to see this property in person
+                  </p>
+                  <Button 
+                    className="w-full" 
+                    onClick={openScheduleModal}
+                    data-testid="button-schedule-visit"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Schedule Property Visit
+                  </Button>
+                </Card>
+              )}
             </div>
           </div>
         </div>

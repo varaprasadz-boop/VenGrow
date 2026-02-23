@@ -55,7 +55,8 @@ export default function PropertyDetailPage() {
 
   const favoriteMutation = useMutation({
     mutationFn: async (add: boolean) => {
-      if (!property || !user) return;
+      if (!property?.id) throw new Error("Property not loaded");
+      if (!user) throw new Error("Please log in to save favorites");
       if (add) {
         return apiRequest("POST", "/api/me/favorites", {
           propertyId: property.id,
@@ -73,9 +74,10 @@ export default function PropertyDetailPage() {
         title: isFavorited ? "Removed from favorites" : "Added to favorites",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Failed to update favorites",
+        description: error?.message || "Please try again.",
         variant: "destructive",
       });
     },
@@ -901,22 +903,24 @@ export default function PropertyDetailPage() {
                 </Card>
               )}
 
-              {/* Schedule Visit */}
-              <Card className="p-6">
-                <h3 className="font-semibold mb-4">Schedule a Visit</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Book a property tour at your convenient time
-                </p>
-                <Button 
-                  variant="outline" 
-                  className="w-full" 
-                  onClick={() => setLocation(`/buyer/schedule-visit?propertyId=${property.id}`)}
-                  data-testid="button-schedule"
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Schedule Visit
-                </Button>
-              </Card>
+              {/* Schedule Visit - only when seller allows */}
+              {(property as any).sellerContactVisibility?.allowScheduleVisit !== false && (
+                <Card className="p-6">
+                  <h3 className="font-semibold mb-4">Schedule a Visit</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Book a property tour at your convenient time
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={() => setLocation(`/buyer/schedule-visit?propertyId=${property.id}`)}
+                    data-testid="button-schedule"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Schedule Visit
+                  </Button>
+                </Card>
+              )}
 
               {/* Map Placeholder */}
               <Card className="p-6">

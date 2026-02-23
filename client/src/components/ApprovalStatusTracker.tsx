@@ -189,7 +189,7 @@ export function ApprovalStatusTracker({ properties, isLoading }: ApprovalStatusT
                     <p className="text-sm text-muted-foreground mb-2">
                       Complete your listing and submit it for review
                     </p>
-                    <Link href={`/seller/properties/${property.id}/edit`}>
+                    <Link href={`/seller/properties/edit/${property.id}`}>
                       <Button 
                         size="sm"
                         data-testid={`button-continue-editing-${property.id}`}
@@ -250,7 +250,7 @@ export function ApprovalStatusTracker({ properties, isLoading }: ApprovalStatusT
                     )}
                   </div>
                 </div>
-                <Link href={`/seller/properties/${property.id}/edit`}>
+                <Link href={`/seller/properties/edit/${property.id}`}>
                   <Button 
                     variant="outline" 
                     size="sm"

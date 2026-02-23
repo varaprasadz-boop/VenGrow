@@ -48,9 +48,8 @@ export default function SellerTypePage() {
       <div className="w-full max-w-6xl mx-auto flex flex-col justify-center min-h-0">
         {/* Logo - compact on mobile */}
         <div className="text-center mb-4 md:mb-12 shrink-0">
-          <Link href="/" className="inline-flex items-center gap-2 mb-2 md:mb-4">
-            <Building2 className="h-6 w-6 md:h-8 md:w-8 text-primary" />
-            <span className="font-serif font-bold text-xl md:text-2xl">VenGrow</span>
+          <Link href="/" className="inline-flex items-center mb-2 md:mb-4">
+            <img src="/VenGrow.png" alt="VenGrow" className="h-10 md:h-12 w-auto max-w-[180px] object-contain" />
           </Link>
           <h1 className="font-serif font-bold text-2xl md:text-3xl sm:text-4xl mb-1 md:mb-3">
             Choose Your Seller Type
