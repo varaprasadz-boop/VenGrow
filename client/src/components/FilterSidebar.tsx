@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation as useWouterLocation } from "wouter";
-import { Filter, X, Search, Calendar, Building2, Layers, Milestone } from "lucide-react";
+import { Filter, X, Search, Calendar, Building2, Layers, Milestone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,7 @@ interface FilterSidebarProps {
     sellerTypes?: string[];
     propertyAge?: string[];
     corporateSearch?: string;
+    locality?: string;
   };
 }
 
@@ -89,7 +90,8 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
     initialFilters?.propertyAge || []
   );
   const [corporateSearch, setCorporateSearch] = useState<string>("");
-  const [accordionValue, setAccordionValue] = useState<string[]>(["category", "subcategory", "projectStage", "transaction", "price", "seller"]);
+  const [localitySearch, setLocalitySearch] = useState<string>(initialFilters?.locality || "");
+  const [accordionValue, setAccordionValue] = useState<string[]>(["category", "subcategory", "projectStage", "transaction", "price", "seller", "locality"]);
   
   // Fetch categories - must be declared before useEffects that use it
   const { data: categories = [] } = useQuery<PropertyCategory[]>({
@@ -261,6 +263,7 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
       setSelectedSeller([]);
       setSelectedPropertyAge([]);
       setCorporateSearch("");
+      setLocalitySearch("");
       
       // Apply cleared filters
       const clearedFilters = {
@@ -273,6 +276,7 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
         sellerTypes: [],
         propertyAge: [],
         corporateSearch: "",
+        locality: "",
       };
       onApplyFilters?.(clearedFilters);
     }
@@ -289,9 +293,9 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
       sellerTypes: selectedSeller,
       propertyAge: selectedPropertyAge,
       corporateSearch,
+      locality: localitySearch,
     };
     onApplyFilters?.(filters);
-    console.log('Filters applied:', filters);
   };
 
   const corporateBuilders = [
@@ -320,6 +324,7 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
       selectedSeller.length + 
       selectedPropertyAge.length + 
       (corporateSearch ? 1 : 0) +
+      (localitySearch ? 1 : 0) +
       (priceRange[0] !== 0 || priceRange[1] !== defaultMaxRupees ? 1 : 0);
   }, [
     selectedTransactionTypes,
@@ -330,11 +335,12 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
     selectedSeller,
     selectedPropertyAge,
     corporateSearch,
+    localitySearch,
     priceRange,
   ]);
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full flex flex-col h-full">
       <div className="flex items-center justify-between pb-4 border-b">
         <div className="flex items-center gap-2">
           <Filter className="h-5 w-5" />
@@ -343,15 +349,9 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
             <Badge variant="secondary">{activeFiltersCount}</Badge>
           )}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleClearFilters}
-          data-testid="button-clear-filters"
-        >
-          Clear All
-        </Button>
       </div>
+
+      <div className="flex-1 overflow-y-auto min-h-0 py-2">
 
       <Accordion type="multiple" value={accordionValue} onValueChange={setAccordionValue} className="w-full">
         <AccordionItem value="category">
@@ -454,6 +454,30 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
                 </Label>
               </div>
             ))}
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="locality">
+          <AccordionTrigger>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Locality
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search locality..."
+                value={localitySearch}
+                onChange={(e) => setLocalitySearch(e.target.value)}
+                className="pl-8"
+                data-testid="input-locality-search"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Filter properties by locality name
+            </p>
           </AccordionContent>
         </AccordionItem>
 
@@ -626,10 +650,20 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+      </div>
 
-      <div className="space-y-2">
+      <div className="sticky bottom-0 pt-3 pb-1 border-t bg-background space-y-2 flex-shrink-0">
         <Button className="w-full" onClick={handleApply} data-testid="button-apply-filters">
           Apply Filters
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full"
+          onClick={handleClearFilters}
+          data-testid="button-clear-filters"
+        >
+          Clear All
         </Button>
       </div>
     </div>

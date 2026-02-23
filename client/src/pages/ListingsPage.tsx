@@ -437,6 +437,17 @@ export default function ListingsPage() {
       );
     }
     
+    // Locality filter
+    if (filters.locality && filters.locality.trim()) {
+      const localityTerm = filters.locality.trim().toLowerCase();
+      result = result.filter(p => {
+        const loc = (p.locality || "").toLowerCase();
+        const area = ((p as any).areaInLocality || "").toLowerCase();
+        const city = (p.city || "").toLowerCase();
+        return loc.includes(localityTerm) || area.includes(localityTerm) || city.includes(localityTerm);
+      });
+    }
+    
     // Property age filter - improved logic
     if (filters.propertyAge && filters.propertyAge.length > 0) {
       result = result.filter(p => {
@@ -516,7 +527,7 @@ export default function ListingsPage() {
       <main className="flex-1 flex flex-col min-h-0">
         <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 min-h-0 lg:h-[calc(100vh-8.5rem)] lg:max-h-[calc(100vh-8.5rem)] lg:overflow-hidden">
           {/* Desktop Sidebar - scrolls separately */}
-          <aside className="hidden lg:flex lg:flex-col w-64 flex-shrink-0 min-h-0 overflow-y-auto pr-2">
+          <aside className="hidden lg:flex lg:flex-col w-64 flex-shrink-0 min-h-0 overflow-hidden pr-2">
             <FilterSidebar 
               onApplyFilters={handleApplyFilters}
               initialCategory={filters.category}
