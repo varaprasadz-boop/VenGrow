@@ -49,6 +49,7 @@ const projectItems = [
   { title: "Add Project", href: "/seller/project/add", icon: Plus },
 ];
 
+// Listings section - Bulk Upload intentionally not included
 const listingItems = [
   { title: "Manage Listing", href: "/seller/listings", icon: ListChecks },
 ];
@@ -225,7 +226,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
                 <NavSection title="Projects" items={projectItems} />
               )}
 
-              <NavSection title="Listings" items={listingItems} />
+              <NavSection title="Listings" items={listingItems.filter((item) => item.title !== "Bulk Upload")} />
               <NavSection title="Analytics" items={analyticsItems} />
               <NavSection title="Inquiries & Leads" items={inquiryItems} />
               <NavSection title="Packages & Payments" items={packageItems} />
@@ -293,14 +294,11 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             </div>
             <div className="flex items-center gap-2">
               <RefreshButton variant="ghost" size="icon" aria-label="Refresh page data" />
-              <Button
-                variant="outline"
-                size="sm"
-                data-testid="button-add-property-header"
-                onClick={() => setLocation("/seller/listings/create/step1")}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Property
+              <Button variant="outline" size="sm" asChild data-testid="button-add-property-header">
+                <Link href="/seller/listings/create/step1">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Property
+                </Link>
               </Button>
               <Button variant="ghost" size="icon" asChild>
                 <Link href="/seller/notifications" data-testid="button-notifications">

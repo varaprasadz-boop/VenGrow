@@ -252,14 +252,11 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
             )}
             <RefreshButton variant="ghost" size="icon" aria-label="Refresh page data" />
             {isSeller || !isLoggedIn ? (
-              <Button
-                variant="outline"
-                size="sm"
-                data-testid="button-post-property"
-                onClick={() => setWouterLocation(isLoggedIn ? "/seller/listings/create/step1" : "/login")}
-              >
-                Post Property <span className="text-primary font-bold italic ml-1">FREE</span>
-              </Button>
+              <Link href={isLoggedIn ? "/seller/listings/create/step1" : "/login"}>
+                <Button variant="outline" size="sm" data-testid="button-post-property">
+                  Post Property <span className="text-primary font-bold italic ml-1">FREE</span>
+                </Button>
+              </Link>
             ) : null}
             {!isLoggedIn ? (
               <>
@@ -280,13 +277,12 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                   </Link>
                 )}
                 {isSeller && (
-                  <Button
-                    data-testid="button-create-listing-header"
-                    onClick={() => setWouterLocation("/seller/listings/create/step1")}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Property
-                  </Button>
+                  <Link href="/seller/listings/create/step1">
+                    <Button data-testid="button-create-listing-header">
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Property
+                    </Button>
+                  </Link>
                 )}
                 {userId && <NotificationBell userId={userId} />}
                 <Button variant="ghost" size="sm" onClick={handleLogout} data-testid="button-header-logout" className="hidden sm:flex">
@@ -541,17 +537,12 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                                   My Listings
                                 </Button>
                               </Link>
-                              <Button
-                                variant="ghost"
-                                className="w-full justify-start"
-                                onClick={() => {
-                                  setMobileMenuOpen(false);
-                                  setWouterLocation("/seller/listings/create/step1");
-                                }}
-                              >
-                                <Plus className="mr-2 h-4 w-4" />
-                                Add Property
-                              </Button>
+                              <Link href="/seller/listings/create/step1" onClick={() => setMobileMenuOpen(false)}>
+                                <Button variant="ghost" className="w-full justify-start">
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Add Property
+                                </Button>
+                              </Link>
                               <Link href="/seller/leads" onClick={() => setMobileMenuOpen(false)}>
                                 <Button variant="ghost" className="w-full justify-start">
                                   <MessageSquare className="mr-2 h-4 w-4" />
