@@ -94,7 +94,7 @@ export default function SellerDashboardPage() {
             <p className="text-muted-foreground">Manage your properties and track performance.</p>
           </div>
           <Button asChild>
-            <Link href="/seller/property/add" data-testid="button-add-property">
+            <Link href="/seller/listings/create/step1" data-testid="button-add-property">
               <Plus className="h-4 w-4 mr-2" />
               Add Property
             </Link>
@@ -303,7 +303,7 @@ export default function SellerDashboardPage() {
               <div className="text-center py-8">
                 <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">No properties yet</p>
-                <Link href="/seller/property/add">
+                <Link href="/seller/listings/create/step1">
                   <Button size="sm" variant="outline" className="mt-4">Add Your First Property</Button>
                 </Link>
               </div>
@@ -317,17 +317,11 @@ export default function SellerDashboardPage() {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 md:grid-cols-4">
+            <div className="grid gap-3 md:grid-cols-3">
               <Button variant="outline" asChild className="h-auto py-4">
-                <Link href="/seller/property/add" data-testid="button-quick-add-property" className="flex flex-col items-center gap-2">
+                <Link href="/seller/listings/create/step1" data-testid="button-quick-add-property" className="flex flex-col items-center gap-2">
                   <Plus className="h-5 w-5" />
                   <span>Add Property</span>
-                </Link>
-              </Button>
-              <Button variant="outline" asChild className="h-auto py-4">
-                <Link href="/seller/bulk-upload" data-testid="button-bulk-upload" className="flex flex-col items-center gap-2">
-                  <Building2 className="h-5 w-5" />
-                  <span>Bulk Upload</span>
                 </Link>
               </Button>
               <Button variant="outline" asChild className="h-auto py-4">

@@ -233,8 +233,8 @@ export const sellerRoutes: RouteConfig[] = [
   // Dashboard
   { path: "/seller/dashboard", component: lazy(() => import("@/pages/seller/SellerDashboardPage")), requireAuth: true, roles: ["seller"], title: "Seller Dashboard" },
   
-  // Property Management - Sidebar Links
-  { path: "/seller/property/add", component: lazy(() => import("@/pages/seller/CreatePropertyPage")), requireAuth: true, roles: ["seller"], title: "Add Property" },
+  // Property Management - Sidebar Links (Add Property uses /seller/listings/create/step1)
+  // /seller/property/add is redirected to /seller/listings/create/step1 in App.tsx
   { path: "/seller/properties", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller"], title: "My Properties" },
   { path: "/seller/listings", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller"], title: "My Listings" },
   { path: "/seller/listings/edit/:id", component: lazy(() => import("@/pages/seller/CreatePropertyPage")), requireAuth: true, roles: ["seller"], title: "Edit Property" },
@@ -245,7 +245,7 @@ export const sellerRoutes: RouteConfig[] = [
   { path: "/seller/listings/drafts", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller"], title: "Drafts" },
   { path: "/seller/listings/expired", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller"], title: "Expired Listings" },
   { path: "/seller/manage-listings", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller"], title: "Manage Listings" },
-  { path: "/seller/create-property", component: lazy(() => import("@/pages/seller/CreatePropertyPage")), requireAuth: true, roles: ["seller"], title: "Create Property" },
+  { path: "/seller/create-property", component: lazy(() => import("@/pages/seller/CreateListingStep1Page")), requireAuth: true, roles: ["seller"], title: "Create Property" },
   { path: "/seller/create-listing", component: lazy(() => import("@/pages/seller/CreateListingStep1Page")), requireAuth: true, roles: ["seller"], title: "Create Listing" },
   { path: "/seller/create-listing/step1", component: lazy(() => import("@/pages/seller/CreateListingStep1Page")), requireAuth: true, roles: ["seller"], title: "Create Listing - Step 1" },
   { path: "/seller/listings/create/step1", component: lazy(() => import("@/pages/seller/CreateListingStep1Page")), requireAuth: true, roles: ["seller"], title: "Create Listing - Step 1" },

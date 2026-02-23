@@ -62,9 +62,17 @@ const quickLinks = [
   { title: "Rent Property", href: "/rent", icon: Building2 },
 ];
 
+// Paths where sidebar is hidden for a full-width listings view
+const BUYER_LAYOUT_HIDE_SIDEBAR_PATHS = ["/buy", "/rent", "/lease", "/properties"];
+
 export default function BuyerLayout({ children }: BuyerLayoutProps) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+
+  const hideSidebar = BUYER_LAYOUT_HIDE_SIDEBAR_PATHS.includes(location);
+  if (hideSidebar) {
+    return <>{children}</>;
+  }
   
   const style = {
     "--sidebar-width": "16rem",

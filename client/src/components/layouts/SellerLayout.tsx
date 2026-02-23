@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { 
   LayoutDashboard, Building2, Plus, Package, CreditCard, MessageSquare, 
   Bell, Settings, BarChart3, HelpCircle, LogOut, ListPlus,
-  ChevronDown, Heart, Calendar, Star, FileText, Upload, Eye,
+  ChevronDown, Heart, Calendar, Star, FileText, Eye,
   TrendingUp, Users, Clock, ListChecks
 } from "lucide-react";
 import { RefreshButton } from "@/components/RefreshButton";
@@ -39,7 +39,7 @@ interface SellerLayoutProps {
 
 const mainNavItems = [
   { title: "Dashboard", href: "/seller/dashboard", icon: LayoutDashboard },
-  { title: "Add Property", href: "/seller/property/add", icon: Plus },
+  { title: "Add Property", href: "/seller/listings/create/step1", icon: Plus },
   { title: "My Properties", href: "/seller/properties", icon: Building2 },
 ];
 
@@ -51,7 +51,6 @@ const projectItems = [
 
 const listingItems = [
   { title: "Manage Listing", href: "/seller/listings", icon: ListChecks },
-  { title: "Bulk Upload", href: "/seller/bulk-upload", icon: Upload },
 ];
 
 const analyticsItems = [
@@ -118,7 +117,7 @@ interface SubscriptionWithPackage extends SellerSubscription {
 }
 
 export default function SellerLayout({ children }: SellerLayoutProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
   
   // Fetch subscription data
@@ -294,11 +293,14 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             </div>
             <div className="flex items-center gap-2">
               <RefreshButton variant="ghost" size="icon" aria-label="Refresh page data" />
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/seller/property/add" data-testid="button-add-property-header">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Property
-                </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="button-add-property-header"
+                onClick={() => setLocation("/seller/listings/create/step1")}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Property
               </Button>
               <Button variant="ghost" size="icon" asChild>
                 <Link href="/seller/notifications" data-testid="button-notifications">

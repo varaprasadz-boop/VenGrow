@@ -140,7 +140,7 @@ export default function ProjectCreatePage() {
             you can create individual property listings instead.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button onClick={() => navigate("/seller/property/add")} data-testid="button-add-property">
+            <Button onClick={() => navigate("/seller/listings/create/step1")} data-testid="button-add-property">
               <Plus className="h-4 w-4 mr-2" />
               Add Property
             </Button>

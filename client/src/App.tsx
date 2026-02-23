@@ -67,6 +67,15 @@ function withGuestRoute(Component: React.ComponentType<any>) {
   };
 }
 
+/** Redirects /seller/property/add to the canonical create-listing path */
+function RedirectSellerPropertyAddToStep1() {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    setLocation("/seller/listings/create/step1", { replace: true });
+  }, [setLocation]);
+  return <LoadingSpinner />;
+}
+
 function Router() {
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
   const isLoading = useAuthStore((state) => state.isLoading);
@@ -155,6 +164,16 @@ function Router() {
           );
           return <Route key={route.path} path={route.path} component={ProtectedComponent} />;
         })}
+
+        {/* Redirect legacy Add Property path to canonical create step1 */}
+        <Route
+          path="/seller/property/add"
+          component={withProtectedRoute(
+            withLayout(RedirectSellerPropertyAddToStep1, SellerLayout),
+            true,
+            ["seller"]
+          ) as any}
+        />
         
         {/* Seller Routes - With SellerLayout sidebar */}
         {sellerRoutes.map((route) => {
