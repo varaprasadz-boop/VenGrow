@@ -8,9 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { DynamicIcon } from "@/components/DynamicIcon";
 import {
   ArrowLeft,
   MapPin,
@@ -18,20 +16,16 @@ import {
   Bath,
   Maximize,
   CheckCircle,
-  CircleCheck,
   Phone,
   Mail,
   Loader2,
   AlertCircle,
   Building2,
-  Star,
-  Save,
-  Crown,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { PropertyCategory, PropertySubcategory, JvDetailsType, FormTemplate, FormSection, FormField } from "@shared/schema";
+import type { PropertyCategory, PropertySubcategory, JvDetailsType } from "@shared/schema";
 import { validateEmail, validatePhone, cleanPhone, normalizeEmail } from "@/utils/validation";
 import { PhoneInput } from "@/components/ui/location-select";
 
@@ -55,7 +49,6 @@ interface Step1Data {
   projectSocietyName: string;
   projectId: string;
   pricePerSqft?: string;
-  customFields?: Record<string, unknown>;
 }
 
 interface Step2Data {
@@ -109,45 +102,12 @@ interface Step2Data {
   pgFoodProvided?: string;
   pgNonVegProvided?: string;
   pgNoticePeriod?: string;
-  [key: string]: unknown;
 }
 
 interface Step3Data {
   photos: string[];
   youtubeVideoUrl: string;
 }
-
-interface SubscriptionResponse {
-  success: boolean;
-  subscription: {
-    id: string;
-    sellerId: string;
-    packageId: string;
-    listingsUsed: number;
-    featuredUsed: number;
-    isActive: boolean;
-  } | null;
-  package: {
-    id: string;
-    name: string;
-    featuredListings: number;
-    listingLimit: number;
-    price: number;
-    planTier: string;
-  } | null;
-  sellerType: string | null;
-  usage?: {
-    listingsUsed: number;
-    listingLimit: number;
-    remainingListings: number;
-    featuredUsed: number;
-    featuredLimit: number;
-  };
-}
-
-type TemplateWithSections = FormTemplate & {
-  sections: (FormSection & { fields: FormField[] })[];
-};
 
 export default function CreateListingStep4Page() {
   const [, navigate] = useLocation();
@@ -168,7 +128,6 @@ export default function CreateListingStep4Page() {
 
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [verifiedInfo, setVerifiedInfo] = useState(false);
-  const [isFeatured, setIsFeatured] = useState(false);
 
   const { data: categories = [] } = useQuery<PropertyCategory[]>({
     queryKey: ["/api/property-categories"],
@@ -176,29 +135,6 @@ export default function CreateListingStep4Page() {
 
   const { data: allSubcategories = [] } = useQuery<PropertySubcategory[]>({
     queryKey: ["/api/property-subcategories"],
-  });
-
-  const formTemplateId = localStorage.getItem("createListingFormTemplateId");
-
-  useEffect(() => {
-    if (!authLoading && isAuthenticated && !formTemplateId) {
-      navigate("/seller/select-form");
-    }
-  }, [authLoading, isAuthenticated, formTemplateId, navigate]);
-
-  const { data: formTemplate } = useQuery<TemplateWithSections>({
-    queryKey: ["/api/seller/form-template", formTemplateId],
-    queryFn: async () => {
-      const res = await fetch(`/api/seller/form-template/${formTemplateId}`, { credentials: "include" });
-      if (!res.ok) throw new Error(`${res.status}`);
-      return res.json();
-    },
-    enabled: isAuthenticated && !!formTemplateId,
-  });
-
-  const { data: subscriptionData } = useQuery<SubscriptionResponse>({
-    queryKey: ["/api/subscriptions/current"],
-    enabled: isAuthenticated,
   });
 
   useEffect(() => {
@@ -234,7 +170,7 @@ export default function CreateListingStep4Page() {
 
       if (user) {
         setContactData({
-          contactName: [user.firstName, user.lastName].filter(Boolean).join(" ") || "",
+          contactName: user.name || "",
           contactPhone: user.phone || "",
           contactEmail: user.email || "",
           whatsappNumber: "",
@@ -312,92 +248,6 @@ export default function CreateListingStep4Page() {
     return `₹${num.toLocaleString("en-IN")}`;
   };
 
-  const featuredInfo = useMemo(() => {
-    if (!subscriptionData?.subscription || !subscriptionData?.package) {
-      return { available: false, used: 0, total: 0, allUsed: false, noSubscription: true, packageName: "" };
-    }
-    const pkg = subscriptionData.package;
-    const usage = subscriptionData.usage;
-    const featuredTotal = pkg.featuredListings || 0;
-    const featuredUsed = usage?.featuredUsed ?? subscriptionData.subscription.featuredUsed ?? 0;
-
-    if (featuredTotal === 0) {
-      return { available: false, used: 0, total: 0, allUsed: false, noSubscription: false, packageName: pkg.name, freePlan: true };
-    }
-
-    return {
-      available: true,
-      used: featuredUsed,
-      total: featuredTotal,
-      allUsed: featuredUsed >= featuredTotal,
-      noSubscription: false,
-      packageName: pkg.name,
-      freePlan: false,
-    };
-  }, [subscriptionData]);
-
-  const customFormData = useMemo(() => {
-    const merged: Record<string, unknown> = {};
-    if (step1Data?.customFields) {
-      Object.assign(merged, step1Data.customFields);
-    }
-    if (step2Data) {
-      const standardKeys = new Set([
-        "isJv", "jvDetails", "categorySlug", "bedrooms", "bathrooms", "balconies",
-        "area", "carpetArea", "superBuiltUpArea", "plotArea", "floorNumber", "floor",
-        "totalFloors", "facing", "flooring", "furnishing", "carParkingCount",
-        "maintenanceCharges", "overlookingType", "totalFlats", "flatsOnFloor",
-        "isResale", "possessionStatus", "expectedPossessionDate", "ageOfProperty",
-        "numberOfLifts", "amenities", "landArea", "roomSizes", "isCornerProperty",
-        "roadWidthFeet", "totalVillas", "liftsAvailable", "plotLength", "plotBreadth",
-        "isCornerPlot", "roadWidthPlotMeters", "floorAllowedConstruction",
-        "clubHouseAvailable", "newProjectFloorPlans", "pgSharingPricing",
-        "pgFacilities", "pgRules", "pgServices", "pgCctv", "pgBiometricEntry",
-        "pgSecurityGuard", "pgFoodProvided", "pgNonVegProvided", "pgNoticePeriod",
-      ]);
-      for (const [key, value] of Object.entries(step2Data)) {
-        if (!standardKeys.has(key) && value !== undefined && value !== null && value !== "") {
-          merged[key] = value;
-        }
-      }
-    }
-    return merged;
-  }, [step1Data, step2Data]);
-
-  const templateSections = useMemo(() => {
-    if (!formTemplate?.sections) return [];
-    return formTemplate.sections
-      .filter(s => s.isActive)
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [formTemplate]);
-
-  const getFieldValue = (field: FormField): unknown => {
-    const key = field.fieldKey;
-    if (step1Data?.customFields && key in step1Data.customFields) {
-      return step1Data.customFields[key];
-    }
-    if (step2Data && key in step2Data) {
-      return step2Data[key];
-    }
-    if (step1Data && key in step1Data) {
-      return (step1Data as unknown as Record<string, unknown>)[key];
-    }
-    if (customFormData[key] !== undefined) {
-      return customFormData[key];
-    }
-    return undefined;
-  };
-
-  const formatFieldValue = (value: unknown): string => {
-    if (value === undefined || value === null || value === "") return "—";
-    if (Array.isArray(value)) return value.join(", ");
-    if (typeof value === "boolean") return value ? "Yes" : "No";
-    return String(value);
-  };
-
-  const termsText = formTemplate?.termsText || null;
-  const allowSaveDraft = formTemplate?.allowSaveDraft ?? false;
-
   const createListingMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/properties", data);
@@ -429,8 +279,53 @@ export default function CreateListingStep4Page() {
     },
   });
 
-  const buildPropertyData = (isDraft = false) => {
-    if (!step1Data || !step2Data || !step3Data) return null;
+  const handleSubmit = () => {
+    if (!termsAccepted || !verifiedInfo) {
+      toast({
+        title: "Please Accept Terms",
+        description: "You must verify the information and accept the terms to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!contactData.contactName || !contactData.contactPhone || !contactData.contactEmail) {
+      toast({
+        title: "Contact Required",
+        description: "Please fill in all required contact fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate email format
+    if (!validateEmail(contactData.contactEmail.trim())) {
+      toast({
+        title: "Invalid email format",
+        description: "Please enter a valid email address for contact email.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate phone format
+    if (!validatePhone(contactData.contactPhone)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid 10-digit Indian mobile number starting with 6-9.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!step1Data || !step2Data || !step3Data) {
+      toast({
+        title: "Error",
+        description: "Missing listing data. Please start over.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const isJvListing = step2Data.isJv === true && step2Data.jvDetails;
 
@@ -467,20 +362,7 @@ export default function CreateListingStep4Page() {
       contactPhone: cleanPhone(contactData.contactPhone),
       contactEmail: normalizeEmail(contactData.contactEmail),
       contactWhatsapp: contactData.whatsappNumber || null,
-      isFeatured: isFeatured,
     };
-
-    if (formTemplate?.id) {
-      propertyData.formTemplateId = formTemplate.id;
-    }
-
-    if (Object.keys(customFormData).length > 0) {
-      propertyData.customFormData = customFormData;
-    }
-
-    if (isDraft) {
-      propertyData.status = "draft";
-    }
 
     if (isJvListing && step2Data.jvDetails) {
       const jv = step2Data.jvDetails;
@@ -551,79 +433,6 @@ export default function CreateListingStep4Page() {
       propertyData.pgNoticePeriod = step2Data.pgNoticePeriod || null;
     }
 
-    return propertyData;
-  };
-
-  const handleSubmit = () => {
-    if (!termsAccepted || !verifiedInfo) {
-      toast({
-        title: "Please Accept Terms",
-        description: "You must verify the information and accept the terms to continue.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!contactData.contactName || !contactData.contactPhone || !contactData.contactEmail) {
-      toast({
-        title: "Contact Required",
-        description: "Please fill in all required contact fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!validateEmail(contactData.contactEmail.trim())) {
-      toast({
-        title: "Invalid email format",
-        description: "Please enter a valid email address for contact email.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!validatePhone(contactData.contactPhone)) {
-      toast({
-        title: "Invalid phone number",
-        description: "Please enter a valid 10-digit Indian mobile number starting with 6-9.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const propertyData = buildPropertyData(false);
-    if (!propertyData) {
-      toast({
-        title: "Error",
-        description: "Missing listing data. Please start over.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    createListingMutation.mutate(propertyData);
-  };
-
-  const handleSaveDraft = () => {
-    if (!contactData.contactName || !contactData.contactPhone || !contactData.contactEmail) {
-      toast({
-        title: "Contact Required",
-        description: "Please fill in all required contact fields to save as draft.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const propertyData = buildPropertyData(true);
-    if (!propertyData) {
-      toast({
-        title: "Error",
-        description: "Missing listing data. Please start over.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     createListingMutation.mutate(propertyData);
   };
 
@@ -655,68 +464,6 @@ export default function CreateListingStep4Page() {
     );
   }
 
-  const renderDynamicReviewSection = (section: FormSection & { fields: FormField[] }) => {
-    const activeFields = section.fields.filter(f => f.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
-    if (activeFields.length === 0) return null;
-
-    const fieldsWithValues = activeFields.filter(f => {
-      const val = getFieldValue(f);
-      return val !== undefined && val !== null && val !== "" && !(Array.isArray(val) && val.length === 0);
-    });
-
-    if (fieldsWithValues.length === 0) return null;
-
-    const hasGridFields = fieldsWithValues.some(f => f.displayStyle === "grid");
-    const hasChecklistFields = fieldsWithValues.some(f => f.displayStyle === "checklist");
-    const hasDefaultFields = fieldsWithValues.some(f => !f.displayStyle || f.displayStyle === "default");
-
-    return (
-      <div key={section.id} className="space-y-3" data-testid={`review-section-${section.id}`}>
-        <div className="flex items-center gap-2">
-          {section.icon && <DynamicIcon name={section.icon} className="h-4 w-4 text-muted-foreground" />}
-          <p className="text-sm font-medium" data-testid={`review-section-title-${section.id}`}>{section.name}</p>
-        </div>
-
-        {hasGridFields && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" data-testid={`review-grid-${section.id}`}>
-            {fieldsWithValues.filter(f => f.displayStyle === "grid").map(field => (
-              <div key={field.id} className="flex flex-col items-center p-2 bg-muted/50 rounded-lg" data-testid={`review-grid-item-${field.fieldKey}`}>
-                {field.icon && <DynamicIcon name={field.icon} className="h-4 w-4 text-muted-foreground mb-1" />}
-                <span className="font-medium text-sm">{formatFieldValue(getFieldValue(field))}</span>
-                <span className="text-xs text-muted-foreground">{field.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {hasChecklistFields && (
-          <div className="grid grid-cols-2 gap-2" data-testid={`review-checklist-${section.id}`}>
-            {fieldsWithValues.filter(f => f.displayStyle === "checklist").map(field => {
-              const val = getFieldValue(field);
-              const items = Array.isArray(val) ? val : [val];
-              return items.map((item, idx) => (
-                <div key={`${field.id}-${idx}`} className="flex items-center gap-2 text-xs" data-testid={`review-checklist-item-${field.fieldKey}-${idx}`}>
-                  <CircleCheck className="h-3 w-3 text-green-600 flex-shrink-0" />
-                  <span>{String(item)}</span>
-                </div>
-              ));
-            })}
-          </div>
-        )}
-
-        {hasDefaultFields && (
-          <div className="space-y-1 text-sm" data-testid={`review-default-${section.id}`}>
-            {fieldsWithValues.filter(f => !f.displayStyle || f.displayStyle === "default").map(field => (
-              <p key={field.id} data-testid={`review-field-${field.fieldKey}`}>
-                <span className="text-muted-foreground">{field.label}:</span> {formatFieldValue(getFieldValue(field))}
-              </p>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -741,11 +488,6 @@ export default function CreateListingStep4Page() {
             <p className="text-sm text-muted-foreground">
               Step 4 of 4: Contact Details & Review
             </p>
-            {formTemplate?.name && (
-              <Badge variant="secondary" className="mt-2" data-testid="badge-form-name">
-                Form: {formTemplate.name}
-              </Badge>
-            )}
           </div>
 
           {createListingMutation.isError && (
@@ -817,138 +559,53 @@ export default function CreateListingStep4Page() {
                       Buyers can contact you directly on WhatsApp
                     </p>
                   </div>
-                </div>
-              </Card>
 
-              <Card className="p-8" data-testid="card-featured-listing">
-                <div className="flex items-center gap-2 mb-4">
-                  <Crown className="h-5 w-5 text-amber-500" />
-                  <h2 className="font-serif font-bold text-xl">Featured Listing</h2>
-                </div>
+                  <Separator />
 
-                {featuredInfo.noSubscription ? (
-                  <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg" data-testid="featured-no-subscription">
-                    <AlertCircle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        Featured listings not available on your plan. Upgrade to access this feature.
-                      </p>
-                      <Link href="/seller/packages">
-                        <Button variant="outline" size="sm" className="mt-2" data-testid="button-upgrade-plan">
-                          Upgrade Plan
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                ) : featuredInfo.freePlan ? (
-                  <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg" data-testid="featured-free-plan">
-                    <AlertCircle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        Featured listings not available on your plan. Upgrade to access this feature.
-                      </p>
-                      <Link href="/seller/packages">
-                        <Button variant="outline" size="sm" className="mt-2" data-testid="button-upgrade-plan">
-                          Upgrade Plan
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                ) : (
                   <div className="space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <Badge variant="secondary" data-testid="badge-package-name">{featuredInfo.packageName}</Badge>
+                    <div className="flex items-start space-x-3">
+                      <Checkbox 
+                        id="verified" 
+                        checked={verifiedInfo}
+                        onCheckedChange={(checked) => setVerifiedInfo(checked === true)}
+                        data-testid="checkbox-verified" 
+                      />
+                      <div className="space-y-1">
+                        <Label
+                          htmlFor="verified"
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          I verify that all the information provided is accurate and true
+                        </Label>
                       </div>
-                      <p className="text-sm text-muted-foreground" data-testid="text-featured-credits">
-                        {featuredInfo.used} of {featuredInfo.total} featured listings used
-                      </p>
                     </div>
 
-                    {featuredInfo.allUsed ? (
-                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg" data-testid="featured-all-used">
-                        <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">All featured credits used</p>
+                    <div className="flex items-start space-x-3">
+                      <Checkbox 
+                        id="terms" 
+                        checked={termsAccepted}
+                        onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+                        data-testid="checkbox-terms" 
+                      />
+                      <div className="space-y-1">
+                        <Label
+                          htmlFor="terms"
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          I agree to the{" "}
+                          <Link href="/terms">
+                            <span className="text-primary hover:underline">
+                              Terms & Conditions
+                            </span>
+                          </Link>{" "}
+                          and{" "}
+                          <Link href="/privacy">
+                            <span className="text-primary hover:underline">
+                              Privacy Policy
+                            </span>
+                          </Link>
+                        </Label>
                       </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-2">
-                          <Star className="h-4 w-4 text-amber-500" />
-                          <Label htmlFor="featured-toggle" className="font-normal cursor-pointer text-sm">
-                            Mark this listing as Featured
-                          </Label>
-                        </div>
-                        <Switch
-                          id="featured-toggle"
-                          checked={isFeatured}
-                          onCheckedChange={setIsFeatured}
-                          disabled={featuredInfo.allUsed}
-                          data-testid="switch-featured"
-                        />
-                      </div>
-                    )}
-
-                    {isFeatured && !featuredInfo.allUsed && (
-                      <p className="text-xs text-amber-600">
-                        This listing will appear in featured sections and get more visibility.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </Card>
-
-              <Card className="p-8">
-                <Separator className="mb-6" />
-
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-3">
-                    <Checkbox 
-                      id="verified" 
-                      checked={verifiedInfo}
-                      onCheckedChange={(checked) => setVerifiedInfo(checked === true)}
-                      data-testid="checkbox-verified" 
-                    />
-                    <div className="space-y-1">
-                      <Label
-                        htmlFor="verified"
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        I verify that all the information provided is accurate and true
-                      </Label>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start space-x-3">
-                    <Checkbox 
-                      id="terms" 
-                      checked={termsAccepted}
-                      onCheckedChange={(checked) => setTermsAccepted(checked === true)}
-                      data-testid="checkbox-terms" 
-                    />
-                    <div className="space-y-1">
-                      <Label
-                        htmlFor="terms"
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        {termsText ? (
-                          <span data-testid="text-custom-terms">{termsText}</span>
-                        ) : (
-                          <>
-                            I agree to the{" "}
-                            <Link href="/terms">
-                              <span className="text-primary hover:underline">
-                                Terms & Conditions
-                              </span>
-                            </Link>{" "}
-                            and{" "}
-                            <Link href="/privacy">
-                              <span className="text-primary hover:underline">
-                                Privacy Policy
-                              </span>
-                            </Link>
-                          </>
-                        )}
-                      </Label>
                     </div>
                   </div>
                 </div>
@@ -961,18 +618,6 @@ export default function CreateListingStep4Page() {
                     Back
                   </Button>
                 </Link>
-                {allowSaveDraft && (
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={handleSaveDraft}
-                    disabled={createListingMutation.isPending}
-                    data-testid="button-save-draft"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    Save as Draft
-                  </Button>
-                )}
                 <Button 
                   className="flex-1" 
                   size="lg" 
@@ -1023,11 +668,6 @@ export default function CreateListingStep4Page() {
                           {step1Data.locality}
                         </Badge>
                       )}
-                      {isFeatured && (
-                        <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" data-testid="badge-featured">
-                          Featured
-                        </Badge>
-                      )}
                       {step2Data.isJv && step2Data.jvDetails && (
                         <Badge variant="secondary" className="text-xs">Joint Venture</Badge>
                       )}
@@ -1075,7 +715,6 @@ export default function CreateListingStep4Page() {
                       </div>
                     </div>
                   ) : (
-                  <>
                   <div className="grid grid-cols-3 gap-3 text-sm">
                     {step2Data.bedrooms && (
                       <div className="flex flex-col items-center p-2 bg-muted/50 rounded-lg">
@@ -1099,67 +738,60 @@ export default function CreateListingStep4Page() {
                       </div>
                     )}
                   </div>
-
-                  {templateSections.length > 0 ? (
-                    <div className="space-y-4" data-testid="dynamic-review-sections">
-                      {templateSections.map(section => renderDynamicReviewSection(section))}
-                    </div>
-                  ) : (
-                    <>
-                      <div className="space-y-2 text-sm">
-                        {step1Data.projectSocietyName && (
-                          <p><span className="text-muted-foreground">Project:</span> {step1Data.projectSocietyName}</p>
-                        )}
-                        {step1Data.pricePerSqft && (
-                          <p><span className="text-muted-foreground">Per sqft:</span> Rs. {parseInt(step1Data.pricePerSqft).toLocaleString("en-IN")}</p>
-                        )}
-                        {step2Data.facing && (
-                          <p><span className="text-muted-foreground">Facing:</span> {step2Data.facing}</p>
-                        )}
-                        {step2Data.furnishing && (
-                          <p><span className="text-muted-foreground">Furnishing:</span> {step2Data.furnishing}</p>
-                        )}
-                        {step2Data.possessionStatus && (
-                          <p><span className="text-muted-foreground">Possession:</span> {step2Data.possessionStatus}</p>
-                        )}
-                        {step2Data.plotLength && step2Data.plotBreadth && (
-                          <p><span className="text-muted-foreground">Plot:</span> {step2Data.plotLength} x {step2Data.plotBreadth} ft</p>
-                        )}
-                        {step2Data.landArea && (
-                          <p><span className="text-muted-foreground">Land Area:</span> {step2Data.landArea} sq ft</p>
-                        )}
-                      </div>
-
-                      {step2Data.amenities && step2Data.amenities.length > 0 && (
-                        <div>
-                          <p className="text-sm font-medium mb-2">Key Features:</p>
-                          <div className="grid grid-cols-2 gap-2">
-                            {step2Data.amenities.slice(0, 6).map((amenity, index) => (
-                              <div key={index} className="flex items-center gap-2 text-xs">
-                                <CheckCircle className="h-3 w-3 text-green-600" />
-                                <span>{amenity}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {step2Data.pgFacilities && step2Data.pgFacilities.length > 0 && (
-                        <div>
-                          <p className="text-sm font-medium mb-2">PG Facilities:</p>
-                          <div className="grid grid-cols-2 gap-2">
-                            {step2Data.pgFacilities.slice(0, 6).map((facility, index) => (
-                              <div key={index} className="flex items-center gap-2 text-xs">
-                                <CheckCircle className="h-3 w-3 text-green-600" />
-                                <span>{facility}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
                   )}
-                  </>
+
+                  {!step2Data.isJv && (
+                    <div className="space-y-2 text-sm">
+                      {step1Data.projectSocietyName && (
+                        <p><span className="text-muted-foreground">Project:</span> {step1Data.projectSocietyName}</p>
+                      )}
+                      {step1Data.pricePerSqft && (
+                        <p><span className="text-muted-foreground">Per sqft:</span> Rs. {parseInt(step1Data.pricePerSqft).toLocaleString("en-IN")}</p>
+                      )}
+                      {step2Data.facing && (
+                        <p><span className="text-muted-foreground">Facing:</span> {step2Data.facing}</p>
+                      )}
+                      {step2Data.furnishing && (
+                        <p><span className="text-muted-foreground">Furnishing:</span> {step2Data.furnishing}</p>
+                      )}
+                      {step2Data.possessionStatus && (
+                        <p><span className="text-muted-foreground">Possession:</span> {step2Data.possessionStatus}</p>
+                      )}
+                      {step2Data.plotLength && step2Data.plotBreadth && (
+                        <p><span className="text-muted-foreground">Plot:</span> {step2Data.plotLength} x {step2Data.plotBreadth} ft</p>
+                      )}
+                      {step2Data.landArea && (
+                        <p><span className="text-muted-foreground">Land Area:</span> {step2Data.landArea} sq ft</p>
+                      )}
+                    </div>
+                  )}
+
+                  {!step2Data.isJv && step2Data.amenities && step2Data.amenities.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium mb-2">Key Features:</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {step2Data.amenities.slice(0, 6).map((amenity, index) => (
+                          <div key={index} className="flex items-center gap-2 text-xs">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span>{amenity}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {!step2Data.isJv && step2Data.pgFacilities && step2Data.pgFacilities.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium mb-2">PG Facilities:</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {step2Data.pgFacilities.slice(0, 6).map((facility, index) => (
+                          <div key={index} className="flex items-center gap-2 text-xs">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span>{facility}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
 
                   <Separator />

@@ -5,8 +5,6 @@ import { randomUUID } from "crypto";
 import { storage } from "./storage";
 import { seedDatabase } from "./seed";
 import { seedCMSContent } from "./seed-cms";
-import { seedFormTemplates } from "./seed-form-templates";
-import { migrateExistingPropertyData } from "./migrate-form-data";
 import { insertPropertySchema, insertInquirySchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -1899,22 +1897,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get images
       const images = await storage.getPropertyImages(property.id);
-
-      // Get custom form data
-      const customData = await storage.getPropertyCustomData(property.id);
-      
-      // Get form template sections/fields for rendering if custom data exists
-      let formSections: any[] = [];
-      if (customData?.formTemplateId) {
-        try {
-          const template = await storage.getFormTemplate(customData.formTemplateId);
-          if (template) {
-            formSections = (template as any).sections || [];
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
       
       // Get seller profile and user (phone for contact/WhatsApp)
       let sellerProfile = null;
@@ -1942,8 +1924,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         ...property,
         images,
-        customFormData: customData?.formData || null,
-        formSections: formSections.length > 0 ? formSections : null,
         seller: sellerProfile ? {
           id: sellerProfile.id,
           businessName: sellerProfile.businessName,
@@ -2076,39 +2056,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Handle custom form data (T020)
-      const { formTemplateId, customFormData, isFeatured: requestedFeatured } = req.body;
-      if (formTemplateId && customFormData && typeof customFormData === 'object') {
-        try {
-          await storage.createPropertyCustomData({
-            propertyId: property.id,
-            formTemplateId,
-            formData: customFormData,
-          });
-        } catch (err) {
-          console.warn("Failed to save custom form data:", err);
-        }
-      }
-
-      // Handle featured listing request (T020)
-      if (requestedFeatured === true) {
-        try {
-          const subscription = await storage.getActiveSubscription(sellerProfile.id);
-          if (subscription) {
-            const pkg = await storage.getPackage(subscription.packageId);
-            if (pkg && (subscription.featuredUsed ?? 0) < (pkg.featuredListings ?? 0)) {
-              await storage.updateProperty(property.id, { isFeatured: true } as any);
-              property.isFeatured = true;
-              await storage.updateSubscription(subscription.id, {
-                featuredUsed: (subscription.featuredUsed ?? 0) + 1,
-              });
-            }
-          }
-        } catch (err) {
-          console.warn("Failed to process featured listing request:", err);
-        }
-      }
-
       // Increment listings used count
       await storage.incrementSubscriptionListingUsage(sellerProfile.id);
       
@@ -7524,35 +7471,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/localities", async (req: Request, res: Response) => {
-    try {
-      const search = (req.query.search as string || "").trim().toLowerCase();
-      const city = (req.query.city as string || "").trim();
-
-      const result = await db.execute(
-        sql`SELECT DISTINCT locality, city FROM properties WHERE locality IS NOT NULL AND locality != '' AND status = 'active' ORDER BY locality ASC`
-      );
-
-      let localities = (result.rows as { locality: string; city: string }[]).map(r => ({
-        locality: r.locality,
-        city: r.city,
-      }));
-
-      if (city) {
-        localities = localities.filter(l => l.city?.toLowerCase() === city.toLowerCase());
-      }
-
-      if (search) {
-        localities = localities.filter(l => l.locality.toLowerCase().includes(search));
-      }
-
-      res.json(localities);
-    } catch (error) {
-      console.error("Error fetching localities:", error);
-      res.status(500).json({ message: "Failed to fetch localities" });
-    }
-  });
-
   // Get all site settings (filterable by category)
   app.get("/api/site-settings", async (req: Request, res: Response) => {
     try {
@@ -7608,21 +7526,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       await seedDatabase();
       await seedCMSContent();
-      await seedFormTemplates();
       res.json({ success: true, message: "All data seeded successfully" });
     } catch (error) {
       console.error("Full seed error:", error);
       res.status(500).json({ error: "Failed to seed data" });
-    }
-  });
-
-  app.post("/api/admin/seed-form-templates", isAdminAuthenticated, async (req: Request, res: Response) => {
-    try {
-      await seedFormTemplates();
-      res.json({ success: true, message: "Form templates seeded successfully" });
-    } catch (error) {
-      console.error("Form template seed error:", error);
-      res.status(500).json({ error: "Failed to seed form templates" });
     }
   });
 
@@ -8687,388 +8594,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ============================================
-  // FORM BUILDER ADMIN API ROUTES (T007)
-  // ============================================
-
-  // List all form templates
-  app.get("/api/admin/form-templates", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const filters: { sellerType?: string; status?: string } = {};
-      if (req.query.sellerType) filters.sellerType = req.query.sellerType as string;
-      if (req.query.status) filters.status = req.query.status as string;
-      const templates = await storage.getFormTemplates(filters);
-      res.json(templates);
-    } catch (error) {
-      console.error("Error fetching form templates:", error);
-      res.status(500).json({ message: "Failed to fetch form templates" });
-    }
-  });
-
-  // Create a new form template
-  app.post("/api/admin/form-templates", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const { name, sellerType, categoryId, assignedCategories, showPreviewBeforeSubmit, allowSaveDraft, autoApproval, termsText, seoMetaTitle, seoMetaDescription } = req.body;
-      if (!name || !sellerType) {
-        return res.status(400).json({ message: "Name and seller type are required" });
-      }
-      if (!["individual", "broker", "builder"].includes(sellerType)) {
-        return res.status(400).json({ message: "Invalid seller type" });
-      }
-      if (categoryId) {
-        const categories = await storage.getPropertyCategories();
-        const cat = categories.find((c: any) => c.id === categoryId);
-        if (!cat) {
-          return res.status(400).json({ message: "Invalid category ID" });
-        }
-      }
-      const template = await storage.createFormTemplate({
-        name,
-        sellerType,
-        categoryId: categoryId || null,
-        assignedCategories: assignedCategories || null,
-        showPreviewBeforeSubmit: showPreviewBeforeSubmit ?? true,
-        allowSaveDraft: allowSaveDraft ?? true,
-        autoApproval: autoApproval ?? false,
-        termsText: termsText || null,
-        seoMetaTitle: seoMetaTitle || null,
-        seoMetaDescription: seoMetaDescription || null,
-      });
-      res.status(201).json(template);
-    } catch (error) {
-      console.error("Error creating form template:", error);
-      res.status(500).json({ message: "Failed to create form template" });
-    }
-  });
-
-  // Get a single form template with all sections and fields
-  app.get("/api/admin/form-templates/:id", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const template = await storage.getFormTemplate(req.params.id);
-      if (!template) {
-        return res.status(404).json({ message: "Form template not found" });
-      }
-      res.json(template);
-    } catch (error) {
-      console.error("Error fetching form template:", error);
-      res.status(500).json({ message: "Failed to fetch form template" });
-    }
-  });
-
-  // Update form template settings
-  app.put("/api/admin/form-templates/:id", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const updated = await storage.updateFormTemplate(req.params.id, req.body);
-      if (!updated) {
-        return res.status(404).json({ message: "Form template not found" });
-      }
-      res.json(updated);
-    } catch (error) {
-      console.error("Error updating form template:", error);
-      res.status(500).json({ message: "Failed to update form template" });
-    }
-  });
-
-  // Archive (delete) form template
-  app.delete("/api/admin/form-templates/:id", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const deleted = await storage.deleteFormTemplate(req.params.id);
-      if (!deleted) {
-        return res.status(404).json({ message: "Form template not found" });
-      }
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error archiving form template:", error);
-      res.status(500).json({ message: "Failed to archive form template" });
-    }
-  });
-
-  // Clone form template
-  app.post("/api/admin/form-templates/:id/clone", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const cloned = await storage.cloneFormTemplate(req.params.id);
-      if (!cloned) {
-        return res.status(404).json({ message: "Form template not found" });
-      }
-      res.status(201).json(cloned);
-    } catch (error) {
-      console.error("Error cloning form template:", error);
-      res.status(500).json({ message: "Failed to clone form template" });
-    }
-  });
-
-  // Publish form template
-  app.post("/api/admin/form-templates/:id/publish", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const published = await storage.publishFormTemplate(req.params.id);
-      if (!published) {
-        return res.status(404).json({ message: "Form template not found" });
-      }
-      res.json(published);
-    } catch (error: any) {
-      console.error("Error publishing form template:", error);
-      if (error.message?.includes("A published form already exists")) {
-        return res.status(409).json({ message: error.message });
-      }
-      res.status(500).json({ message: "Failed to publish form template" });
-    }
-  });
-
-  // Add section to a form template
-  app.post("/api/admin/form-templates/:id/sections", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const { name, stage, icon, sortOrder, showInFilters, isDefault, isActive } = req.body;
-      if (!name || stage === undefined) {
-        return res.status(400).json({ message: "Name and stage are required" });
-      }
-      const section = await storage.createFormSection({
-        formTemplateId: req.params.id,
-        name,
-        stage,
-        icon: icon || null,
-        sortOrder: sortOrder ?? 0,
-        showInFilters: showInFilters ?? false,
-        isDefault: isDefault ?? false,
-        isActive: isActive ?? true,
-      });
-      res.status(201).json(section);
-    } catch (error) {
-      console.error("Error creating form section:", error);
-      res.status(500).json({ message: "Failed to create form section" });
-    }
-  });
-
-  // Update a form section
-  app.put("/api/admin/form-sections/:id", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const updated = await storage.updateFormSection(req.params.id, req.body);
-      if (!updated) {
-        return res.status(404).json({ message: "Form section not found" });
-      }
-      res.json(updated);
-    } catch (error) {
-      console.error("Error updating form section:", error);
-      res.status(500).json({ message: "Failed to update form section" });
-    }
-  });
-
-  // Delete a form section
-  app.delete("/api/admin/form-sections/:id", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const deleted = await storage.deleteFormSection(req.params.id);
-      if (!deleted) {
-        return res.status(404).json({ message: "Form section not found" });
-      }
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error deleting form section:", error);
-      res.status(500).json({ message: "Failed to delete form section" });
-    }
-  });
-
-  // Duplicate a form section
-  app.post("/api/admin/form-sections/:id/duplicate", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const duplicated = await storage.duplicateFormSection(req.params.id);
-      if (!duplicated) {
-        return res.status(404).json({ message: "Form section not found" });
-      }
-      res.status(201).json(duplicated);
-    } catch (error) {
-      console.error("Error duplicating form section:", error);
-      res.status(500).json({ message: "Failed to duplicate form section" });
-    }
-  });
-
-  // Reorder sections within a template
-  app.post("/api/admin/form-sections/:id/reorder", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const { orderedIds } = req.body;
-      if (!Array.isArray(orderedIds)) {
-        return res.status(400).json({ message: "orderedIds array is required" });
-      }
-      await storage.reorderFormSections(req.params.id, orderedIds);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error reordering form sections:", error);
-      res.status(500).json({ message: "Failed to reorder form sections" });
-    }
-  });
-
-  // Add field to a section
-  app.post("/api/admin/form-sections/:id/fields", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const { label, fieldKey, fieldType, icon, placeholder, isRequired, isDefault, sortOrder, validationRules, options, fileConfig, sourceType, linkedFieldKey, defaultValue, displayStyle, isActive } = req.body;
-      if (!label || !fieldKey || !fieldType) {
-        return res.status(400).json({ message: "Label, fieldKey, and fieldType are required" });
-      }
-      const field = await storage.createFormField({
-        sectionId: req.params.id,
-        label,
-        fieldKey,
-        fieldType,
-        icon: icon || null,
-        placeholder: placeholder || null,
-        isRequired: isRequired ?? false,
-        isDefault: isDefault ?? false,
-        sortOrder: sortOrder ?? 0,
-        validationRules: validationRules || null,
-        options: options || null,
-        fileConfig: fileConfig || null,
-        sourceType: sourceType || null,
-        linkedFieldKey: linkedFieldKey || null,
-        defaultValue: defaultValue || null,
-        displayStyle: displayStyle || "default",
-        isActive: isActive ?? true,
-      });
-      res.status(201).json(field);
-    } catch (error) {
-      console.error("Error creating form field:", error);
-      res.status(500).json({ message: "Failed to create form field" });
-    }
-  });
-
-  // Update a form field
-  app.put("/api/admin/form-fields/:id", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const updated = await storage.updateFormField(req.params.id, req.body);
-      if (!updated) {
-        return res.status(404).json({ message: "Form field not found" });
-      }
-      res.json(updated);
-    } catch (error) {
-      console.error("Error updating form field:", error);
-      res.status(500).json({ message: "Failed to update form field" });
-    }
-  });
-
-  // Delete a form field
-  app.delete("/api/admin/form-fields/:id", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const deleted = await storage.deleteFormField(req.params.id);
-      if (!deleted) {
-        return res.status(404).json({ message: "Form field not found" });
-      }
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error deleting form field:", error);
-      res.status(500).json({ message: "Failed to delete form field" });
-    }
-  });
-
-  // Reorder fields within a section
-  app.post("/api/admin/form-fields/reorder", isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-      const { sectionId, orderedIds } = req.body;
-      if (!sectionId || !Array.isArray(orderedIds)) {
-        return res.status(400).json({ message: "sectionId and orderedIds array are required" });
-      }
-      await storage.reorderFormFields(sectionId, orderedIds);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error reordering form fields:", error);
-      res.status(500).json({ message: "Failed to reorder form fields" });
-    }
-  });
-
-  // ============================================
-  // SELLER FORM TEMPLATE API (T008)
-  // ============================================
-
-  // ============================================
-  // FILTER FIELDS API (T021)
-  // ============================================
-
-  app.get("/api/filter-fields", async (_req: Request, res: Response) => {
-    try {
-      const filterFields = await storage.getFilterableFormFields();
-      res.json(filterFields);
-    } catch (error) {
-      console.error("Error fetching filter fields:", error);
-      res.status(500).json({ message: "Failed to fetch filter fields" });
-    }
-  });
-
-  // Get the published form template for the logged-in seller's type
-  app.get("/api/seller/form-templates", isAuthenticated, async (req: any, res: Response) => {
-    try {
-      const userId = getAuthenticatedUserId(req);
-      if (!userId) return res.status(401).json({ message: "Not authenticated" });
-
-      const sellerProfile = await storage.getSellerProfileByUserId(userId);
-      if (!sellerProfile) {
-        return res.status(404).json({ message: "Seller profile not found. Please complete seller registration first." });
-      }
-
-      const templates = await storage.getPublishedFormsForSeller(sellerProfile.sellerType);
-
-      const categories = await storage.getPropertyCategories();
-      const categoryMap = new Map(categories.map((c: any) => [c.id, c]));
-
-      const enriched = templates.map((t: any) => ({
-        ...t,
-        category: t.categoryId ? categoryMap.get(t.categoryId) || null : null,
-      }));
-
-      res.json(enriched);
-    } catch (error) {
-      console.error("Error fetching seller form templates:", error);
-      res.status(500).json({ message: "Failed to fetch form templates" });
-    }
-  });
-
-  app.get("/api/seller/form-template/:id", isAuthenticated, async (req: any, res: Response) => {
-    try {
-      const userId = getAuthenticatedUserId(req);
-      if (!userId) return res.status(401).json({ message: "Not authenticated" });
-
-      const sellerProfile = await storage.getSellerProfileByUserId(userId);
-      if (!sellerProfile) {
-        return res.status(404).json({ message: "Seller profile not found" });
-      }
-
-      const template = await storage.getFormTemplate(req.params.id);
-      if (!template) {
-        return res.status(404).json({ message: "Form template not found" });
-      }
-
-      if (template.sellerType !== sellerProfile.sellerType) {
-        return res.status(403).json({ message: "This form is not available for your seller type" });
-      }
-
-      if (template.status !== "published") {
-        return res.status(404).json({ message: "This form is not currently published" });
-      }
-
-      res.json(template);
-    } catch (error) {
-      console.error("Error fetching seller form template:", error);
-      res.status(500).json({ message: "Failed to fetch form template" });
-    }
-  });
-
-  app.get("/api/seller/form-template", isAuthenticated, async (req: any, res: Response) => {
-    try {
-      const userId = getAuthenticatedUserId(req);
-      if (!userId) return res.status(401).json({ message: "Not authenticated" });
-
-      const sellerProfile = await storage.getSellerProfileByUserId(userId);
-      if (!sellerProfile) {
-        return res.status(404).json({ message: "Seller profile not found. Please complete seller registration first." });
-      }
-
-      const template = await storage.getPublishedFormForSeller(sellerProfile.sellerType);
-      if (!template) {
-        return res.status(404).json({ message: "No published form template found for your seller type" });
-      }
-
-      res.json(template);
-    } catch (error) {
-      console.error("Error fetching seller form template:", error);
-      res.status(500).json({ message: "Failed to fetch form template" });
-    }
-  });
-
   const httpServer = createServer(app);
 
   // ============================================
@@ -9179,12 +8704,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('error', (error) => {
       console.error('WebSocket error:', error);
     });
-  });
-
-  seedFormTemplates().then(() => {
-    return migrateExistingPropertyData();
-  }).catch((err) => {
-    console.error("Failed to seed form templates or migrate data on startup:", err);
   });
 
   return httpServer;

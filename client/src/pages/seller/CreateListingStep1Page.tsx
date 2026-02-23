@@ -14,53 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StateSelect, CitySelect, PinCodeInput, PriceInput } from "@/components/ui/location-select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, ArrowLeft, Loader2, Building2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { DynamicFormRenderer } from "@/components/DynamicFormRenderer";
 import type { PropertyCategory, PropertySubcategory, Project } from "@shared/schema";
-
-interface TemplateField {
-  id: string;
-  label: string;
-  fieldKey: string;
-  fieldType: string;
-  icon?: string | null;
-  placeholder?: string | null;
-  isRequired: boolean;
-  isDefault: boolean;
-  sortOrder: number;
-  options?: string[] | null;
-  validationRules?: { min?: number; max?: number; charLimit?: number; regex?: string } | null;
-  sourceType?: string | null;
-  linkedFieldKey?: string | null;
-  defaultValue?: string | null;
-  displayStyle?: string | null;
-  isActive: boolean;
-}
-
-interface TemplateSection {
-  id: string;
-  name: string;
-  icon?: string | null;
-  stage: number;
-  sortOrder: number;
-  isDefault: boolean;
-  isActive: boolean;
-  fields: TemplateField[];
-}
-
-interface FormTemplateResponse {
-  id: string;
-  name: string;
-  sellerType: string;
-  version: number;
-  status: string;
-  sections: TemplateSection[];
-}
 
 const projectStages = [
   { value: "pre_launch", label: "Pre-launch" },
@@ -86,12 +44,8 @@ export default function CreateListingStep1Page() {
   const [, navigate] = useLocation();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
-
-  const formTemplateId = localStorage.getItem("createListingFormTemplateId");
-  const storedCategoryId = localStorage.getItem("createListingCategoryId");
-
   const [formData, setFormData] = useState({
-    categoryId: storedCategoryId || "",
+    categoryId: "",
     subcategoryId: "",
     projectStage: "",
     transactionType: "",
@@ -111,8 +65,6 @@ export default function CreateListingStep1Page() {
     projectId: "",
   });
 
-  const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
-
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
@@ -121,12 +73,8 @@ export default function CreateListingStep1Page() {
         variant: "destructive",
       });
       navigate("/login");
-      return;
     }
-    if (!authLoading && isAuthenticated && !formTemplateId) {
-      navigate("/seller/select-form");
-    }
-  }, [authLoading, isAuthenticated, navigate, toast, formTemplateId]);
+  }, [authLoading, isAuthenticated, navigate, toast]);
 
   const canHaveProjects = user?.sellerType && ["builder", "broker"].includes(user.sellerType);
 
@@ -154,34 +102,6 @@ export default function CreateListingStep1Page() {
     queryKey: ["/api/seller/projects"],
     enabled: canHaveProjects,
   });
-
-  const { data: formTemplate, isLoading: templateLoading, error: templateError } = useQuery<FormTemplateResponse>({
-    queryKey: ["/api/seller/form-template", formTemplateId],
-    queryFn: async () => {
-      const res = await fetch(`/api/seller/form-template/${formTemplateId}`, { credentials: "include" });
-      if (!res.ok) throw new Error(`${res.status}`);
-      return res.json();
-    },
-    enabled: isAuthenticated && !!formTemplateId,
-  });
-
-  const stage1Sections = useMemo(() => {
-    if (!formTemplate?.sections) return [];
-    return formTemplate.sections
-      .filter((s) => s.stage === 1 && s.isActive)
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [formTemplate]);
-
-  const customStage1Sections = useMemo(() => {
-    return stage1Sections
-      .map((section) => ({
-        ...section,
-        fields: section.fields
-          .filter((f) => !f.isDefault && f.isActive)
-          .sort((a, b) => a.sortOrder - b.sortOrder),
-      }))
-      .filter((section) => section.fields.length > 0);
-  }, [stage1Sections]);
 
   const canCreateListing = canCreateData?.canCreate ?? false;
   const remainingListings = canCreateData?.remainingListings ?? 0;
@@ -217,43 +137,20 @@ export default function CreateListingStep1Page() {
     return Math.round(price / area).toString();
   }, [formData.price, formData.area]);
 
-  useEffect(() => {
-    if (storedCategoryId && categories.length > 0 && formData.categoryId === storedCategoryId) {
-      const category = categories.find(c => c.id === storedCategoryId);
-      if (category) {
-        const allowed = category.allowedTransactionTypes || ["sale", "rent", "lease"];
-        if (!formData.transactionType || !allowed.includes(formData.transactionType)) {
-          setFormData(prev => ({
-            ...prev,
-            transactionType: allowed[0] || "sale",
-          }));
-        }
-      }
-    }
-  }, [storedCategoryId, categories]);
-
   const handleCategoryChange = (value: string) => {
     const category = categories.find(c => c.id === value);
     const allowed = category?.allowedTransactionTypes || ["sale", "rent", "lease"];
-    const currentTxnStillAllowed = allowed.includes(formData.transactionType);
     setFormData({ 
       ...formData, 
       categoryId: value, 
       subcategoryId: "", 
       projectStage: "",
-      transactionType: currentTxnStillAllowed ? formData.transactionType : (allowed[0] || "sale"),
+      transactionType: allowed[0] || "sale"
     });
   };
 
-  const handleCustomFieldChange = (fieldKey: string, value: unknown) => {
-    setCustomFieldValues((prev) => ({ ...prev, [fieldKey]: value }));
-  };
-
   const isFormValid = useMemo(() => {
-    if (!formData.transactionType || !formData.title || !formData.price || !formData.city || !formData.state) {
-      return false;
-    }
-    if (!storedCategoryId && !formData.categoryId) {
+    if (!formData.categoryId || !formData.transactionType || !formData.title || !formData.price || !formData.city || !formData.state) {
       return false;
     }
     if (filteredSubcategories.length > 0 && !formData.subcategoryId) {
@@ -262,34 +159,16 @@ export default function CreateListingStep1Page() {
     if (selectedCategory?.hasProjectStage && !formData.projectStage) {
       return false;
     }
-    for (const section of customStage1Sections) {
-      for (const field of section.fields) {
-        if (field.isRequired) {
-          const val = customFieldValues[field.fieldKey];
-          if (val === undefined || val === null || val === "") {
-            return false;
-          }
-          if (Array.isArray(val) && val.length === 0) {
-            return false;
-          }
-        }
-      }
-    }
     return true;
-  }, [formData, filteredSubcategories, selectedCategory, customStage1Sections, customFieldValues]);
+  }, [formData, filteredSubcategories, selectedCategory]);
 
   const handleNext = () => {
     if (!isFormValid) return;
     const dataToSave = {
       ...formData,
       pricePerSqft: pricePerSqft || "",
-      customFields: customFieldValues,
-      formTemplateId: formTemplate?.id || "",
     };
     localStorage.setItem("createListingStep1", JSON.stringify(dataToSave));
-    if (formTemplate?.id) {
-      localStorage.setItem("createListingFormTemplateId", formTemplate.id);
-    }
     navigate("/seller/listings/create/step2");
   };
 
@@ -326,60 +205,6 @@ export default function CreateListingStep1Page() {
         </div>
       </main>
     );
-  }
-
-  if (templateLoading) {
-    return (
-      <main className="flex-1">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <Skeleton className="h-8 w-64 mb-4" />
-            <Skeleton className="h-4 w-48" />
-          </div>
-          <Card className="p-8">
-            <Skeleton className="h-8 w-72 mb-6" />
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-24 w-full" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            </div>
-          </Card>
-        </div>
-      </main>
-    );
-  }
-
-  if (templateError && !formTemplate) {
-    const is404 = templateError instanceof Error && templateError.message?.includes("404");
-    if (is404) {
-      return (
-        <main className="flex-1">
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <Card className="p-8 text-center">
-              <AlertCircle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-              <h1 className="font-serif font-bold text-2xl mb-4" data-testid="text-no-template">No Form Template Configured</h1>
-              <p className="text-muted-foreground mb-6" data-testid="text-no-template-message">
-                No form template is configured. Please contact admin.
-              </p>
-              <Link href="/seller/dashboard">
-                <Button variant="outline" data-testid="button-back-dashboard">Back to Dashboard</Button>
-              </Link>
-            </Card>
-          </div>
-        </main>
-      );
-    }
   }
 
   return (
@@ -430,42 +255,12 @@ export default function CreateListingStep1Page() {
           </div>
 
           <Card className="p-8">
-            {formTemplate?.name && (
-              <Badge variant="secondary" className="mb-3" data-testid="badge-form-name">
-                Form: {formTemplate.name}
-              </Badge>
-            )}
             <h1 className="font-serif font-bold text-2xl mb-6">
               Property Basic Information
             </h1>
 
             <form className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="transactionType">Transaction Type *</Label>
-                  <Select
-                    value={formData.transactionType}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, transactionType: value })
-                    }
-                  >
-                    <SelectTrigger id="transactionType" data-testid="select-transaction-type">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allowedTransactionTypes.includes("sale") && (
-                        <SelectItem value="sale">For Sale</SelectItem>
-                      )}
-                      {allowedTransactionTypes.includes("lease") && (
-                        <SelectItem value="lease">For Lease</SelectItem>
-                      )}
-                      {allowedTransactionTypes.includes("rent") && (
-                        <SelectItem value="rent">For Rent</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="category">Property Category *</Label>
                   {categoriesLoading ? (
@@ -476,7 +271,6 @@ export default function CreateListingStep1Page() {
                     <Select
                       value={formData.categoryId}
                       onValueChange={handleCategoryChange}
-                      disabled={!!storedCategoryId}
                     >
                       <SelectTrigger id="category" data-testid="select-category">
                         <SelectValue placeholder="Select category" />
@@ -491,10 +285,8 @@ export default function CreateListingStep1Page() {
                     </Select>
                   )}
                 </div>
-              </div>
 
-              {formData.categoryId && filteredSubcategories.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {formData.categoryId && filteredSubcategories.length > 0 && (
                   <div className="space-y-2">
                     <Label htmlFor="subcategory">Subcategory *</Label>
                     <Select
@@ -515,31 +307,59 @@ export default function CreateListingStep1Page() {
                       </SelectContent>
                     </Select>
                   </div>
+                )}
+              </div>
 
-                  {selectedCategory?.hasProjectStage && (
-                    <div className="space-y-2">
-                      <Label htmlFor="projectStage">Project Stage *</Label>
-                      <Select
-                        value={formData.projectStage}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, projectStage: value })
-                        }
-                      >
-                        <SelectTrigger id="projectStage" data-testid="select-project-stage">
-                          <SelectValue placeholder="Select stage" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {projectStages.map((stage) => (
-                            <SelectItem key={stage.value} value={stage.value}>
-                              {stage.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="transactionType">Transaction Type *</Label>
+                  <Select
+                    value={formData.transactionType}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, transactionType: value })
+                    }
+                    disabled={!formData.categoryId}
+                  >
+                    <SelectTrigger id="transactionType" data-testid="select-transaction-type">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allowedTransactionTypes.includes("sale") && (
+                        <SelectItem value="sale">For Sale</SelectItem>
+                      )}
+                      {allowedTransactionTypes.includes("lease") && (
+                        <SelectItem value="lease">For Lease</SelectItem>
+                      )}
+                      {allowedTransactionTypes.includes("rent") && (
+                        <SelectItem value="rent">For Rent</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
+
+                {selectedCategory?.hasProjectStage && (
+                  <div className="space-y-2">
+                    <Label htmlFor="projectStage">Project Stage *</Label>
+                    <Select
+                      value={formData.projectStage}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, projectStage: value })
+                      }
+                    >
+                      <SelectTrigger id="projectStage" data-testid="select-project-stage">
+                        <SelectValue placeholder="Select stage" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projectStages.map((stage) => (
+                          <SelectItem key={stage.value} value={stage.value}>
+                            {stage.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
 
               {canHaveProjects && formData.transactionType === "sale" && liveProjects.length > 0 && (
                 <div className="space-y-2">
@@ -775,17 +595,6 @@ export default function CreateListingStep1Page() {
                   </div>
                 </div>
               </div>
-
-              {customStage1Sections.length > 0 && (
-                <div className="pt-2" data-testid="dynamic-custom-fields-section">
-                  <DynamicFormRenderer
-                    sections={customStage1Sections}
-                    values={customFieldValues}
-                    onChange={handleCustomFieldChange}
-                    showSectionHeaders={true}
-                  />
-                </div>
-              )}
 
               <div className="flex justify-between pt-6">
                 <Link href="/seller/dashboard">

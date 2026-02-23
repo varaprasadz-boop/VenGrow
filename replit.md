@@ -25,63 +25,115 @@ The backend uses Node.js and Express.js with TypeScript, featuring a RESTful API
 -   **Location & Standardization:** Standardized dropdowns for Indian states, cities, and PIN codes.
 -   **Routing:** Client-side routing with Wouter for public, authenticated, and administrative sections, including sticky headers, mobile menus, and breadcrumbs.
 
-## Dynamic Form Builder System (IMPLEMENTED)
+## Add Property Form Restructuring (IMPLEMENTED)
 
 ### Overview
-The Add Property form is now powered by a dynamic Form Builder system. Super Admin designs configurable forms per seller type (individual/broker/builder) using a drag-and-drop interface. Sellers see forms tailored to their seller type. The system replaces all hardcoded category-specific forms.
+The Add Property form has 4 stages: Basic Info, Details, Photos, Review (save to Draft). The Details tab (Step 2) is category-specific, showing different fields depending on the category selected in Basic Info (Step 1). All categories share common fields in Basic Info; category-unique fields appear in Details. propertyType enum values used: apartment, villa, plot, commercial, farmhouse, penthouse, independent_house, pg_co_living, new_projects, joint_venture.
 
-### Architecture
-- **Database Tables:** `form_templates` (with `categoryId` column), `form_sections`, `form_fields`, `property_custom_data`
-- **Admin UI:** Form Builder listing page + editor page with 4 stage tabs (Basic Info, Details, Photos, Review). Each template tied to a seller type AND a property category.
-- **Seller UI:** Form selection page (`/seller/select-form`) shows available forms as category cards. Dynamic form renderer fetches specific template via `GET /api/seller/form-template/:id`. Category is frozen/readonly in Step 1.
-- **Buyer UI:** Property detail page renders custom data using displayStyle (grid/checklist/default); FilterSidebar auto-generates filters from sections marked `showInFilters`
-- **Multi-form per seller type:** Each seller type can have multiple published templates (one per category). Publishing prevents duplicates for same seller type + category combo.
+### Basic Info (Step 1) - Common Fields for ALL Categories
+- Title, Description, Transaction Type
+- Category & Subcategory, Project Stage
+- Project/Society Name
+- Location (State, City, Locality, Area in Locality, Nearby Landmark, PIN code, Google Places Search)
+- Price, Area, Area Unit, Per sqft Price (auto-calculated)
 
-### Key Components
-- `client/src/components/DynamicFormRenderer.tsx` — renders form fields dynamically based on field type configuration
-- `client/src/components/DynamicIcon.tsx` — renders lucide-react icons by name string (used across admin, seller, buyer views)
-- `client/src/components/IconPicker.tsx` — searchable icon picker for admin form builder (~80 curated real-estate icons)
-- `client/src/pages/admin/FormBuilderPage.tsx` — admin listing page for form templates
-- `client/src/pages/admin/FormBuilderEditorPage.tsx` — admin editor with all 4 stage tabs
-- `client/src/pages/seller/SelectFormPage.tsx` — form selection page showing category cards for sellers
+### Details (Step 2) - Category-Specific
+Renders different form fields based on `categoryId` from Step 1. Each category has its own field config.
 
-### Form Template Structure
-- **Stage 1 (Basic Info):** Default fields (title, description, transaction type, category, location, price, area) + custom admin-added fields
-- **Stage 2 (Details):** Admin-defined sections with fields (Property Details, Amenities, etc.) — each section can be marked `showInFilters` for buyer-side filter auto-generation
-- **Stage 3 (Photos):** Default media upload + admin-defined additional upload sections
-- **Stage 4 (Review):** Featured listing toggle (based on package credits), dynamic review of all fields, configurable terms text, save-as-draft option
+### Apartment Category Analysis [PENDING IMPLEMENTATION]
 
-### Field Display Styles
-- `grid` — multi-column grid with icons (like Property Details box)
-- `checklist` — green checkmark icons (like Amenities)
-- `default` — label:value text pairs
+**Already in DB schema AND form:** bedrooms (BHK), bathrooms, balconies, facing, floor, totalFloors, furnishing, flooring, ageOfProperty, possessionStatus, amenities (12 items only)
 
-### API Endpoints
-- `GET /api/admin/form-templates` — list all templates
-- `POST/GET/PUT/DELETE /api/admin/form-templates/:id` — CRUD
-- `POST /api/admin/form-templates/:id/clone` — clone template
-- `POST /api/admin/form-templates/:id/publish` — publish (prevents duplicate seller type + category)
-- `GET /api/seller/form-templates` — all published templates for logged-in seller's type (with category info)
-- `GET /api/seller/form-template/:id` — specific published template with sections/fields
-- `GET /api/seller/form-template` — (legacy) first published template for logged-in seller's type
-- `GET /api/filter-fields` — filterable sections/fields for buyer FilterSidebar
-- Form section and field CRUD routes under `/api/admin/form-sections/` and `/api/admin/form-fields/`
+**In DB schema but NOT in form (quick wins - no migration):** superBuiltUpArea, totalFlats, flatsOnFloor, isResale, numberOfLifts, carParkingCount, maintenanceCharges, viewType (overlooking)
 
-### Data Storage
-- Standard fields (title, price, bedrooms, etc.) stay in `properties` table columns
-- Custom/dynamic field values stored in `property_custom_data.formData` (jsonb)
-- `property_custom_data` links to both `properties` and `form_templates`
+**New DB columns needed:** projectSocietyName (text), overlookingType (text - Garden/Pool/Road/Not Available)
 
-### Seed & Migration
-- `server/seed-form-templates.ts` — seeds 3 default published templates (individual, broker, builder) with Property Details + Amenities sections
-- `server/migrate-form-data.ts` — migrates existing property column data into `property_custom_data` records
-- Both run automatically on app startup
+**Amenities expansion:** Current list has 12 items; apartment needs 55+ amenities (Air Conditioned, Banquet Hall, Bar/Lounge, Cafeteria/Food Court, Club House, Concierge Services, Conference Room, DTH Television, Doorman, Fingerprint Access, Fireplace, Full Glass Wall, Golf Course, Gymnasium, Health club with Steam/Jacuzzi, Helipad, Hilltop, House help accommodation, Intercom Facility, Internet/Wi-Fi, Island Kitchen, Jogging Track, Laundry Service, Lift, Maintenance Staff, Outdoor Tennis Courts, Park, Piped Gas, Power Back Up, Private Garage, Private Terrace/Garden, Private Jacuzzi, Private Pool, RO Water System, Rain Water Harvesting, Reserved Parking, Sea Facing, Security, Service/Goods Lift, Sky Villa, Skydeck, Skyline View, Smart Home, Swimming Pool, Theme Based Architecture, Vaastu Compliant, Visitor Parking, Waste Disposal, Water Front, Water Storage, Wine Cellar, Wrap Around Balcony)
+
+**Per sqft Price:** `pricePerSqft` exists in schema - needs auto-calculation from price and area
+
+**Apartment Details fields:** BHK, Bathrooms, Balconies, Super Built Up Area, Carpet Area, Facing, Floor Number, Flooring Type, No of Car Parking, Maintenance Charges, Overlooking, Furnishing Status, Total Flats, Total Floors, Flats on Floor, New/Resale, Possession Status (conditional: under construction → possession date; ready to move → age of building), No of Lifts (count dropdown), Amenities (55+ list)
+
+### Villa Category Analysis [PENDING IMPLEMENTATION]
+
+**Shares with Apartment:** BHK, bathrooms, balconies, superBuiltUpArea, carpetArea, facing, furnishing, flooring, carParkingCount, maintenanceCharges, overlooking, amenities (same 55+ list), possessionStatus, isResale, pricePerSqft
+
+**Already in DB schema, not in form (quick wins):** totalVillas, isCornerProperty, roadWidthFeet, liftsAvailable (boolean)
+
+**New DB columns needed:** landArea (integer - separate from built-up area), roomSizes (jsonb - dynamic based on BHK count, e.g. [{room: "Bedroom 1", size: "12x14"}])
+
+**Key differences from Apartment:** Uses totalVillas instead of totalFlats/flatsOnFloor; lifts is Yes/No boolean instead of count; adds isCornerProperty, roadWidthFeet, landArea, roomSizes; floor number not relevant for standalone villas
+
+**Villa Details fields:** BHK, Bathrooms, Balconies, Land Area, Super Built Up Area, Carpet Area, Room Sizes (dynamic), Facing, Flooring Type, No of Car Parking, Maintenance Charges, Overlooking, Furnishing Status, Total Villas, Total Floors, Is Corner Property, Road Width in Feet, New/Resale, Possession Status (conditional), Lifts Available (Yes/No), Amenities (55+ list)
+
+### Plots Category Analysis [PENDING IMPLEMENTATION]
+
+**Already in DB schema:** plotLength, plotBreadth, isCornerPlot, roadWidthPlotMeters, floorAllowedConstruction, maintenanceCharges, isResale, clubHouseAvailable, facing
+
+**New DB columns needed:** None expected — all plot fields already exist in schema
+
+**Plots Details fields:** Plot Area (in Step 1), Plot Length, Plot Breadth, Is Corner Plot (Yes/No), Facing, Floor Allowed for Construction, Maintenance Charges, Width of Road Facing Plot (in meters), Overlooking, New/Resale, Club House Available (Yes/No). NO amenities, NO BHK/bathrooms, NO furnishing.
+
+### Independent House Category Analysis [PENDING IMPLEMENTATION]
+
+**Shares with Apartment/Villa:** BHK, bathrooms, balconies, superBuiltUpArea, carpetArea, facing, floor, totalFloors, furnishing, flooring, carParkingCount, maintenanceCharges, overlooking, possessionStatus, isResale, roomSizes (dynamic), pricePerSqft
+
+**Key unique aspects:** BHK includes "1 RK" option (not in apartment/villa). Uses "Total Units" label (reuse totalFlats column). NO amenities list, NO lifts.
+
+**New DB columns needed:** None beyond what apartment/villa already require (roomSizes jsonb, overlookingType text). totalFlats can be reused and labeled "Total Units" in the form.
+
+**Independent House Details fields:** BHK (with 1 RK), Bathrooms, Balconies, Super Built Up Area, Carpet Area, Room Sizes (dynamic based on BHK), Facing, Floor Number, Flooring Type, No of Car Parking, Maintenance Charges, Overlooking, Furnished Status, Total Units (reuse totalFlats), Total Floors, New/Resale, Possession Status (conditional: under construction → possession date; ready to move → age of building). NO amenities, NO lifts.
+
+### New Projects Category Analysis [PENDING IMPLEMENTATION]
+
+**Already in DB schema:** newProjectFloorPlans (jsonb - array of {superBuiltUpArea, carpetArea, bhk, bathrooms, balconies, totalPrice}), facing, flooring, carParkingCount, maintenanceCharges, pricePerSqft, totalFlats, totalFloors, flatsOnFloor, possessionStatus, numberOfLifts, amenities
+
+**New DB columns needed:** None — all fields already exist in schema
+
+**Key unique aspect:** Multiple floor plans (up to 4) instead of single unit configuration. Each floor plan has its own Super Built Up Area, Carpet Area, BHK, Bathrooms, Balconies, Total Price stored in newProjectFloorPlans jsonb array.
+
+**New Projects Details fields:** Floor Plans (1-4, each with: Super Built Up Area, Carpet Area, BHK, Bathrooms, Balconies, Total Price), Facings Available, Flooring Type, No of Car Parking, Maintenance Charges, Per sqft Price, Total Flats, Total Floors, Flats on Floor, Possession Status (conditional: under construction → when is possession), No of Lifts (count dropdown), Amenities (55+ list)
+
+### Commercial Category Analysis [PENDING IMPLEMENTATION]
+
+**Already in DB schema:** facing, roadWidthPlotMeters — both already exist
+
+**New DB columns needed:** None
+
+**Key unique aspect:** Simplest category — only 2 fields in Details tab. No residential features (no BHK, bathrooms, amenities, furnishing, parking, lifts, floors). Location, Area, and Price are all in Step 1 (common fields).
+
+**Commercial Details fields:** Facing, Width of Road Facing the Plot (in meters). NO amenities, NO BHK/bathrooms, NO furnishing, NO parking, NO floors.
+
+### PG (Paying Guest) Category Analysis [PENDING IMPLEMENTATION]
+
+**Already in DB schema:** coLivingName, pgGender, pgListedFor, pgRoomType, pgAvailableIn, pgFurnishingDetails, pgAcAvailable, pgWashRoomType, pgFacilities (jsonb), pgRules (jsonb), pgServices (jsonb), pgCctv, pgBiometricEntry, pgSecurityGuard, pgFoodProvided, pgNonVegProvided, pgNoticePeriod
+
+**New DB columns needed:** pgSharingPricing (jsonb - array of {type, rent, deposit} for single/two/three/four sharing)
+
+**Key unique aspect:** Completely different from sale/purchase categories. Sharing-based pricing, facilities instead of amenities, rules, services, safety features. No BHK, no facing, no floors, no area in traditional sense.
+
+**Facility options:** Geyser, Washrooms, Cupboard, TV, AC, Cot, Mattress, Side Table, Air Cooler
+
+**Rules options:** Veg Only, No Smoking, Drinking alcohol not allowed, Entry of opposite gender not allowed, Guardian not allowed
+
+**Services options:** Laundry, Room Cleaning, Warden
+
+**PG Details fields:** Sharing Type (1/2/3/4 with Rent & Deposit per type), Facilities (9 items), Rules (5 items), Safety & Security (CCTV, Biometric Entry, Security Guard — all Yes/No), Services (3 items), Food Provided (Yes/No), Non Veg Provided (Yes/No), Notice Period (1 Week/15 Days/1 Month/2 Month). NO amenities, NO BHK, NO facing, NO floors.
+
+**Other categories (Farmland, etc.):** Awaiting user input before implementation. Will implement all categories together.
+
+### Implementation Approach
+1. Schema changes: Add new columns (projectSocietyName, overlookingType, etc.) via Drizzle migration
+2. Step 1 restructure: Move common fields, add Project/Society Name, auto-calc per sqft price
+3. Step 2 restructure: Read categoryId from Step 1, render category-specific fields using config mapping
+4. Expand amenities list to 55+ items with logical grouping
+5. Steps 3 (Photos) and 4 (Review) remain as-is
+6. Joint Venture form already implemented in Step 2 - keep as-is
 
 ### Technical Notes
-- jsPDF Helvetica font doesn't support the rupee symbol - use "Rs." text instead in invoicePDF.ts
+- jsPDF Helvetica font doesn't support ₹ symbol - use "Rs." text instead in invoicePDF.ts
 - When importing User icon from lucide-react alongside User type from @shared/schema, alias as UserIcon
 - TanStack Query refetch() doesn't throw errors; check QueryObserverResult properties instead
-- DynamicIcon is a named export: `import { DynamicIcon } from "@/components/DynamicIcon"`
 
 ## External Dependencies
 

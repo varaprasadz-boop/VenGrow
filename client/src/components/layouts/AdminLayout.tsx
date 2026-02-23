@@ -3,8 +3,7 @@ import {
   LayoutDashboard, Users, Building2, Package, CreditCard, MessageSquare, 
   Bell, Settings, Shield, FileText, BarChart3, HelpCircle, LogOut,
   ChevronDown, UserCog, ListChecks, Globe, Mail, Star,
-  Database, Activity, Megaphone, Image, Quote, BadgeCheck, Heart, UserCircle,
-  FormInput
+  Database, Activity, Megaphone, Image, Quote, BadgeCheck, Heart, UserCircle
 } from "lucide-react";
 import { RefreshButton } from "@/components/RefreshButton";
 import { Button } from "@/components/ui/button";
@@ -46,10 +45,6 @@ const userManagementItems = [
   { title: "Sellers", href: "/admin/sellers", icon: Users },
   { title: "Seller Approvals", href: "/admin/seller-approvals", icon: UserCog },
   { title: "Verification Requests", href: "/admin/verifications", icon: Shield },
-];
-
-const formManagementItems = [
-  { title: "Property Form Builder", href: "/admin/form-builder", icon: FormInput },
 ];
 
 const propertyManagementItems = [
@@ -186,7 +181,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </SidebarGroup>
 
               <NavSection title="User Management" items={userManagementItems} />
-              <NavSection title="Form Management" items={formManagementItems} />
               <NavSection title="Properties" items={propertyManagementItems} />
               <NavSection title="Packages & Payments" items={packageItems} />
               <NavSection title="Communication" items={communicationItems} />

@@ -268,7 +268,7 @@ export default function ManageListingsPage() {
                 View and manage all your property listings
               </p>
             </div>
-            <Link href="/seller/select-form">
+            <Link href="/seller/listings/create/step1">
               <Button size="lg" data-testid="button-create-listing-manage">
                 <Plus className="h-5 w-5 mr-2" />
                 Create New Listing
@@ -514,7 +514,7 @@ export default function ManageListingsPage() {
                         {selectedTab === "all" ? "Create your first listing to get started" : ""}
                       </p>
                       {selectedTab === "all" && (
-                        <Link href="/seller/select-form">
+                        <Link href="/seller/listings/create/step1">
                           <Button data-testid="button-create-first">Create New Listing</Button>
                         </Link>
                       )}

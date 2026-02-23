@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ToastAction } from "@/components/ui/toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { validateEmail, validatePhone, cleanPhone } from "@/utils/validation";
@@ -23,14 +22,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Property } from "@shared/schema";
 import PropertyMap from "@/components/PropertyMap";
 import { getPropertyUrl, isUUID } from "@/lib/property-utils";
-import { DynamicIcon } from "@/components/DynamicIcon";
 import {
   MapPin,
   Bed,
   Bath,
   Maximize,
   CheckCircle2,
-  CircleCheck,
+  CheckCircle,
   Heart,
   Share2,
   Phone,
@@ -45,7 +43,6 @@ import {
   CalendarDays,
   Clock,
   Edit,
-  CheckCircle,
 } from "lucide-react";
 
 function YouTubeEmbed({ url }: { url: string }) {
@@ -405,19 +402,10 @@ export default function PropertyDetailPage() {
 
   const handleFavoriteClick = () => {
     if (!user) {
-      const redirectUrl = property ? getPropertyUrl(property) : `/property/${id}`;
       toast({
         title: "Please log in",
         description: "You need to be logged in to save favorites.",
         variant: "destructive",
-        action: (
-          <ToastAction
-            onClick={() => setLocation(`/login?redirect=${encodeURIComponent(redirectUrl)}`)}
-            altText="Go to login"
-          >
-            Login
-          </ToastAction>
-        ),
       });
       return;
     }
@@ -763,116 +751,6 @@ export default function PropertyDetailPage() {
                 </Card>
               )}
 
-              {/* Dynamic Custom Data Sections */}
-              {(property as any).customFormData && (property as any).formSections && (() => {
-                const customData = (property as any).customFormData as Record<string, unknown>;
-                const sections = ((property as any).formSections as Array<{
-                  id: string;
-                  name: string;
-                  icon: string | null;
-                  stage: number;
-                  isDefault: boolean;
-                  fields: Array<{
-                    id: string;
-                    label: string;
-                    fieldKey: string;
-                    fieldType: string;
-                    icon: string | null;
-                    displayStyle: string | null;
-                    options: string[] | null;
-                  }>;
-                }>).filter(s => s.stage === 2 && !s.isDefault);
-
-                return sections.map(section => {
-                  const sectionFields = section.fields?.filter(f => {
-                    const val = customData[f.fieldKey];
-                    return val !== undefined && val !== null && val !== '';
-                  }) || [];
-                  if (sectionFields.length === 0) return null;
-
-                  const displayStyle = sectionFields[0]?.displayStyle || 'default';
-
-                  if (displayStyle === 'checklist') {
-                    const checklistValues: string[] = [];
-                    sectionFields.forEach(f => {
-                      const val = customData[f.fieldKey];
-                      if (Array.isArray(val)) {
-                        checklistValues.push(...val);
-                      } else if (typeof val === 'string') {
-                        checklistValues.push(val);
-                      }
-                    });
-                    if (checklistValues.length === 0) return null;
-                    return (
-                      <Card key={section.id} className="p-6" data-testid={`dynamic-section-${section.id}`}>
-                        <h2 className="font-semibold text-xl mb-4 flex items-center gap-2">
-                          {section.icon && <DynamicIcon name={section.icon} className="h-5 w-5" />}
-                          {section.name}
-                        </h2>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          {checklistValues.map((item, idx) => (
-                            <div key={idx} className="flex items-center gap-2">
-                              <CircleCheck className="h-4 w-4 text-green-600" />
-                              <span>{item}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </Card>
-                    );
-                  }
-
-                  if (displayStyle === 'grid') {
-                    return (
-                      <Card key={section.id} className="p-6" data-testid={`dynamic-section-${section.id}`}>
-                        <h2 className="font-semibold text-xl mb-4 flex items-center gap-2">
-                          {section.icon && <DynamicIcon name={section.icon} className="h-5 w-5" />}
-                          {section.name}
-                        </h2>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                          {sectionFields.map(field => {
-                            const val = customData[field.fieldKey];
-                            const displayVal = Array.isArray(val) ? val.join(', ') : String(val);
-                            return (
-                              <div key={field.id} className="space-y-1">
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                  {field.icon && <DynamicIcon name={field.icon} className="h-4 w-4" />}
-                                  <span className="text-sm">{field.label}</span>
-                                </div>
-                                <p className="font-medium">{displayVal}</p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </Card>
-                    );
-                  }
-
-                  return (
-                    <Card key={section.id} className="p-6" data-testid={`dynamic-section-${section.id}`}>
-                      <h2 className="font-semibold text-xl mb-4 flex items-center gap-2">
-                        {section.icon && <DynamicIcon name={section.icon} className="h-5 w-5" />}
-                        {section.name}
-                      </h2>
-                      <div className="space-y-3">
-                        {sectionFields.map(field => {
-                          const val = customData[field.fieldKey];
-                          const displayVal = Array.isArray(val) ? val.join(', ') : String(val);
-                          return (
-                            <div key={field.id} className="flex items-center justify-between">
-                              <span className="text-muted-foreground flex items-center gap-2">
-                                {field.icon && <DynamicIcon name={field.icon} className="h-4 w-4" />}
-                                {field.label}
-                              </span>
-                              <span className="font-medium">{displayVal}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </Card>
-                  );
-                });
-              })()}
-
               {/* Location */}
               <Card className="p-6">
                 <h2 className="font-semibold text-xl mb-4">Location</h2>
@@ -923,7 +801,7 @@ export default function PropertyDetailPage() {
                   </div>
                   <div className="space-y-2">
                     {(() => {
-                      const sellerPhone = (property as any).seller?.phone || (property as any).sellerUser?.phone || "";
+                      const sellerPhone = property.contactPhone || (property as any).seller?.phone || (property as any).sellerUser?.phone || "";
                       const validPhone = sellerPhone && validatePhone(cleanPhone(sellerPhone));
                       const whatsappNumber = validPhone ? "91" + cleanPhone(sellerPhone) : "";
                       return (
@@ -979,7 +857,7 @@ export default function PropertyDetailPage() {
                   onOpenChange={setSellerDialogOpen}
                   seller={(property as any).seller}
                   sellerContactVisibility={(property as any).sellerContactVisibility}
-             
+                  contactPhone={property.contactPhone}
                   sellerEmail={(property as any).sellerUser?.email}
                   validatePhone={validatePhone}
                   cleanPhone={cleanPhone}

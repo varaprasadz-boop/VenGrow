@@ -1,7 +1,7 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { Heart, Loader2, MapPin, Bed, Bath, Maximize, CheckCircle2, Home, Scale } from "lucide-react";
+import { Heart, MapPin, Bed, Bath, Maximize, CheckCircle2, Home, Scale } from "lucide-react";
 import { useCompareOptional } from "@/contexts/CompareContext";
-import { useFavorite } from "@/hooks/useFavorite";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,13 +71,13 @@ export default function PropertyCard({
   onClick,
   variant = "grid",
 }: PropertyCardProps) {
+  const [isFavorited, setIsFavorited] = useState(false);
   const [, setLocation] = useLocation();
   const compareContext = useCompareOptional();
-  const { isFavorited, toggle, isPending } = useFavorite(id);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    toggle();
+    setIsFavorited(!isFavorited);
     onFavoriteClick?.(id);
   };
 
@@ -204,16 +204,11 @@ export default function PropertyCard({
               size="icon"
               className="h-9 w-9 bg-white/95 hover:bg-white shadow-md rounded-full border border-gray-200/50"
               onClick={handleFavoriteClick}
-              disabled={isPending}
               data-testid={`button-favorite-${id}`}
             >
-              {isPending ? (
-                <Loader2 className="h-5 w-5 animate-spin text-gray-700" />
-              ) : (
-                <Heart
-                  className={`h-5 w-5 transition-colors ${isFavorited ? 'fill-red-500 text-red-500' : 'text-gray-700 hover:text-red-500'}`}
-                />
-              )}
+              <Heart
+                className={`h-5 w-5 transition-colors ${isFavorited ? 'fill-red-500 text-red-500' : 'text-gray-700 hover:text-red-500'}`}
+              />
             </Button>
           </div>
         </div>
