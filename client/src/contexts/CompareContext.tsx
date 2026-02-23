@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import { useToast } from "@/hooks/use-toast";
 
 const STORAGE_KEY = "vengrow_compare_property_ids";
-const MAX_COMPARE = 4;
+const MAX_COMPARE = 3;
 
 function loadIds(): string[] {
   try {
@@ -43,7 +43,7 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
         if (prev.includes(propertyId)) return prev;
         if (prev.length >= MAX_COMPARE) {
           toast({
-            title: `You can compare up to ${MAX_COMPARE} properties`,
+            title: `You can compare up to 3 properties`,
             variant: "destructive",
           });
           return prev;

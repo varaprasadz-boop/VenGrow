@@ -17,6 +17,7 @@ import { validateEmail, validatePhone, cleanPhone } from "@/utils/validation";
 import { PhoneInput } from "@/components/ui/location-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { SellerDetailDialog } from "@/components/SellerDetailDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Property } from "@shared/schema";
 import PropertyMap from "@/components/PropertyMap";
@@ -43,6 +44,7 @@ import {
   CalendarDays,
   Clock,
   Edit,
+  CheckCircle,
 } from "lucide-react";
 
 function YouTubeEmbed({ url }: { url: string }) {
@@ -101,6 +103,7 @@ export default function PropertyDetailPage() {
   const [visitPhone, setVisitPhone] = useState("");
   const [visitEmail, setVisitEmail] = useState("");
   const [visitNotes, setVisitNotes] = useState("");
+  const [sellerDialogOpen, setSellerDialogOpen] = useState(false);
   
   // Fetch property details - supports both slug and ID (404 when not approved for non-admin)
   const { data: property, isLoading: propertyLoading, isError: propertyError } = useQuery<Property>({
@@ -136,6 +139,8 @@ export default function PropertyDetailPage() {
   // Add/remove favorite mutation
   const favoriteMutation = useMutation({
     mutationFn: async () => {
+      if (!id) throw new Error("Property not found");
+      if (!user) throw new Error("Please log in to save favorites");
       if (isFavorited) {
         await apiRequest("DELETE", "/api/me/favorites", { propertyId: id });
       } else {
@@ -149,9 +154,10 @@ export default function PropertyDetailPage() {
         title: isFavorited ? "Removed from favorites" : "Added to favorites",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Failed to update favorites",
+        description: error?.message || "Please try again.",
         variant: "destructive",
       });
     },
@@ -877,24 +883,37 @@ export default function PropertyDetailPage() {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Seller Info */}
-              <Card className="p-6 sticky top-24">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+              {/* Seller Card */}
+              {(property as any).seller && (
+                <Card className="p-6 sticky top-24">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="p-3 rounded-lg bg-primary/10">
                       <Building2 className="h-6 w-6 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">Property Seller</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <button
+                          type="button"
+                          onClick={() => setSellerDialogOpen(true)}
+                          className="font-semibold text-primary hover:underline underline-offset-2 text-left"
+                          data-testid="link-seller-details"
+                        >
+                          {(property as any).seller.businessName ||
+                            `${(property as any).seller.firstName || ""} ${(property as any).seller.lastName || ""}`.trim() ||
+                            "Seller"}
+                        </button>
+                        {(property as any).seller.isVerified && (
+                          <CheckCircle className="h-4 w-4 text-blue-600 shrink-0" />
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground">Contact for details</p>
+                      <Badge variant="outline" className="text-xs">
+                        {(property as any).seller.sellerType || "Individual"}
+                      </Badge>
                     </div>
                   </div>
-
                   <div className="space-y-2">
                     {(() => {
-                      const sellerPhone = property.contactPhone || (property as any).seller?.phone || (property as any).sellerUser?.phone || "";
+                      const sellerPhone = (property as any).seller?.phone || (property as any).sellerUser?.phone || "";
                       const validPhone = sellerPhone && validatePhone(cleanPhone(sellerPhone));
                       const whatsappNumber = validPhone ? "91" + cleanPhone(sellerPhone) : "";
                       return (
@@ -909,9 +928,9 @@ export default function PropertyDetailPage() {
                               Chat on WhatsApp
                             </Button>
                           )}
-                          <Button 
-                            variant="outline" 
-                            className="w-full" 
+                          <Button
+                            variant="outline"
+                            className="w-full"
                             data-testid="button-chat-seller"
                             onClick={() => {
                               if (!user) {
@@ -941,8 +960,26 @@ export default function PropertyDetailPage() {
                       );
                     })()}
                   </div>
-                </div>
-              </Card>
+                </Card>
+              )}
+
+              {(property as any).seller && (
+                <SellerDetailDialog
+                  open={sellerDialogOpen}
+                  onOpenChange={setSellerDialogOpen}
+                  seller={(property as any).seller}
+                  sellerContactVisibility={(property as any).sellerContactVisibility}
+             
+                  sellerEmail={(property as any).sellerUser?.email}
+                  validatePhone={validatePhone}
+                  cleanPhone={cleanPhone}
+                  onChat={() => {
+                    const sellerId = (property as any).seller?.id ?? (property as any).sellerId;
+                    if (sellerId) setLocation(`/buyer/chat?sellerId=${encodeURIComponent(sellerId)}&propertyId=${encodeURIComponent(property.id)}`);
+                  }}
+                  onScheduleVisit={openScheduleModal}
+                />
+              )}
 
               {/* Inquiry Form */}
               <Card className="p-6">
@@ -1012,24 +1049,26 @@ export default function PropertyDetailPage() {
                 </form>
               </Card>
               
-              {/* Schedule Visit Card */}
-              <Card className="p-6">
-                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                  <CalendarDays className="h-5 w-5" />
-                  Schedule a Visit
-                </h3>
-                <p className="text-muted-foreground text-sm mb-4">
-                  Book a visit to see this property in person
-                </p>
-                <Button 
-                  className="w-full" 
-                  onClick={openScheduleModal}
-                  data-testid="button-schedule-visit"
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Schedule Property Visit
-                </Button>
-              </Card>
+              {/* Schedule Visit Card - only when seller allows */}
+              {(property as any).sellerContactVisibility?.allowScheduleVisit !== false && (
+                <Card className="p-6">
+                  <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                    <CalendarDays className="h-5 w-5" />
+                    Schedule a Visit
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Book a visit to see this property in person
+                  </p>
+                  <Button 
+                    className="w-full" 
+                    onClick={openScheduleModal}
+                    data-testid="button-schedule-visit"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Schedule Property Visit
+                  </Button>
+                </Card>
+              )}
             </div>
           </div>
         </div>

@@ -99,8 +99,12 @@ export default function ManageListingsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/me/properties"] });
       toast({ title: "Listing deleted successfully" });
     },
-    onError: () => {
-      toast({ title: "Failed to delete listing", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete listing",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
     },
   });
 

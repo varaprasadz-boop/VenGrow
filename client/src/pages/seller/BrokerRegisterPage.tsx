@@ -39,6 +39,7 @@ export default function BrokerRegisterPage() {
     state: "",
     pincode: "",
     panNumber: "",
+    aadharNumber: "",
     agreeToTerms: false,
   });
 
@@ -88,6 +89,12 @@ export default function BrokerRegisterPage() {
 
     if (formData.panNumber && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.panNumber.toUpperCase())) {
       newErrors.panNumber = "Invalid PAN format (e.g., ABCDE1234F)";
+    }
+
+    if (!formData.aadharNumber) {
+      newErrors.aadharNumber = "Aadhar number is required";
+    } else if (!/^\d{12}$/.test(formData.aadharNumber.replace(/\D/g, ""))) {
+      newErrors.aadharNumber = "Aadhar number must be 12 digits";
     }
 
     if (!formData.state) {
@@ -171,7 +178,8 @@ export default function BrokerRegisterPage() {
           firmName: formData.firmName.trim(),
           companyName: formData.firmName.trim(),
           reraNumber: formData.reraNumber.trim(),
-          panNumber: formData.panNumber?.toUpperCase(),
+          panNumber: formData.panNumber?.trim() ? formData.panNumber.toUpperCase() : undefined,
+          aadharNumber: formData.aadharNumber.replace(/\D/g, ""),
           address: formData.address.trim(),
           city: formData.city,
           state: formData.state,
@@ -201,7 +209,8 @@ export default function BrokerRegisterPage() {
         phone: formData.phone.replace(/\D/g, ""),
         companyName: formData.firmName.trim(),
         reraNumber: formData.reraNumber.trim(),
-        panNumber: formData.panNumber.toUpperCase(),
+        panNumber: formData.panNumber?.trim() ? formData.panNumber.toUpperCase() : undefined,
+        aadharNumber: formData.aadharNumber.replace(/\D/g, ""),
         address: formData.address.trim(),
         city: formData.city,
         state: formData.state,
@@ -237,9 +246,8 @@ export default function BrokerRegisterPage() {
       <div className="w-full max-w-3xl">
         {/* Logo & Back */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <Building2 className="h-8 w-8 text-primary" />
-            <span className="font-serif font-bold text-2xl">VenGrow</span>
+          <Link href="/" className="inline-flex items-center mb-4">
+            <img src="/VenGrow.png" alt="VenGrow" className="h-10 md:h-12 w-auto max-w-[180px] object-contain" />
           </Link>
           <Link href="/seller/type" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
             <ArrowLeft className="h-4 w-4" />
@@ -423,6 +431,26 @@ export default function BrokerRegisterPage() {
                   />
                   {errors.panNumber && (
                     <p className="text-sm text-destructive">{errors.panNumber}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="aadharNumber">Aadhar Number *</Label>
+                  <Input
+                    id="aadharNumber"
+                    placeholder="1234 5678 9012"
+                    value={formData.aadharNumber}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "").slice(0, 12);
+                      setFormData({ ...formData, aadharNumber: value });
+                    }}
+                    data-testid="input-aadhar"
+                    required
+                    maxLength={12}
+                    className={errors.aadharNumber ? "border-destructive" : ""}
+                  />
+                  {errors.aadharNumber && (
+                    <p className="text-sm text-destructive">{errors.aadharNumber}</p>
                   )}
                 </div>
               </div>

@@ -38,7 +38,7 @@ const mainNavItems = [
 const savedItems = [
   { title: "Favorites", href: "/buyer/favorites", icon: Heart },
   { title: "Saved Searches", href: "/buyer/saved-searches", icon: Filter },
-  { title: "Compare Properties", href: "/buyer/compare", icon: Scale },
+  { title: "Compare Properties", href: "/compare", icon: Scale },
   { title: "Recently Viewed", href: "/buyer/recently-viewed", icon: Eye },
   { title: "Search History", href: "/buyer/search-history", icon: History },
 ];
@@ -216,8 +216,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
         </Sidebar>
 
         <div className="flex flex-col flex-1 overflow-hidden">
-          {location !== "/buyer/dashboard" && location !== "/dashboard" && (
-            <header className="flex items-center justify-between h-14 px-4 border-b bg-background shrink-0">
+          <header className="flex items-center justify-between h-14 px-4 border-b bg-background shrink-0">
               <div className="flex items-center gap-2">
                 <SidebarTrigger data-testid="button-sidebar-toggle" />
                 <DashboardSwitcher />
@@ -241,7 +240,6 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
                 </Button>
               </div>
             </header>
-          )}
           <main className="flex-1 overflow-auto">
             {children}
           </main>

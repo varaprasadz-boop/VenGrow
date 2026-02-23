@@ -58,7 +58,7 @@ export default function ComparePropertiesPage() {
                 Compare Properties
               </h1>
               <p className="text-muted-foreground">
-                Add properties from listings or property details to compare them side by side (up to 4).
+                Add properties from listings or property details to compare them side by side (up to 3).
               </p>
             </div>
             <Card className="p-12 text-center text-muted-foreground">
@@ -86,7 +86,7 @@ export default function ComparePropertiesPage() {
                 Compare Properties
               </h1>
               <p className="text-muted-foreground">
-                Compare up to 4 properties side by side
+                Compare up to 3 properties side by side
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={clearCompare}>

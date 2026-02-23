@@ -310,9 +310,8 @@ export default function CorporateRegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 py-8">
       <div className="w-full max-w-3xl">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <Building2 className="h-8 w-8 text-primary" />
-            <span className="font-serif font-bold text-2xl">VenGrow</span>
+          <Link href="/" className="inline-flex items-center mb-4">
+            <img src="/VenGrow.png" alt="VenGrow" className="h-10 md:h-12 w-auto max-w-[180px] object-contain" />
           </Link>
           <Link href="/seller/type" className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
             <ArrowLeft className="h-4 w-4" />

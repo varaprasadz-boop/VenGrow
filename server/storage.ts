@@ -1044,7 +1044,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProperty(id: string): Promise<boolean> {
-    const result = await db.delete(properties).where(eq(properties.id, id));
+    // Delete child rows that reference this property to avoid FK violations
+    await db.delete(propertyImages).where(eq(propertyImages.propertyId, id));
+    await db.delete(propertyDocuments).where(eq(propertyDocuments.propertyId, id));
+    await db.delete(inquiries).where(eq(inquiries.propertyId, id));
+    await db.delete(favorites).where(eq(favorites.propertyId, id));
+    await db.delete(propertyViews).where(eq(propertyViews.propertyId, id));
+    await db.delete(appointments).where(eq(appointments.propertyId, id));
+    await db.delete(propertyAlerts).where(eq(propertyAlerts.propertyId, id));
+    await db.delete(propertyApprovalRequests).where(eq(propertyApprovalRequests.propertyId, id));
+    // reviews.propertyId is optional; unlink reviews from this property
+    await db.update(reviews).set({ propertyId: null }).where(eq(reviews.propertyId, id));
+    await db.delete(properties).where(eq(properties.id, id));
     return true;
   }
 

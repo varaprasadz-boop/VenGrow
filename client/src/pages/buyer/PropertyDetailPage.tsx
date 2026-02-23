@@ -33,6 +33,7 @@ import { format } from "date-fns";
 import type { Property } from "@shared/schema";
 import { Link } from "wouter";
 import { validatePhone, cleanPhone } from "@/utils/validation";
+import { SellerDetailDialog } from "@/components/SellerDetailDialog";
 
 export default function PropertyDetailPage() {
   const params = useParams();
@@ -40,6 +41,7 @@ export default function PropertyDetailPage() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const propertyId = params.id;
+  const [sellerDialogOpen, setSellerDialogOpen] = useState(false);
 
   const { data: property, isLoading } = useQuery<Property>({
     queryKey: [`/api/properties/${propertyId}`],
@@ -55,7 +57,8 @@ export default function PropertyDetailPage() {
 
   const favoriteMutation = useMutation({
     mutationFn: async (add: boolean) => {
-      if (!property || !user) return;
+      if (!property?.id) throw new Error("Property not loaded");
+      if (!user) throw new Error("Please log in to save favorites");
       if (add) {
         return apiRequest("POST", "/api/me/favorites", {
           propertyId: property.id,
@@ -73,9 +76,10 @@ export default function PropertyDetailPage() {
         title: isFavorited ? "Removed from favorites" : "Added to favorites",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Failed to update favorites",
+        description: error?.message || "Please try again.",
         variant: "destructive",
       });
     },
@@ -843,17 +847,22 @@ export default function PropertyDetailPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold">
-                          {(property as any).seller.businessName || 
-                           `${(property as any).seller.firstName || ''} ${(property as any).seller.lastName || ''}`.trim() || 
-                           'Seller'}
-                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => setSellerDialogOpen(true)}
+                          className="font-semibold text-primary hover:underline underline-offset-2 text-left"
+                          data-testid="link-seller-details"
+                        >
+                          {(property as any).seller.businessName ||
+                            `${(property as any).seller.firstName || ""} ${(property as any).seller.lastName || ""}`.trim() ||
+                            "Seller"}
+                        </button>
                         {(property as any).seller.isVerified && (
-                          <CheckCircle className="h-4 w-4 text-blue-600" />
+                          <CheckCircle className="h-4 w-4 text-blue-600 shrink-0" />
                         )}
                       </div>
                       <Badge variant="outline" className="text-xs">
-                        {(property as any).seller.sellerType || 'Individual'}
+                        {(property as any).seller.sellerType || "Individual"}
                       </Badge>
                     </div>
                   </div>
@@ -901,22 +910,42 @@ export default function PropertyDetailPage() {
                 </Card>
               )}
 
-              {/* Schedule Visit */}
-              <Card className="p-6">
-                <h3 className="font-semibold mb-4">Schedule a Visit</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Book a property tour at your convenient time
-                </p>
-                <Button 
-                  variant="outline" 
-                  className="w-full" 
-                  onClick={() => setLocation(`/buyer/schedule-visit?propertyId=${property.id}`)}
-                  data-testid="button-schedule"
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Schedule Visit
-                </Button>
-              </Card>
+              {(property as any).seller && (
+                <SellerDetailDialog
+                  open={sellerDialogOpen}
+                  onOpenChange={setSellerDialogOpen}
+                  seller={(property as any).seller}
+                  sellerContactVisibility={(property as any).sellerContactVisibility}
+                  contactPhone={property.contactPhone}
+                  sellerEmail={(property as any).sellerUser?.email}
+                  validatePhone={validatePhone}
+                  cleanPhone={cleanPhone}
+                  onChat={() => {
+                    const sellerId = (property as any).seller?.id ?? (property as any).sellerId;
+                    if (sellerId) setLocation(`/buyer/chat?sellerId=${encodeURIComponent(sellerId)}&propertyId=${encodeURIComponent(property.id)}`);
+                  }}
+                  onScheduleVisit={() => setLocation(`/buyer/schedule-visit?propertyId=${property.id}`)}
+                />
+              )}
+
+              {/* Schedule Visit - only when seller allows */}
+              {(property as any).sellerContactVisibility?.allowScheduleVisit !== false && (
+                <Card className="p-6">
+                  <h3 className="font-semibold mb-4">Schedule a Visit</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Book a property tour at your convenient time
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={() => setLocation(`/buyer/schedule-visit?propertyId=${property.id}`)}
+                    data-testid="button-schedule"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Schedule Visit
+                  </Button>
+                </Card>
+              )}
 
               {/* Map Placeholder */}
               <Card className="p-6">
