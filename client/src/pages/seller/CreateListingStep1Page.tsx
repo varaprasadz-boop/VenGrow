@@ -140,12 +140,13 @@ export default function CreateListingStep1Page() {
   const handleCategoryChange = (value: string) => {
     const category = categories.find(c => c.id === value);
     const allowed = category?.allowedTransactionTypes || ["sale", "rent", "lease"];
+    const currentTxnStillAllowed = allowed.includes(formData.transactionType);
     setFormData({ 
       ...formData, 
       categoryId: value, 
       subcategoryId: "", 
       projectStage: "",
-      transactionType: allowed[0] || "sale"
+      transactionType: currentTxnStillAllowed ? formData.transactionType : (allowed[0] || "sale"),
     });
   };
 
@@ -262,6 +263,31 @@ export default function CreateListingStep1Page() {
             <form className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
+                  <Label htmlFor="transactionType">Transaction Type *</Label>
+                  <Select
+                    value={formData.transactionType}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, transactionType: value })
+                    }
+                  >
+                    <SelectTrigger id="transactionType" data-testid="select-transaction-type">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allowedTransactionTypes.includes("sale") && (
+                        <SelectItem value="sale">For Sale</SelectItem>
+                      )}
+                      {allowedTransactionTypes.includes("lease") && (
+                        <SelectItem value="lease">For Lease</SelectItem>
+                      )}
+                      {allowedTransactionTypes.includes("rent") && (
+                        <SelectItem value="rent">For Rent</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="category">Property Category *</Label>
                   {categoriesLoading ? (
                     <div className="h-10 flex items-center justify-center border rounded-md">
@@ -285,8 +311,10 @@ export default function CreateListingStep1Page() {
                     </Select>
                   )}
                 </div>
+              </div>
 
-                {formData.categoryId && filteredSubcategories.length > 0 && (
+              {formData.categoryId && filteredSubcategories.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="subcategory">Subcategory *</Label>
                     <Select
@@ -307,59 +335,31 @@ export default function CreateListingStep1Page() {
                       </SelectContent>
                     </Select>
                   </div>
-                )}
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="transactionType">Transaction Type *</Label>
-                  <Select
-                    value={formData.transactionType}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, transactionType: value })
-                    }
-                    disabled={!formData.categoryId}
-                  >
-                    <SelectTrigger id="transactionType" data-testid="select-transaction-type">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allowedTransactionTypes.includes("sale") && (
-                        <SelectItem value="sale">For Sale</SelectItem>
-                      )}
-                      {allowedTransactionTypes.includes("lease") && (
-                        <SelectItem value="lease">For Lease</SelectItem>
-                      )}
-                      {allowedTransactionTypes.includes("rent") && (
-                        <SelectItem value="rent">For Rent</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  {selectedCategory?.hasProjectStage && (
+                    <div className="space-y-2">
+                      <Label htmlFor="projectStage">Project Stage *</Label>
+                      <Select
+                        value={formData.projectStage}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, projectStage: value })
+                        }
+                      >
+                        <SelectTrigger id="projectStage" data-testid="select-project-stage">
+                          <SelectValue placeholder="Select stage" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {projectStages.map((stage) => (
+                            <SelectItem key={stage.value} value={stage.value}>
+                              {stage.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
-
-                {selectedCategory?.hasProjectStage && (
-                  <div className="space-y-2">
-                    <Label htmlFor="projectStage">Project Stage *</Label>
-                    <Select
-                      value={formData.projectStage}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, projectStage: value })
-                      }
-                    >
-                      <SelectTrigger id="projectStage" data-testid="select-project-stage">
-                        <SelectValue placeholder="Select stage" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {projectStages.map((stage) => (
-                          <SelectItem key={stage.value} value={stage.value}>
-                            {stage.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
+              )}
 
               {canHaveProjects && formData.transactionType === "sale" && liveProjects.length > 0 && (
                 <div className="space-y-2">
