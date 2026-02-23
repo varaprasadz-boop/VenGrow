@@ -37,30 +37,71 @@ interface Step1Data {
   title: string;
   description: string;
   price: string;
+  area: string;
+  areaUnit: string;
   address: string;
   city: string;
   state: string;
   pincode: string;
   locality: string;
+  areaInLocality: string;
+  nearbyLandmark: string;
+  projectSocietyName: string;
   projectId: string;
+  pricePerSqft?: string;
 }
 
 interface Step2Data {
   isJv?: boolean;
   jvDetails?: JvDetailsType;
+  categorySlug?: string;
   bedrooms?: string;
   bathrooms?: string;
   balconies?: string;
   area?: string;
   carpetArea?: string;
+  superBuiltUpArea?: string;
   plotArea?: string;
+  floorNumber?: string;
   floor?: string;
   totalFloors?: string;
   facing?: string;
+  flooring?: string;
   furnishing?: string;
+  carParkingCount?: string;
+  maintenanceCharges?: string;
+  overlookingType?: string;
+  totalFlats?: string;
+  flatsOnFloor?: string;
+  isResale?: string;
   possessionStatus?: string;
+  expectedPossessionDate?: string;
   ageOfProperty?: string;
+  numberOfLifts?: string;
   amenities?: string[];
+  landArea?: string;
+  roomSizes?: { room: string; size: string }[];
+  isCornerProperty?: string;
+  roadWidthFeet?: string;
+  totalVillas?: string;
+  liftsAvailable?: string;
+  plotLength?: string;
+  plotBreadth?: string;
+  isCornerPlot?: string;
+  roadWidthPlotMeters?: string;
+  floorAllowedConstruction?: string;
+  clubHouseAvailable?: string;
+  newProjectFloorPlans?: { superBuiltUpArea: string; carpetArea: string; bhk: string; bathrooms: string; balconies: string; totalPrice: string }[];
+  pgSharingPricing?: { type: string; rent: string; deposit: string }[];
+  pgFacilities?: string[];
+  pgRules?: string[];
+  pgServices?: string[];
+  pgCctv?: string;
+  pgBiometricEntry?: string;
+  pgSecurityGuard?: string;
+  pgFoodProvided?: string;
+  pgNonVegProvided?: string;
+  pgNoticePeriod?: string;
 }
 
 interface Step3Data {
@@ -156,44 +197,46 @@ export default function CreateListingStep4Page() {
     return subcategory?.name || "Unknown";
   };
 
-  // Map category and subcategory to property type enum value
-  const getPropertyType = (categoryId: string, subcategoryId: string | null): "apartment" | "villa" | "plot" | "commercial" | "farmhouse" | "penthouse" => {
+  const getPropertyType = (categoryId: string, subcategoryId: string | null): "apartment" | "villa" | "plot" | "commercial" | "farmhouse" | "penthouse" | "independent_house" | "pg_co_living" | "new_projects" | "joint_venture" => {
     const category = categories.find(c => c.id === categoryId);
     const subcategory = subcategoryId ? allSubcategories.find(s => s.id === subcategoryId) : null;
     
-    if (!category) return "apartment"; // Default fallback
+    if (!category) return "apartment";
     
     const categorySlug = category.slug;
     const subcategorySlug = subcategory?.slug || "";
     
-    // Check subcategory first for special cases
-    if (subcategorySlug === "penthouse") {
-      return "penthouse";
-    }
-    if (subcategorySlug === "farm-house" || subcategorySlug === "farmhouse") {
-      return "farmhouse";
-    }
+    if (subcategorySlug === "penthouse") return "penthouse";
+    if (subcategorySlug === "farm-house" || subcategorySlug === "farmhouse") return "farmhouse";
     
-    // Map based on category slug
     switch (categorySlug) {
       case "apartments":
+      case "apartment":
         return "apartment";
       case "villas":
+      case "villa":
         return "villa";
       case "plots":
+      case "plot":
         return "plot";
       case "commercial":
         return "commercial";
       case "joint-venture":
-        return "plot"; // JV listings stored as plot; categoryId/subcategoryId identify as JV
+        return "joint_venture";
       case "independent-house":
-        return "villa"; // Independent house maps to villa
+      case "independent-houses":
+        return "independent_house";
       case "new-projects":
-        return "apartment"; // New projects default to apartment
+      case "new-project":
+        return "new_projects";
+      case "pg-hostel":
+      case "pg":
+      case "hostel":
+        return "pg_co_living";
       case "ultra-luxury":
-        return "penthouse"; // Ultra luxury defaults to penthouse
+        return "penthouse";
       default:
-        return "apartment"; // Default fallback
+        return "apartment";
     }
   };
 
@@ -286,6 +329,12 @@ export default function CreateListingStep4Page() {
 
     const isJvListing = step2Data.isJv === true && step2Data.jvDetails;
 
+    const parseIntOr = (val: string | undefined | null, fallback: null | number = null) => {
+      if (!val) return fallback;
+      const n = parseInt(val, 10);
+      return isNaN(n) ? fallback : n;
+    };
+
     const propertyData: Record<string, unknown> = {
       title: step1Data.title,
       description: step1Data.description,
@@ -296,11 +345,17 @@ export default function CreateListingStep4Page() {
       projectStage: step1Data.projectStage || null,
       projectId: step1Data.projectId || null,
       price: parseInt(step1Data.price) || 0,
-      address: step1Data.address,
+      area: parseInt(step1Data.area) || 0,
+      areaUnit: step1Data.areaUnit || "sqft",
+      pricePerSqft: parseIntOr(step1Data.pricePerSqft),
+      address: step1Data.address || "",
       city: step1Data.city,
       state: step1Data.state,
       pincode: step1Data.pincode,
       locality: step1Data.locality,
+      areaInLocality: step1Data.areaInLocality || null,
+      nearbyLandmark: step1Data.nearbyLandmark || null,
+      projectSocietyName: step1Data.projectSocietyName || null,
       youtubeVideoUrl: step3Data.youtubeVideoUrl || null,
       images: step3Data.photos || [],
       contactName: contactData.contactName.trim(),
@@ -312,31 +367,70 @@ export default function CreateListingStep4Page() {
     if (isJvListing && step2Data.jvDetails) {
       const jv = step2Data.jvDetails;
       const landArea = jv.common?.landArea ? parseInt(String(jv.common.landArea), 10) : undefined;
-      propertyData.area = !isNaN(landArea as number) ? landArea : 0;
-      propertyData.bedrooms = null;
-      propertyData.bathrooms = null;
-      propertyData.balconies = null;
-      propertyData.floor = null;
-      propertyData.totalFloors = null;
-      propertyData.facing = null;
-      propertyData.furnishing = null;
-      propertyData.ageOfProperty = null;
-      propertyData.possessionStatus = null;
-      propertyData.amenities = [];
+      propertyData.area = propertyData.area || (!isNaN(landArea as number) ? landArea : 0);
       propertyData.jvDetails = jv;
     } else {
-      const areaStr = step2Data.area ?? step2Data.carpetArea ?? step2Data.plotArea ?? "";
-      propertyData.area = parseInt(areaStr as string, 10) || 0;
-      propertyData.bedrooms = step2Data.bedrooms ? parseInt(step2Data.bedrooms, 10) : null;
-      propertyData.bathrooms = step2Data.bathrooms ? parseInt(step2Data.bathrooms, 10) : null;
-      propertyData.balconies = step2Data.balconies ? parseInt(step2Data.balconies, 10) : null;
-      propertyData.floor = step2Data.floor ? parseInt(step2Data.floor, 10) : null;
-      propertyData.totalFloors = step2Data.totalFloors ? parseInt(step2Data.totalFloors, 10) : null;
+      propertyData.bedrooms = parseIntOr(step2Data.bedrooms);
+      propertyData.bathrooms = parseIntOr(step2Data.bathrooms);
+      propertyData.balconies = parseIntOr(step2Data.balconies);
+      propertyData.superBuiltUpArea = parseIntOr(step2Data.superBuiltUpArea);
+      propertyData.carpetArea = parseIntOr(step2Data.carpetArea);
+      propertyData.floor = parseIntOr(step2Data.floorNumber || step2Data.floor);
+      propertyData.totalFloors = parseIntOr(step2Data.totalFloors);
       propertyData.facing = step2Data.facing || null;
+      propertyData.flooring = step2Data.flooring || null;
       propertyData.furnishing = step2Data.furnishing || null;
-      propertyData.ageOfProperty = step2Data.ageOfProperty ? parseInt(step2Data.ageOfProperty, 10) : null;
+      propertyData.carParkingCount = parseIntOr(step2Data.carParkingCount);
+      propertyData.maintenanceCharges = parseIntOr(step2Data.maintenanceCharges);
+      propertyData.overlookingType = step2Data.overlookingType || null;
+      propertyData.totalFlats = parseIntOr(step2Data.totalFlats);
+      propertyData.flatsOnFloor = parseIntOr(step2Data.flatsOnFloor);
+      propertyData.isResale = step2Data.isResale === "resale" ? true : step2Data.isResale === "new" ? false : null;
       propertyData.possessionStatus = step2Data.possessionStatus || null;
+      propertyData.ageOfProperty = parseIntOr(step2Data.ageOfProperty);
+      propertyData.numberOfLifts = parseIntOr(step2Data.numberOfLifts);
       propertyData.amenities = step2Data.amenities || [];
+      propertyData.landArea = parseIntOr(step2Data.landArea);
+      propertyData.roomSizes = step2Data.roomSizes || null;
+      propertyData.isCornerProperty = step2Data.isCornerProperty === "yes" ? true : step2Data.isCornerProperty === "no" ? false : null;
+      propertyData.roadWidthFeet = parseIntOr(step2Data.roadWidthFeet);
+      propertyData.totalVillas = parseIntOr(step2Data.totalVillas);
+      propertyData.liftsAvailable = step2Data.liftsAvailable === "yes" ? true : step2Data.liftsAvailable === "no" ? false : null;
+      propertyData.plotLength = parseIntOr(step2Data.plotLength);
+      propertyData.plotBreadth = parseIntOr(step2Data.plotBreadth);
+      propertyData.isCornerPlot = step2Data.isCornerPlot === "yes" ? true : step2Data.isCornerPlot === "no" ? false : null;
+      propertyData.roadWidthPlotMeters = parseIntOr(step2Data.roadWidthPlotMeters);
+      propertyData.floorAllowedConstruction = parseIntOr(step2Data.floorAllowedConstruction);
+      propertyData.clubHouseAvailable = step2Data.clubHouseAvailable === "yes" ? true : step2Data.clubHouseAvailable === "no" ? false : null;
+      if (step2Data.newProjectFloorPlans && step2Data.newProjectFloorPlans.length > 0) {
+        propertyData.newProjectFloorPlans = step2Data.newProjectFloorPlans.map(fp => ({
+          superBuiltUpArea: parseIntOr(fp.superBuiltUpArea, 0),
+          carpetArea: parseIntOr(fp.carpetArea, 0),
+          bhk: parseIntOr(fp.bhk, 0),
+          bathrooms: parseIntOr(fp.bathrooms, 0),
+          balconies: parseIntOr(fp.balconies, 0),
+          totalPrice: parseIntOr(fp.totalPrice, 0),
+        }));
+      }
+      if (step2Data.pgSharingPricing) {
+        const pricingWithValues = step2Data.pgSharingPricing.filter(p => p.rent || p.deposit);
+        if (pricingWithValues.length > 0) {
+          propertyData.pgSharingPricing = pricingWithValues.map(p => ({
+            type: p.type,
+            rent: parseIntOr(p.rent, 0) as number,
+            deposit: parseIntOr(p.deposit, 0) as number,
+          }));
+        }
+      }
+      propertyData.pgFacilities = step2Data.pgFacilities || null;
+      propertyData.pgRules = step2Data.pgRules || null;
+      propertyData.pgServices = step2Data.pgServices || null;
+      propertyData.pgCctv = step2Data.pgCctv === "yes" ? true : step2Data.pgCctv === "no" ? false : null;
+      propertyData.pgBiometricEntry = step2Data.pgBiometricEntry === "yes" ? true : step2Data.pgBiometricEntry === "no" ? false : null;
+      propertyData.pgSecurityGuard = step2Data.pgSecurityGuard === "yes" ? true : step2Data.pgSecurityGuard === "no" ? false : null;
+      propertyData.pgFoodProvided = step2Data.pgFoodProvided === "yes" ? true : step2Data.pgFoodProvided === "no" ? false : null;
+      propertyData.pgNonVegProvided = step2Data.pgNonVegProvided === "yes" ? true : step2Data.pgNonVegProvided === "no" ? false : null;
+      propertyData.pgNoticePeriod = step2Data.pgNoticePeriod || null;
     }
 
     createListingMutation.mutate(propertyData);
@@ -636,14 +730,40 @@ export default function CreateListingStep4Page() {
                         <span className="text-xs text-muted-foreground">Baths</span>
                       </div>
                     )}
-                    {(step2Data.area ?? step2Data.carpetArea ?? step2Data.plotArea) && (
+                    {(step1Data.area || step2Data.carpetArea || step2Data.superBuiltUpArea) && (
                       <div className="flex flex-col items-center p-2 bg-muted/50 rounded-lg">
                         <Maximize className="h-4 w-4 text-muted-foreground mb-1" />
-                        <span className="font-medium">{step2Data.area ?? step2Data.carpetArea ?? step2Data.plotArea}</span>
-                        <span className="text-xs text-muted-foreground">sqft</span>
+                        <span className="font-medium">{step1Data.area || step2Data.carpetArea || step2Data.superBuiltUpArea}</span>
+                        <span className="text-xs text-muted-foreground">{step1Data.areaUnit || "sqft"}</span>
                       </div>
                     )}
                   </div>
+                  )}
+
+                  {!step2Data.isJv && (
+                    <div className="space-y-2 text-sm">
+                      {step1Data.projectSocietyName && (
+                        <p><span className="text-muted-foreground">Project:</span> {step1Data.projectSocietyName}</p>
+                      )}
+                      {step1Data.pricePerSqft && (
+                        <p><span className="text-muted-foreground">Per sqft:</span> Rs. {parseInt(step1Data.pricePerSqft).toLocaleString("en-IN")}</p>
+                      )}
+                      {step2Data.facing && (
+                        <p><span className="text-muted-foreground">Facing:</span> {step2Data.facing}</p>
+                      )}
+                      {step2Data.furnishing && (
+                        <p><span className="text-muted-foreground">Furnishing:</span> {step2Data.furnishing}</p>
+                      )}
+                      {step2Data.possessionStatus && (
+                        <p><span className="text-muted-foreground">Possession:</span> {step2Data.possessionStatus}</p>
+                      )}
+                      {step2Data.plotLength && step2Data.plotBreadth && (
+                        <p><span className="text-muted-foreground">Plot:</span> {step2Data.plotLength} x {step2Data.plotBreadth} ft</p>
+                      )}
+                      {step2Data.landArea && (
+                        <p><span className="text-muted-foreground">Land Area:</span> {step2Data.landArea} sq ft</p>
+                      )}
+                    </div>
                   )}
 
                   {!step2Data.isJv && step2Data.amenities && step2Data.amenities.length > 0 && (
@@ -654,6 +774,20 @@ export default function CreateListingStep4Page() {
                           <div key={index} className="flex items-center gap-2 text-xs">
                             <CheckCircle className="h-3 w-3 text-green-600" />
                             <span>{amenity}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {!step2Data.isJv && step2Data.pgFacilities && step2Data.pgFacilities.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium mb-2">PG Facilities:</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {step2Data.pgFacilities.slice(0, 6).map((facility, index) => (
+                          <div key={index} className="flex items-center gap-2 text-xs">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span>{facility}</span>
                           </div>
                         ))}
                       </div>
