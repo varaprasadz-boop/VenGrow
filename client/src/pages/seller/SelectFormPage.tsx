@@ -72,6 +72,10 @@ export default function SelectFormPage() {
   useEffect(() => {
     if (!isLoading && templates.length === 1) {
       const t = templates[0];
+      localStorage.removeItem("createListingStep1");
+      localStorage.removeItem("createListingStep2");
+      localStorage.removeItem("createListingStep3");
+      localStorage.removeItem("createListingRequestFeatured");
       localStorage.setItem("selectedFormTemplateId", t.id);
       localStorage.setItem("selectedFormTemplateName", t.name);
       if (t.categoryId) {
