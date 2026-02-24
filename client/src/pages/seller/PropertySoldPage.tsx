@@ -50,7 +50,7 @@ Thank you for using VenGrow!
   };
 
   const handleListAnother = () => {
-    setLocation("/seller/property/add");
+    setLocation("/seller/listings/create/step1");
   };
 
   if (isLoading) {

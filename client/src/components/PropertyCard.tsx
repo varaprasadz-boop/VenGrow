@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getPropertyUrl } from "@/lib/property-utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface PropertyCardProps {
   id: string;
@@ -32,6 +34,11 @@ interface PropertyCardProps {
   city?: string;
   /** Date when listing was added (approved by admin or created). ISO string. */
   addedDate?: string | null;
+  /** Whether the current user is logged in (required to add to favorites). */
+  isLoggedIn?: boolean;
+  /** Whether this property is in the user's favorites (from API). Pass to sync heart state. */
+  isFavorited?: boolean;
+  /** Called when favorite is clicked. If not logged in, parent should show login toast/redirect. */
   onFavoriteClick?: (id: string) => void;
   onClick?: (id: string) => void;
   variant?: "grid" | "list";
@@ -67,17 +74,41 @@ export default function PropertyCard({
   slug,
   city,
   addedDate,
+  isLoggedIn = false,
+  isFavorited: isFavoritedProp,
   onFavoriteClick,
   onClick,
   variant = "grid",
 }: PropertyCardProps) {
-  const [isFavorited, setIsFavorited] = useState(false);
+  const [localFavorited, setLocalFavorited] = useState(false);
   const [, setLocation] = useLocation();
   const compareContext = useCompareOptional();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  // Resolve logged-in: explicit prop wins, else use auth
+  const loggedIn = isLoggedIn !== undefined ? isLoggedIn : !!user;
+  // Controlled: use prop when provided (from parent/API). Uncontrolled: use local state.
+  const isFavorited = isFavoritedProp !== undefined ? isFavoritedProp : localFavorited;
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsFavorited(!isFavorited);
+    if (!loggedIn) {
+      if (onFavoriteClick) {
+        onFavoriteClick(id);
+      } else {
+        toast({
+          title: "Please log in",
+          description: "You need to be logged in to save favorites.",
+          variant: "destructive",
+        });
+        const redirect = encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "/");
+        window.location.href = `/login?redirect=${redirect}`;
+      }
+      return;
+    }
+    if (isFavoritedProp === undefined) {
+      setLocalFavorited((prev) => !prev);
+    }
     onFavoriteClick?.(id);
   };
 

@@ -23,7 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Filter, Grid3x3, List, Map, Loader2, Bookmark } from "lucide-react";
+import { Filter, Grid3x3, List, Map, Loader2, Bookmark, PanelLeftClose } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -46,6 +46,8 @@ interface FilterState {
   sellerTypes?: string[];
   propertyAge?: string[];
   corporateSearch?: string;
+  locality?: string;
+  dynamicFilters?: Record<string, string | string[]>;
 }
 
 export default function ListingsPage() {
@@ -92,6 +94,14 @@ export default function ListingsPage() {
     if (params.get('builder') || params.get('corporate')) {
       parsedFilters.corporateSearch = params.get('builder') || params.get('corporate') || undefined;
     }
+    if (params.get('locality')) {
+      parsedFilters.locality = params.get('locality')!;
+    }
+    if (params.get('dynamicFilters')) {
+      try {
+        parsedFilters.dynamicFilters = JSON.parse(params.get('dynamicFilters')!);
+      } catch {}
+    }
     
     return {
       category: params.get('category') || params.get('type') || null,
@@ -113,6 +123,7 @@ export default function ListingsPage() {
 
   const [viewType, setViewType] = useState<"grid" | "list" | "map">("grid");
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [filterSidebarOpen, setFilterSidebarOpen] = useState(false); // desktop filter sidebar - default hidden for larger view
   const [isApplyingFilters, setIsApplyingFilters] = useState(false);
   const [saveSearchOpen, setSaveSearchOpen] = useState(false);
   const [searchName, setSearchName] = useState("");
@@ -163,6 +174,12 @@ export default function ListingsPage() {
     }
     if (newFilters.corporateSearch && newFilters.corporateSearch?.trim()) {
       params.set('builder', newFilters.corporateSearch.trim());
+    }
+    if (newFilters.locality && newFilters.locality.trim()) {
+      params.set('locality', newFilters.locality.trim());
+    }
+    if (newFilters.dynamicFilters && Object.keys(newFilters.dynamicFilters).length > 0) {
+      params.set('dynamicFilters', JSON.stringify(newFilters.dynamicFilters));
     }
     if (newPage > 1) {
       params.set('page', newPage.toString());
@@ -437,6 +454,17 @@ export default function ListingsPage() {
       );
     }
     
+    // Locality filter
+    if (filters.locality && filters.locality.trim()) {
+      const localityTerm = filters.locality.trim().toLowerCase();
+      result = result.filter(p => {
+        const loc = ((p as any).locality || "").toLowerCase();
+        const area = ((p as any).areaInLocality || "").toLowerCase();
+        const city = (p.city || "").toLowerCase();
+        return loc.includes(localityTerm) || area.includes(localityTerm) || city.includes(localityTerm);
+      });
+    }
+    
     // Property age filter - improved logic
     if (filters.propertyAge && filters.propertyAge.length > 0) {
       result = result.filter(p => {
@@ -459,6 +487,38 @@ export default function ListingsPage() {
       });
     }
     
+    if (filters.dynamicFilters && Object.keys(filters.dynamicFilters).length > 0) {
+      result = result.filter(p => {
+        const customData = (p as any).property_custom_data?.formData || (p as any).customFormData || {};
+        for (const [key, filterVal] of Object.entries(filters.dynamicFilters!)) {
+          if (!filterVal || (Array.isArray(filterVal) && filterVal.length === 0)) continue;
+
+          if (key.endsWith('_min')) {
+            const baseKey = key.replace(/_min$/, '');
+            const propVal = parseFloat(customData[baseKey]);
+            const minVal = parseFloat(filterVal as string);
+            if (!isNaN(minVal) && (isNaN(propVal) || propVal < minVal)) return false;
+          } else if (key.endsWith('_max')) {
+            const baseKey = key.replace(/_max$/, '');
+            const propVal = parseFloat(customData[baseKey]);
+            const maxVal = parseFloat(filterVal as string);
+            if (!isNaN(maxVal) && (isNaN(propVal) || propVal > maxVal)) return false;
+          } else if (Array.isArray(filterVal)) {
+            const propVal = customData[key];
+            if (Array.isArray(propVal)) {
+              if (!filterVal.some(fv => propVal.includes(fv))) return false;
+            } else {
+              if (!filterVal.includes(String(propVal || ''))) return false;
+            }
+          } else {
+            const propVal = String(customData[key] || '').toLowerCase();
+            if (typeof filterVal === 'string' && !propVal.includes(filterVal.toLowerCase())) return false;
+          }
+        }
+        return true;
+      });
+    }
+
     // Sort properties (if not already sorted by API)
     switch (sortBy) {
       case "price-low":
@@ -515,14 +575,16 @@ export default function ListingsPage() {
       
       <main className="flex-1 flex flex-col min-h-0">
         <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 min-h-0 lg:h-[calc(100vh-8.5rem)] lg:max-h-[calc(100vh-8.5rem)] lg:overflow-hidden">
-          {/* Desktop Sidebar - scrolls separately */}
-          <aside className="hidden lg:flex lg:flex-col w-64 flex-shrink-0 min-h-0 overflow-y-auto pr-2">
-            <FilterSidebar 
-              onApplyFilters={handleApplyFilters}
-              initialCategory={filters.category}
-              initialFilters={filters}
-            />
-          </aside>
+          {/* Desktop Filter Sidebar - toggleable for larger view */}
+          {filterSidebarOpen && (
+            <aside className="hidden lg:flex lg:flex-col w-64 flex-shrink-0 min-h-0 overflow-hidden pr-2">
+              <FilterSidebar 
+                onApplyFilters={handleApplyFilters}
+                initialCategory={filters.category}
+                initialFilters={filters}
+              />
+            </aside>
+          )}
 
           {/* Main Content - scrolls separately on desktop */}
           <div className="flex-1 min-w-0 min-h-0 lg:overflow-y-auto flex flex-col space-y-6">
@@ -539,6 +601,22 @@ export default function ListingsPage() {
 
                   {/* Controls Row - Below title on mobile */}
                   <div className="flex items-center gap-2 sm:gap-3">
+                    {/* Desktop: Toggle filter sidebar for larger view */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="hidden lg:flex"
+                      onClick={() => setFilterSidebarOpen((o) => !o)}
+                      data-testid="button-toggle-filter-sidebar"
+                      title={filterSidebarOpen ? "Hide filters" : "Show filters"}
+                    >
+                      {filterSidebarOpen ? (
+                        <PanelLeftClose className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Filter className="h-4 w-4 mr-2" />
+                      )}
+                      {filterSidebarOpen ? "Hide filters" : "Filters"}
+                    </Button>
                     {/* View Type Toggle */}
                     <div className="hidden sm:flex border rounded-lg p-1">
                       <Button

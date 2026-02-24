@@ -62,10 +62,15 @@ const quickLinks = [
   { title: "Rent Property", href: "/rent", icon: Building2 },
 ];
 
+// Paths where sidebar starts collapsed so view is larger; user can toggle to open it
+const BUYER_LAYOUT_SIDEBAR_COLLAPSED_PATHS = ["/buy", "/rent", "/lease", "/properties"];
+
 export default function BuyerLayout({ children }: BuyerLayoutProps) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
-  
+
+  const sidebarCollapsedByDefault = BUYER_LAYOUT_SIDEBAR_COLLAPSED_PATHS.includes(location);
+
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
@@ -86,7 +91,7 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
   };
 
   return (
-    <SidebarProvider style={style as React.CSSProperties}>
+    <SidebarProvider defaultOpen={!sidebarCollapsedByDefault} style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
         <Sidebar>
           <SidebarHeader className="border-b p-4">
