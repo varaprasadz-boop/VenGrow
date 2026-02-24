@@ -4,19 +4,25 @@ import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Building2, Home, MapPin, TreePine, Landmark, Users, Briefcase, ArrowRight, FileText } from "lucide-react";
+import { Loader2, Building2, Home, MapPin, TreePine, TreeDeciduous, Users, Briefcase, ArrowRight, FileText, Map, Handshake, Sparkles, Crown, Timer, House } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 const iconMap: Record<string, any> = {
   Building2,
   Home,
+  House,
   MapPin,
+  Map,
   TreePine,
-  Landmark,
+  TreeDeciduous,
   Users,
   Briefcase,
   FileText,
+  Handshake,
+  Sparkles,
+  Crown,
+  Timer,
 };
 
 function getCategoryIcon(iconName: string | null) {
