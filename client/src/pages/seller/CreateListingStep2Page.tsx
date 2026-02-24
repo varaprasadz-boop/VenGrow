@@ -1148,18 +1148,17 @@ export default function CreateListingStep2Page() {
             <Label>Land Area (sq.ft.)</Label>
             <Input type="number" placeholder="e.g., 5000" value={formData.landArea} onChange={(e) => setFormData({ ...formData, landArea: e.target.value })} data-testid="input-farm-land-area" />
           </div>
-          {(transactionType === "rent" || transactionType === "lease") && (
-            <>
-              <div className="space-y-2">
-                <Label>Plot Length (ft.)</Label>
-                <Input type="number" placeholder="e.g., 100" value={formData.plotLength} onChange={(e) => setFormData({ ...formData, plotLength: e.target.value })} data-testid="input-farm-plot-length" />
-              </div>
-              <div className="space-y-2">
-                <Label>Plot Breadth (ft.)</Label>
-                <Input type="number" placeholder="e.g., 50" value={formData.plotBreadth} onChange={(e) => setFormData({ ...formData, plotBreadth: e.target.value })} data-testid="input-farm-plot-breadth" />
-              </div>
-            </>
-          )}
+          <div className="space-y-2">
+            <Label>Soil Type</Label>
+            <Select value={formData.soilType} onValueChange={(v) => setFormData({ ...formData, soilType: v })}>
+              <SelectTrigger data-testid="select-farm-soil-type"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="red">Red</SelectItem>
+                <SelectItem value="black">Black</SelectItem>
+                <SelectItem value="sandy">Sandy</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2">
             <Label>Fencing</Label>
             <Select value={formData.fencing} onValueChange={(v) => setFormData({ ...formData, fencing: v })}>
@@ -1170,132 +1169,71 @@ export default function CreateListingStep2Page() {
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-2">
+            <Label>Water Source</Label>
+            <Select value={formData.waterSource} onValueChange={(v) => setFormData({ ...formData, waterSource: v })}>
+              <SelectTrigger data-testid="select-farm-water-source"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="borewell">Borewell</SelectItem>
+                <SelectItem value="open_well">Open Well</SelectItem>
+                <SelectItem value="canal">Canal</SelectItem>
+                <SelectItem value="river">River</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-      {transactionType === "sale" && (
-        <div>
-          <h3 className="font-semibold mb-4">Soil & Water Details</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Soil Type</Label>
-              <Select value={formData.soilType} onValueChange={(v) => setFormData({ ...formData, soilType: v })}>
-                <SelectTrigger data-testid="select-farm-soil-type"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="red">Red</SelectItem>
-                  <SelectItem value="black">Black</SelectItem>
-                  <SelectItem value="sandy">Sandy</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Water Source</Label>
-              <Select value={formData.waterSource} onValueChange={(v) => setFormData({ ...formData, waterSource: v })}>
-                <SelectTrigger data-testid="select-farm-water-source"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="borewell">Borewell</SelectItem>
-                  <SelectItem value="open_well">Open Well</SelectItem>
-                  <SelectItem value="canal">Canal</SelectItem>
-                  <SelectItem value="river">River</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <div>
+        <h3 className="font-semibold mb-4">Property Status</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label>Title Clear</Label>
+            <Select value={formData.titleClear} onValueChange={(v) => setFormData({ ...formData, titleClear: v })}>
+              <SelectTrigger data-testid="select-farm-title-clear"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="yes">Yes</SelectItem>
+                <SelectItem value="no">No</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Farm House Available</Label>
+            <Select value={formData.farmHouseAvailable} onValueChange={(v) => setFormData({ ...formData, farmHouseAvailable: v })}>
+              <SelectTrigger data-testid="select-farm-house-available"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="yes">Yes</SelectItem>
+                <SelectItem value="no">No</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      )}
+      </div>
 
-      {transactionType === "sale" && (
-        <div>
-          <h3 className="font-semibold mb-4">Property Status</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Title Clear</Label>
-              <Select value={formData.titleClear} onValueChange={(v) => setFormData({ ...formData, titleClear: v })}>
-                <SelectTrigger data-testid="select-farm-title-clear"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Farm House Available</Label>
-              <Select value={formData.farmHouseAvailable} onValueChange={(v) => setFormData({ ...formData, farmHouseAvailable: v })}>
-                <SelectTrigger data-testid="select-farm-house-available"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <div>
+        <h3 className="font-semibold mb-4">Road & Access</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label>Approach Road Type</Label>
+            <Select value={formData.approachRoadType} onValueChange={(v) => setFormData({ ...formData, approachRoadType: v })}>
+              <SelectTrigger data-testid="select-farm-road-type"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mud">Mud</SelectItem>
+                <SelectItem value="tar">Tar</SelectItem>
+                <SelectItem value="concrete">Concrete</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Width of the Road (meters)</Label>
+            <Input type="number" placeholder="e.g., 6" value={formData.widthOfRoad} onChange={(e) => setFormData({ ...formData, widthOfRoad: e.target.value })} data-testid="input-farm-road-width" />
+          </div>
+          <div className="space-y-2">
+            <Label>Distance from Nearest Town (km)</Label>
+            <Input type="number" placeholder="e.g., 5" value={formData.distanceFromNearestTown} onChange={(e) => setFormData({ ...formData, distanceFromNearestTown: e.target.value })} data-testid="input-farm-distance-town" />
           </div>
         </div>
-      )}
-
-      {transactionType === "sale" && (
-        <div>
-          <h3 className="font-semibold mb-4">Road & Access</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Approach Road Type</Label>
-              <Select value={formData.approachRoadType} onValueChange={(v) => setFormData({ ...formData, approachRoadType: v })}>
-                <SelectTrigger data-testid="select-farm-road-type"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mud">Mud</SelectItem>
-                  <SelectItem value="tar">Tar</SelectItem>
-                  <SelectItem value="concrete">Concrete</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Width of the Road (meters)</Label>
-              <Input type="number" placeholder="e.g., 6" value={formData.widthOfRoad} onChange={(e) => setFormData({ ...formData, widthOfRoad: e.target.value })} data-testid="input-farm-road-width" />
-            </div>
-            <div className="space-y-2">
-              <Label>Distance from Nearest Town (km)</Label>
-              <Input type="number" placeholder="e.g., 5" value={formData.distanceFromNearestTown} onChange={(e) => setFormData({ ...formData, distanceFromNearestTown: e.target.value })} data-testid="input-farm-distance-town" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {(transactionType === "rent" || transactionType === "lease") && (
-        <div>
-          <h3 className="font-semibold mb-4">Property Features</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Clubhouse</Label>
-              <Select value={formData.clubHouseAvailable} onValueChange={(v) => setFormData({ ...formData, clubHouseAvailable: v })}>
-                <SelectTrigger data-testid="select-farm-clubhouse"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Is Corner Plot</Label>
-              <Select value={formData.isCornerPlot} onValueChange={(v) => setFormData({ ...formData, isCornerPlot: v })}>
-                <SelectTrigger data-testid="select-farm-corner-plot"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {renderFacingSelect()}
-            <div className="space-y-2">
-              <Label>Floor Allowed for Construction</Label>
-              <Input type="number" placeholder="e.g., 3" value={formData.floorAllowedConstruction} onChange={(e) => setFormData({ ...formData, floorAllowedConstruction: e.target.value })} data-testid="input-farm-floor-allowed" />
-            </div>
-            {renderMaintenanceInput()}
-            <div className="space-y-2">
-              <Label>Width of Road Facing the Plot (meters)</Label>
-              <Input type="number" placeholder="e.g., 12" value={formData.roadWidthPlotMeters} onChange={(e) => setFormData({ ...formData, roadWidthPlotMeters: e.target.value })} data-testid="input-farm-road-width-plot" />
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </>
   );
 
