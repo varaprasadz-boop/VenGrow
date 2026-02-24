@@ -25,7 +25,6 @@ export default function CreateListingStep3Page() {
   const [dataValidated, setDataValidated] = useState(false);
   const { toast } = useToast();
 
-  // Check for previous steps data and auth
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
@@ -35,6 +34,14 @@ export default function CreateListingStep3Page() {
       });
       navigate("/login");
       return;
+    }
+
+    if (!authLoading && isAuthenticated) {
+      const templateId = localStorage.getItem("selectedFormTemplateId");
+      if (!templateId) {
+        navigate("/seller/select-form");
+        return;
+      }
     }
 
     if (!authLoading && isAuthenticated) {

@@ -12,7 +12,8 @@ import { verifySuperadminCredentials, hashPassword, verifyPassword, validateEmai
 import * as emailService from "./email";
 import { db, pool } from "./db";
 import { properties, propertyViews, users, favorites, inquiries } from "@shared/schema";
-import { eq, and, or, desc, sql, notInArray, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, or, desc, sql, notInArray, gte, lte, inArray, isNull } from "drizzle-orm";
+import { formTemplates, formSections, formFields } from "@shared/schema";
 
 const connectedClients = new Map<string, Set<WebSocket>>();
 
@@ -8591,6 +8592,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating project:", error);
       res.status(500).json({ message: "Failed to update project" });
+    }
+  });
+
+  // ============================================
+  // FORM TEMPLATES API (Seller Form Selection)
+  // ============================================
+
+  app.get("/api/form-templates", async (req: Request, res: Response) => {
+    try {
+      const { sellerType } = req.query;
+      const conditions = [eq(formTemplates.status, "published")];
+      if (sellerType && typeof sellerType === "string") {
+        conditions.push(eq(formTemplates.sellerType, sellerType as any));
+      }
+      const templates = await db
+        .select()
+        .from(formTemplates)
+        .where(and(...conditions));
+
+      const cats = await db.execute(sql`SELECT id, name, slug, icon FROM property_categories`);
+
+      const categoryMap = new Map<string, { name: string; slug: string; icon: string }>();
+      for (const cat of cats.rows) {
+        categoryMap.set(cat.id as string, {
+          name: cat.name as string,
+          slug: cat.slug as string,
+          icon: cat.icon as string,
+        });
+      }
+
+      const enriched = templates.map((t) => ({
+        ...t,
+        categoryName: t.categoryId ? categoryMap.get(t.categoryId)?.name || null : null,
+        categoryIcon: t.categoryId ? categoryMap.get(t.categoryId)?.icon || null : null,
+        categorySlug: t.categoryId ? categoryMap.get(t.categoryId)?.slug || null : null,
+      }));
+
+      res.json(enriched);
+    } catch (error) {
+      console.error("Error fetching form templates:", error);
+      res.status(500).json({ message: "Failed to fetch form templates" });
+    }
+  });
+
+  app.get("/api/form-templates/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const [template] = await db
+        .select()
+        .from(formTemplates)
+        .where(eq(formTemplates.id, id));
+
+      if (!template) {
+        return res.status(404).json({ message: "Form template not found" });
+      }
+
+      const sections = await db
+        .select()
+        .from(formSections)
+        .where(and(eq(formSections.formTemplateId, id), eq(formSections.isActive, true)));
+
+      const sectionIds = sections.map((s) => s.id);
+      let fields: any[] = [];
+      if (sectionIds.length > 0) {
+        fields = await db
+          .select()
+          .from(formFields)
+          .where(and(inArray(formFields.sectionId, sectionIds), eq(formFields.isActive, true)));
+      }
+
+      const cats = await db.execute(sql`SELECT id, name, slug, icon FROM property_categories WHERE id = ${template.categoryId}`);
+      const category = cats.rows[0] || null;
+
+      res.json({
+        ...template,
+        categoryName: category ? (category.name as string) : null,
+        categoryIcon: category ? (category.icon as string) : null,
+        sections: sections
+          .sort((a, b) => a.stage - b.stage || a.sortOrder - b.sortOrder)
+          .map((s) => ({
+            ...s,
+            fields: fields
+              .filter((f) => f.sectionId === s.id)
+              .sort((a, b) => a.sortOrder - b.sortOrder),
+          })),
+      });
+    } catch (error) {
+      console.error("Error fetching form template:", error);
+      res.status(500).json({ message: "Failed to fetch form template" });
     }
   });
 

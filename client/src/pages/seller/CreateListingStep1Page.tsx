@@ -77,6 +77,13 @@ export default function CreateListingStep1Page() {
         variant: "destructive",
       });
       navigate("/login");
+      return;
+    }
+    if (!authLoading && isAuthenticated) {
+      const templateId = localStorage.getItem("selectedFormTemplateId");
+      if (!templateId) {
+        navigate("/seller/select-form");
+      }
     }
   }, [authLoading, isAuthenticated, navigate, toast]);
 

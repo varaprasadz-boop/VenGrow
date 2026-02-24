@@ -150,6 +150,14 @@ export default function CreateListingStep4Page() {
       return;
     }
 
+    if (!authLoading && isAuthenticated) {
+      const templateId = localStorage.getItem("selectedFormTemplateId");
+      if (!templateId) {
+        navigate("/seller/select-form");
+        return;
+      }
+    }
+
     try {
       const saved1 = localStorage.getItem("createListingStep1");
       const saved2 = localStorage.getItem("createListingStep2");
