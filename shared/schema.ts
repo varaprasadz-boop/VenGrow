@@ -289,6 +289,7 @@ export const properties = pgTable("properties", {
   workflowStatus: workflowStatusEnum("workflow_status").notNull().default("draft"),
   isVerified: boolean("is_verified").notNull().default(false),
   isFeatured: boolean("is_featured").notNull().default(false),
+  requestFeatured: boolean("request_featured").notNull().default(false),
   viewCount: integer("view_count").notNull().default(0),
   inquiryCount: integer("inquiry_count").notNull().default(0),
   favoriteCount: integer("favorite_count").notNull().default(0),

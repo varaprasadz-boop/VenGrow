@@ -40,95 +40,35 @@ The Add Property form has 4 stages: Basic Info, Details, Photos, Review (save to
 ### Details (Step 2) - Category-Specific
 Renders different form fields based on `categoryId` from Step 1. Each category has its own field config.
 
-### Apartment Category Analysis [PENDING IMPLEMENTATION]
+### Apartment Category [IMPLEMENTED]
+BHK, Bathrooms, Balconies, Super Built Up Area, Carpet Area, Facing, Floor Number, Flooring Type, No of Car Parking, Maintenance Charges, Overlooking, Furnishing Status, Total Flats, Total Floors, Flats on Floor, New/Resale, Possession Status (conditional), No of Lifts, Amenities (55+ list)
 
-**Already in DB schema AND form:** bedrooms (BHK), bathrooms, balconies, facing, floor, totalFloors, furnishing, flooring, ageOfProperty, possessionStatus, amenities (12 items only)
+### Villa Category [IMPLEMENTED]
+BHK, Bathrooms, Balconies, Land Area, Super Built Up Area, Carpet Area, Room Sizes (dynamic), Facing, Flooring Type, No of Car Parking, Maintenance Charges, Overlooking, Furnishing Status, Total Villas, Total Floors, Is Corner Property, Road Width in Feet, New/Resale, Possession Status (conditional), Lifts Available (Yes/No), Amenities (55+ list)
 
-**In DB schema but NOT in form (quick wins - no migration):** superBuiltUpArea, totalFlats, flatsOnFloor, isResale, numberOfLifts, carParkingCount, maintenanceCharges, viewType (overlooking)
+### Plots Category [IMPLEMENTED]
+Plot Length, Plot Breadth, Is Corner Plot (Yes/No), Facing, Floor Allowed for Construction, Maintenance Charges, Width of Road Facing Plot (meters), Overlooking, New/Resale, Club House Available (Yes/No). NO amenities, NO BHK/bathrooms, NO furnishing.
 
-**New DB columns needed:** projectSocietyName (text), overlookingType (text - Garden/Pool/Road/Not Available)
+### Independent House Category [IMPLEMENTED]
+BHK (with 1 RK), Bathrooms, Balconies, Super Built Up Area, Carpet Area, Room Sizes (dynamic), Facing, Floor Number, Flooring Type, No of Car Parking, Maintenance Charges, Overlooking, Furnished Status, Total Units, Total Floors, New/Resale, Possession Status (conditional). NO amenities, NO lifts.
 
-**Amenities expansion:** Current list has 12 items; apartment needs 55+ amenities (Air Conditioned, Banquet Hall, Bar/Lounge, Cafeteria/Food Court, Club House, Concierge Services, Conference Room, DTH Television, Doorman, Fingerprint Access, Fireplace, Full Glass Wall, Golf Course, Gymnasium, Health club with Steam/Jacuzzi, Helipad, Hilltop, House help accommodation, Intercom Facility, Internet/Wi-Fi, Island Kitchen, Jogging Track, Laundry Service, Lift, Maintenance Staff, Outdoor Tennis Courts, Park, Piped Gas, Power Back Up, Private Garage, Private Terrace/Garden, Private Jacuzzi, Private Pool, RO Water System, Rain Water Harvesting, Reserved Parking, Sea Facing, Security, Service/Goods Lift, Sky Villa, Skydeck, Skyline View, Smart Home, Swimming Pool, Theme Based Architecture, Vaastu Compliant, Visitor Parking, Waste Disposal, Water Front, Water Storage, Wine Cellar, Wrap Around Balcony)
+### New Projects Category [IMPLEMENTED]
+Floor Plans (1-4, each with: Super Built Up Area, Carpet Area, BHK, Bathrooms, Balconies, Total Price), Facings Available, Flooring Type, No of Car Parking, Maintenance Charges, Per sqft Price, Total Flats, Total Floors, Flats on Floor, Possession Status (conditional), No of Lifts, Amenities (55+ list)
 
-**Per sqft Price:** `pricePerSqft` exists in schema - needs auto-calculation from price and area
+### Commercial Category [IMPLEMENTED]
+Facing, Width of Road Facing the Plot (meters). Simplest category — 2 fields only.
 
-**Apartment Details fields:** BHK, Bathrooms, Balconies, Super Built Up Area, Carpet Area, Facing, Floor Number, Flooring Type, No of Car Parking, Maintenance Charges, Overlooking, Furnishing Status, Total Flats, Total Floors, Flats on Floor, New/Resale, Possession Status (conditional: under construction → possession date; ready to move → age of building), No of Lifts (count dropdown), Amenities (55+ list)
+### PG (Paying Guest) Category [IMPLEMENTED]
+Sharing Type (1/2/3/4 with Rent & Deposit per type), Facilities (9 items), Rules (5 items), Safety & Security (CCTV, Biometric Entry, Security Guard), Services (3 items), Food Provided, Non Veg Provided, Notice Period.
 
-### Villa Category Analysis [PENDING IMPLEMENTATION]
+### Joint Venture [IMPLEMENTED]
+Separate JV-specific form with development type, revenue/built-up share, landowner/developer expectations.
 
-**Shares with Apartment:** BHK, bathrooms, balconies, superBuiltUpArea, carpetArea, facing, furnishing, flooring, carParkingCount, maintenanceCharges, overlooking, amenities (same 55+ list), possessionStatus, isResale, pricePerSqft
+### Category Routing
+Step 2 uses `getCategorySlug()` to match categoryId from Step 1 data → renders the correct category form via `renderCategoryForm()` switch statement. Default fallback is Apartment form.
 
-**Already in DB schema, not in form (quick wins):** totalVillas, isCornerProperty, roadWidthFeet, liftsAvailable (boolean)
-
-**New DB columns needed:** landArea (integer - separate from built-up area), roomSizes (jsonb - dynamic based on BHK count, e.g. [{room: "Bedroom 1", size: "12x14"}])
-
-**Key differences from Apartment:** Uses totalVillas instead of totalFlats/flatsOnFloor; lifts is Yes/No boolean instead of count; adds isCornerProperty, roadWidthFeet, landArea, roomSizes; floor number not relevant for standalone villas
-
-**Villa Details fields:** BHK, Bathrooms, Balconies, Land Area, Super Built Up Area, Carpet Area, Room Sizes (dynamic), Facing, Flooring Type, No of Car Parking, Maintenance Charges, Overlooking, Furnishing Status, Total Villas, Total Floors, Is Corner Property, Road Width in Feet, New/Resale, Possession Status (conditional), Lifts Available (Yes/No), Amenities (55+ list)
-
-### Plots Category Analysis [PENDING IMPLEMENTATION]
-
-**Already in DB schema:** plotLength, plotBreadth, isCornerPlot, roadWidthPlotMeters, floorAllowedConstruction, maintenanceCharges, isResale, clubHouseAvailable, facing
-
-**New DB columns needed:** None expected — all plot fields already exist in schema
-
-**Plots Details fields:** Plot Area (in Step 1), Plot Length, Plot Breadth, Is Corner Plot (Yes/No), Facing, Floor Allowed for Construction, Maintenance Charges, Width of Road Facing Plot (in meters), Overlooking, New/Resale, Club House Available (Yes/No). NO amenities, NO BHK/bathrooms, NO furnishing.
-
-### Independent House Category Analysis [PENDING IMPLEMENTATION]
-
-**Shares with Apartment/Villa:** BHK, bathrooms, balconies, superBuiltUpArea, carpetArea, facing, floor, totalFloors, furnishing, flooring, carParkingCount, maintenanceCharges, overlooking, possessionStatus, isResale, roomSizes (dynamic), pricePerSqft
-
-**Key unique aspects:** BHK includes "1 RK" option (not in apartment/villa). Uses "Total Units" label (reuse totalFlats column). NO amenities list, NO lifts.
-
-**New DB columns needed:** None beyond what apartment/villa already require (roomSizes jsonb, overlookingType text). totalFlats can be reused and labeled "Total Units" in the form.
-
-**Independent House Details fields:** BHK (with 1 RK), Bathrooms, Balconies, Super Built Up Area, Carpet Area, Room Sizes (dynamic based on BHK), Facing, Floor Number, Flooring Type, No of Car Parking, Maintenance Charges, Overlooking, Furnished Status, Total Units (reuse totalFlats), Total Floors, New/Resale, Possession Status (conditional: under construction → possession date; ready to move → age of building). NO amenities, NO lifts.
-
-### New Projects Category Analysis [PENDING IMPLEMENTATION]
-
-**Already in DB schema:** newProjectFloorPlans (jsonb - array of {superBuiltUpArea, carpetArea, bhk, bathrooms, balconies, totalPrice}), facing, flooring, carParkingCount, maintenanceCharges, pricePerSqft, totalFlats, totalFloors, flatsOnFloor, possessionStatus, numberOfLifts, amenities
-
-**New DB columns needed:** None — all fields already exist in schema
-
-**Key unique aspect:** Multiple floor plans (up to 4) instead of single unit configuration. Each floor plan has its own Super Built Up Area, Carpet Area, BHK, Bathrooms, Balconies, Total Price stored in newProjectFloorPlans jsonb array.
-
-**New Projects Details fields:** Floor Plans (1-4, each with: Super Built Up Area, Carpet Area, BHK, Bathrooms, Balconies, Total Price), Facings Available, Flooring Type, No of Car Parking, Maintenance Charges, Per sqft Price, Total Flats, Total Floors, Flats on Floor, Possession Status (conditional: under construction → when is possession), No of Lifts (count dropdown), Amenities (55+ list)
-
-### Commercial Category Analysis [PENDING IMPLEMENTATION]
-
-**Already in DB schema:** facing, roadWidthPlotMeters — both already exist
-
-**New DB columns needed:** None
-
-**Key unique aspect:** Simplest category — only 2 fields in Details tab. No residential features (no BHK, bathrooms, amenities, furnishing, parking, lifts, floors). Location, Area, and Price are all in Step 1 (common fields).
-
-**Commercial Details fields:** Facing, Width of Road Facing the Plot (in meters). NO amenities, NO BHK/bathrooms, NO furnishing, NO parking, NO floors.
-
-### PG (Paying Guest) Category Analysis [PENDING IMPLEMENTATION]
-
-**Already in DB schema:** coLivingName, pgGender, pgListedFor, pgRoomType, pgAvailableIn, pgFurnishingDetails, pgAcAvailable, pgWashRoomType, pgFacilities (jsonb), pgRules (jsonb), pgServices (jsonb), pgCctv, pgBiometricEntry, pgSecurityGuard, pgFoodProvided, pgNonVegProvided, pgNoticePeriod
-
-**New DB columns needed:** pgSharingPricing (jsonb - array of {type, rent, deposit} for single/two/three/four sharing)
-
-**Key unique aspect:** Completely different from sale/purchase categories. Sharing-based pricing, facilities instead of amenities, rules, services, safety features. No BHK, no facing, no floors, no area in traditional sense.
-
-**Facility options:** Geyser, Washrooms, Cupboard, TV, AC, Cot, Mattress, Side Table, Air Cooler
-
-**Rules options:** Veg Only, No Smoking, Drinking alcohol not allowed, Entry of opposite gender not allowed, Guardian not allowed
-
-**Services options:** Laundry, Room Cleaning, Warden
-
-**PG Details fields:** Sharing Type (1/2/3/4 with Rent & Deposit per type), Facilities (9 items), Rules (5 items), Safety & Security (CCTV, Biometric Entry, Security Guard — all Yes/No), Services (3 items), Food Provided (Yes/No), Non Veg Provided (Yes/No), Notice Period (1 Week/15 Days/1 Month/2 Month). NO amenities, NO BHK, NO facing, NO floors.
-
-**Other categories (Farmland, etc.):** Awaiting user input before implementation. Will implement all categories together.
-
-### Implementation Approach
-1. Schema changes: Add new columns (projectSocietyName, overlookingType, etc.) via Drizzle migration
-2. Step 1 restructure: Move common fields, add Project/Society Name, auto-calc per sqft price
-3. Step 2 restructure: Read categoryId from Step 1, render category-specific fields using config mapping
-4. Expand amenities list to 55+ items with logical grouping
-5. Steps 3 (Photos) and 4 (Review) remain as-is
-6. Joint Venture form already implemented in Step 2 - keep as-is
+### Featured Listing Opt-in (Step 4) [IMPLEMENTED]
+Sellers can request their listing to be featured at submission time (Step 4). The checkbox only appears if the seller's subscription package has remaining featured slots (`featuredLimit - featuredUsed > 0`). When admin approves the property, if `requestFeatured` is true, the system auto-sets `isFeatured = true` and increments `featuredUsed` on the subscription. DB column: `request_featured` (boolean, default false) on properties table.
 
 ### Technical Notes
 - jsPDF Helvetica font doesn't support ₹ symbol - use "Rs." text instead in invoicePDF.ts

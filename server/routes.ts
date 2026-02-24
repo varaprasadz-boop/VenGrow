@@ -2695,7 +2695,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update property to live status (with pending changes applied if any)
       await storage.updateProperty(approval.propertyId, updateData);
-      
+
+      // Auto-feature if seller requested it and has remaining featured slots
+      if (property?.requestFeatured && !property?.isFeatured) {
+        try {
+          const sellerSub = await storage.getActiveSubscriptionWithPackage(property.sellerId);
+          if (sellerSub) {
+            const featuredLimit = sellerSub.package.featuredListings || 0;
+            const featuredUsed = sellerSub.subscription.featuredUsed || 0;
+            if (featuredUsed < featuredLimit) {
+              await storage.updateProperty(approval.propertyId, { isFeatured: true });
+              await storage.updateSubscription(sellerSub.subscription.id, {
+                featuredUsed: featuredUsed + 1,
+              });
+            }
+          }
+        } catch (featErr) {
+          console.error("Error auto-featuring property:", featErr);
+        }
+      }
+
       // Send property approval email
       const sellerProfile = await storage.getSellerProfile(property.sellerId);
       if (sellerProfile) {

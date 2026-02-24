@@ -21,6 +21,7 @@ import {
   Loader2,
   AlertCircle,
   Building2,
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -130,10 +131,31 @@ export default function CreateListingStep4Page() {
 
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [verifiedInfo, setVerifiedInfo] = useState(false);
+  const [requestFeatured, setRequestFeatured] = useState(false);
 
   const { data: categories = [] } = useQuery<PropertyCategory[]>({
     queryKey: ["/api/property-categories"],
   });
+
+  interface SubscriptionResponse {
+    success: boolean;
+    subscription: any;
+    package: any;
+    usage?: {
+      featuredUsed: number;
+      featuredLimit: number;
+    };
+  }
+
+  const { data: subscriptionData } = useQuery<SubscriptionResponse>({
+    queryKey: ["/api/subscriptions/current"],
+    enabled: isAuthenticated,
+  });
+
+  const featuredLimit = subscriptionData?.usage?.featuredLimit ?? 0;
+  const featuredUsed = subscriptionData?.usage?.featuredUsed ?? 0;
+  const featuredRemaining = Math.max(0, featuredLimit - featuredUsed);
+  const canRequestFeatured = featuredRemaining > 0;
 
   const { data: allSubcategories = [] } = useQuery<PropertySubcategory[]>({
     queryKey: ["/api/property-subcategories"],
@@ -177,6 +199,11 @@ export default function CreateListingStep4Page() {
       setStep2Data(JSON.parse(saved2));
       setStep3Data(JSON.parse(saved3));
       setDataLoaded(true);
+
+      const savedFeatured = localStorage.getItem("createListingRequestFeatured");
+      if (savedFeatured === "true") {
+        setRequestFeatured(true);
+      }
 
       if (user) {
         setContactData({
@@ -267,6 +294,7 @@ export default function CreateListingStep4Page() {
       localStorage.removeItem("createListingStep1");
       localStorage.removeItem("createListingStep2");
       localStorage.removeItem("createListingStep3");
+      localStorage.removeItem("createListingRequestFeatured");
 
       queryClient.invalidateQueries({ queryKey: ["/api/seller/properties"] });
       queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/current"] });
@@ -374,6 +402,7 @@ export default function CreateListingStep4Page() {
       contactPhone: cleanPhone(contactData.contactPhone),
       contactEmail: normalizeEmail(contactData.contactEmail),
       contactWhatsapp: contactData.whatsappNumber || null,
+      requestFeatured: requestFeatured,
     };
 
     if (isJvListing && step2Data.jvDetails) {
@@ -571,6 +600,39 @@ export default function CreateListingStep4Page() {
                       Buyers can contact you directly on WhatsApp
                     </p>
                   </div>
+
+                  {canRequestFeatured && (
+                    <>
+                      <Separator />
+                      <div className="space-y-3">
+                        <div className="flex items-start space-x-3">
+                          <Checkbox
+                            id="requestFeatured"
+                            checked={requestFeatured}
+                            onCheckedChange={(checked) => {
+                              const val = checked === true;
+                              setRequestFeatured(val);
+                              localStorage.setItem("createListingRequestFeatured", val ? "true" : "false");
+                            }}
+                            data-testid="checkbox-request-featured"
+                          />
+                          <div className="space-y-1">
+                            <Label
+                              htmlFor="requestFeatured"
+                              className="text-sm font-medium cursor-pointer flex items-center gap-2"
+                            >
+                              <Star className="h-4 w-4 text-amber-500" />
+                              Add to Featured Listings
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                              Your listing will be highlighted in the Featured section after admin approval.
+                              You have {featuredRemaining} of {featuredLimit} featured slot{featuredLimit !== 1 ? "s" : ""} remaining.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <Separator />
 
