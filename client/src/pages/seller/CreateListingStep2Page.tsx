@@ -1132,16 +1132,34 @@ export default function CreateListingStep2Page() {
   );
 
   const renderCommercialForm = () => (
-    <div>
-      <h3 className="font-semibold mb-4">Commercial Property Details</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {renderFacingSelect()}
-        <div className="space-y-2">
-          <Label>Width of Road Facing the Plot (meters)</Label>
-          <Input type="number" placeholder="e.g., 12" value={formData.roadWidthPlotMeters} onChange={(e) => setFormData({ ...formData, roadWidthPlotMeters: e.target.value })} data-testid="input-road-width-commercial" />
+    <>
+      <div>
+        <h3 className="font-semibold mb-4">Commercial Property Details</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label>Available Area (sq.ft.)</Label>
+            <Input type="number" placeholder="e.g., 1500" value={formData.superBuiltUpArea} onChange={(e) => setFormData({ ...formData, superBuiltUpArea: e.target.value })} data-testid="input-available-area-commercial" />
+          </div>
+          {renderFacingSelect()}
+          <div className="space-y-2">
+            <Label>Width of Road Facing the Plot (meters)</Label>
+            <Input type="number" placeholder="e.g., 12" value={formData.roadWidthPlotMeters} onChange={(e) => setFormData({ ...formData, roadWidthPlotMeters: e.target.value })} data-testid="input-road-width-commercial" />
+          </div>
         </div>
       </div>
-    </div>
+
+      {(transactionType === "rent" || transactionType === "lease") && (
+        <div>
+          <h3 className="font-semibold mb-4">Rental Details</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label>Monthly Rent (Rs.)</Label>
+              <Input type="number" placeholder="e.g., 50000" value={formData.monthlyRent} onChange={(e) => setFormData({ ...formData, monthlyRent: e.target.value })} data-testid="input-monthly-rent-commercial" />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 
   const renderPGForm = () => (
