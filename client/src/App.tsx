@@ -67,11 +67,11 @@ function withGuestRoute(Component: React.ComponentType<any>) {
   };
 }
 
-/** Redirects /seller/property/add to the canonical create-listing path */
+/** Redirects /seller/property/add to the form selection page */
 function RedirectSellerPropertyAddToStep1() {
   const [, setLocation] = useLocation();
   useEffect(() => {
-    setLocation("/seller/listings/create/step1", { replace: true });
+    setLocation("/seller/select-form", { replace: true });
   }, [setLocation]);
   return <LoadingSpinner />;
 }

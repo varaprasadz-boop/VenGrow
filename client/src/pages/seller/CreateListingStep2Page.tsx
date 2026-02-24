@@ -162,6 +162,11 @@ export default function CreateListingStep2Page() {
       navigate("/login");
       return;
     }
+    const templateId = localStorage.getItem("selectedFormTemplateId");
+    if (!templateId) {
+      navigate("/seller/select-form");
+      return;
+    }
     try {
       const savedData = localStorage.getItem("createListingStep1");
       if (!savedData) {

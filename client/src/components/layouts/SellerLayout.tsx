@@ -39,7 +39,7 @@ interface SellerLayoutProps {
 
 const mainNavItems = [
   { title: "Dashboard", href: "/seller/dashboard", icon: LayoutDashboard },
-  { title: "Add Property", href: "/seller/listings/create/step1", icon: Plus },
+  { title: "Add Property", href: "/seller/select-form", icon: Plus },
   { title: "My Properties", href: "/seller/properties", icon: Building2 },
 ];
 

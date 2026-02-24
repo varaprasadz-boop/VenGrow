@@ -150,7 +150,7 @@ const sellerNavigation: NavGroup[] = [
     label: "Properties",
     items: [
       { title: "My Listings", url: "/seller/listings", icon: Building },
-      { title: "Add Property", url: "/seller/listings/create/step1", icon: Plus },
+      { title: "Add Property", url: "/seller/select-form", icon: Plus },
       { title: "Pending Approval", url: "/seller/pending-approval", icon: Clock },
       { title: "Featured Properties", url: "/seller/featured", icon: Star },
     ],
