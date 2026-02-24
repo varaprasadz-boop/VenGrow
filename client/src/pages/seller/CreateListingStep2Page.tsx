@@ -101,6 +101,7 @@ export default function CreateListingStep2Page() {
   );
   const categorySlug = selectedCategory?.slug || "";
   const isJv = categorySlug === "joint-venture";
+  const transactionType = step1Data?.transactionType || "sale";
 
   const [formData, setFormData] = useState({
     bedrooms: "",
@@ -152,6 +153,16 @@ export default function CreateListingStep2Page() {
     pgFoodProvided: "",
     pgNonVegProvided: "",
     pgNoticePeriod: "",
+    monthlyRent: "",
+    leaseAmount: "",
+    securityDeposit: "",
+    lockInPeriod: "",
+    availableFrom: "",
+    tenantsPreferred: "",
+    nonVegetarians: "",
+    withPets: "",
+    bachelors: "",
+    ageOfBuilding: "",
   });
 
   const [jvFormData, setJvFormData] = useState<JvDetailsType>(defaultJvDetails);
@@ -243,20 +254,28 @@ export default function CreateListingStep2Page() {
 
   useEffect(() => {
     if (!categorySlug || categorySlug === "joint-venture" || categorySlug === "pg-hostel" || categorySlug === "plots" || categorySlug === "commercial" || categorySlug === "new-projects") return;
-    const bhkCount = parseInt(formData.bedrooms) || 0;
-    if (bhkCount > 0) {
-      const rooms: { room: string; size: string }[] = [];
+    const bedroomVal = formData.bedrooms;
+    if (!bedroomVal) return;
+    const rooms: { room: string; size: string }[] = [];
+    if (bedroomVal === "studio") {
+      const studioExisting = formData.roomSizes.find(r => r.room === "Studio Room");
+      rooms.push({ room: "Studio Room", size: studioExisting?.size || "" });
+    } else if (bedroomVal === "0") {
+      const roomExisting = formData.roomSizes.find(r => r.room === "Room");
+      rooms.push({ room: "Room", size: roomExisting?.size || "" });
+    } else {
+      const bhkCount = parseInt(bedroomVal) || 0;
       for (let i = 1; i <= bhkCount; i++) {
         const existing = formData.roomSizes.find(r => r.room === `Bedroom ${i}`);
         rooms.push({ room: `Bedroom ${i}`, size: existing?.size || "" });
       }
-      const livingExisting = formData.roomSizes.find(r => r.room === "Living Room");
-      rooms.push({ room: "Living Room", size: livingExisting?.size || "" });
-      const kitchenExisting = formData.roomSizes.find(r => r.room === "Kitchen");
-      rooms.push({ room: "Kitchen", size: kitchenExisting?.size || "" });
-      if (JSON.stringify(rooms) !== JSON.stringify(formData.roomSizes)) {
-        setFormData(prev => ({ ...prev, roomSizes: rooms }));
-      }
+    }
+    const livingExisting = formData.roomSizes.find(r => r.room === "Living Room");
+    rooms.push({ room: "Living Room", size: livingExisting?.size || "" });
+    const kitchenExisting = formData.roomSizes.find(r => r.room === "Kitchen");
+    rooms.push({ room: "Kitchen", size: kitchenExisting?.size || "" });
+    if (JSON.stringify(rooms) !== JSON.stringify(formData.roomSizes)) {
+      setFormData(prev => ({ ...prev, roomSizes: rooms }));
     }
   }, [formData.bedrooms, categorySlug]);
 
@@ -530,6 +549,118 @@ export default function CreateListingStep2Page() {
     );
   };
 
+  const renderAgeOfBuilding = () => (
+    <div className="space-y-2">
+      <Label>Age of the Building</Label>
+      <Select value={formData.ageOfBuilding} onValueChange={(v) => setFormData({ ...formData, ageOfBuilding: v })}>
+        <SelectTrigger data-testid="select-age-of-building"><SelectValue placeholder="Select" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="0-1">Less than 1 year</SelectItem>
+          <SelectItem value="1-3">1-3 years</SelectItem>
+          <SelectItem value="3-5">3-5 years</SelectItem>
+          <SelectItem value="5-10">5-10 years</SelectItem>
+          <SelectItem value="10+">10+ years</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  const renderRentLeaseFields = () => {
+    const isRent = transactionType === "rent";
+    const isLease = transactionType === "lease";
+    if (!isRent && !isLease) return null;
+
+    return (
+      <>
+        <div>
+          <h3 className="font-semibold mb-4">{isRent ? "Rent Details" : "Lease Details"}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {isRent && (
+              <div className="space-y-2">
+                <Label>Monthly Rent (Rs.) *</Label>
+                <Input type="number" placeholder="e.g., 25000" value={formData.monthlyRent} onChange={(e) => setFormData({ ...formData, monthlyRent: e.target.value })} data-testid="input-monthly-rent" />
+              </div>
+            )}
+            {isLease && (
+              <div className="space-y-2">
+                <Label>Lease Amount (Rs.) *</Label>
+                <Input type="number" placeholder="e.g., 500000" value={formData.leaseAmount} onChange={(e) => setFormData({ ...formData, leaseAmount: e.target.value })} data-testid="input-lease-amount" />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Security Deposit (Rs.)</Label>
+              <Input type="number" placeholder="e.g., 50000" value={formData.securityDeposit} onChange={(e) => setFormData({ ...formData, securityDeposit: e.target.value })} data-testid="input-security-deposit" />
+            </div>
+            <div className="space-y-2">
+              <Label>Lock-in Period</Label>
+              <Select value={formData.lockInPeriod} onValueChange={(v) => setFormData({ ...formData, lockInPeriod: v })}>
+                <SelectTrigger data-testid="select-lock-in-period"><SelectValue placeholder="Select months" /></SelectTrigger>
+                <SelectContent>
+                  {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,36].map(n => <SelectItem key={n} value={String(n)}>{n} {n === 1 ? "month" : "months"}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Available From</Label>
+              <Input type="date" value={formData.availableFrom} onChange={(e) => setFormData({ ...formData, availableFrom: e.target.value })} data-testid="input-available-from" />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-4">Tenant Preferences</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label>Tenants Preferred</Label>
+              <Select value={formData.tenantsPreferred} onValueChange={(v) => setFormData({ ...formData, tenantsPreferred: v })}>
+                <SelectTrigger data-testid="select-tenants-preferred"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="family">Family</SelectItem>
+                  <SelectItem value="bachelor">Bachelor</SelectItem>
+                  <SelectItem value="company">Company</SelectItem>
+                  <SelectItem value="any">Anyone</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Non-vegetarians</Label>
+              <Select value={formData.nonVegetarians} onValueChange={(v) => setFormData({ ...formData, nonVegetarians: v })}>
+                <SelectTrigger data-testid="select-non-vegetarians"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="doesnt-matter">Doesn't Matter</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>With Pets</Label>
+              <Select value={formData.withPets} onValueChange={(v) => setFormData({ ...formData, withPets: v })}>
+                <SelectTrigger data-testid="select-with-pets"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="doesnt-matter">Doesn't Matter</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Bachelors</Label>
+              <Select value={formData.bachelors} onValueChange={(v) => setFormData({ ...formData, bachelors: v })}>
+                <SelectTrigger data-testid="select-bachelors"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="doesnt-matter">Doesn't Matter</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  };
+
   const renderApartmentForm = () => (
     <>
       <div>
@@ -548,6 +679,8 @@ export default function CreateListingStep2Page() {
         </div>
       </div>
 
+      {renderRoomSizes()}
+
       <div>
         <h3 className="font-semibold mb-4">Property Features</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -563,6 +696,8 @@ export default function CreateListingStep2Page() {
           {renderFurnishingSelect()}
         </div>
       </div>
+
+      {renderRentLeaseFields()}
 
       <div>
         <h3 className="font-semibold mb-4">Building Details</h3>
@@ -589,7 +724,8 @@ export default function CreateListingStep2Page() {
               </SelectContent>
             </Select>
           </div>
-          {renderResaleSelect()}
+          {transactionType === "sale" && renderResaleSelect()}
+          {renderAgeOfBuilding()}
           <div className="space-y-2">
             <Label>No. of Lifts</Label>
             <Select value={formData.numberOfLifts} onValueChange={(v) => setFormData({ ...formData, numberOfLifts: v })}>
@@ -602,12 +738,14 @@ export default function CreateListingStep2Page() {
         </div>
       </div>
 
-      <div>
-        <h3 className="font-semibold mb-4">Possession & Status</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {renderPossessionFields()}
+      {transactionType === "sale" && (
+        <div>
+          <h3 className="font-semibold mb-4">Possession & Status</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {renderPossessionFields()}
+          </div>
         </div>
-      </div>
+      )}
 
       {renderAmenities()}
     </>
