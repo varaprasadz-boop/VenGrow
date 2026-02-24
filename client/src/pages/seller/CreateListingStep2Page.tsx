@@ -783,6 +783,8 @@ export default function CreateListingStep2Page() {
         </div>
       </div>
 
+      {renderRentLeaseFields()}
+
       <div>
         <h3 className="font-semibold mb-4">Villa Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -813,7 +815,8 @@ export default function CreateListingStep2Page() {
             <Label>Width of Road (in Feet)</Label>
             <Input type="number" placeholder="e.g., 30" value={formData.roadWidthFeet} onChange={(e) => setFormData({ ...formData, roadWidthFeet: e.target.value })} data-testid="input-road-width-feet" />
           </div>
-          {renderResaleSelect()}
+          {transactionType === "sale" && renderResaleSelect()}
+          {renderAgeOfBuilding()}
           <div className="space-y-2">
             <Label>Lifts Available?</Label>
             <Select value={formData.liftsAvailable} onValueChange={(v) => setFormData({ ...formData, liftsAvailable: v })}>
@@ -827,12 +830,14 @@ export default function CreateListingStep2Page() {
         </div>
       </div>
 
-      <div>
-        <h3 className="font-semibold mb-4">Possession & Status</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {renderPossessionFields()}
+      {transactionType === "sale" && (
+        <div>
+          <h3 className="font-semibold mb-4">Possession & Status</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {renderPossessionFields()}
+          </div>
         </div>
-      </div>
+      )}
 
       {renderAmenities()}
     </>
