@@ -746,19 +746,6 @@ export const propertySubcategories = pgTable("property_subcategories", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const formTemplates = pgTable("form_templates", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  description: text("description"),
-  categoryId: varchar("category_id").references(() => propertyCategories.id),
-  sellerType: text("seller_type"),
-  icon: text("icon"),
-  isActive: boolean("is_active").notNull().default(true),
-  sortOrder: integer("sort_order").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
 export const siteSettings = pgTable("site_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   key: text("key").notNull().unique(),
