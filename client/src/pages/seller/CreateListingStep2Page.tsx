@@ -153,6 +153,13 @@ export default function CreateListingStep2Page() {
     pgFoodProvided: "",
     pgNonVegProvided: "",
     pgNoticePeriod: "",
+    pgGender: "",
+    pgSuitedFor: "",
+    pgRoomType: "",
+    pgAvailableIn: "",
+    pgFurnishingDetails: [] as string[],
+    pgAcType: "",
+    pgWashRoom: "",
     monthlyRent: "",
     leaseAmount: "",
     securityDeposit: "",
@@ -210,7 +217,7 @@ export default function CreateListingStep2Page() {
     } catch (_) {}
   }, [step1Data]);
 
-  const toggleListItem = (field: "amenities" | "pgFacilities" | "pgRules" | "pgServices", item: string) => {
+  const toggleListItem = (field: "amenities" | "pgFacilities" | "pgRules" | "pgServices" | "pgFurnishingDetails", item: string) => {
     setFormData(prev => {
       const list = prev[field] as string[];
       return {
@@ -1287,6 +1294,97 @@ export default function CreateListingStep2Page() {
                 <Label>Deposit (Rs.)</Label>
                 <Input type="number" placeholder="e.g., 16000" value={sharing.deposit} onChange={(e) => updateSharingPricing(index, "deposit", e.target.value)} data-testid={`input-pg-deposit-${sharing.type}`} />
               </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="font-semibold mb-4">Guest Profile</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-2">
+            <Label>Gender</Label>
+            <Select value={formData.pgGender} onValueChange={(v) => setFormData({ ...formData, pgGender: v })}>
+              <SelectTrigger data-testid="select-pg-gender"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+                <SelectItem value="unisex">Unisex</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Suited For</Label>
+            <Select value={formData.pgSuitedFor} onValueChange={(v) => setFormData({ ...formData, pgSuitedFor: v })}>
+              <SelectTrigger data-testid="select-pg-suited-for"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="student">Student</SelectItem>
+                <SelectItem value="working_professional">Working Professional</SelectItem>
+                <SelectItem value="mixed">Mixed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="font-semibold mb-4">Room Details</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-2">
+            <Label>Room Type</Label>
+            <Select value={formData.pgRoomType} onValueChange={(v) => setFormData({ ...formData, pgRoomType: v })}>
+              <SelectTrigger data-testid="select-pg-room-type"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="private">Private</SelectItem>
+                <SelectItem value="shared">Shared</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Available In</Label>
+            <Select value={formData.pgAvailableIn} onValueChange={(v) => setFormData({ ...formData, pgAvailableIn: v })}>
+              <SelectTrigger data-testid="select-pg-available-in"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="studio">Studio</SelectItem>
+                <SelectItem value="micro_apartment">Micro-apartment</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>AC / Non-AC</Label>
+            <Select value={formData.pgAcType} onValueChange={(v) => setFormData({ ...formData, pgAcType: v })}>
+              <SelectTrigger data-testid="select-pg-ac-type"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ac">AC</SelectItem>
+                <SelectItem value="non_ac">Non-AC</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Wash Room</Label>
+            <Select value={formData.pgWashRoom} onValueChange={(v) => setFormData({ ...formData, pgWashRoom: v })}>
+              <SelectTrigger data-testid="select-pg-washroom"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="attached">Attached</SelectItem>
+                <SelectItem value="common">Common Bathroom</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="font-semibold mb-4">Furnishing Details</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {["Bed", "Mattress", "Wardrobe", "Study Table"].map((item) => (
+            <div key={item} className="flex items-center space-x-2">
+              <Checkbox
+                id={`furnishing-${item}`}
+                checked={formData.pgFurnishingDetails.includes(item)}
+                onCheckedChange={() => toggleListItem("pgFurnishingDetails", item)}
+                data-testid={`checkbox-furnishing-${item.toLowerCase().replace(/\s/g, "-")}`}
+              />
+              <Label htmlFor={`furnishing-${item}`} className="text-sm font-normal cursor-pointer">{item}</Label>
             </div>
           ))}
         </div>
