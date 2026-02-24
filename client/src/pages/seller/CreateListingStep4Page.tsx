@@ -108,8 +108,11 @@ interface Step2Data {
 }
 
 interface Step3Data {
-  photos: string[];
+  photoCount?: number;
+  photoNames?: string[];
+  photos?: string[];
   youtubeVideoUrl: string;
+  virtualTourUrl?: string;
 }
 
 export default function CreateListingStep4Page() {
@@ -389,7 +392,7 @@ export default function CreateListingStep4Page() {
       latitude: step1Data.latitude ? parseFloat(step1Data.latitude) : null,
       longitude: step1Data.longitude ? parseFloat(step1Data.longitude) : null,
       youtubeVideoUrl: step3Data.youtubeVideoUrl || null,
-      images: step3Data.photos || [],
+      images: step3Data.photoNames || step3Data.photos || [],
       contactName: contactData.contactName.trim(),
       contactPhone: cleanPhone(contactData.contactPhone),
       contactEmail: normalizeEmail(contactData.contactEmail),
@@ -709,9 +712,9 @@ export default function CreateListingStep4Page() {
 
                 <div className="space-y-4">
                   <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                    {step3Data.photos.length > 0 ? (
+                    {(step3Data.photoCount || step3Data.photos?.length || 0) > 0 ? (
                       <span className="text-sm text-muted-foreground">
-                        {step3Data.photos.length} Photo(s) Uploaded
+                        {step3Data.photoCount || step3Data.photos?.length || 0} Photo(s) Uploaded
                       </span>
                     ) : (
                       <Building2 className="h-12 w-12 text-muted-foreground" />

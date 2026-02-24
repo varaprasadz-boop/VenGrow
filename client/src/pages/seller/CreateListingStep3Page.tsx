@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, ArrowLeft, Upload, X, Image as ImageIcon } from "lucide-react";
+import { ArrowRight, ArrowLeft, Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -17,13 +17,20 @@ function isValidYouTubeUrl(url: string): boolean {
   return patterns.some(pattern => pattern.test(url));
 }
 
+const MAX_PHOTOS = 20;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
 export default function CreateListingStep3Page() {
   const [, navigate] = useLocation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<{ name: string; dataUrl: string }[]>([]);
   const [videoUrl, setVideoUrl] = useState("");
+  const [virtualTourUrl, setVirtualTourUrl] = useState("");
   const [dataValidated, setDataValidated] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -37,6 +44,12 @@ export default function CreateListingStep3Page() {
     }
 
     if (!authLoading && isAuthenticated) {
+      const templateId = localStorage.getItem("selectedFormTemplateId");
+      if (!templateId) {
+        navigate("/seller/select-form");
+        return;
+      }
+
       const step1Data = localStorage.getItem("createListingStep1");
       const step2Data = localStorage.getItem("createListingStep2");
 
@@ -49,11 +62,26 @@ export default function CreateListingStep3Page() {
         navigate("/seller/listings/create/step1");
         return;
       }
+
+      const savedStep3 = localStorage.getItem("createListingStep3");
+      if (savedStep3) {
+        try {
+          const parsed = JSON.parse(savedStep3);
+          if (parsed.youtubeVideoUrl) {
+            setVideoUrl(parsed.youtubeVideoUrl);
+          }
+          if (parsed.virtualTourUrl) {
+            setVirtualTourUrl(parsed.virtualTourUrl);
+          }
+        } catch (e) {
+          console.error("Error restoring step 3 data:", e);
+        }
+      }
+
       setDataValidated(true);
     }
   }, [authLoading, isAuthenticated, navigate, toast]);
 
-  // Show loading state while checking auth and validating data
   if (authLoading || !dataValidated) {
     return (
       <main className="flex-1 flex items-center justify-center">
@@ -65,19 +93,115 @@ export default function CreateListingStep3Page() {
     );
   }
 
-  const handlePhotoUpload = () => {
-    console.log("Photo upload triggered");
-    setPhotos([...photos, "photo-placeholder.jpg"]);
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const remaining = MAX_PHOTOS - photos.length;
+    if (remaining <= 0) {
+      toast({
+        title: "Photo Limit Reached",
+        description: `You can upload a maximum of ${MAX_PHOTOS} photos.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedFiles = Array.from(files).slice(0, remaining);
+    const invalidFiles: string[] = [];
+    const oversizedFiles: string[] = [];
+    const validFiles: File[] = [];
+
+    for (const file of selectedFiles) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        invalidFiles.push(file.name);
+      } else if (file.size > MAX_FILE_SIZE) {
+        oversizedFiles.push(file.name);
+      } else {
+        validFiles.push(file);
+      }
+    }
+
+    if (invalidFiles.length > 0) {
+      toast({
+        title: "Invalid File Type",
+        description: `Only JPG, PNG, and WebP files are allowed. Skipped: ${invalidFiles.join(", ")}`,
+        variant: "destructive",
+      });
+    }
+
+    if (oversizedFiles.length > 0) {
+      toast({
+        title: "File Too Large",
+        description: `Files must be under 10MB. Skipped: ${oversizedFiles.join(", ")}`,
+        variant: "destructive",
+      });
+    }
+
+    if (validFiles.length === 0) return;
+
+    setUploading(true);
+
+    try {
+      const newPhotos = await Promise.all(
+        validFiles.map(
+          (file) =>
+            new Promise<{ name: string; dataUrl: string }>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                resolve({ name: file.name, dataUrl: reader.result as string });
+              };
+              reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+              reader.readAsDataURL(file);
+            })
+        )
+      );
+      setPhotos((prev) => [...prev, ...newPhotos]);
+    } catch (err) {
+      toast({
+        title: "Upload Error",
+        description: "Some photos could not be read. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   };
 
   const removePhoto = (index: number) => {
-    setPhotos(photos.filter((_, i) => i !== index));
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const dt = e.dataTransfer;
+    if (dt.files && dt.files.length > 0) {
+      const input = fileInputRef.current;
+      if (input) {
+        const dataTransfer = new DataTransfer();
+        Array.from(dt.files).forEach((f) => dataTransfer.items.add(f));
+        input.files = dataTransfer.files;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   return (
     <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Progress */}
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
@@ -108,54 +232,75 @@ export default function CreateListingStep3Page() {
             </p>
 
             <form className="space-y-8">
-              {/* Photos Upload */}
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <Label className="text-base">Property Photos *</Label>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Upload at least 5 photos. Maximum 20 photos allowed.
+                      Upload at least 5 photos. Maximum {MAX_PHOTOS} photos allowed.
                     </p>
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    {photos.length}/20
+                    {photos.length}/{MAX_PHOTOS}
                   </span>
                 </div>
 
-                {/* Upload Button */}
-                <div
-                  onClick={handlePhotoUpload}
-                  className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-12 text-center cursor-pointer hover-elevate active-elevate-2 mb-6"
-                  data-testid="button-upload-photos"
-                >
-                  <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
-                    <Upload className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="font-semibold mb-2">Click to upload photos</h3>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    or drag and drop
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    PNG, JPG up to 10MB each
-                  </p>
-                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  data-testid="input-file-upload"
+                />
 
-                {/* Photo Grid */}
+                {photos.length < MAX_PHOTOS && (
+                  <div
+                    onClick={handleUploadClick}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-12 text-center cursor-pointer hover-elevate active-elevate-2 mb-6"
+                    data-testid="button-upload-photos"
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+                    ) : (
+                      <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                        <Upload className="h-8 w-8 text-primary" />
+                      </div>
+                    )}
+                    <h3 className="font-semibold mb-2">
+                      {uploading ? "Processing photos..." : "Click to upload photos"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      or drag and drop
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      JPG, PNG, WebP up to 10MB each
+                    </p>
+                  </div>
+                )}
+
                 {photos.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {photos.map((photo, index) => (
                       <div
                         key={index}
                         className="relative aspect-square rounded-lg border overflow-hidden group"
+                        data-testid={`photo-preview-${index}`}
                       >
-                        <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                          <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                        </div>
+                        <img
+                          src={photo.dataUrl}
+                          alt={photo.name}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
                         <Button
                           variant="destructive"
                           size="icon"
-                          className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => removePhoto(index)}
+                          type="button"
                           data-testid={`button-remove-photo-${index}`}
                         >
                           <X className="h-4 w-4" />
@@ -167,6 +312,11 @@ export default function CreateListingStep3Page() {
                             </span>
                           </div>
                         )}
+                        <div className="absolute bottom-2 right-2 max-w-[60%]">
+                          <span className="text-xs bg-black/60 text-white px-2 py-0.5 rounded truncate block">
+                            {photo.name}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -179,7 +329,6 @@ export default function CreateListingStep3Page() {
                 </div>
               </div>
 
-              {/* YouTube Video */}
               <div>
                 <Label className="text-base">YouTube Video (Optional)</Label>
                 <p className="text-sm text-muted-foreground mt-1 mb-4">
@@ -218,21 +367,21 @@ export default function CreateListingStep3Page() {
                 </div>
               </div>
 
-              {/* Virtual Tour */}
               <div>
                 <Label className="text-base">Virtual Tour Link (Optional)</Label>
                 <p className="text-sm text-muted-foreground mt-1 mb-4">
-                  Add a 360° virtual tour link if available
+                  Add a 360 degree virtual tour link if available
                 </p>
                 <input
                   type="text"
                   placeholder="Enter virtual tour URL"
                   className="w-full px-4 py-2 border rounded-lg"
+                  value={virtualTourUrl}
+                  onChange={(e) => setVirtualTourUrl(e.target.value)}
                   data-testid="input-virtual-tour"
                 />
               </div>
 
-              {/* Navigation */}
               <div className="flex justify-between pt-6">
                 <Link href="/seller/listings/create/step2">
                   <Button variant="outline" type="button" data-testid="button-back">
@@ -252,7 +401,16 @@ export default function CreateListingStep3Page() {
                       });
                       return;
                     }
-                    localStorage.setItem("createListingStep3", JSON.stringify({ photos, youtubeVideoUrl: videoUrl }));
+                    try {
+                      localStorage.setItem("createListingStep3", JSON.stringify({
+                        photoCount: photos.length,
+                        photoNames: photos.map(p => p.name),
+                        youtubeVideoUrl: videoUrl,
+                        virtualTourUrl,
+                      }));
+                    } catch (err) {
+                      console.error("Error saving step 3 data:", err);
+                    }
                     navigate("/seller/listings/create/step4");
                   }}
                 >

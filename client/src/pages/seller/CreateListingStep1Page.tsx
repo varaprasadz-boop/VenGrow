@@ -163,6 +163,7 @@ export default function CreateListingStep1Page() {
       projectStage: "",
       transactionType: allowed[0] || "sale"
     });
+    localStorage.removeItem("createListingStep2");
   };
 
   const isFormValid = useMemo(() => {
@@ -307,9 +308,10 @@ export default function CreateListingStep1Page() {
                     <Label htmlFor="subcategory">Subcategory *</Label>
                     <Select
                       value={formData.subcategoryId}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, subcategoryId: value })
-                      }
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, subcategoryId: value });
+                        localStorage.removeItem("createListingStep2");
+                      }}
                     >
                       <SelectTrigger id="subcategory" data-testid="select-subcategory">
                         <SelectValue placeholder="Select subcategory" />
@@ -331,9 +333,10 @@ export default function CreateListingStep1Page() {
                   <Label htmlFor="transactionType">Transaction Type *</Label>
                   <Select
                     value={formData.transactionType}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, transactionType: value })
-                    }
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, transactionType: value });
+                      localStorage.removeItem("createListingStep2");
+                    }}
                     disabled={!formData.categoryId}
                   >
                     <SelectTrigger id="transactionType" data-testid="select-transaction-type">
@@ -688,12 +691,24 @@ export default function CreateListingStep1Page() {
               </div>
 
               <div className="flex justify-between pt-6">
-                <Link href="/seller/dashboard">
-                  <Button variant="outline" type="button" data-testid="button-cancel">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Cancel
-                  </Button>
-                </Link>
+                <Button
+                  variant="outline"
+                  type="button"
+                  data-testid="button-cancel"
+                  onClick={() => {
+                    localStorage.removeItem("createListingStep1");
+                    localStorage.removeItem("createListingStep2");
+                    localStorage.removeItem("createListingStep3");
+                    localStorage.removeItem("createListingRequestFeatured");
+                    localStorage.removeItem("selectedFormTemplateId");
+                    localStorage.removeItem("selectedFormTemplateName");
+                    localStorage.removeItem("selectedFormCategoryId");
+                    navigate("/seller/listings");
+                  }}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
                 <Button onClick={handleNext} type="button" disabled={!isFormValid} data-testid="button-next">
                   Next: Property Details
                   <ArrowRight className="h-4 w-4 ml-2" />
