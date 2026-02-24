@@ -980,6 +980,8 @@ export default function CreateListingStep2Page() {
         </div>
       </div>
 
+      {renderRentLeaseFields()}
+
       <div>
         <h3 className="font-semibold mb-4">Building Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -996,16 +998,19 @@ export default function CreateListingStep2Page() {
               </SelectContent>
             </Select>
           </div>
-          {renderResaleSelect()}
+          {transactionType === "sale" && renderResaleSelect()}
+          {renderAgeOfBuilding()}
         </div>
       </div>
 
-      <div>
-        <h3 className="font-semibold mb-4">Possession & Status</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {renderPossessionFields()}
+      {transactionType === "sale" && (
+        <div>
+          <h3 className="font-semibold mb-4">Possession & Status</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {renderPossessionFields()}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 
