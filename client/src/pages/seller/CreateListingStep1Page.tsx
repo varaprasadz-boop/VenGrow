@@ -80,21 +80,11 @@ export default function CreateListingStep1Page() {
       return;
     }
     if (!authLoading && isAuthenticated) {
-      const templateId = localStorage.getItem("selectedFormTemplateId");
-      if (!templateId) {
-        navigate("/seller/select-form");
-        return;
-      }
       try {
         const savedData = localStorage.getItem("createListingStep1");
         if (savedData) {
           const parsed = JSON.parse(savedData);
           setFormData((prev) => ({ ...prev, ...parsed }));
-        } else {
-          const templateCategoryId = localStorage.getItem("selectedFormTemplateCategoryId");
-          if (templateCategoryId) {
-            setFormData((prev) => ({ ...prev, categoryId: templateCategoryId }));
-          }
         }
       } catch (e) {
         console.error("Error restoring step 1 data:", e);
@@ -298,7 +288,6 @@ export default function CreateListingStep1Page() {
                     <Select
                       value={formData.categoryId}
                       onValueChange={handleCategoryChange}
-                      disabled={!!localStorage.getItem("selectedFormTemplateCategoryId")}
                     >
                       <SelectTrigger id="category" data-testid="select-category">
                         <SelectValue placeholder="Select category" />
@@ -711,9 +700,6 @@ export default function CreateListingStep1Page() {
                     localStorage.removeItem("createListingStep2");
                     localStorage.removeItem("createListingStep3");
                     localStorage.removeItem("createListingRequestFeatured");
-                    localStorage.removeItem("selectedFormTemplateId");
-                    localStorage.removeItem("selectedFormTemplateName");
-                    localStorage.removeItem("selectedFormCategoryId");
                     navigate("/seller/listings");
                   }}
                 >

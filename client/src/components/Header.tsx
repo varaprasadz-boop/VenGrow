@@ -277,7 +277,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                   </Link>
                 )}
                 {isSeller && (
-                  <Link href="/seller/select-form">
+                  <Link href="/seller/listings/create/step1">
                     <Button data-testid="button-create-listing-header">
                       <Plus className="h-4 w-4 mr-1" />
                       Add Property
@@ -537,7 +537,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn, userType: propUserT
                                   My Listings
                                 </Button>
                               </Link>
-                              <Link href="/seller/select-form" onClick={() => setMobileMenuOpen(false)}>
+                              <Link href="/seller/listings/create/step1" onClick={() => setMobileMenuOpen(false)}>
                                 <Button variant="ghost" className="w-full justify-start">
                                   <Plus className="mr-2 h-4 w-4" />
                                   Add Property
