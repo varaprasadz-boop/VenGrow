@@ -234,7 +234,8 @@ export const sellerRoutes: RouteConfig[] = [
   { path: "/seller/dashboard", component: lazy(() => import("@/pages/seller/SellerDashboardPage")), requireAuth: true, roles: ["seller"], title: "Seller Dashboard" },
   
   // Property Management - Sidebar Links
-  { path: "/seller/property/add", component: lazy(() => import("@/pages/seller/CreateListingStep1Page")), requireAuth: true, roles: ["seller"], title: "Add Property" },
+  { path: "/seller/select-form", component: lazy(() => import("@/pages/seller/SelectFormPage")), requireAuth: true, roles: ["seller"], title: "Select Property Type" },
+  { path: "/seller/property/add", component: lazy(() => import("@/pages/seller/SelectFormPage")), requireAuth: true, roles: ["seller"], title: "Add Property" },
   { path: "/seller/properties", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller"], title: "My Properties" },
   { path: "/seller/listings", component: lazy(() => import("@/pages/seller/ManageListingsPage")), requireAuth: true, roles: ["seller"], title: "My Listings" },
   { path: "/seller/listings/edit/:id", component: lazy(() => import("@/pages/seller/CreatePropertyPage")), requireAuth: true, roles: ["seller"], title: "Edit Property" },

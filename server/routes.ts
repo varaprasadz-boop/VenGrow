@@ -11,7 +11,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { verifySuperadminCredentials, hashPassword, verifyPassword, validateEmail, validatePhone, validatePassword } from "./auth-utils";
 import * as emailService from "./email";
 import { db, pool } from "./db";
-import { properties, propertyViews, users, favorites, inquiries } from "@shared/schema";
+import { properties, propertyViews, users, favorites, inquiries, formTemplates, formSections, formFields } from "@shared/schema";
 import { eq, and, or, desc, sql, notInArray, gte, lte, inArray, isNull } from "drizzle-orm";
 
 const connectedClients = new Map<string, Set<WebSocket>>();

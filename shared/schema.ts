@@ -1201,3 +1201,63 @@ export type CompanyValue = typeof companyValues.$inferSelect;
 export type InsertHeroSlide = z.infer<typeof insertHeroSlideSchema>;
 export type HeroSlide = typeof heroSlides.$inferSelect;
 
+export const formTemplateStatusEnum = pgEnum("form_template_status", ["draft", "published", "archived"]);
+export const formFieldTypeEnum = pgEnum("form_field_type", ["text", "numeric", "alphanumeric", "textarea", "checkbox", "dropdown", "radio", "date", "file_upload", "map"]);
+
+export const formTemplates = pgTable("form_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  sellerType: sellerTypeEnum("seller_type").notNull(),
+  version: integer("version").notNull().default(1),
+  status: formTemplateStatusEnum("status").notNull().default("draft"),
+  assignedCategories: jsonb("assigned_categories"),
+  showPreviewBeforeSubmit: boolean("show_preview_before_submit").notNull().default(true),
+  allowSaveDraft: boolean("allow_save_draft").notNull().default(true),
+  autoApproval: boolean("auto_approval").notNull().default(false),
+  termsText: text("terms_text"),
+  seoMetaTitle: text("seo_meta_title"),
+  seoMetaDescription: text("seo_meta_description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  categoryId: varchar("category_id"),
+});
+
+export const formSections = pgTable("form_sections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  formTemplateId: varchar("form_template_id").notNull(),
+  stage: integer("stage").notNull(),
+  name: text("name").notNull(),
+  icon: text("icon"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  showInFilters: boolean("show_in_filters").notNull().default(false),
+  isDefault: boolean("is_default").notNull().default(true),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const formFields = pgTable("form_fields", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sectionId: varchar("section_id").notNull(),
+  label: text("label").notNull(),
+  fieldKey: text("field_key").notNull(),
+  fieldType: formFieldTypeEnum("field_type").notNull(),
+  icon: text("icon"),
+  placeholder: text("placeholder"),
+  isRequired: boolean("is_required").notNull().default(false),
+  isDefault: boolean("is_default").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  validationRules: jsonb("validation_rules"),
+  options: jsonb("options"),
+  fileConfig: jsonb("file_config"),
+  sourceType: text("source_type"),
+  linkedFieldKey: text("linked_field_key"),
+  defaultValue: text("default_value"),
+  displayStyle: text("display_style"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type FormTemplate = typeof formTemplates.$inferSelect;
+export type FormSection = typeof formSections.$inferSelect;
+export type FormField = typeof formFields.$inferSelect;
+
