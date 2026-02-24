@@ -1053,25 +1053,25 @@ export default function CreatePropertyPage() {
             description: "For independent house listings, please enter Total Units, Total Floors, Corner Property, and Lifts Available.",
             variant: "destructive",
           });
-        } else if (currentStep === 2 && (formData.propertyType === "plot" || formData.propertyType === "joint_venture")) {
+        } else if (currentStep === 2 && (formData.propertyType === "plot" || formData.propertyType === "joint_venture") && (!formData.plotLength || !formData.plotBreadth || !formData.isCornerPlot || !formData.roadWidthPlotMeters || !formData.clubHouseAvailable || (formData.transactionType === "sale" && !formData.floorAllowedConstruction))) {
           toast({
             title: "Plot details required",
             description: "For plot listings, please enter Plot Area, Length, Breadth, Corner Plot, Road width, and Club House. For sale, also enter Floor allowed for Construction.",
             variant: "destructive",
           });
-        } else if (currentStep === 2 && formData.propertyType === "commercial") {
+        } else if (currentStep === 2 && formData.propertyType === "commercial" && (!formData.area || !formData.facing?.trim())) {
           toast({
             title: "Commercial details required",
             description: "For commercial listings, please enter Available Area and Facing.",
             variant: "destructive",
           });
-        } else if (currentStep === 2 && formData.propertyType === "farmhouse") {
+        } else if (currentStep === 2 && formData.propertyType === "farmhouse" && (!formData.area || !formData.soilType?.trim() || !formData.fencing || !formData.waterSource?.trim() || !formData.titleClear || !formData.farmHouse)) {
           toast({
             title: "Farm details required",
             description: "For farm listings, please enter Land Area, Soil Type, Fencing, Water Source, Title Clear, and Farm House.",
             variant: "destructive",
           });
-        } else if (currentStep === 2 && formData.propertyType === "pg_co_living") {
+        } else if (currentStep === 2 && formData.propertyType === "pg_co_living" && (!formData.coLivingName?.trim() || !formData.pgGender?.trim() || !formData.pgListedFor?.trim() || !formData.pgRoomType?.trim() || !formData.pgWashRoomType?.trim() || !formData.pgNoticePeriod?.trim())) {
           toast({
             title: "PG/Co-living details required",
             description: "Please fill in all required PG/Co-living details (name, gender, listed for, room type, wash room, food, notice period, and at least one of facilities, rules, or services).",

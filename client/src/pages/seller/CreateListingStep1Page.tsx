@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, lazy, Suspense } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -14,11 +14,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StateSelect, CitySelect, PinCodeInput, PriceInput } from "@/components/ui/location-select";
-import { ArrowRight, ArrowLeft, Loader2, Building2, AlertCircle } from "lucide-react";
+import { ArrowRight, ArrowLeft, Loader2, Building2, AlertCircle, MapPin } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { PropertyCategory, PropertySubcategory, Project } from "@shared/schema";
+
+const LocationPicker = lazy(() => import("@/components/LocationPicker"));
 
 const projectStages = [
   { value: "pre_launch", label: "Pre-launch" },
@@ -63,6 +65,8 @@ export default function CreateListingStep1Page() {
     nearbyLandmark: "",
     projectSocietyName: "",
     projectId: "",
+    latitude: "",
+    longitude: "",
   });
 
   useEffect(() => {
@@ -592,6 +596,81 @@ export default function CreateListingStep1Page() {
                       }
                       data-testid="textarea-address"
                     />
+                  </div>
+
+                  <div className="md:col-span-2 space-y-4">
+                    <Label className="flex items-center gap-2 text-base font-semibold">
+                      <MapPin className="h-4 w-4" />
+                      Pin Location on Map
+                    </Label>
+                    <p className="text-xs text-muted-foreground -mt-2">
+                      Search for an address or click on the map to set the exact property location. This helps buyers find your property.
+                    </p>
+                    <Suspense fallback={
+                      <Card className="p-4">
+                        <div className="flex items-center justify-center h-48">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                      </Card>
+                    }>
+                      <LocationPicker
+                        latitude={formData.latitude ? parseFloat(formData.latitude) : undefined}
+                        longitude={formData.longitude ? parseFloat(formData.longitude) : undefined}
+                        onLocationChange={(lat, lng) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            latitude: lat.toString(),
+                            longitude: lng.toString(),
+                          }));
+                        }}
+                        onAddressSelect={(address) => {
+                          if (!formData.address) {
+                            setFormData(prev => ({ ...prev, address }));
+                          }
+                        }}
+                        defaultCity={formData.city || "Mumbai"}
+                        height="350px"
+                      />
+                    </Suspense>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="latitude" className="flex items-center gap-2">
+                          Latitude
+                        </Label>
+                        <Input
+                          id="latitude"
+                          type="text"
+                          placeholder="e.g., 19.076090"
+                          value={formData.latitude}
+                          onChange={(e) =>
+                            setFormData({ ...formData, latitude: e.target.value })
+                          }
+                          data-testid="input-latitude"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Enter latitude manually or select on map
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="longitude" className="flex items-center gap-2">
+                          Longitude
+                        </Label>
+                        <Input
+                          id="longitude"
+                          type="text"
+                          placeholder="e.g., 72.877426"
+                          value={formData.longitude}
+                          onChange={(e) =>
+                            setFormData({ ...formData, longitude: e.target.value })
+                          }
+                          data-testid="input-longitude"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Enter longitude manually or select on map
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -49,6 +49,8 @@ interface Step1Data {
   projectSocietyName: string;
   projectId: string;
   pricePerSqft?: string;
+  latitude?: string;
+  longitude?: string;
 }
 
 interface Step2Data {
@@ -356,6 +358,8 @@ export default function CreateListingStep4Page() {
       areaInLocality: step1Data.areaInLocality || null,
       nearbyLandmark: step1Data.nearbyLandmark || null,
       projectSocietyName: step1Data.projectSocietyName || null,
+      latitude: step1Data.latitude ? parseFloat(step1Data.latitude) : null,
+      longitude: step1Data.longitude ? parseFloat(step1Data.longitude) : null,
       youtubeVideoUrl: step3Data.youtubeVideoUrl || null,
       images: step3Data.photos || [],
       contactName: contactData.contactName.trim(),
@@ -688,6 +692,11 @@ export default function CreateListingStep4Page() {
                         {[step1Data.locality, step1Data.city, step1Data.state].filter(Boolean).join(", ")}
                       </span>
                     </div>
+                    {step1Data.latitude && step1Data.longitude && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3" data-testid="text-coordinates">
+                        <span>Map: {parseFloat(step1Data.latitude).toFixed(6)}, {parseFloat(step1Data.longitude).toFixed(6)}</span>
+                      </div>
+                    )}
                     <p className="text-2xl font-bold font-serif text-primary mb-4" data-testid="preview-price">
                       {formatPrice(step1Data.price)}
                       {(step1Data.transactionType === "rent" || step1Data.transactionType === "lease") && (
