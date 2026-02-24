@@ -42,7 +42,6 @@ import {
   Play,
   CalendarDays,
   Clock,
-  Edit,
 } from "lucide-react";
 
 function YouTubeEmbed({ url }: { url: string }) {
@@ -536,19 +535,6 @@ export default function PropertyDetailPage() {
                     </div>
                   )}
                   <div className="absolute top-4 right-4 flex gap-2">
-                    {isAdmin && property && property.id && (
-                      <Link href={`/admin/property/edit/${property.id}`}>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="bg-background/90 backdrop-blur-sm"
-                          data-testid="button-admin-edit"
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit Property
-                        </Button>
-                      </Link>
-                    )}
                     <Button
                       variant="ghost"
                       size="icon"

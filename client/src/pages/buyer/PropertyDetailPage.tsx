@@ -25,7 +25,6 @@ import {
   CheckCircle,
   Flag,
   Loader2,
-  Edit,
   Scale,
 } from "lucide-react";
 import { useCompareOptional } from "@/contexts/CompareContext";
@@ -251,18 +250,6 @@ export default function PropertyDetailPage() {
             </div>
           )}
           <div className="absolute top-4 right-4 flex gap-2">
-            {isAdmin && (
-              <Link href={`/admin/property/edit/${propertyId}`}>
-                <Button
-                  size="sm"
-                  variant="default"
-                  data-testid="button-admin-edit"
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Property
-                </Button>
-              </Link>
-            )}
             <Button
               size="sm"
               variant="secondary"

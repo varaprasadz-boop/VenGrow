@@ -28,7 +28,6 @@ import {
   XCircle,
   RefreshCw,
   AlertCircle,
-  Edit,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
@@ -240,15 +239,6 @@ export default function PendingPropertiesPage() {
                           <Link href={`/property/${property.id}`}>
                             <Button variant="ghost" size="sm" data-testid={`button-view-${property.id}`}>
                               <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Link href={`/admin/property/edit/${property.id}`}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              data-testid={`button-edit-${property.id}`}
-                            >
-                              <Edit className="h-4 w-4" />
                             </Button>
                           </Link>
                           <Button

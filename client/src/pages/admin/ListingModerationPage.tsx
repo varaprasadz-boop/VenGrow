@@ -29,7 +29,6 @@ import {
   FileEdit,
   User,
   Calendar,
-  Edit,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
@@ -384,17 +383,6 @@ export default function ListingModerationPage() {
                             <Eye className="h-4 w-4 lg:mr-2" />
                             <span className="hidden lg:inline">View Listing</span>
                           </Button>
-                          <Link href={`/admin/property/edit/${approval.propertyId}`}>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 lg:flex-none"
-                              data-testid={`button-edit-${approval.id}`}
-                            >
-                              <Edit className="h-4 w-4 lg:mr-2" />
-                              <span className="hidden lg:inline">Edit</span>
-                            </Button>
-                          </Link>
                           {approval.status === "pending" && (
                             <>
                               <Button

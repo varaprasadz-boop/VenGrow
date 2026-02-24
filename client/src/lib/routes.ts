@@ -382,7 +382,6 @@ export const adminRoutes: RouteConfig[] = [
   { path: "/admin/listing-moderation", component: lazy(() => import("@/pages/admin/ListingModerationPage")), requireAuth: true, roles: ["admin"], title: "Listing Moderation" },
   { path: "/admin/listings", component: lazy(() => import("@/pages/admin/ListingModerationPage")), requireAuth: true, roles: ["admin"], title: "Listing Moderation" },
   { path: "/admin/properties", component: lazy(() => import("@/pages/admin/PropertiesPage")), requireAuth: true, roles: ["admin"], title: "All Properties" },
-  { path: "/admin/property/edit/:id", component: lazy(() => import("@/pages/seller/CreatePropertyPage")), requireAuth: true, roles: ["admin"], title: "Edit Property" },
   { path: "/admin/featured", component: lazy(() => import("@/pages/admin/FeaturedListingsPage")), requireAuth: true, roles: ["admin"], title: "Featured Properties" },
   { path: "/admin/featured-listings", component: lazy(() => import("@/pages/admin/FeaturedListingsPage")), requireAuth: true, roles: ["admin"], title: "Featured Listings" },
   { path: "/admin/pending-properties", component: lazy(() => import("@/pages/admin/PendingPropertiesPage")), requireAuth: true, roles: ["admin"], title: "Pending Properties" },
