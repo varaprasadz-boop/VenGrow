@@ -92,24 +92,28 @@ export default function PropertyCard({
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!loggedIn) {
-      if (onFavoriteClick) {
-        onFavoriteClick(id);
-      } else {
-        toast({
-          title: "Please log in",
-          description: "You need to be logged in to save favorites.",
-          variant: "destructive",
-        });
-        const redirect = encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "/");
-        window.location.href = `/login?redirect=${redirect}`;
+    // When parent provides onFavoriteClick, always call it (API will return 401 if not logged in)
+    if (onFavoriteClick) {
+      if (isFavoritedProp === undefined) {
+        setLocalFavorited((prev) => !prev);
       }
+      onFavoriteClick(id);
+      return;
+    }
+    // No handler: gate on logged-in and show toast or redirect
+    if (!loggedIn) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to save favorites.",
+        variant: "destructive",
+      });
+      const redirect = encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "/");
+      window.location.href = `/login?redirect=${redirect}`;
       return;
     }
     if (isFavoritedProp === undefined) {
       setLocalFavorited((prev) => !prev);
     }
-    onFavoriteClick?.(id);
   };
 
   const handleCompareClick = (e: React.MouseEvent) => {

@@ -334,8 +334,9 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
   ]);
 
   return (
-    <div className="w-full space-y-4">
-      <div className="flex items-center justify-between pb-4 border-b">
+    <div className="flex flex-col h-full min-h-0 w-full">
+      {/* Header: always visible */}
+      <div className="flex items-center justify-between pb-4 border-b shrink-0">
         <div className="flex items-center gap-2">
           <Filter className="h-5 w-5" />
           <h2 className="font-semibold text-lg">Filters</h2>
@@ -353,6 +354,8 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
         </Button>
       </div>
 
+      {/* Scrollable filter sections */}
+      <div className="flex-1 min-h-0 overflow-y-auto py-4">
       <Accordion type="multiple" value={accordionValue} onValueChange={setAccordionValue} className="w-full">
         <AccordionItem value="category">
           <AccordionTrigger>
@@ -626,8 +629,10 @@ export default function FilterSidebar({ onApplyFilters, initialCategory, initial
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+      </div>
 
-      <div className="space-y-2">
+      {/* Footer: Apply always visible */}
+      <div className="shrink-0 pt-4 border-t space-y-2">
         <Button className="w-full" onClick={handleApply} data-testid="button-apply-filters">
           Apply Filters
         </Button>

@@ -17,12 +17,17 @@ import { formTemplates, formSections, formFields } from "@shared/schema";
 
 const connectedClients = new Map<string, Set<WebSocket>>();
 
-// Helper function to get user ID from either OIDC or local session auth
+// Helper function to get user ID from either OIDC, local session, or admin session auth
 function getAuthenticatedUserId(req: any): string | null {
   // Check local session first (email/password auth)
   const localUser = (req.session as any)?.localUser;
   if (localUser?.id) {
     return localUser.id;
+  }
+  // Check admin session (admin/superadmin can use buyer features like favorites)
+  const adminUser = (req.session as any)?.adminUser;
+  if (adminUser?.id) {
+    return adminUser.id;
   }
   // Check OIDC auth
   if (req.user?.claims?.sub) {

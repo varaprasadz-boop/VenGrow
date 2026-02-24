@@ -134,11 +134,10 @@ export default function PropertyDetailPage() {
 
   const isFavorited = !!id && favorites.some((p: Property) => p.id === id);
 
-  // Add/remove favorite mutation
+  // Add/remove favorite mutation (always try API; show "log in" only on 401)
   const favoriteMutation = useMutation({
     mutationFn: async () => {
       if (!id) throw new Error("Property not found");
-      if (!user) throw new Error("Please log in to save favorites");
       if (isFavorited) {
         await apiRequest("DELETE", "/api/me/favorites", { propertyId: id });
       } else {
@@ -153,9 +152,10 @@ export default function PropertyDetailPage() {
       });
     },
     onError: (error: Error) => {
+      const isUnauthorized = error?.message?.includes("401") || error?.message?.toLowerCase().includes("unauthorized");
       toast({
-        title: "Failed to update favorites",
-        description: error?.message || "Please try again.",
+        title: isUnauthorized ? "Please log in" : "Failed to update favorites",
+        description: isUnauthorized ? "You need to be logged in to save favorites." : (error?.message || "Please try again."),
         variant: "destructive",
       });
     },
@@ -401,14 +401,6 @@ export default function PropertyDetailPage() {
   };
 
   const handleFavoriteClick = () => {
-    if (!user) {
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to save favorites.",
-        variant: "destructive",
-      });
-      return;
-    }
     favoriteMutation.mutate();
   };
 

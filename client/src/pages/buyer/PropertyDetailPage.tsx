@@ -58,7 +58,6 @@ export default function PropertyDetailPage() {
   const favoriteMutation = useMutation({
     mutationFn: async (add: boolean) => {
       if (!property?.id) throw new Error("Property not loaded");
-      if (!user) throw new Error("Please log in to save favorites");
       if (add) {
         return apiRequest("POST", "/api/me/favorites", {
           propertyId: property.id,
@@ -77,23 +76,16 @@ export default function PropertyDetailPage() {
       });
     },
     onError: (error: Error) => {
+      const isUnauthorized = error?.message?.includes("401") || error?.message?.toLowerCase().includes("unauthorized");
       toast({
-        title: "Failed to update favorites",
-        description: error?.message || "Please try again.",
+        title: isUnauthorized ? "Please log in" : "Failed to update favorites",
+        description: isUnauthorized ? "You need to be logged in to save favorites." : (error?.message || "Please try again."),
         variant: "destructive",
       });
     },
   });
 
   const handleFavorite = () => {
-    if (!user) {
-      toast({
-        title: "Please login to save favorites",
-        variant: "destructive",
-      });
-      setLocation("/login");
-      return;
-    }
     favoriteMutation.mutate(!isFavorited);
   };
 

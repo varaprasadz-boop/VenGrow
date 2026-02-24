@@ -10,7 +10,6 @@ import PropertyCard from "@/components/PropertyCard";
 import PropertyMapView from "@/components/PropertyMapView";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,6 +56,49 @@ export default function ListingsPage() {
   const { user } = useAuth();
   const itemsPerPage = 20;
   const { toast } = useToast();
+
+  // Favorites: fetch with 401 → [] so we don't block on auth state
+  const { data: favoritesList = [] } = useQuery<Property[]>({
+    queryKey: ["/api/me/favorites"],
+    queryFn: async () => {
+      const res = await fetch("/api/me/favorites", { credentials: "include" });
+      if (res.status === 401) return [];
+      if (!res.ok) throw new Error("Failed to fetch favorites");
+      return res.json();
+    },
+    retry: false,
+  });
+  const favoriteIds = useMemo(() => new Set((favoritesList || []).map((p) => p.id)), [favoritesList]);
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async ({ propertyId, isFav }: { propertyId: string; isFav: boolean }) => {
+      if (isFav) {
+        await apiRequest("DELETE", "/api/me/favorites", { propertyId });
+      } else {
+        await apiRequest("POST", "/api/me/favorites", { propertyId });
+      }
+    },
+    onSuccess: (_, { propertyId, isFav }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/me/favorites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/me/dashboard"] });
+      toast({
+        title: isFav ? "Removed from favorites" : "Added to favorites",
+      });
+    },
+    onError: (error: Error) => {
+      const isUnauthorized = error?.message?.includes("401") || error?.message?.toLowerCase().includes("unauthorized");
+      toast({
+        title: isUnauthorized ? "Please log in" : "Failed to update favorites",
+        description: isUnauthorized ? "You need to be logged in to save favorites." : (error?.message || "Please try again."),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFavoriteClick = useCallback((propertyId: string) => {
+    const isFav = favoriteIds.has(propertyId);
+    toggleFavoriteMutation.mutate({ propertyId, isFav });
+  }, [favoriteIds, toggleFavoriteMutation]);
 
   // Parse URL parameters from search string (useSearch may return with or without leading "?")
   const urlParams = useMemo(() => {
@@ -578,11 +620,13 @@ export default function ListingsPage() {
           {/* Desktop Filter Sidebar - toggleable for larger view */}
           {filterSidebarOpen && (
             <aside className="hidden lg:flex lg:flex-col w-64 flex-shrink-0 min-h-0 overflow-hidden pr-2">
-              <FilterSidebar 
-                onApplyFilters={handleApplyFilters}
-                initialCategory={filters.category}
-                initialFilters={filters}
-              />
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                <FilterSidebar 
+                  onApplyFilters={handleApplyFilters}
+                  initialCategory={filters.category}
+                  initialFilters={filters}
+                />
+              </div>
             </aside>
           )}
 
@@ -753,20 +797,7 @@ export default function ListingsPage() {
                         </Button>
                       </SheetTrigger>
                       <SheetContent side="left" className="w-80 p-0 flex flex-col h-full">
-                        <div className="p-4 border-b">
-                          <h2 className="font-semibold text-lg">Filters</h2>
-                          {Object.keys(filters).length > 0 && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {Object.keys(filters).filter(k => {
-                                const val = filters[k as keyof FilterState];
-                                if (Array.isArray(val)) return val.length > 0;
-                                if (typeof val === 'object' && val !== null) return true;
-                                return val && val !== "all" && val !== "";
-                              }).length} filter(s) applied
-                            </p>
-                          )}
-                        </div>
-                        <ScrollArea className="flex-1">
+                        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                           <div className="p-4">
                             <FilterSidebar 
                               onApplyFilters={handleApplyFilters}
@@ -774,7 +805,7 @@ export default function ListingsPage() {
                               initialFilters={filters}
                             />
                           </div>
-                        </ScrollArea>
+                        </div>
                       </SheetContent>
                     </Sheet>
                   </div>
@@ -822,7 +853,14 @@ export default function ListingsPage() {
                       : "space-y-4"
                   }>
                     {paginatedProperties.map((property) => (
-                      <PropertyCard key={property.id} {...property} variant={viewType === "list" ? "list" : "grid"} />
+                      <PropertyCard
+                        key={property.id}
+                        {...property}
+                        variant={viewType === "list" ? "list" : "grid"}
+                        isLoggedIn={!!user}
+                        isFavorited={favoriteIds.has(property.id)}
+                        onFavoriteClick={handleFavoriteClick}
+                      />
                     ))}
                   </div>
 
