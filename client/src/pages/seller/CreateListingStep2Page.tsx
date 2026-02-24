@@ -873,17 +873,25 @@ export default function CreateListingStep2Page() {
       <div>
         <h3 className="font-semibold mb-4">Plot Features</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label>Floor Allowed for Construction</Label>
-            <Input type="number" placeholder="e.g., 4" value={formData.floorAllowedConstruction} onChange={(e) => setFormData({ ...formData, floorAllowedConstruction: e.target.value })} data-testid="input-floor-allowed" />
-          </div>
+          {transactionType === "sale" && (
+            <div className="space-y-2">
+              <Label>Floor Allowed for Construction</Label>
+              <Input type="number" placeholder="e.g., 4" value={formData.floorAllowedConstruction} onChange={(e) => setFormData({ ...formData, floorAllowedConstruction: e.target.value })} data-testid="input-floor-allowed" />
+            </div>
+          )}
+          {transactionType === "rent" && (
+            <div className="space-y-2">
+              <Label>Floor Number</Label>
+              <Input type="number" placeholder="e.g., 2" value={formData.floorNumber} onChange={(e) => setFormData({ ...formData, floorNumber: e.target.value })} data-testid="input-floor-number" />
+            </div>
+          )}
           {renderMaintenanceInput()}
           <div className="space-y-2">
             <Label>Width of Road Facing Plot (meters)</Label>
             <Input type="number" placeholder="e.g., 12" value={formData.roadWidthPlotMeters} onChange={(e) => setFormData({ ...formData, roadWidthPlotMeters: e.target.value })} data-testid="input-road-width-plot" />
           </div>
           {renderOverlookingSelect()}
-          {renderResaleSelect()}
+          {transactionType === "sale" && renderResaleSelect()}
           <div className="space-y-2">
             <Label>Club House Available?</Label>
             <Select value={formData.clubHouseAvailable} onValueChange={(v) => setFormData({ ...formData, clubHouseAvailable: v })}>
@@ -896,6 +904,43 @@ export default function CreateListingStep2Page() {
           </div>
         </div>
       </div>
+
+      {(transactionType === "rent" || transactionType === "lease") && (
+        <div>
+          <h3 className="font-semibold mb-4">{transactionType === "rent" ? "Rent Details" : "Lease Details"}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {transactionType === "rent" && (
+              <div className="space-y-2">
+                <Label>Monthly Rent (Rs.)</Label>
+                <Input type="number" placeholder="e.g., 25000" value={formData.monthlyRent} onChange={(e) => setFormData({ ...formData, monthlyRent: e.target.value })} data-testid="input-monthly-rent" />
+              </div>
+            )}
+            {transactionType === "lease" && (
+              <div className="space-y-2">
+                <Label>Lease Amount (Rs.)</Label>
+                <Input type="number" placeholder="e.g., 500000" value={formData.leaseAmount} onChange={(e) => setFormData({ ...formData, leaseAmount: e.target.value })} data-testid="input-lease-amount" />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Security Deposit (Rs.)</Label>
+              <Input type="number" placeholder="e.g., 50000" value={formData.securityDeposit} onChange={(e) => setFormData({ ...formData, securityDeposit: e.target.value })} data-testid="input-security-deposit" />
+            </div>
+            <div className="space-y-2">
+              <Label>Lock-in Period (months)</Label>
+              <Select value={formData.lockInPeriod} onValueChange={(v) => setFormData({ ...formData, lockInPeriod: v })}>
+                <SelectTrigger data-testid="select-lock-in-period"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,36].map(n => <SelectItem key={n} value={String(n)}>{n} {n === 1 ? "month" : "months"}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Available From</Label>
+              <Input type="date" value={formData.availableFrom} onChange={(e) => setFormData({ ...formData, availableFrom: e.target.value })} data-testid="input-available-from" />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 
