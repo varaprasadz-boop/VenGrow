@@ -37,14 +37,6 @@ export default function CreateListingStep3Page() {
     }
 
     if (!authLoading && isAuthenticated) {
-      const templateId = localStorage.getItem("selectedFormTemplateId");
-      if (!templateId) {
-        navigate("/seller/select-form");
-        return;
-      }
-    }
-
-    if (!authLoading && isAuthenticated) {
       const step1Data = localStorage.getItem("createListingStep1");
       const step2Data = localStorage.getItem("createListingStep2");
 

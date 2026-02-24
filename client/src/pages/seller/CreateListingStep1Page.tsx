@@ -69,8 +69,6 @@ export default function CreateListingStep1Page() {
     longitude: "",
   });
 
-  const [templateCategoryId, setTemplateCategoryId] = useState<string | null>(null);
-
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
@@ -82,12 +80,6 @@ export default function CreateListingStep1Page() {
       return;
     }
     if (!authLoading && isAuthenticated) {
-      const templateId = localStorage.getItem("selectedFormTemplateId");
-      if (!templateId) {
-        navigate("/seller/select-form");
-        return;
-      }
-
       try {
         const savedData = localStorage.getItem("createListingStep1");
         if (savedData) {
@@ -97,16 +89,6 @@ export default function CreateListingStep1Page() {
       } catch (e) {
         console.error("Error restoring step 1 data:", e);
       }
-
-      fetch(`/api/form-templates/${templateId}`)
-        .then((r) => r.ok ? r.json() : null)
-        .then((template) => {
-          if (template?.categoryId) {
-            setTemplateCategoryId(template.categoryId);
-            setFormData((prev) => prev.categoryId ? prev : { ...prev, categoryId: template.categoryId, subcategoryId: "" });
-          }
-        })
-        .catch(() => {});
     }
   }, [authLoading, isAuthenticated, navigate, toast]);
 
@@ -305,7 +287,6 @@ export default function CreateListingStep1Page() {
                     <Select
                       value={formData.categoryId}
                       onValueChange={handleCategoryChange}
-                      disabled={!!templateCategoryId}
                     >
                       <SelectTrigger id="category" data-testid="select-category">
                         <SelectValue placeholder="Select category" />
@@ -318,9 +299,6 @@ export default function CreateListingStep1Page() {
                         ))}
                       </SelectContent>
                     </Select>
-                  )}
-                  {templateCategoryId && (
-                    <p className="text-xs text-muted-foreground">Category is set by the selected form type</p>
                   )}
                 </div>
 
