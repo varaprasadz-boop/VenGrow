@@ -1777,6 +1777,7 @@ export default function CreateListingStep2Page() {
       case "farm-land":
       case "farmland":
         return renderFarmLandForm();
+      case "pg-coliving":
       case "pg-hostel":
       case "pg":
       case "hostel":
@@ -1810,6 +1811,7 @@ export default function CreateListingStep2Page() {
       case "farm-land":
       case "farmland":
         return "Farm Land Details";
+      case "pg-coliving":
       case "pg-hostel":
       case "pg":
       case "hostel":
